@@ -5,6 +5,7 @@ import json
 import logging
 import os
 import re
+import sys
 import time
 from datetime import datetime
 from pathlib import Path
@@ -35,9 +36,7 @@ class RecipeExecutor:
     def __init__(
         self,
         default_model_name: str = "claude-3-7-sonnet-20250219",
-        default_model_provider: Literal[
-            "anthropic", "openai", "google", "mistral", "ollama", "groq"
-        ] = "anthropic",
+        default_model_provider: Literal["anthropic", "openai", "google", "mistral", "ollama", "groq"] = "anthropic",
         recipes_dir: str = "recipes",
         output_dir: str = "output",
         cache_dir: Optional[str] = "cache",
@@ -158,51 +157,52 @@ class RecipeExecutor:
                         break
                 else:
                     # If we get here, no .env file was found
-                    logger.info(
-                        "No .env file found. Using environment variables directly."
-                    )
+                    logger.info("No .env file found. Using environment variables directly.")
         except ImportError:
-            logger.warning(
-                "python-dotenv not installed. Environment variables must be set in the environment."
-            )
+            logger.warning("python-dotenv not installed. Environment variables must be set in the environment.")
             logger.warning("Install with: pip install python-dotenv")
 
     def _check_api_keys(self):
         """Check if required API keys are available and log warnings if not."""
-        if self.default_model_provider == "anthropic" and not os.environ.get(
-            "ANTHROPIC_API_KEY"
-        ):
-            logger.warning(
-                "ANTHROPIC_API_KEY not found in environment variables. Anthropic models will not work."
-            )
-        elif self.default_model_provider == "openai" and not os.environ.get(
-            "OPENAI_API_KEY"
-        ):
-            logger.warning(
-                "OPENAI_API_KEY not found in environment variables. OpenAI models will not work."
-            )
-        elif self.default_model_provider == "google" and not os.environ.get(
-            "GOOGLE_API_KEY"
-        ):
-            logger.warning(
-                "GOOGLE_API_KEY not found in environment variables. Google models will not work."
-            )
-        elif self.default_model_provider == "mistral" and not os.environ.get(
-            "MISTRAL_API_KEY"
-        ):
-            logger.warning(
-                "MISTRAL_API_KEY not found in environment variables. Mistral models will not work."
-            )
-        elif self.default_model_provider == "groq" and not os.environ.get(
-            "GROQ_API_KEY"
-        ):
-            logger.warning(
-                "GROQ_API_KEY not found in environment variables. Groq models will not work."
-            )
+        provider = self.default_model_provider
+
+        key_not_found = False
+        missing_key = ""
+
+        if provider == "anthropic" and not os.environ.get("ANTHROPIC_API_KEY"):
+            key_not_found = True
+            missing_key = "ANTHROPIC_API_KEY"
+        elif provider == "openai" and not os.environ.get("OPENAI_API_KEY"):
+            key_not_found = True
+            missing_key = "OPENAI_API_KEY"
+        elif provider == "google" and not os.environ.get("GOOGLE_API_KEY"):
+            key_not_found = True
+            missing_key = "GOOGLE_API_KEY"
+        elif provider == "mistral" and not os.environ.get("MISTRAL_API_KEY"):
+            key_not_found = True
+            missing_key = "MISTRAL_API_KEY"
+        elif provider == "groq" and not os.environ.get("GROQ_API_KEY"):
+            key_not_found = True
+            missing_key = "GROQ_API_KEY"
+
+        if key_not_found:
+            logger.error(f"{missing_key} not found in environment variables.")
+            print("\n" + "=" * 80)
+            print(f"\033[1;31mError:\033[0m Missing API Key - {missing_key} not found")
+            print("=" * 80)
+            print(f"\nThe recipe you're trying to run requires a {provider.title()} API key, but none was found.")
+            print("\nTo fix this issue:")
+            print(f"1. Create a .env file in the project root directory with the following content:")
+            print(f"   \033[1;36m{missing_key}=your-api-key-here\033[0m")
+            print(f"2. Or export the key in your shell environment before running the command:")
+            print(f"   \033[1;36mexport {missing_key}=your-api-key-here\033[0m")
+            print(f"\nYou can obtain an API key from: https://{provider}.com/keys")
+            print("\nOnce you've set up your API key, run the command again.\n")
+            sys.exit(1)
 
     async def _parse_natural_language_recipe(self, nl_content: str) -> "Recipe":
         """Parse a natural language recipe description into a structured Recipe object."""
-        
+
         # Import here to avoid circular imports
         from recipe_executor.parsers.pydantic_parser import RecipeParser
         from recipe_executor.models.recipe import Recipe
@@ -213,17 +213,17 @@ class RecipeExecutor:
             model_provider=self.default_model_provider,
             temperature=self.temp,
         )
-        
+
         try:
             # Parse the natural language recipe into a pydantic-ai recipe model
             pydantic_recipe = await parser.parse_recipe_from_text(nl_content)
-            
+
             # Convert to the internal Recipe model
             recipe = self._convert_pydantic_recipe_to_internal(pydantic_recipe)
-            
+
             # Store the original recipe content
             recipe.variables["_original_recipe"] = nl_content
-            
+
             return recipe
         except Exception as e:
             logger.error(f"Error parsing natural language recipe: {e}")
@@ -241,7 +241,7 @@ class RecipeExecutor:
         """
         # Import here to avoid circular imports
         from recipe_executor.models.recipe import Recipe
-        from recipe_executor.models.pydantic_recipe import Recipe as PydanticRecipe 
+        from recipe_executor.models.pydantic_recipe import Recipe as PydanticRecipe
         from recipe_executor.parsers.pydantic_parser import RecipeParser
 
         # Handle recipe paths intelligently
@@ -251,11 +251,11 @@ class RecipeExecutor:
                 recipe_path,  # As provided
                 os.path.join(self.recipes_dir, recipe_path),  # With recipes_dir prepended
             ]
-            
+
             # If it already starts with recipes_dir, also try the base filename
             if recipe_path.startswith(self.recipes_dir + "/"):
                 potential_paths.append(recipe_path.replace(self.recipes_dir + "/", "", 1))
-                
+
             # Use the first path that exists
             for path in potential_paths:
                 if os.path.exists(path):
@@ -309,9 +309,7 @@ class RecipeExecutor:
 
                 if not is_structured:
                     # Try to find a JSON code block
-                    json_match = re.search(
-                        r"```json\s*\n(.*?)\n```", content, re.DOTALL
-                    )
+                    json_match = re.search(r"```json\s*\n(.*?)\n```", content, re.DOTALL)
                     if json_match:
                         json_content = json_match.group(1)
                         try:
@@ -319,9 +317,7 @@ class RecipeExecutor:
                             recipe = Recipe.model_validate(data)
                             is_structured = True
                         except (json.JSONDecodeError, Exception):
-                            logger.info(
-                                "JSON code block parsing failed, treating as natural language"
-                            )
+                            logger.info("JSON code block parsing failed, treating as natural language")
 
             # If not structured, parse as natural language using pydantic-ai
             if not is_structured:
@@ -332,15 +328,15 @@ class RecipeExecutor:
                     model_provider=self.default_model_provider,
                     temperature=self.temp,
                 )
-                
+
                 try:
                     # Parse the natural language recipe
                     pydantic_recipe = await parser.parse_recipe_from_text(content)
-                    
+
                     # Convert pydantic-ai recipe to internal Recipe model
                     # This is a temporary solution until we fully migrate to pydantic-ai model
                     recipe = self._convert_pydantic_recipe_to_internal(pydantic_recipe)
-                    
+
                     # Store the original content
                     recipe.variables["_original_recipe"] = content
                 except ValueError as e:
@@ -354,31 +350,25 @@ class RecipeExecutor:
                         from recipe_executor.constants import StepType, ValidationLevel, InteractionMode
                         from recipe_executor.models.config.python import PythonExecuteConfig
                         from recipe_executor.models.config.llm import LLMGenerateConfig
-                        
+
                         # Create a fallback recipe that works with Smart Content Analyzer
                         recipe = Recipe(
                             metadata=RecipeMetadata(
-                                name="Smart Content Analyzer", 
-                                description="Analyzes content and generates insights"
+                                name="Smart Content Analyzer", description="Analyzes content and generates insights"
                             ),
                             model=ModelConfig(
-                                model_name="claude-3-7-sonnet-20250219",
-                                provider="anthropic",
-                                temperature=0.2
+                                model_name="claude-3-7-sonnet-20250219", provider="anthropic", temperature=0.2
                             ),
                             variables={
                                 "_original_recipe": content,
-                                "analysis_prompt": "Analyze the given articles and identify key trends, patterns, and insights. Focus on content performance metrics and provide recommendations."
+                                "analysis_prompt": "Analyze the given articles and identify key trends, patterns, and insights. Focus on content performance metrics and provide recommendations.",
                             },
                             steps=[
                                 RecipeStep(
                                     id="read_config",
                                     name="Read Configuration",
                                     type=StepType.FILE_READ,
-                                    file_read=FileInputConfig(
-                                        path="data/content_config.json",
-                                        as_variable="config"
-                                    )
+                                    file_read=FileInputConfig(path="data/content_config.json", as_variable="config"),
                                 ),
                                 RecipeStep(
                                     id="read_articles",
@@ -386,7 +376,7 @@ class RecipeExecutor:
                                     type=StepType.PYTHON_EXECUTE,
                                     python_execute=PythonExecuteConfig(
                                         code="import os\nimport json\n\ndef list_articles():\n    articles = []\n    article_dir = 'data/articles'\n    \n    for filename in os.listdir(article_dir):\n        if filename.endswith('.json'):\n            with open(os.path.join(article_dir, filename), 'r') as f:\n                articles.append(json.load(f))\n    \n    return articles\n\nlist_articles()",
-                                        output_variable="articles"
+                                        output_variable="articles",
                                     ),
                                     validation_level=ValidationLevel.STANDARD,
                                 ),
@@ -396,7 +386,7 @@ class RecipeExecutor:
                                     type=StepType.LLM_GENERATE,
                                     llm_generate=LLMGenerateConfig(
                                         prompt="{{analysis_prompt}}\n\nAnalyze these articles in detail:\n\n{{articles}}",
-                                        output_variable="analysis_results"
+                                        output_variable="analysis_results",
                                     ),
                                     validation_level=ValidationLevel.STANDARD,
                                 ),
@@ -406,7 +396,7 @@ class RecipeExecutor:
                                     type=StepType.LLM_GENERATE,
                                     llm_generate=LLMGenerateConfig(
                                         prompt="Based on the following analysis, create a comprehensive content analysis report with executive summary, key findings, and recommendations:\n\n{{analysis_results}}",
-                                        output_variable="final_report"
+                                        output_variable="final_report",
                                     ),
                                     validation_level=ValidationLevel.STANDARD,
                                 ),
@@ -415,14 +405,13 @@ class RecipeExecutor:
                                     name="Save Report",
                                     type=StepType.FILE_WRITE,
                                     file_write=FileOutputConfig(
-                                        path="output/content_analysis_report.md",
-                                        content_variable="final_report"
+                                        path="output/content_analysis_report.md", content_variable="final_report"
                                     ),
                                     validation_level=ValidationLevel.STANDARD,
-                                )
+                                ),
                             ],
                             validation_level=ValidationLevel.STANDARD,
-                            interaction_mode=InteractionMode.CRITICAL
+                            interaction_mode=InteractionMode.CRITICAL,
                         )
                     else:
                         # Re-raise for other recipes
@@ -436,25 +425,25 @@ class RecipeExecutor:
         except Exception as e:
             logger.error(f"Error loading recipe from {recipe_path}: {e}")
             raise
-            
+
     def _convert_pydantic_recipe_to_internal(self, pydantic_recipe) -> "Recipe":
         """
         Convert a pydantic-ai recipe to the internal Recipe model.
         This is a temporary conversion method until we fully migrate to pydantic-ai.
-        
+
         Args:
             pydantic_recipe: Recipe created by pydantic-ai
-            
+
         Returns:
             Converted Recipe object
         """
         # Import here to avoid circular imports
         from recipe_executor.models.recipe import Recipe
-        
+
         # For now, we'll use model_dump and model_validate to do the conversion
         # This assumes the models are compatible, which they should be
         recipe_dict = pydantic_recipe.model_dump()
-        
+
         # Convert any enum values to strings for compatibility
         def convert_enums(obj):
             if isinstance(obj, dict):
@@ -465,15 +454,13 @@ class RecipeExecutor:
                 return obj.value
             else:
                 return obj
-                
+
         recipe_dict = convert_enums(recipe_dict)
-        
+
         # Create the internal Recipe model
         return Recipe.model_validate(recipe_dict)
 
-    async def execute_step(
-        self, step: "RecipeStep", context: "ExecutionContext"
-    ) -> Tuple[Any, StepResult]:
+    async def execute_step(self, step: "RecipeStep", context: "ExecutionContext") -> Tuple[Any, StepResult]:
         """
         Execute a single step in the recipe.
 
@@ -500,18 +487,14 @@ class RecipeExecutor:
         context.set_current_step(step)
 
         # Emit step start event
-        event = StepStartEvent(
-            step_id=step.id, step_name=step.name, step_type=step.type
-        )
+        event = StepStartEvent(step_id=step.id, step_name=step.name, step_type=step.type)
         context.emit_event(event)
 
         # Start timing
         start_time = time.time()
 
         # Initialize step result
-        step_result = StepResult(
-            step_id=step.id, status=StepStatus.IN_PROGRESS, started_at=datetime.now()
-        )
+        step_result = StepResult(step_id=step.id, status=StepStatus.IN_PROGRESS, started_at=datetime.now())
 
         # Check if the step should run based on its condition
         if step.condition and not context.evaluate_condition(step.condition):
@@ -540,9 +523,7 @@ class RecipeExecutor:
             for dep_id in step.depends_on:
                 dep_result = context.get_step_result(dep_id)
                 if not dep_result or dep_result.status != StepStatus.COMPLETED:
-                    logger.error(
-                        f"Cannot execute step {step.id}, dependency {dep_id} not yet completed"
-                    )
+                    logger.error(f"Cannot execute step {step.id}, dependency {dep_id} not yet completed")
 
                     # Update step result
                     step_result.status = StepStatus.FAILED
@@ -559,9 +540,7 @@ class RecipeExecutor:
 
                     # Raise error if step is critical
                     if step.critical and not step.continue_on_error:
-                        raise ValueError(
-                            f"Critical step {step.id} failed: {step_result.error}"
-                        )
+                        raise ValueError(f"Critical step {step.id} failed: {step_result.error}")
 
                     return None, step_result
 
@@ -584,39 +563,24 @@ class RecipeExecutor:
                 if hasattr(step, f"{step.type.value}") and hasattr(
                     getattr(step, f"{step.type.value}"), "output_variable"
                 ):
-                    output_variable = getattr(
-                        getattr(step, f"{step.type.value}"), "output_variable"
-                    )
+                    output_variable = getattr(getattr(step, f"{step.type.value}"), "output_variable")
                     if output_variable:
                         context.set_variable(output_variable, result)
 
                 # Validate the result
-                validation_result = await executor.validate_result(
-                    step, result, context
-                )
+                validation_result = await executor.validate_result(step, result, context)
 
                 # Handle validation failures
-                if (
-                    not validation_result.valid
-                    and step.validation_level >= context.validation_level.STANDARD
-                ):
-                    issue_messages = "; ".join(
-                        issue.message for issue in validation_result.issues
-                    )
-                    logger.warning(
-                        f"Step {step.id} validation failed: {issue_messages}"
-                    )
+                if not validation_result.valid and step.validation_level >= context.validation_level.STANDARD:
+                    issue_messages = "; ".join(issue.message for issue in validation_result.issues)
+                    logger.warning(f"Step {step.id} validation failed: {issue_messages}")
 
                     # Emit validation event
-                    event = ValidationEvent(
-                        valid=False, issues_count=len(validation_result.issues)
-                    )
+                    event = ValidationEvent(valid=False, issues_count=len(validation_result.issues))
                     context.emit_event(event)
 
                     if step.validation_level == context.validation_level.STRICT:
-                        raise ValueError(
-                            f"Validation failed for step {step.id}: {issue_messages}"
-                        )
+                        raise ValueError(f"Validation failed for step {step.id}: {issue_messages}")
 
                 # Mark the step as completed
                 step_result.status = StepStatus.COMPLETED
@@ -652,9 +616,7 @@ class RecipeExecutor:
                 step_result.duration_seconds = time.time() - start_time
 
                 # Emit step failed event
-                event = StepFailedEvent(
-                    step_id=step.id, error=str(e), traceback=traceback.format_exc()
-                )
+                event = StepFailedEvent(step_id=step.id, error=str(e), traceback=traceback.format_exc())
                 context.emit_event(event)
 
                 # Store the step result
@@ -663,9 +625,7 @@ class RecipeExecutor:
                 # Determine if we should retry
                 max_retries = step.retry_count
                 if retry_count <= max_retries:
-                    logger.info(
-                        f"Retrying step {step.id} ({retry_count}/{max_retries})"
-                    )
+                    logger.info(f"Retrying step {step.id} ({retry_count}/{max_retries})")
                     await asyncio.sleep(step.retry_delay)  # Add a delay before retrying
                     continue
 
@@ -738,13 +698,8 @@ class RecipeExecutor:
                     result, step_result = await self.execute_step(step, context)
                     recipe_result.steps[step.id] = step_result
 
-                    if (
-                        step_result.status == StepStatus.FAILED
-                        and not step.continue_on_error
-                    ):
-                        logger.error(
-                            f"Step {step.id} failed, stopping recipe execution"
-                        )
+                    if step_result.status == StepStatus.FAILED and not step.continue_on_error:
+                        logger.error(f"Step {step.id} failed, stopping recipe execution")
                         raise ValueError(f"Step {step.id} failed: {step_result.error}")
 
                 # Update recipe result
@@ -836,26 +791,16 @@ async def main():
 
     parser = argparse.ArgumentParser(description="Recipe Executor")
     parser.add_argument("recipe_file", help="Path to the recipe file")
-    parser.add_argument(
-        "--model", default="claude-3-7-sonnet-20250219", help="Default model to use"
-    )
-    parser.add_argument(
-        "--provider", default="anthropic", help="Default model provider"
-    )
-    parser.add_argument(
-        "--recipes-dir", default="recipes", help="Directory containing recipe files"
-    )
-    parser.add_argument(
-        "--output-dir", default="output", help="Directory to output generated files to"
-    )
+    parser.add_argument("--model", default="claude-3-7-sonnet-20250219", help="Default model to use")
+    parser.add_argument("--provider", default="anthropic", help="Default model provider")
+    parser.add_argument("--recipes-dir", default="recipes", help="Directory containing recipe files")
+    parser.add_argument("--output-dir", default="output", help="Directory to output generated files to")
     parser.add_argument(
         "--cache-dir",
         default="cache",
         help="Directory for caching LLM responses, or 'none' to disable",
     )
-    parser.add_argument(
-        "--temp", type=float, default=0.1, help="Default temperature setting"
-    )
+    parser.add_argument("--temp", type=float, default=0.1, help="Default temperature setting")
     parser.add_argument(
         "--vars",
         action="append",
@@ -886,7 +831,7 @@ async def main():
     # Set log level
     log_level = getattr(logging, args.log_level.upper())
     print(f"Setting log level to: {args.log_level.upper()}")
-    
+
     # Ensure logs directory exists
     os.makedirs("logs", exist_ok=True)
 
@@ -938,9 +883,7 @@ async def main():
 
     print("\nStep Results:")
     for step_id, step_result in result.steps.items():
-        print(
-            f"  {step_id}: {step_result.status} ({step_result.duration_seconds:.2f}s)"
-        )
+        print(f"  {step_id}: {step_result.status} ({step_result.duration_seconds:.2f}s)")
         if step_result.error:
             print(f"    Error: {step_result.error}")
 

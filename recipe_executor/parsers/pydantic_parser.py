@@ -199,207 +199,76 @@ class RecipeParser:
                     {
                         "id": "generate_report",
                         "name": "Generate Report",
-                        "type": "llm_generate",
-                        "llm_generate": {
-                            "prompt": "Based on the following analysis, create a comprehensive content analysis report with executive summary, key findings, and recommendations:\n\n{{analysis_results}}",
-                            "output_variable": "final_report",
-                            "output_format": "text",
-                        },
-                        "validation_level": "standard",
-                    },
-                    {
-                        "id": "save_report",
-                        "name": "Save Report",
                         "type": "file_write",
                         "file_write": {
                             "path": "output/content_analysis_report.md",
-                            "content": "# Content Analysis Report\n\n{{final_report}}",
-                            "content_variable": "_unused_variable",
+                            "content": "# Content Analysis Report\n\n## Summary\n\n{{analysis_results}}",
                         },
                         "validation_level": "standard",
                     },
-                ],
-                "validation_level": "standard",
-                "interaction_mode": "critical",
+                ]
             }
 
-            # Create a Recipe object from the dictionary
-            fallback_recipe = Recipe.model_validate(recipe_dict)
-
-            # Log that we're using the fallback recipe
+            # Use the recipe model to parse and validate
+            recipe = Recipe.model_validate(recipe_dict)
             logger.info("Successfully created fallback recipe for Smart Content Analyzer")
-
-            return fallback_recipe
+            return recipe
 
         except Exception as e:
             logger.error(f"Error creating fallback recipe: {e}")
             return None
-        # If it's a pydantic validation error, try to get the input value
-        if hasattr(error, "__cause__") and error.__cause__ is not None:
-            cause = error.__cause__
-            if hasattr(cause, "input_value") and isinstance(cause.input_value, dict):
-                return cause.input_value
 
-        # Try to extract from raw response
-        if raw_response is not None:
-            # Check for tool calls with args
-            if hasattr(raw_response, "tool_calls"):
-                for tool_call in raw_response.tool_calls:
-                    if hasattr(tool_call, "args") and tool_call.args:
-                        return tool_call.args
-
-            # Check for content that might contain JSON
-            if hasattr(raw_response, "content") and raw_response.content:
-                try:
-                    # Look for JSON structure in the content
-                    json_pattern = r"```(?:json)?\s*({.*?})```"
-                    matches = re.search(json_pattern, raw_response.content, re.DOTALL)
-                    if matches:
-                        return json.loads(matches.group(1))
-                except:
-                    pass
-
-        return None
-
-    async def parse_recipe_from_text(self, content: str, recipe_type: Optional[str] = None) -> Recipe:
+    async def parse_recipe_from_text(self, content: str) -> Recipe:
         """
-        Parse a natural language recipe into a structured Recipe object.
+        Parse natural language text into a structured Recipe.
 
         Args:
             content: The natural language recipe content
-            recipe_type: Optional hint about the type of recipe
 
         Returns:
-            A structured Recipe object
+            A Recipe pydantic model
         """
-        # Infer recipe type from content if not provided
-        if not recipe_type:
-            recipe_type = self._infer_recipe_type(content)
-            logger.debug(f"Inferred recipe type: {recipe_type}")
+        # Infer recipe type to provide better guidance
+        recipe_type = self._infer_recipe_type(content)
+        logger.info(f"Parsing as natural language recipe using pydantic-ai")
 
-        # Create system prompt based on recipe type
-        system_prompt = self._create_system_prompt(recipe_type)
-
-        # Create appropriate model object based on provider
-        model = self._create_model_for_provider()
-
-        # Create a new agent with the system prompt and result type
-        # Increase retries to give the model more chances to generate a valid recipe
-        parse_agent = Agent(
-            model=model,  # Pass the correct model object
-            result_type=Recipe,
-            system_prompt=system_prompt,
-            model_settings={"temperature": self.temperature},
-            retries=5,  # More retries for complex recipes
-        )
-
-        # Check for smart-content-analyzer.md specifically
-        if "Smart Content Analyzer" in content or "smart-content-analyzer.md" in content:
-            parse_agent.retries = 7  # Even more retries for this specific recipe
-            logger.debug(f"Detected 'Smart Content Analyzer', increasing retries to {parse_agent.retries}")
-
-        # Add a comprehensive result validator to guide the model
-        @parse_agent.result_validator
-        async def validate_recipe(ctx, result) -> Recipe:
-            """Validate recipe structure and provide specific guidance."""
-            # Track validation issues for better error messages
-            issues = []
-
-            # Check metadata
-            if not hasattr(result, "metadata"):
-                issues.append("Missing 'metadata' field")
-            elif not hasattr(result.metadata, "name") or not result.metadata.name:
-                issues.append("Missing or empty 'metadata.name' field")
-
-            # Check steps (most critical)
-            if not hasattr(result, "steps"):
-                issues.append("Missing 'steps' field")
-                # Create specific guidance with recipe structure
-                suggested_steps = self._suggest_steps_from_content(content)
-                raise ModelRetry(
-                    "The recipe is missing the required 'steps' field. Every recipe must have a list of steps."
-                    f"\n\nBased on your description, you should create steps for:"
-                    f"\n{suggested_steps}"
-                    "\n\nEnsure each step has an id, type, and appropriate configuration."
-                )
-            elif not result.steps:
-                issues.append("Empty 'steps' list")
-                # Get the actions from the content to suggest steps
-                suggested_steps = self._suggest_steps_from_content(content)
-
-                raise ModelRetry(
-                    "The recipe has an empty 'steps' list. Every recipe must have at least one step."
-                    f"\n\nBased on the description, consider creating steps for:"
-                    f"\n{suggested_steps}"
-                    "\n\nPlease create a complete recipe with appropriate steps."
-                )
-
-            # Check if steps have required fields
-            for idx, step in enumerate(result.steps):
-                if not hasattr(step, "id") or not step.id:
-                    issues.append(f"Step {idx + 1} is missing 'id' field")
-                if not hasattr(step, "type") or not step.type:
-                    issues.append(f"Step {idx + 1} is missing 'type' field")
-                elif not hasattr(step, step.type.value) or getattr(step, step.type.value) is None:
-                    issues.append(f"Step {idx + 1} ({step.id}) is missing '{step.type.value}' configuration object")
-
-            # If we have issues, provide specific guidance
-            if issues:
-                guidance = "The recipe has the following issues:\n- " + "\n- ".join(issues)
-                guidance += "\n\nPlease create a complete recipe with all required fields and steps."
-                raise ModelRetry(guidance)
-
-            return result
-
-        # Log the system prompt at debug level
-        log_utils.log_llm_prompt(self.model_name, system_prompt, "recipe_parser")
-
-        # Run the agent to parse the recipe
         try:
-            # Log a subset of the recipe content if it's too large
-            content_preview = content[:500] + "..." if len(content) > 500 else content
-            logger.debug(f"Parsing recipe content: {content_preview}")
+            # Create a system prompt that explains what a recipe should look like
+            system_prompt = self._create_system_prompt(recipe_type)
 
-            # Track raw response for error handling
-            raw_response = None
+            # Create appropriate model object based on provider
+            model = self._create_model_for_provider()
 
-            try:
-                result = await parse_agent.run(content)
-                raw_response = result  # Store for potential error analysis
+            # Create a new agent with the system prompt and recipe model
+            parse_agent = Agent(
+                model=model,
+                result_type=Recipe,
+                system_prompt=system_prompt,
+                model_settings={"temperature": self.temperature},
+                retries=2,  # Allow more retries for complex structures
+            )
 
-                # Log the structured recipe at debug level
-                if hasattr(result, "data"):
-                    log_utils.log_llm_response(self.model_name, str(result.data), "recipe_parser")
+            # Run the agent to parse the content
+            result = await parse_agent.run(content)
+            recipe = result.data
 
-                # Store the original recipe content in variables
-                recipe = result.data
-                recipe.variables["_original_recipe"] = content
+            # Validate the recipe (this will raise exceptions for invalid recipes)
+            return recipe
 
-                # Log execution context
-                log_utils.log_execution_context(recipe.variables, "recipe_parser")
+        except ModelRetry.ExhaustedError as e:
+            # Extract partial result if available
+            raw_response = getattr(e, "response", None)
+            partial_result = self._extract_partial_result(e, raw_response)
 
-                logger.info(f"Successfully parsed recipe: {recipe.metadata.name}")
-                return recipe
+            # Create meaningful error message
+            parsing_error = ValueError(
+                f"Failed to parse recipe after maximum retries: {str(e)}\n\n"
+                f"The model had difficulty generating a valid recipe structure. "
+                f"Try simplifying your recipe description or providing clearer step definitions."
+            )
 
-            except Exception as parsing_error:
-                # Log detailed error information for debugging
-                try:
-                    logger.debug(f"Parsing error details: {type(parsing_error).__name__}: {str(parsing_error)}")
-                    if hasattr(parsing_error, "__cause__") and parsing_error.__cause__:
-                        logger.debug(f"Cause: {type(parsing_error.__cause__).__name__}: {str(parsing_error.__cause__)}")
-                except Exception as logging_error:
-                    logger.error(f"Error logging LLM error details: {logging_error}")
-
-                # Try to extract partial result if available
-                try:
-                    partial_result = self._extract_partial_result(parsing_error, raw_response)
-                    if partial_result:
-                        logger.debug(f"Extracted partial recipe result: {partial_result}")
-                except Exception as extraction_error:
-                    logger.error(f"Error extracting partial result: {extraction_error}")
-
-                # Re-raise with additional context
-                raise parsing_error
+            # Re-raise with additional context
+            raise parsing_error
 
         except Exception as e:
             logger.error(f"Error parsing recipe: {e}")
