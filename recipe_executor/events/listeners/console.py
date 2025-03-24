@@ -1,5 +1,6 @@
 """Console event listener implementation."""
 
+import json
 import logging
 from typing import cast
 
@@ -14,15 +15,20 @@ from recipe_executor.models.events import (
     UserInteractionEvent,
     ValidationEvent,
 )
+from recipe_executor.utils import logging as log_utils
 
-logger = logging.getLogger("recipe-executor")
+logger = log_utils.get_logger("events")
 
 
 class ConsoleEventListener:
     """Event listener that prints events to the console."""
 
     def on_event(self, event: ExecutionEvent) -> None:
-        """Print the event to the console."""
+        """Print the event to the console and log details at debug level."""
+        # Log full event details at debug level
+        debug_logger = log_utils.get_logger("debug")
+        debug_logger.debug(f"EVENT: {event.event_type} - {json.dumps(event.model_dump(), default=str)}")
+        
         if event.event_type == "step_start":
             event = cast(StepStartEvent, event)
             logger.info(
@@ -36,6 +42,9 @@ class ConsoleEventListener:
         elif event.event_type == "step_failed":
             event = cast(StepFailedEvent, event)
             logger.error(f"Failed step: {event.step_id} - {event.error}")
+            # Log traceback at debug level if available
+            if event.traceback:
+                debug_logger.debug(f"Step {event.step_id} traceback:\n{event.traceback}")
         elif event.event_type == "validation":
             event = cast(ValidationEvent, event)
             if event.valid:

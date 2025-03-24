@@ -17,8 +17,9 @@ from recipe_executor.models.base import FilesGenerationResult
 from recipe_executor.models.events import LLMGenerationEvent
 from recipe_executor.models.step import RecipeStep
 from recipe_executor.models.validation import ValidationIssue, ValidationResult
+from recipe_executor.utils import logging as log_utils
 
-logger = logging.getLogger("recipe-executor")
+logger = log_utils.get_logger("llm")
 
 
 class LLMGenerateExecutor:
@@ -263,6 +264,9 @@ class LLMGenerateExecutor:
             temp=temp,
         )
 
+        # Log the LLM prompt at debug level
+        log_utils.log_llm_prompt(model_name, prompt, step.id)
+        
         # Run the agent with timeout if specified
         if timeout:
             try:
@@ -283,6 +287,15 @@ class LLMGenerateExecutor:
                 prompt,
                 message_history=message_history,
             )
+            
+        # Log the model response at debug level
+        if hasattr(result, "data"):
+            # For structured data, convert to JSON string for logging
+            if isinstance(result.data, (dict, list)):
+                response_text = json.dumps(result.data, indent=2, default=str)
+            else:
+                response_text = str(result.data)
+            log_utils.log_llm_response(model_name, response_text, step.id)
 
         # Store the message history
         context.set_message_history(step.id, result.new_messages())

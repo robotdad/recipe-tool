@@ -12,8 +12,9 @@ from recipe_executor.models.events import ExecutionEvent
 from recipe_executor.models.execution import StepResult
 from recipe_executor.models.recipe import Recipe
 from recipe_executor.models.step import RecipeStep
+from recipe_executor.utils import logging as log_utils
 
-logger = logging.getLogger("recipe-executor")
+logger = log_utils.get_logger("context")
 
 
 class ExecutionContext:
@@ -89,6 +90,26 @@ class ExecutionContext:
             value: Value to set
             scope: Scope to set the variable in, or None to use the current scope
         """
+        # Get the current step for logging context
+        current_step = self.get_current_step()
+        step_id = current_step.id if current_step else None
+        
+        # Log the variable change at debug level (redacting sensitive values)
+        if name.lower() in ('api_key', 'password', 'token', 'secret'):
+            # Redact sensitive values in logs
+            display_value = "***REDACTED***"
+        elif isinstance(value, (dict, list)):
+            try:
+                display_value = json.dumps(value, default=str)[:100] + "..." if len(json.dumps(value, default=str)) > 100 else json.dumps(value, default=str)
+            except:
+                display_value = str(value)[:100] + "..." if len(str(value)) > 100 else str(value)
+        else:
+            display_value = str(value)[:100] + "..." if len(str(value)) > 100 else str(value)
+        
+        scope_str = scope.value if scope else self.scope.value
+        context_str = f" for step {step_id}" if step_id else ""
+        logger.debug(f"Setting variable {name} = {display_value} (scope: {scope_str}){context_str}")
+        
         if scope == VariableScope.GLOBAL or (
             not scope and self.scope == VariableScope.GLOBAL
         ):
