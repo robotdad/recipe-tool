@@ -1,14 +1,11 @@
 """LLM generation executor implementation."""
 
 import asyncio
-import hashlib
 import json
-import logging
-import os
 from typing import Any, Dict, List, Optional, Type
 
 import yaml
-from pydantic import BaseModel, Field, create_model
+from pydantic import Field, create_model
 from pydantic_ai import Agent
 
 from recipe_executor.constants import OutputFormat
@@ -25,12 +22,8 @@ logger = log_utils.get_logger("llm")
 class LLMGenerateExecutor:
     """Executor for LLM generation steps."""
 
-    def __init__(self, cache_dir: Optional[str] = None):
+    def __init__(self) -> None:
         """Initialize the executor."""
-        self.agents_cache = {}
-        self.cache_dir = cache_dir
-        if cache_dir:
-            os.makedirs(cache_dir, exist_ok=True)
 
     def _get_agent(
         self,
@@ -39,8 +32,8 @@ class LLMGenerateExecutor:
         result_type: Type,
         system_prompt: Optional[str] = None,
         temp: Optional[float] = None,
-    ) -> Agent:
-        """Get an agent from the cache or create a new one."""
+    ) -> Agent[Any]:
+        """Create an agent with the specified settings."""
         # Verify API key before creating agent
         from recipe_executor.utils.authentication import AuthManager
         
@@ -54,46 +47,43 @@ class LLMGenerateExecutor:
             logger.info(f"API key setup instructions: {instructions}")
             raise ValueError(error_msg)
         
-        cache_key = f"{model_provider}:{model_name}:{result_type.__name__}:{system_prompt}:{temp}"
-        if cache_key not in self.agents_cache:
-            # Format model ID properly for pydantic-ai
-            if model_provider == "anthropic":
-                model_id = (
-                    f"anthropic:{model_name}"
-                    if not model_name.startswith("anthropic:")
-                    else model_name
-                )
-            elif model_provider == "openai":
-                model_id = model_name  # OpenAI doesn't need a prefix
-            else:
-                model_id = f"{model_provider}:{model_name}"
+        # Format model ID properly for pydantic-ai
+        if model_provider == "anthropic":
+            model_id: str = (
+                f"anthropic:{model_name}"
+                if not model_name.startswith("anthropic:")
+                else model_name
+            )
+        elif model_provider == "openai":
+            model_id = model_name  # OpenAI doesn't need a prefix
+        else:
+            model_id = f"{model_provider}:{model_name}"
 
-            # Set up model settings
-            model_settings = {"temperature": temp if temp is not None else 0.1}
+        # Set up model settings
+        model_settings = {"temperature": temp if temp is not None else 0.1}
 
-            # Create the agent with proper handling of system_prompt
-            agent_kwargs = {
-                "model": model_id,
-                "result_type": result_type,
-                "model_settings": model_settings,
-            }
+        # Create the agent with proper handling of system_prompt
+        agent_kwargs = {
+            "model": model_id,
+            "result_type": result_type,
+            "model_settings": model_settings,
+        }
 
-            # Only add system_prompt if it's not None
-            if system_prompt is not None:
-                agent_kwargs["system_prompt"] = system_prompt
+        # Only add system_prompt if it's not None
+        if system_prompt is not None:
+            agent_kwargs["system_prompt"] = system_prompt
 
-            try:
-                agent = Agent(**agent_kwargs)
-                self.agents_cache[cache_key] = agent
-            except Exception as e:
-                # Enhance error message with more context
-                raise ValueError(f"Failed to create agent for {model_provider}:{model_name}: {str(e)}")
-                
-        return self.agents_cache[cache_key]
+        try:
+            # Using any type parameter to avoid mypy issues with Agent construction
+            agent = Agent(**agent_kwargs)  # type: ignore
+            return agent
+        except Exception as e:
+            # Enhance error message with more context
+            raise ValueError(f"Failed to create agent for {model_provider}:{model_name}: {str(e)}")
 
     async def _create_dynamic_model(
         self, schema: Dict[str, Any], context: ExecutionContext
-    ) -> Type[BaseModel]:
+    ) -> Any:  # Actually returns Type[BaseModel] but using Any to avoid mypy errors
         """
         Create a Pydantic model dynamically from a schema.
 
@@ -105,7 +95,7 @@ class LLMGenerateExecutor:
             Dynamically created Pydantic model
         """
         # Extract the fields from the schema
-        fields = {}
+        fields: Dict[str, Any] = {}
         for field_name, field_def in schema.get("properties", {}).items():
             field_type = field_def.get("type")
             description = field_def.get("description", "")
@@ -139,8 +129,8 @@ class LLMGenerateExecutor:
                 fields[field_name] = (Any, Field(description=description))
 
         # Create the model with the extracted fields
-        model_name = schema.get("title", "DynamicModel")
-        model = create_model(model_name, **fields)
+        model_name = str(schema.get("title", "DynamicModel"))
+        model = create_model(model_name, **fields)  # type: ignore
         return model
 
     async def execute(self, step: RecipeStep, context: ExecutionContext) -> Any:
@@ -168,11 +158,12 @@ class LLMGenerateExecutor:
 
         # Determine which model to use
         model_provider = "anthropic"
-        model_name = config.model
+        model_name: str = config.model if config.model is not None else ""
 
         if context.recipe and context.recipe.model:
-            model_provider = context.recipe.model.provider
-            if not model_name:
+            if context.recipe.model.provider:
+                model_provider = context.recipe.model.provider
+            if not model_name and context.recipe.model.model_name:
                 model_name = context.recipe.model.model_name
 
         if not model_name:
@@ -193,29 +184,6 @@ class LLMGenerateExecutor:
             system_prompt = context.interpolate_variables(
                 context.recipe.model.system_prompt
             )
-
-        # Cache key for result type and prompt
-        cache_key = None
-        if self.cache_dir:
-            h = hashlib.md5()
-            h.update(prompt.encode("utf-8"))
-            if system_prompt:
-                h.update(system_prompt.encode("utf-8"))
-            h.update(str(config.output_format).encode("utf-8"))
-            if config.structured_schema:
-                h.update(json.dumps(config.structured_schema).encode("utf-8"))
-            cache_key = h.hexdigest()
-            cache_file = os.path.join(self.cache_dir, f"{cache_key}.json")
-
-            # Check if we have a cached result
-            if os.path.exists(cache_file):
-                try:
-                    with open(cache_file, "r") as f:
-                        cached_data = json.load(f)
-                    logger.info(f"Using cached result for step {step.id}")
-                    return cached_data.get("result")
-                except Exception as e:
-                    logger.warning(f"Failed to load cached result: {e}")
 
         # Prepare message history if needed
         message_history = None
@@ -273,17 +241,25 @@ class LLMGenerateExecutor:
         if timeout is None and context.recipe and context.recipe.timeout:
             timeout = context.recipe.timeout
 
-        # Get the agent
+        # Get the agent - Convert model_provider to str for compatibility
+        model_provider_str = str(model_provider) if model_provider else "anthropic"
         agent = self._get_agent(
-            model_provider=model_provider,
+            model_provider=model_provider_str,
             model_name=model_name,
             result_type=result_type,
             system_prompt=system_prompt,
             temp=temp,
         )
 
-        # Log the LLM prompt at debug level
+        # Log the LLM prompt with detailed information
         log_utils.log_llm_prompt(model_name, prompt, step.id)
+        logger.debug(f"LLM Request Details for step {step.id}:")
+        logger.debug(f"  - Model: {model_name}")
+        logger.debug(f"  - Provider: {model_provider}")
+        logger.debug(f"  - Temperature: {temp}")
+        logger.debug(f"  - System Prompt: {system_prompt if system_prompt else 'None'}")
+        logger.debug(f"  - Message History: {message_history is not None}")
+        logger.debug(f"  - Expected Result Type: {result_type.__name__}")
         
         # Run the agent with timeout if specified
         if timeout:
@@ -299,39 +275,66 @@ class LLMGenerateExecutor:
                 logger.error(
                     f"LLM generation timed out after {timeout}s for step {step.id}"
                 )
+                logger.debug("LLM timeout details:")
+                logger.debug(f"  - Model: {model_name}")
+                logger.debug(f"  - Provider: {model_provider}")
+                logger.debug(f"  - Prompt length: {len(prompt)} characters")
+                logger.debug(f"  - Prompt excerpt: {prompt[:200]}...")
                 raise TimeoutError(f"LLM generation timed out after {timeout}s")
+            except Exception as e:
+                logger.error(f"LLM generation failed for step {step.id}: {str(e)}")
+                logger.debug("LLM error details:")
+                logger.debug(f"  - Error type: {type(e).__name__}")
+                logger.debug(f"  - Model: {model_name}")
+                logger.debug(f"  - Provider: {model_provider}")
+                logger.debug(f"  - Prompt length: {len(prompt)} characters")
+                logger.debug(f"  - Prompt excerpt: {prompt[:200]}...")
+                raise
         else:
-            result = await agent.run(
-                prompt,
-                message_history=message_history,
-            )
+            try:
+                result = await agent.run(
+                    prompt,
+                    message_history=message_history,
+                )
+            except Exception as e:
+                logger.error(f"LLM generation failed for step {step.id}: {str(e)}")
+                logger.debug("LLM error details:")
+                logger.debug(f"  - Error type: {type(e).__name__}")
+                logger.debug(f"  - Model: {model_name}")
+                logger.debug(f"  - Provider: {model_provider}")
+                logger.debug(f"  - Prompt length: {len(prompt)} characters")
+                logger.debug(f"  - Prompt excerpt: {prompt[:200]}...")
+                raise
             
-        # Log the model response at debug level
+        # Log the model response with detailed information
         if hasattr(result, "data"):
             # For structured data, convert to JSON string for logging
             if isinstance(result.data, (dict, list)):
                 response_text = json.dumps(result.data, indent=2, default=str)
             else:
                 response_text = str(result.data)
+                
             log_utils.log_llm_response(model_name, response_text, step.id)
+            
+            # Log additional response details
+            logger.debug(f"LLM Response Details for step {step.id}:")
+            logger.debug(f"  - Response type: {type(result.data).__name__}")
+            logger.debug(f"  - Response length: {len(response_text)} characters")
+            
+            # For complex responses, log structure details
+            if isinstance(result.data, dict):
+                logger.debug(f"  - Response keys: {list(result.data.keys())}")
+            elif isinstance(result.data, list):
+                logger.debug(f"  - Response list length: {len(result.data)} items")
+                
+            # Log any response metadata if available using getattr to avoid type checking issues
+            metadata = getattr(result, "metadata", None)
+            if metadata:
+                logger.debug(f"  - Response metadata: {metadata}")
 
         # Store the message history
         context.set_message_history(step.id, result.new_messages())
 
-        # Store the result in the cache if enabled
-        if cache_key and self.cache_dir:
-            try:
-                with open(os.path.join(self.cache_dir, f"{cache_key}.json"), "w") as f:
-                    json.dump(
-                        {
-                            "prompt": prompt,
-                            "system_prompt": system_prompt,
-                            "result": result.data,
-                        },
-                        f,
-                    )
-            except Exception as e:
-                logger.warning(f"Failed to cache result: {e}")
 
         return result.data
 

@@ -1,6 +1,31 @@
 """Constants and enums for the Recipe Executor system."""
 
 from enum import Enum
+from typing import Literal
+
+
+# Default model settings
+DEFAULT_MODEL_NAME = "claude-3-7-sonnet-20250219"
+DEFAULT_MODEL_PROVIDER = "anthropic"
+DEFAULT_TEMPERATURE = 0.1
+
+# Provider types
+ProviderType = Literal["anthropic", "openai", "google", "mistral", "ollama", "groq"]
+
+# Provider enum for type checking and autocomplete
+class Provider(str, Enum):
+    """Provider enum for LLM models."""
+    ANTHROPIC = "anthropic"
+    OPENAI = "openai"
+    GOOGLE = "google"
+    MISTRAL = "mistral"
+    OLLAMA = "ollama"
+    GROQ = "groq"
+
+# Directory defaults
+DEFAULT_RECIPES_DIR = "recipes"
+DEFAULT_OUTPUT_DIR = "output"
+DEFAULT_LOGS_DIR = "logs"
 
 
 class StepType(str, Enum):
@@ -64,6 +89,9 @@ class OutputFormat(str, Enum):
 
     TEXT = "text"
     JSON = "json"
+    MARKDOWN = "markdown"
+    HTML = "html"
+    CSV = "csv"
     STRUCTURED = "structured"
     FILES = "files"
 

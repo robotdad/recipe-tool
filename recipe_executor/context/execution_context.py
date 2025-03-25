@@ -7,7 +7,6 @@ import string
 from typing import Any, Dict, List, Optional
 
 from recipe_executor.constants import InteractionMode, ValidationLevel, VariableScope
-from recipe_executor.events.event_system import EventListener
 from recipe_executor.models.events import ExecutionEvent
 from recipe_executor.models.execution import StepResult
 from recipe_executor.models.recipe import Recipe
@@ -31,6 +30,7 @@ class ExecutionContext:
         recipe: Optional["Recipe"] = None,
         interaction_mode: InteractionMode = InteractionMode.CRITICAL,
         validation_level: ValidationLevel = ValidationLevel.STANDARD,
+        event_system = None,
     ):
         """Initialize the execution context."""
         self.variables = variables or {}
@@ -40,26 +40,36 @@ class ExecutionContext:
         self._message_history = {}
         self._step_results = {}
         self._current_step = None
-        self._event_listeners = []
         self.interaction_mode = interaction_mode
         self.validation_level = validation_level
-
-        # Add the parent's event listeners
-        if parent:
-            for listener in parent._event_listeners:
-                self._event_listeners.append(listener)
-
-    def add_event_listener(self, listener: EventListener) -> None:
-        """Add an event listener."""
-        self._event_listeners.append(listener)
+        self.event_system = event_system
 
     def emit_event(self, event: ExecutionEvent) -> None:
-        """Emit an event to all listeners."""
-        for listener in self._event_listeners:
-            try:
-                listener.on_event(event)
-            except Exception as e:
-                logger.error(f"Error in event listener: {e}")
+        """Emit an event to the event system if available."""
+        if self.event_system is not None:
+            self.event_system.emit(event)
+        elif self.parent is not None:
+            # Forward to parent if no event system in this context
+            self.parent.emit_event(event)
+                
+    def get_all_variables(self) -> Dict[str, Any]:
+        """
+        Get all variables from this context and its parents.
+        
+        Returns:
+            Dictionary of all variables
+        """
+        result = {}
+        
+        # Add parent variables first (so they can be overridden by this context)
+        if self.parent:
+            parent_vars = self.parent.get_all_variables()
+            result.update(parent_vars)
+        
+        # Add this context's variables
+        result.update(self.variables)
+        
+        return result
 
     def get_variable(self, name: str, default: Any = None) -> Any:
         """
@@ -141,6 +151,7 @@ class ExecutionContext:
             recipe=self.recipe,
             interaction_mode=self.interaction_mode,
             validation_level=self.validation_level,
+            event_system=self.event_system,
         )
 
     def get_message_history(self, step_id: str) -> List:

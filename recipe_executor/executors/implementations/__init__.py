@@ -19,10 +19,10 @@ from recipe_executor.executors.implementations.template import (
 from recipe_executor.executors.implementations.validator import ValidatorExecutor
 
 
-def get_all_executors(cache_dir=None):
+def get_all_executors():
     """Get all step executors."""
     return {
-        StepType.LLM_GENERATE: LLMGenerateExecutor(cache_dir=cache_dir),
+        StepType.LLM_GENERATE: LLMGenerateExecutor(),
         StepType.FILE_READ: FileReadExecutor(),
         StepType.FILE_WRITE: FileWriteExecutor(),
         StepType.TEMPLATE_SUBSTITUTE: TemplateSubstituteExecutor(),

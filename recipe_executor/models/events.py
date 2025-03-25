@@ -74,6 +74,7 @@ class RecipeStartEvent(ExecutionEvent):
 
     event_type: str = "recipe_start"
     recipe_name: str = Field(description="Name of the recipe")
+    description: Optional[str] = Field(description="Description of the recipe", default="")
 
 
 class RecipeCompleteEvent(ExecutionEvent):
@@ -85,3 +86,4 @@ class RecipeCompleteEvent(ExecutionEvent):
     duration_seconds: float = Field(
         description="Duration of the recipe execution in seconds"
     )
+    error: Optional[str] = Field(description="Error message if execution failed", default=None)

@@ -1,7 +1,6 @@
 """LLM generation executor function."""
 
 import asyncio
-import hashlib
 import json
 import os
 from typing import Any, Dict, List, Optional, Type
@@ -62,29 +61,6 @@ async def execute_llm_generate(step: RecipeStep, context: ExecutionContext) -> A
             context.recipe.model.system_prompt
         )
 
-    # Check for cached result
-    cache_dir = getattr(context, "cache_dir", None)
-    cache_key = None
-    if cache_dir:
-        h = hashlib.md5()
-        h.update(prompt.encode("utf-8"))
-        if system_prompt:
-            h.update(system_prompt.encode("utf-8"))
-        h.update(str(config.output_format).encode("utf-8"))
-        if config.structured_schema:
-            h.update(json.dumps(config.structured_schema).encode("utf-8"))
-        cache_key = h.hexdigest()
-        cache_file = os.path.join(cache_dir, f"{cache_key}.json")
-
-        # Check if we have a cached result
-        if os.path.exists(cache_file):
-            try:
-                with open(cache_file, "r") as f:
-                    cached_data = json.load(f)
-                logger.info(f"Using cached result for step {step.id}")
-                return cached_data.get("result")
-            except Exception as e:
-                logger.warning(f"Failed to load cached result: {e}")
 
     # Prepare message history if needed
     message_history = None
@@ -187,20 +163,6 @@ async def execute_llm_generate(step: RecipeStep, context: ExecutionContext) -> A
     # Store the message history
     context.set_message_history(step.id, result.new_messages())
 
-    # Store the result in the cache if enabled
-    if cache_key and cache_dir:
-        try:
-            with open(os.path.join(cache_dir, f"{cache_key}.json"), "w") as f:
-                json.dump(
-                    {
-                        "prompt": prompt,
-                        "system_prompt": system_prompt,
-                        "result": result.data,
-                    },
-                    f,
-                )
-        except Exception as e:
-            logger.warning(f"Failed to cache result: {e}")
 
     return result.data
 

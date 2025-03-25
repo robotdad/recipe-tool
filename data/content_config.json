@@ -1,58 +1,9 @@
 {
-    "analysis_settings": {
-      "min_article_length": 300,
-      "max_articles_to_analyze": 20,
-      "performance_metrics_weights": {
-        "views": 0.3,
-        "shares": 0.3,
-        "comments": 0.2,
-        "conversion_rate": 0.2
-      },
-      "topic_extraction": {
-        "method": "keyword_clustering",
-        "min_topics": 3,
-        "max_topics": 8
-      },
-      "sentiment_analysis": {
-        "method": "compound_score",
-        "threshold_positive": 0.05,
-        "threshold_negative": -0.05
-      },
-      "readability_metrics": [
-        "flesch_kincaid_grade",
-        "flesch_reading_ease",
-        "gunning_fog"
-      ]
-    },
-    "report_settings": {
-      "company_name": "ContentPro Analytics",
-      "team_members": [
-        "Sarah Johnson, Content Director",
-        "Mark Lee, SEO Specialist",
-        "Priya Patel, Content Strategist",
-        "Jason Wong, Data Analyst"
-      ],
-      "report_sections": [
-        "executive_summary",
-        "key_findings",
-        "topic_analysis",
-        "performance_metrics",
-        "content_structure_insights",
-        "author_performance",
-        "recommendations"
-      ],
-      "include_visualizations": true,
-      "visualization_types": [
-        "bar_charts",
-        "scatter_plots",
-        "heatmaps",
-        "trend_lines"
-      ]
-    },
-    "comparison_benchmarks": {
-      "industry_avg_views": 5000,
-      "industry_avg_shares": 120,
-      "industry_avg_comments": 30,
-      "industry_avg_conversion": 0.025
-    }
-  }
+  "analysis_settings": {
+    "include_themes": true,
+    "include_sentiment": true,
+    "include_recommendations": true
+  },
+  "output_format": "markdown",
+  "max_summary_length": 500
+}

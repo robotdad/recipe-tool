@@ -69,5 +69,5 @@
     "docs",
     "planning"
   ],
-  "cSpell.words": ["groq"]
+  "cSpell.words": ["dotenv", "groq", "mypy", "pydantic"]
 }

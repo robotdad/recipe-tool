@@ -1,7 +1,6 @@
 """Console event listener implementation."""
 
 import json
-import logging
 from typing import cast
 
 from recipe_executor.models.events import (
@@ -29,41 +28,40 @@ class ConsoleEventListener:
         debug_logger = log_utils.get_logger("debug")
         debug_logger.debug(f"EVENT: {event.event_type} - {json.dumps(event.model_dump(), default=str)}")
         
+        # Handle each event type with proper type checking
         if event.event_type == "step_start":
-            event = cast(StepStartEvent, event)
-            logger.info(
-                f"Starting step: {event.step_id} ({event.step_name or event.step_type})"
-            )
+            step_event = cast(StepStartEvent, event)
+            logger.info(f"Starting step: {step_event.step_id} ({step_event.step_name or step_event.step_type})")
+        
         elif event.event_type == "step_complete":
-            event = cast(StepCompleteEvent, event)
-            logger.info(
-                f"Completed step: {event.step_id} ({event.status}) in {event.duration_seconds:.2f}s"
-            )
+            complete_event = cast(StepCompleteEvent, event)
+            logger.info(f"Completed step: {complete_event.step_id} ({complete_event.status}) in {complete_event.duration_seconds:.2f}s")
+        
         elif event.event_type == "step_failed":
-            event = cast(StepFailedEvent, event)
-            logger.error(f"Failed step: {event.step_id} - {event.error}")
-            # Log traceback at debug level if available
-            if event.traceback:
-                debug_logger.debug(f"Step {event.step_id} traceback:\n{event.traceback}")
+            failed_event = cast(StepFailedEvent, event)
+            logger.error(f"Failed step: {failed_event.step_id} - {failed_event.error}")
+            if failed_event.traceback:
+                debug_logger.debug(f"Step {failed_event.step_id} traceback:\n{failed_event.traceback}")
+        
         elif event.event_type == "validation":
-            event = cast(ValidationEvent, event)
-            if event.valid:
-                logger.info(f"Validation passed with {event.issues_count} issues")
+            valid_event = cast(ValidationEvent, event)
+            if valid_event.valid:
+                logger.info(f"Validation passed with {valid_event.issues_count} issues")
             else:
-                logger.warning(f"Validation failed with {event.issues_count} issues")
+                logger.warning(f"Validation failed with {valid_event.issues_count} issues")
+        
         elif event.event_type == "llm_generation":
-            event = cast(LLMGenerationEvent, event)
-            logger.info(
-                f"LLM generation with model {event.model} (prompt length: {event.prompt_length})"
-            )
+            llm_event = cast(LLMGenerationEvent, event)
+            logger.info(f"LLM generation with model {llm_event.model} (prompt length: {llm_event.prompt_length})")
+        
         elif event.event_type == "user_interaction":
-            event = cast(UserInteractionEvent, event)
-            logger.info(f"User interaction required: {event.prompt}")
+            user_event = cast(UserInteractionEvent, event)
+            logger.info(f"User interaction required: {user_event.prompt}")
+        
         elif event.event_type == "recipe_start":
-            event = cast(RecipeStartEvent, event)
-            logger.info(f"Starting recipe: {event.recipe_name}")
+            start_event = cast(RecipeStartEvent, event)
+            logger.info(f"Starting recipe: {start_event.recipe_name}")
+        
         elif event.event_type == "recipe_complete":
-            event = cast(RecipeCompleteEvent, event)
-            logger.info(
-                f"Completed recipe: {event.recipe_name} ({event.status}) in {event.duration_seconds:.2f}s"
-            )
+            recipe_complete_event = cast(RecipeCompleteEvent, event)
+            logger.info(f"Completed recipe: {recipe_complete_event.recipe_name} ({recipe_complete_event.status}) in {recipe_complete_event.duration_seconds:.2f}s")

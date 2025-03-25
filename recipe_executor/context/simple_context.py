@@ -23,14 +23,12 @@ class ExecutionContext:
         recipe: Optional[Any] = None,
         validation_level: ValidationLevel = ValidationLevel.STANDARD,
         interaction_mode: InteractionMode = InteractionMode.CRITICAL,
-        cache_dir: Optional[str] = None,
     ):
         """Initialize with given values."""
         self._variables = variables.copy()  # Make a copy to prevent modification
         self.recipe = recipe
         self.validation_level = validation_level
         self.interaction_mode = interaction_mode
-        self.cache_dir = cache_dir
         self._step_results: Dict[str, StepResult] = {}
         self._message_history: Dict[str, List[Any]] = {}
         self._current_step = None
@@ -69,7 +67,6 @@ class ExecutionContext:
             recipe=self.recipe,
             validation_level=self.validation_level,
             interaction_mode=self.interaction_mode,
-            cache_dir=self.cache_dir,
         )
         
         # Copy over step results and message history from the original context

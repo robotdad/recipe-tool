@@ -96,52 +96,32 @@ class RecipeStep(BaseModel):
     @model_validator(mode="after")
     def validate_step_config(self) -> "RecipeStep":
         """Validate that the step has the correct configuration for its type."""
-        if self.type == StepType.LLM_GENERATE and not self.llm_generate:
+        # Map step types to their configuration field names
+        step_config_fields = {
+            StepType.LLM_GENERATE: "llm_generate",
+            StepType.FILE_READ: "file_read",
+            StepType.FILE_WRITE: "file_write",
+            StepType.TEMPLATE_SUBSTITUTE: "template_substitute",
+            StepType.JSON_PROCESS: "json_process",
+            StepType.PYTHON_EXECUTE: "python_execute",
+            StepType.CONDITIONAL: "conditional",
+            StepType.CHAIN: "chain",
+            StepType.PARALLEL: "parallel",
+            StepType.VALIDATOR: "validator",
+            StepType.WAIT_FOR_INPUT: "wait_for_input",
+            StepType.API_CALL: "api_call",
+        }
+        
+        # Get expected config field name for this step's type
+        expected_field = step_config_fields.get(self.type)
+        
+        if expected_field is None:
+            raise ValueError(f"Unknown step type: {self.type}")
+            
+        # Check if the expected configuration is present
+        if getattr(self, expected_field) is None:
             raise ValueError(
-                f"Step {self.id} is of type LLM_GENERATE but has no llm_generate configuration"
+                f"Step {self.id} is of type {self.type} but has no {expected_field} configuration"
             )
-        if self.type == StepType.FILE_READ and not self.file_read:
-            raise ValueError(
-                f"Step {self.id} is of type FILE_READ but has no file_read configuration"
-            )
-        if self.type == StepType.FILE_WRITE and not self.file_write:
-            raise ValueError(
-                f"Step {self.id} is of type FILE_WRITE but has no file_write configuration"
-            )
-        if self.type == StepType.TEMPLATE_SUBSTITUTE and not self.template_substitute:
-            raise ValueError(
-                f"Step {self.id} is of type TEMPLATE_SUBSTITUTE but has no template_substitute configuration"
-            )
-        if self.type == StepType.JSON_PROCESS and not self.json_process:
-            raise ValueError(
-                f"Step {self.id} is of type JSON_PROCESS but has no json_process configuration"
-            )
-        if self.type == StepType.PYTHON_EXECUTE and not self.python_execute:
-            raise ValueError(
-                f"Step {self.id} is of type PYTHON_EXECUTE but has no python_execute configuration"
-            )
-        if self.type == StepType.CONDITIONAL and not self.conditional:
-            raise ValueError(
-                f"Step {self.id} is of type CONDITIONAL but has no conditional configuration"
-            )
-        if self.type == StepType.CHAIN and not self.chain:
-            raise ValueError(
-                f"Step {self.id} is of type CHAIN but has no chain configuration"
-            )
-        if self.type == StepType.PARALLEL and not self.parallel:
-            raise ValueError(
-                f"Step {self.id} is of type PARALLEL but has no parallel configuration"
-            )
-        if self.type == StepType.VALIDATOR and not self.validator:
-            raise ValueError(
-                f"Step {self.id} is of type VALIDATOR but has no validator configuration"
-            )
-        if self.type == StepType.WAIT_FOR_INPUT and not self.wait_for_input:
-            raise ValueError(
-                f"Step {self.id} is of type WAIT_FOR_INPUT but has no wait_for_input configuration"
-            )
-        if self.type == StepType.API_CALL and not self.api_call:
-            raise ValueError(
-                f"Step {self.id} is of type API_CALL but has no api_call configuration"
-            )
+            
         return self
