@@ -5,4 +5,5 @@ aiohttp>=3.8.0  # For API calls
 PyYAML>=6.0  # For YAML parsing
 jsonschema>=4.17.0  # For JSON schema validation (optional)
 python-dotenv>=1.0.0  # For loading environment variables from .env files
+python-liquid>=2.0.1
 setuptools>=77.0.3  # For package management

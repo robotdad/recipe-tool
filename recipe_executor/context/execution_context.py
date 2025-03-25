@@ -231,6 +231,7 @@ class ExecutionContext:
     def interpolate_variables(self, text: str) -> str:
         """
         Interpolate variables in a string using the template engine.
+        Supports both string.Template ${var} syntax and Liquid {{ var }} syntax.
 
         Args:
             text: Text to interpolate
@@ -240,44 +241,114 @@ class ExecutionContext:
         """
         if not text:
             return text
-
-        template = string.Template(text)
-
-        # Get all potential variables from the template
-        var_pattern = r"\$\{([^}]*)\}|\$([a-zA-Z0-9_]+)"
-        var_matches = re.finditer(var_pattern, text)
-        var_names = [match.group(1) or match.group(2) for match in var_matches]
-
-        # Prepare substitutions
-        substitutions = {}
-        for var_name in var_names:
-            # Check for nested references
-            if "." in var_name:
-                parts = var_name.split(".")
-                obj = self.get_variable(parts[0])
-                value = obj
-                for part in parts[1:]:
-                    if isinstance(value, dict) and part in value:
-                        value = value[part]
-                    elif hasattr(value, part):
-                        value = getattr(value, part)
-                    else:
-                        value = None
-                        break
-            else:
-                # Direct variable reference
-                value = self.get_variable(var_name)
-
-            # Convert to string if possible
-            if value is not None:
+            
+        # First try to process with Liquid templating
+        try:
+            from recipe_executor.utils.liquid_renderer import render_template
+            # Load the variables as a dictionary for liquid rendering
+            variables_dict = {}
+            
+            # Special handling for variables with dots for Liquid
+            dot_pattern = r'\{\{\s*([a-zA-Z0-9_]+\.[a-zA-Z0-9_.]+)\s*\}\}'
+            dot_matches = re.finditer(dot_pattern, text)
+            
+            for match in dot_matches:
+                full_var_name = match.group(1)
+                parts = full_var_name.split('.')
+                base_var = self.get_variable(parts[0])
+                if base_var is not None:
+                    variables_dict[parts[0]] = base_var
+            
+            # Add all direct variables
+            for var_name, var_value in self.variables.items():
+                variables_dict[var_name] = var_value
+                
+            # Add parent context variables
+            if self.parent:
+                parent_vars = self._get_all_parent_variables()
+                for var_name, var_value in parent_vars.items():
+                    if var_name not in variables_dict:  # Child vars have precedence
+                        variables_dict[var_name] = var_value
+            
+            # Log verbose variable information for debugging
+            logger.debug(f"Rendering template with {len(variables_dict)} variables")
+            for key, value in variables_dict.items():
                 if isinstance(value, (dict, list)):
-                    substitutions[var_name] = json.dumps(value)
+                    try:
+                        size = len(json.dumps(value))
+                        logger.debug(f"Variable {key}: {type(value).__name__}, size: {size} chars")
+                    except:
+                        logger.debug(f"Variable {key}: {type(value).__name__}, non-serializable")
                 else:
-                    substitutions[var_name] = str(value)
-            else:
-                substitutions[var_name] = ""
+                    value_str = str(value) if value is not None else "None"
+                    logger.debug(f"Variable {key}: {type(value).__name__}, value: {value_str[:50]}{'...' if len(value_str) > 50 else ''}")
+                        
+            # Try to render with Liquid
+            result = render_template(text, variables_dict)
+            logger.debug(f"Successfully rendered with Liquid templates")
+            return result
+        except Exception as e:
+            # Fall back to string.Template for backward compatibility
+            logger.debug(f"Liquid template rendering failed, falling back to string.Template: {str(e)}")
+            template = string.Template(text)
 
-        return template.safe_substitute(substitutions)
+            # Get all potential variables from the template
+            var_pattern = r"\$\{([^}]*)\}|\$([a-zA-Z0-9_]+)"
+            var_matches = re.finditer(var_pattern, text)
+            var_names = [match.group(1) or match.group(2) for match in var_matches]
+
+            # Prepare substitutions
+            substitutions = {}
+            for var_name in var_names:
+                # Check for nested references
+                if "." in var_name:
+                    parts = var_name.split(".")
+                    obj = self.get_variable(parts[0])
+                    value = obj
+                    for part in parts[1:]:
+                        if isinstance(value, dict) and part in value:
+                            value = value[part]
+                        elif hasattr(value, part):
+                            value = getattr(value, part)
+                        else:
+                            value = None
+                            break
+                else:
+                    # Direct variable reference
+                    value = self.get_variable(var_name)
+
+                # Convert to string if possible
+                if value is not None:
+                    if isinstance(value, (dict, list)):
+                        substitutions[var_name] = json.dumps(value)
+                    else:
+                        substitutions[var_name] = str(value)
+                else:
+                    substitutions[var_name] = ""
+
+            return template.safe_substitute(substitutions)
+            
+    def _get_all_parent_variables(self) -> Dict[str, Any]:
+        """
+        Get all variables from parent contexts.
+        
+        Returns:
+            Dictionary of all parent variables
+        """
+        if not self.parent:
+            return {}
+            
+        result = {}
+        current = self.parent
+        
+        while current:
+            for name, value in current.variables.items():
+                # Don't override variables from closer parents
+                if name not in result:
+                    result[name] = value
+            current = current.parent
+            
+        return result
 
     def evaluate_condition(self, condition: str) -> bool:
         """

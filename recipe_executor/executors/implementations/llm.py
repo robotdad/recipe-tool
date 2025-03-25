@@ -41,6 +41,19 @@ class LLMGenerateExecutor:
         temp: Optional[float] = None,
     ) -> Agent:
         """Get an agent from the cache or create a new one."""
+        # Verify API key before creating agent
+        from recipe_executor.utils.authentication import AuthManager
+        
+        auth_manager = AuthManager()
+        is_valid, error_message = auth_manager.verify_api_key(model_provider)
+        
+        if not is_valid:
+            error_msg = f"Cannot create agent: {error_message}"
+            logger.error(error_msg)
+            instructions = auth_manager.get_api_key_instructions(model_provider)
+            logger.info(f"API key setup instructions: {instructions}")
+            raise ValueError(error_msg)
+        
         cache_key = f"{model_provider}:{model_name}:{result_type.__name__}:{system_prompt}:{temp}"
         if cache_key not in self.agents_cache:
             # Format model ID properly for pydantic-ai
@@ -69,8 +82,13 @@ class LLMGenerateExecutor:
             if system_prompt is not None:
                 agent_kwargs["system_prompt"] = system_prompt
 
-            agent = Agent(**agent_kwargs)
-            self.agents_cache[cache_key] = agent
+            try:
+                agent = Agent(**agent_kwargs)
+                self.agents_cache[cache_key] = agent
+            except Exception as e:
+                # Enhance error message with more context
+                raise ValueError(f"Failed to create agent for {model_provider}:{model_name}: {str(e)}")
+                
         return self.agents_cache[cache_key]
 
     async def _create_dynamic_model(

@@ -163,40 +163,24 @@ class RecipeExecutor:
             logger.warning("Install with: pip install python-dotenv")
 
     def _check_api_keys(self):
-        """Check if required API keys are available and log warnings if not."""
-        provider = self.default_model_provider
-
-        key_not_found = False
-        missing_key = ""
-
-        if provider == "anthropic" and not os.environ.get("ANTHROPIC_API_KEY"):
-            key_not_found = True
-            missing_key = "ANTHROPIC_API_KEY"
-        elif provider == "openai" and not os.environ.get("OPENAI_API_KEY"):
-            key_not_found = True
-            missing_key = "OPENAI_API_KEY"
-        elif provider == "google" and not os.environ.get("GOOGLE_API_KEY"):
-            key_not_found = True
-            missing_key = "GOOGLE_API_KEY"
-        elif provider == "mistral" and not os.environ.get("MISTRAL_API_KEY"):
-            key_not_found = True
-            missing_key = "MISTRAL_API_KEY"
-        elif provider == "groq" and not os.environ.get("GROQ_API_KEY"):
-            key_not_found = True
-            missing_key = "GROQ_API_KEY"
-
-        if key_not_found:
-            logger.error(f"{missing_key} not found in environment variables.")
+        """Check if required API keys are available and exit if the default provider's key is missing."""
+        from recipe_executor.utils.authentication import AuthManager
+        
+        # Create auth manager
+        auth_manager = AuthManager()
+        
+        # Verify the default provider's API key
+        is_valid, error_message = auth_manager.verify_api_key(self.default_model_provider)
+        
+        if not is_valid:
+            logger.error(f"API key validation failed: {error_message}")
             print("\n" + "=" * 80)
-            print(f"\033[1;31mError:\033[0m Missing API Key - {missing_key} not found")
+            print(f"\033[1;31mError:\033[0m {error_message}")
             print("=" * 80)
-            print(f"\nThe recipe you're trying to run requires a {provider.title()} API key, but none was found.")
-            print("\nTo fix this issue:")
-            print(f"1. Create a .env file in the project root directory with the following content:")
-            print(f"   \033[1;36m{missing_key}=your-api-key-here\033[0m")
-            print(f"2. Or export the key in your shell environment before running the command:")
-            print(f"   \033[1;36mexport {missing_key}=your-api-key-here\033[0m")
-            print(f"\nYou can obtain an API key from: https://{provider}.com/keys")
+            
+            # Get detailed instructions for setting up the API key
+            instructions = auth_manager.get_api_key_instructions(self.default_model_provider)
+            print(f"\n{instructions}")
             print("\nOnce you've set up your API key, run the command again.\n")
             sys.exit(1)
 
@@ -385,7 +369,7 @@ class RecipeExecutor:
                                     name="Analyze Content",
                                     type=StepType.LLM_GENERATE,
                                     llm_generate=LLMGenerateConfig(
-                                        prompt="{{analysis_prompt}}\n\nAnalyze these articles in detail:\n\n{{articles}}",
+                                        prompt="{{ analysis_prompt }}\n\nAnalyze these articles in detail:\n\n{% for article in articles %}\n## {{ article.title }}\nAuthor: {{ article.author }}\nDate: {{ article.publication_date }}\nCategories: {{ article.categories | join: ', ' }}\n\nPerformance Metrics:\n- Views: {{ article.performance_metrics.views }}\n- Shares: {{ article.performance_metrics.shares }}\n- Comments: {{ article.performance_metrics.comments }}\n- Conversion Rate: {{ article.performance_metrics.conversion_rate }}\n\nContent Excerpt: {{ article.content | truncate: 300 }}\n{% endfor %}",
                                         output_variable="analysis_results",
                                     ),
                                     validation_level=ValidationLevel.STANDARD,
@@ -395,7 +379,7 @@ class RecipeExecutor:
                                     name="Generate Report",
                                     type=StepType.LLM_GENERATE,
                                     llm_generate=LLMGenerateConfig(
-                                        prompt="Based on the following analysis, create a comprehensive content analysis report with executive summary, key findings, and recommendations:\n\n{{analysis_results}}",
+                                        prompt="Based on the following analysis, create a comprehensive content analysis report with executive summary, key findings, and recommendations:\n\n{{ analysis_results }}",
                                         output_variable="final_report",
                                     ),
                                     validation_level=ValidationLevel.STANDARD,
@@ -405,7 +389,8 @@ class RecipeExecutor:
                                     name="Save Report",
                                     type=StepType.FILE_WRITE,
                                     file_write=FileOutputConfig(
-                                        path="output/content_analysis_report.md", content_variable="final_report"
+                                        path="output/content_analysis_report.md",
+                                        content_variable="final_report"
                                     ),
                                     validation_level=ValidationLevel.STANDARD,
                                 ),
@@ -828,9 +813,9 @@ async def main():
 
     args = parser.parse_args()
 
-    # Set log level
-    log_level = getattr(logging, args.log_level.upper())
-    print(f"Setting log level to: {args.log_level.upper()}")
+    # Set log level - debug.log always gets DEBUG level but console verbosity is controlled by this
+    console_level = getattr(logging, args.log_level.upper())
+    print(f"Setting console log level to: {args.log_level.upper()}")
 
     # Ensure logs directory exists
     os.makedirs("logs", exist_ok=True)
@@ -848,7 +833,7 @@ async def main():
         temp=args.temp,
         validation_level=args.validation,
         interaction_mode=args.interaction,
-        log_level=log_level,
+        log_level=console_level,
     )
 
     # Add initial variables from command line

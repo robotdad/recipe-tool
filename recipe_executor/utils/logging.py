@@ -70,40 +70,30 @@ class LogManager:
         LogManager._initialized = True
     
     def _reset_logs(self) -> None:
-        """Reset log files by removing and recreating the log directory."""
+        """Reset log files by removing them without creating backups."""
         log_path = Path(self.log_dir)
         if log_path.exists():
-            # Create a backup directory with timestamp
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            backup_dir = f"{self.log_dir}_backup_{timestamp}"
-            
-            # Only create backup if there are existing logs
-            if any(log_path.iterdir()):
-                os.makedirs(backup_dir, exist_ok=True)
-                for log_file in log_path.glob("*.log"):
-                    shutil.copy2(log_file, os.path.join(backup_dir, log_file.name))
-                
-            # Clear log files
+            # Simply clear log files without creating backups
             for log_file in log_path.glob("*.log"):
                 log_file.unlink()
     
     def _configure_app_logger(self) -> None:
         """Set up the main application logger with file handlers."""
         app_logger = logging.getLogger("recipe-executor")
-        app_logger.setLevel(logging.INFO)
+        app_logger.setLevel(logging.DEBUG)  # Always log at DEBUG level to the logger
         app_logger.propagate = False  # Don't propagate to root logger
         
         # Clear any existing handlers
         for handler in app_logger.handlers[:]:
             app_logger.removeHandler(handler)
         
-        # Create console handler
+        # Create console handler - only this changes with CLI args
         console_handler = logging.StreamHandler(sys.stdout)
-        console_handler.setLevel(logging.INFO)
+        console_handler.setLevel(logging.INFO)  # Default console level is INFO
         console_handler.setFormatter(logging.Formatter(self.LOG_FORMAT))
         app_logger.addHandler(console_handler)
         
-        # Create info file handler
+        # Create info file handler - always logs INFO and above
         info_file = os.path.join(self.log_dir, self.DEFAULT_INFO_LOG)
         info_handler = logging.handlers.RotatingFileHandler(
             info_file, maxBytes=10485760, backupCount=5
@@ -112,7 +102,7 @@ class LogManager:
         info_handler.setFormatter(logging.Formatter(self.LOG_FORMAT))
         app_logger.addHandler(info_handler)
         
-        # Create error file handler
+        # Create error file handler - always logs ERROR and above
         error_file = os.path.join(self.log_dir, self.DEFAULT_ERROR_LOG)
         error_handler = logging.handlers.RotatingFileHandler(
             error_file, maxBytes=10485760, backupCount=5
@@ -121,7 +111,7 @@ class LogManager:
         error_handler.setFormatter(logging.Formatter(self.LOG_FORMAT))
         app_logger.addHandler(error_handler)
         
-        # Create debug file handler
+        # Create debug file handler - always logs DEBUG and above
         debug_file = os.path.join(self.log_dir, self.DEFAULT_DEBUG_LOG)
         debug_handler = logging.handlers.RotatingFileHandler(
             debug_file, maxBytes=10485760, backupCount=5
@@ -132,6 +122,9 @@ class LogManager:
         
         # Store the logger
         self._loggers["app"] = app_logger
+        
+        # Log initialization message
+        app_logger.debug("Logging system initialized - debug.log will capture all DEBUG level messages")
     
     def get_logger(self, name: str = "app") -> logging.Logger:
         """
@@ -163,6 +156,7 @@ class LogManager:
     def set_level(self, level: Union[int, str], name: str = "app") -> None:
         """
         Set the logging level for a logger.
+        Only affects the console handler - file handlers maintain their configured levels.
         
         Args:
             level: The logging level to set
@@ -171,17 +165,25 @@ class LogManager:
         # Convert string levels to ints
         if isinstance(level, str):
             level = getattr(logging, level.upper())
-            
-        logger = self.get_logger(name)
-        logger.setLevel(level)
         
-        # Update console handler level if this is the app logger
+        logger = self.get_logger(name)
+        
+        # Root logger's level affects all loggers, so we need to set it directly
+        logger.setLevel(logging.DEBUG)  # Always set the base level to DEBUG
+        
+        # Set console handler level for visibility control
         if name == "app":
             for handler in logger.handlers:
+                # Only change the level for console handlers
                 if isinstance(handler, logging.StreamHandler) and not isinstance(
                     handler, logging.FileHandler
                 ):
                     handler.setLevel(level)
+                    logger.info(f"Console log level set to {logging.getLevelName(level)}")
+                # Ensure debug.log always gets DEBUG level logs
+                elif isinstance(handler, logging.FileHandler) and handler.baseFilename.endswith("debug.log"):
+                    handler.setLevel(logging.DEBUG)
+                    logger.debug("Debug log level maintained at DEBUG")
     
     def log_llm_prompt(self, model: str, prompt: str, step_id: Optional[str] = None) -> None:
         """

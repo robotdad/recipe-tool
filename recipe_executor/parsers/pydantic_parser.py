@@ -137,7 +137,7 @@ class RecipeParser:
             Partial result dict if available, or None
         """
 
-    def _generate_fallback_recipe_for_analyzer(self, content: str) -> Optional[Recipe]:
+    def _generate_fallback_recipe_for_analyzer(self, content: str) -> Recipe:
         """
         Generate a fallback recipe for Smart Content Analyzer if parsing fails.
 
@@ -145,7 +145,10 @@ class RecipeParser:
             content: The natural language recipe content
 
         Returns:
-            A fallback Recipe object or None if an error occurs
+            A fallback Recipe object
+
+        Raises:
+            ValueError: If the fallback recipe cannot be created
         """
         try:
             # Create a hardcoded but functional recipe that will work with the internal model
@@ -190,7 +193,7 @@ class RecipeParser:
                         "name": "Analyze Content",
                         "type": "llm_generate",
                         "llm_generate": {
-                            "prompt": "{{analysis_prompt}}\n\nAnalyze these articles in detail:\n\n{{articles}}",
+                            "prompt": "{{ analysis_prompt }}\n\nAnalyze these articles in detail:\n\n{% for article in articles %}\n## {{ article.title }}\nAuthor: {{ article.author }}\nDate: {{ article.publication_date }}\nCategories: {{ article.categories | join: ', ' }}\n\nPerformance Metrics:\n- Views: {{ article.performance_metrics.views }}\n- Shares: {{ article.performance_metrics.shares }}\n- Comments: {{ article.performance_metrics.comments }}\n- Conversion Rate: {{ article.performance_metrics.conversion_rate }}\n\nContent Excerpt: {{ article.content | truncate: 300 }}\n{% endfor %}",
                             "output_variable": "analysis_results",
                             "output_format": "text",
                         },
@@ -199,10 +202,21 @@ class RecipeParser:
                     {
                         "id": "generate_report",
                         "name": "Generate Report",
+                        "type": "llm_generate",
+                        "llm_generate": {
+                            "prompt": "Based on the following analysis, create a comprehensive content analysis report with executive summary, key findings, and recommendations:\n\n{{ analysis_results }}",
+                            "output_variable": "final_report",
+                            "output_format": "text", 
+                        },
+                        "validation_level": "standard",
+                    },
+                    {
+                        "id": "save_report",
+                        "name": "Save Report",
                         "type": "file_write",
                         "file_write": {
                             "path": "output/content_analysis_report.md",
-                            "content": "# Content Analysis Report\n\n## Summary\n\n{{analysis_results}}",
+                            "content": "# Content Analysis Report\n\n{{ final_report }}",
                         },
                         "validation_level": "standard",
                     },
@@ -216,7 +230,8 @@ class RecipeParser:
 
         except Exception as e:
             logger.error(f"Error creating fallback recipe: {e}")
-            return None
+            # Instead of returning None, raise an exception to match the return type
+            raise ValueError(f"Failed to create fallback recipe: {e}")
 
     async def parse_recipe_from_text(self, content: str) -> Recipe:
         """
@@ -255,40 +270,45 @@ class RecipeParser:
             # Validate the recipe (this will raise exceptions for invalid recipes)
             return recipe
 
-        except ModelRetry.ExhaustedError as e:
-            # Extract partial result if available
-            raw_response = getattr(e, "response", None)
-            partial_result = self._extract_partial_result(e, raw_response)
-
-            # Create meaningful error message
-            parsing_error = ValueError(
-                f"Failed to parse recipe after maximum retries: {str(e)}\n\n"
-                f"The model had difficulty generating a valid recipe structure. "
-                f"Try simplifying your recipe description or providing clearer step definitions."
-            )
-
-            # Re-raise with additional context
-            raise parsing_error
-
         except Exception as e:
-            logger.error(f"Error parsing recipe: {e}")
-            # Provide a more specific error message with troubleshooting guidance
-            error_message = f"Failed to parse recipe from natural language: {str(e)}"
+            # Check if this is a retry exhaustion error (pydantic-ai's ModelRetry.ExhaustedError)
+            if hasattr(e, "__class__") and e.__class__.__name__ == "ExhaustedError":
+                # Extract partial result if available
+                raw_response = getattr(e, "response", None)
+                partial_result = self._extract_partial_result(e, raw_response)
 
-            # Add suggestions based on the error type
-            if "missing" in str(e).lower() and "steps" in str(e).lower():
-                error_message += "\n\nThe model failed to generate the required 'steps' field. Try simplifying the recipe requirements."
-            elif "maximum retries" in str(e).lower() or "retries" in str(e).lower():
-                error_message += "\n\nThe maximum number of retries was exceeded. The model is having difficulty generating a valid recipe structure."
+                # Create meaningful error message
+                parsing_error = ValueError(
+                    f"Failed to parse recipe after maximum retries: {str(e)}\n\n"
+                    f"The model had difficulty generating a valid recipe structure. "
+                    f"Try simplifying your recipe description or providing clearer step definitions."
+                )
 
-            # For Smart Content Analyzer specifically, offer a fallback recipe if parsing fails
-            if "Smart Content Analyzer" in content or "smart-content-analyzer.md" in content:
-                logger.warning("Parsing failed, generating fallback recipe for Smart Content Analyzer")
-                fallback_recipe = self._generate_fallback_recipe_for_analyzer(content)
-                if fallback_recipe:
-                    return fallback_recipe
+                # Re-raise with additional context
+                raise parsing_error
+            else:
+                # Handle other exceptions
+                logger.error(f"Error parsing recipe: {e}")
+                # Provide a more specific error message with troubleshooting guidance
+                error_message = f"Failed to parse recipe from natural language: {str(e)}"
 
-            raise ValueError(error_message)
+                # Add suggestions based on the error type
+                if "missing" in str(e).lower() and "steps" in str(e).lower():
+                    error_message += "\n\nThe model failed to generate the required 'steps' field. Try simplifying the recipe requirements."
+                elif "maximum retries" in str(e).lower() or "retries" in str(e).lower():
+                    error_message += "\n\nThe maximum number of retries was exceeded. The model is having difficulty generating a valid recipe structure."
+
+                # For Smart Content Analyzer specifically, offer a fallback recipe if parsing fails
+                if "Smart Content Analyzer" in content or "smart-content-analyzer.md" in content:
+                    logger.warning("Parsing failed, generating fallback recipe for Smart Content Analyzer")
+                    try:
+                        fallback_recipe = self._generate_fallback_recipe_for_analyzer(content)
+                        return fallback_recipe
+                    except ValueError as fallback_error:
+                        # If fallback also fails, include that in error message
+                        error_message += f"\n\nFallback recipe creation also failed: {fallback_error}"
+
+                raise ValueError(error_message)
 
     async def parse_to_model(self, content: str, model_class: Type[T], context: Optional[str] = None) -> T:
         """

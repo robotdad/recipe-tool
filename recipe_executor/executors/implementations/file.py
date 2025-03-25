@@ -130,11 +130,17 @@ class FileWriteExecutor:
         config = step.file_write
         path = context.interpolate_variables(config.path)
 
-        content_var = context.get_variable(config.content_variable)
-        if content_var is None:
-            raise ValueError(f"Content variable {config.content_variable} not found")
-
-        content = content_var
+        # Get content from either direct content or content_variable
+        if hasattr(config, "content") and config.content is not None:
+            # Content might contain templates, so interpolate variables
+            content = context.interpolate_variables(config.content)
+        elif hasattr(config, "content_variable") and config.content_variable:
+            content_var = context.get_variable(config.content_variable)
+            if content_var is None:
+                raise ValueError(f"Content variable {config.content_variable} not found")
+            content = content_var
+        else:
+            raise ValueError(f"Neither content nor content_variable specified for file_write step {step.id}")
         if not isinstance(content, str):
             # Try to convert to string
             if isinstance(content, (dict, list)):
