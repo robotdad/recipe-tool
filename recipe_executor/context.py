@@ -1,61 +1,43 @@
-# context.py
 from dataclasses import dataclass, field
-from typing import Any, Dict
+from typing import Any, Iterator
 
 
 @dataclass
 class Context:
-    """
-    Encapsulates the shared context for recipe execution.
+    """Holds artifacts and optional config, providing dict-like access to artifacts."""
 
-    Contains required fields such as 'input_root' and 'output_root', and an extra dictionary
-    for any additional context values.
-    """
+    artifacts: dict = field(default_factory=dict)
+    config: dict = field(default_factory=dict)  # for any global settings or legacy compat
 
-    input_root: str
-    output_root: str
-    extra: Dict[str, Any] = field(default_factory=dict)
+    def __init__(self, artifacts=None, config=None) -> None:
+        # Only keep artifacts and config in context
+        self.artifacts = artifacts or {}
+        self.config = config or {}
 
-    def __getitem__(self, key: str) -> Any:
-        """
-        Allow dictionary-like access for required fields and extra values.
-        """
-        if key == "input_root":
-            return self.input_root
-        if key == "output_root":
-            return self.output_root
-        return self.extra.get(key)
+    def __getitem__(self, key) -> Any:
+        # Enable dict-like read access to artifacts
+        return self.artifacts[key]
 
-    def __setitem__(self, key: str, value: Any) -> None:
-        """
-        Allow dictionary-like setting for required fields and extra values.
-        """
-        if key == "input_root":
-            self.input_root = value
-        elif key == "output_root":
-            self.output_root = value
-        else:
-            self.extra[key] = value
+    def __setitem__(self, key, value) -> None:
+        # Enable dict-like write access to artifacts
+        self.artifacts[key] = value
 
-    def get(self, key: str, default: Any = None) -> Any:
-        """
-        Retrieve a value by key, returning default if not found.
-        """
-        if key == "input_root":
-            return self.input_root
-        if key == "output_root":
-            return self.output_root
-        return self.extra.get(key, default)
+    def get(self, key, default=None) -> Any:
+        # Safe get method for artifacts
+        return self.artifacts.get(key, default)
 
-    def update(self, updates: Dict[str, Any]) -> None:
-        """
-        Update the context with a dictionary of new values.
-        """
-        for key, value in updates.items():
-            self[key] = value
+    def as_dict(self) -> dict[Any, Any]:
+        """Return a shallow copy of artifact data (for templating)."""
+        return dict(self.artifacts)
 
-    def as_dict(self) -> Dict[str, Any]:
-        """
-        Return a plain dictionary combining required fields and extra context.
-        """
-        return {"input_root": self.input_root, "output_root": self.output_root, **self.extra}
+    def __iter__(self) -> Iterator[Any]:
+        # Iterate over artifact keys (to support dict-like behavior)
+        return iter(self.artifacts)
+
+    def __len__(self) -> int:
+        # Number of artifacts stored
+        return len(self.artifacts)
+
+    def keys(self):
+        # Keys of the artifacts dictionary
+        return self.artifacts.keys()

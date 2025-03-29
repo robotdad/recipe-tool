@@ -23,7 +23,7 @@ class FileSpec(BaseModel):
     content: str
 
 
-class CodeGenResult(BaseModel):
+class FileGenerationResult(BaseModel):
     files: List[FileSpec]
     commentary: Optional[str] = None
 

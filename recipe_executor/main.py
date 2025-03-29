@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 import argparse
 
-from runner import run_executor
+from context import Context
+from executor import RecipeExecutor
+
+from recipe_executor.logger import init_logger
 
 
 def main() -> None:
@@ -18,7 +21,7 @@ def main() -> None:
     parser.add_argument("--context", action="append", help="Additional context values as key=value pairs")
     args = parser.parse_args()
 
-    # Convert the list of context strings into a dictionary.
+    # Convert CLI --context values (key=value) to a dictionary
     cli_context = {}
     if args.context:
         for item in args.context:
@@ -26,7 +29,14 @@ def main() -> None:
                 key, value = item.split("=", 1)
                 cli_context[key.strip()] = value.strip()
 
-    run_executor(args.recipe_path, cli_context, args.log_dir)
+    logger = init_logger(args.log_dir)
+    logger.info("Starting Recipe Executor Tool")
+
+    # Inject CLI context values into Context.artifacts
+    context = Context(artifacts=cli_context)
+
+    executor = RecipeExecutor()
+    executor.execute(args.recipe_path, context, logger=logger)
 
 
 if __name__ == "__main__":

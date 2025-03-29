@@ -1,25 +1,15 @@
-import logging
+# __init__.py
 
-# steps/__init__.py
-from .base import STEP_REGISTRY, Step
-from .generate_code import GenerateCodeStep
-from .read_file import ReadFileStep
-from .write_file import WriteFileStep
+from recipe_executor.steps.execute_recipe import ExecuteRecipeStep
+from recipe_executor.steps.generate_llm import GenerateWithLLMStep
+from recipe_executor.steps.read_file import ReadFileStep
+from recipe_executor.steps.registry import STEP_REGISTRY
+from recipe_executor.steps.write_files import WriteFileStep
 
-
-def get_step_instance(step_type: str, config: dict, logger: logging.Logger) -> Step:
-    stype = step_type.lower()
-    if stype not in STEP_REGISTRY:
-        raise ValueError(f"Unknown step type: {step_type}")
-    step_class, config_class = STEP_REGISTRY[stype]
-    cfg = config_class.parse_obj(config)
-    return step_class(cfg, logger)
-
-
-__all__ = [
-    "get_step_instance",
-    "STEP_REGISTRY",
-    "GenerateCodeStep",
-    "ReadFileStep",
-    "WriteFileStep",
-]
+# Explicitly populate the registry
+STEP_REGISTRY.update({
+    "read_file": ReadFileStep,
+    "write_file": WriteFileStep,
+    "generate": GenerateWithLLMStep,
+    "execute_recipe": ExecuteRecipeStep,
+})

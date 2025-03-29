@@ -1,45 +1,29 @@
 import logging
-from typing import Any, Callable, Dict, Tuple, Type
+from typing import Generic, Optional, TypeVar
 
-from context import Context
+from pydantic import BaseModel
 
-# Global registry to map step type identifiers to their class and config model.
-STEP_REGISTRY: Dict[str, Tuple[Type["Step"], Type[Any]]] = {}
+from recipe_executor.context import Context
 
 
-def register_step(step_type: str, config_class: Type[Any]) -> Callable[[Type["Step"]], Type["Step"]]:
+class StepConfig(BaseModel):
+    """Base class for all step configs. Extend this in each step."""
+
+    pass
+
+
+ConfigType = TypeVar("ConfigType", bound=StepConfig)
+
+
+class BaseStep(Generic[ConfigType]):
     """
-    Decorator to register a Step subclass for a given step type and configuration model.
-
-    Args:
-        step_type (str): Identifier for the step (e.g., "readfile").
-        config_class (Type[Any]): Pydantic model for the step's configuration.
-
-    Returns:
-        Callable: The class decorator.
-    """
-
-    def decorator(cls: Type["Step"]) -> Type["Step"]:
-        STEP_REGISTRY[step_type.lower()] = (cls, config_class)
-        return cls
-
-    return decorator
-
-
-class Step:
-    """
-    Base class for all steps.
+    Base class for all steps. Subclasses must implement `execute(context)`.
+    Each step receives a config object and a logger.
     """
 
-    def __init__(self, config: Any, logger: logging.Logger) -> None:
-        self.config = config
-        self.logger = logger
+    def __init__(self, config: ConfigType, logger: Optional[logging.Logger] = None) -> None:
+        self.config: ConfigType = config
+        self.logger = logger or logging.getLogger("RecipeExecutor")
 
     def execute(self, context: Context) -> None:
-        """
-        Execute the step using the provided context.
-
-        Args:
-            context (Dict[str, Any]): Shared execution context.
-        """
-        raise NotImplementedError("Subclasses must implement execute().")
+        raise NotImplementedError("Each step must implement the `execute()` method.")

@@ -60,6 +60,7 @@
     "dotenv",
     "fastmcp",
     "generatecode",
+    "levelname",
     "stype",
     "toplevel"
   ]

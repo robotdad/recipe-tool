@@ -3,45 +3,45 @@ import os
 import sys
 
 
-def init_logger(log_dir: str, use_file_handlers: bool = True) -> logging.Logger:
+def init_logger(log_dir: str = "logs") -> logging.Logger:
     """
-    Initialize and return the main logger.
-
-    This logger logs to stdout and optionally to separate file handlers for debug, info, and error levels.
+    Initializes a logger that writes to stdout and to log files (debug/info/error).
+    Clears existing logs on each run.
 
     Args:
-        log_dir (str): Directory where log files will be stored.
-        use_file_handlers (bool): Whether to add file handlers. Defaults to True.
+        log_dir (str): Directory to store log files.
 
     Returns:
-        logging.Logger: The configured logger.
+        logging.Logger: Configured logger instance.
     """
-    logger = logging.getLogger("recipe_executor")
+    os.makedirs(log_dir, exist_ok=True)
+
+    logger = logging.getLogger("RecipeExecutor")
     logger.setLevel(logging.DEBUG)
     formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(message)s")
 
-    # Clear any existing handlers to avoid duplicate logs.
+    # Clear old handlers to avoid duplicates (useful during dev reloads)
     if logger.hasHandlers():
         logger.handlers.clear()
 
-    # Stream handler for stdout (info level and above)
+    # Stream handler for stdout
     stream_handler = logging.StreamHandler(sys.stdout)
     stream_handler.setLevel(logging.INFO)
     stream_handler.setFormatter(formatter)
     logger.addHandler(stream_handler)
 
-    if use_file_handlers:
-        os.makedirs(log_dir, exist_ok=True)
+    # File handlers
+    def add_file_handler(filename: str, level: int):
+        path = os.path.join(log_dir, filename)
+        with open(path, "w"):  # truncate file
+            pass
+        handler = logging.FileHandler(path)
+        handler.setLevel(level)
+        handler.setFormatter(formatter)
+        logger.addHandler(handler)
 
-        def create_file_handler(filename: str, level: int) -> logging.FileHandler:
-            file_path = os.path.join(log_dir, filename)
-            handler = logging.FileHandler(file_path, mode="w")
-            handler.setLevel(level)
-            handler.setFormatter(formatter)
-            return handler
-
-        logger.addHandler(create_file_handler("debug.log", logging.DEBUG))
-        logger.addHandler(create_file_handler("info.log", logging.INFO))
-        logger.addHandler(create_file_handler("error.log", logging.ERROR))
+    add_file_handler("debug.log", logging.DEBUG)
+    add_file_handler("info.log", logging.INFO)
+    add_file_handler("error.log", logging.ERROR)
 
     return logger
