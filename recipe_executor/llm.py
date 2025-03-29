@@ -1,6 +1,7 @@
 # recipe_executor/llm.py
 
 import logging
+import time
 
 from pydantic_ai import Agent
 from pydantic_ai.agent import AgentRunResult
@@ -20,6 +21,7 @@ try:
         ),
         result_type=FileGenerationResult,
     )
+    logger.debug("LLM agent initialized successfully.")
 except Exception as e:
     logger.error("Failed to initialize LLM agent: %s", e)
     agent = None
@@ -28,11 +30,21 @@ except Exception as e:
 def call_llm(prompt: str) -> FileGenerationResult:
     """
     Calls the LLM via Pydantic-AI and returns a structured FileGenerationResult.
-    If the agent isn't initialized or the call fails, returns a dummy FileGenerationResult.
+
+    Always logs the LLM request prompt and the full response at the debug level,
+    along with the time taken for the call. If the agent isn't initialized or the call fails,
+    returns a dummy FileGenerationResult.
     """
+    logger.debug("LLM request prompt: %s", prompt)
+
     if agent is not None:
         try:
+            start_time = time.perf_counter()
             result: AgentRunResult[FileGenerationResult] = agent.run_sync(prompt)
+            elapsed_time = time.perf_counter() - start_time
+
+            logger.debug("LLM response received in %.2f seconds: %s", elapsed_time, result.data)
+
             return result.data
         except Exception as e:
             logger.error("LLM call failed: %s", e, exc_info=True)

@@ -53,7 +53,9 @@
     "pyproject.toml",
     "settings.json",
     "uv.lock",
-    "output"
+    "output",
+    "logs",
+    "*.md"
   ],
   "cSpell.words": [
     "codegen",

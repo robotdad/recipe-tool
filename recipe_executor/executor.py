@@ -20,6 +20,7 @@ class RecipeExecutor:
         # Load recipe data from different input types.
         if isinstance(recipe, str):
             if os.path.isfile(recipe):
+                logger.debug("Loading recipe file: %s", recipe)
                 with open(recipe, "r", encoding="utf-8") as f:
                     content = f.read()
 
@@ -29,27 +30,36 @@ class RecipeExecutor:
                     snippet = match.group(1).strip()
                     if not snippet:
                         raise ValueError("The JSON code block in the recipe file is empty.")
+                    logger.debug("Extracted JSON snippet: %s", snippet)
                     try:
                         recipe_data = json.loads(snippet)
                     except Exception as e:
-                        logger.error("Failed to parse JSON from the code block.", exc_info=True)
+                        logger.error(
+                            "Failed to parse JSON from the code block. Raw snippet: %s", snippet, exc_info=True
+                        )
                         raise e
                 else:
                     # Fallback: try to parse the entire file as JSON
                     content_stripped = content.strip()
                     if not content_stripped:
                         raise ValueError("Recipe file is empty.")
+                    logger.debug(
+                        "No fenced JSON found. Using entire file content for JSON parsing. Content: %s",
+                        content_stripped,
+                    )
                     try:
                         recipe_data = json.loads(content_stripped)
                     except Exception as e:
-                        logger.error("Failed to parse the entire recipe file as JSON.", exc_info=True)
+                        logger.error(
+                            "Failed to parse the entire recipe file as JSON. File content: %s", content, exc_info=True
+                        )
                         raise e
             else:
                 # If the string is not a file path, treat it as a JSON string.
                 try:
                     recipe_data = json.loads(recipe)
                 except Exception as e:
-                    logger.error("Failed to parse the recipe string as JSON.", exc_info=True)
+                    logger.error("Failed to parse the recipe string as JSON. Recipe string: %s", recipe, exc_info=True)
                     raise e
         elif isinstance(recipe, dict):
             recipe_data = recipe

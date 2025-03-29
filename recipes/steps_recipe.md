@@ -20,7 +20,7 @@ This recipe generates the Python modules for the step implementations used in th
   {
     "type": "write_file",
     "artifact": "generated_steps_base",
-    "root": "recipe_executor/steps"
+    "root": "output/recipe_executor/steps"
   },
   {
     "type": "generate",
@@ -30,7 +30,7 @@ This recipe generates the Python modules for the step implementations used in th
   {
     "type": "write_file",
     "artifact": "generated_read_file_step",
-    "root": "recipe_executor/steps"
+    "root": "output/recipe_executor/steps"
   },
   {
     "type": "generate",
@@ -40,7 +40,7 @@ This recipe generates the Python modules for the step implementations used in th
   {
     "type": "write_file",
     "artifact": "generated_write_files_step",
-    "root": "recipe_executor/steps"
+    "root": "output/recipe_executor/steps"
   },
   {
     "type": "generate",
@@ -50,7 +50,7 @@ This recipe generates the Python modules for the step implementations used in th
   {
     "type": "write_file",
     "artifact": "generated_generate_llm_step",
-    "root": "recipe_executor/steps"
+    "root": "output/recipe_executor/steps"
   },
   {
     "type": "generate",
@@ -60,7 +60,7 @@ This recipe generates the Python modules for the step implementations used in th
   {
     "type": "write_file",
     "artifact": "generated_execute_recipe_step",
-    "root": "recipe_executor/steps"
+    "root": "output/recipe_executor/steps"
   },
   {
     "type": "generate",
@@ -70,7 +70,7 @@ This recipe generates the Python modules for the step implementations used in th
   {
     "type": "write_file",
     "artifact": "generated_steps_registry",
-    "root": "recipe_executor/steps"
+    "root": "output/recipe_executor/steps"
   },
   {
     "type": "generate",
@@ -80,7 +80,7 @@ This recipe generates the Python modules for the step implementations used in th
   {
     "type": "write_file",
     "artifact": "generated_steps_init",
-    "root": "recipe_executor/steps"
+    "root": "output/recipe_executor/steps"
   }
 ]
 ```
