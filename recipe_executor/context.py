@@ -1,43 +1,28 @@
-from dataclasses import dataclass, field
-from typing import Any, Iterator
+import copy
 
 
-@dataclass
 class Context:
-    """Holds artifacts and optional config, providing dict-like access to artifacts."""
-
-    artifacts: dict = field(default_factory=dict)
-    config: dict = field(default_factory=dict)  # for any global settings or legacy compat
-
-    def __init__(self, artifacts=None, config=None) -> None:
-        # Only keep artifacts and config in context
+    def __init__(self, artifacts=None, config=None):
         self.artifacts = artifacts or {}
         self.config = config or {}
 
-    def __getitem__(self, key) -> Any:
-        # Enable dict-like read access to artifacts
-        return self.artifacts[key]
+    def __getitem__(self, key):
+        return self.artifacts.get(key)
 
-    def __setitem__(self, key, value) -> None:
-        # Enable dict-like write access to artifacts
+    def __setitem__(self, key, value):
         self.artifacts[key] = value
 
-    def get(self, key, default=None) -> Any:
-        # Safe get method for artifacts
+    def get(self, key, default=None):
         return self.artifacts.get(key, default)
 
-    def as_dict(self) -> dict[Any, Any]:
-        """Return a shallow copy of artifact data (for templating)."""
-        return dict(self.artifacts)
+    def keys(self):
+        return self.artifacts.keys()
 
-    def __iter__(self) -> Iterator[Any]:
-        # Iterate over artifact keys (to support dict-like behavior)
-        return iter(self.artifacts)
-
-    def __len__(self) -> int:
-        # Number of artifacts stored
+    def __len__(self):
         return len(self.artifacts)
 
-    def keys(self):
-        # Keys of the artifacts dictionary
-        return self.artifacts.keys()
+    def __iter__(self):
+        return iter(self.artifacts)
+
+    def as_dict(self):
+        return copy.copy(self.artifacts)
