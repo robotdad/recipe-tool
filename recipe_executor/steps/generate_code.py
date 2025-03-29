@@ -1,7 +1,7 @@
 import json
 import logging
-from typing import Any, Dict
 
+from context import Context
 from models import CodeGenResult, GenerateCodeConfig
 from utils import render_template
 
@@ -22,12 +22,12 @@ class GenerateCodeStep(Step):
         from pydantic_ai import Agent
 
         self.agent = Agent(
-            self.config.model if self.config.model else "openai:o3-mini",
+            model="openai:o3-mini",
             system_prompt=self.system_prompt,
             result_type=CodeGenResult,
         )
 
-    def execute(self, context: Dict[str, Any]) -> None:
+    def execute(self, context: Context) -> None:
         input_spec = context.get(self.config.input_key)
         if input_spec is None:
             msg = f"GenerateCodeStep: Specification not found in context under key '{self.config.input_key}'."

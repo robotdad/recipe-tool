@@ -1,7 +1,7 @@
 import logging
 import os
-from typing import Any, Dict
 
+from context import Context
 from models import ReadFileConfig
 from utils import render_template
 
@@ -14,7 +14,7 @@ class ReadFileStep(Step):
         self.config = config
         self.logger = logger
 
-    def execute(self, context: Dict[str, Any]) -> None:
+    def execute(self, context: Context) -> None:
         file_path = render_template(self.config.file_path, context)
         self.logger.debug(f"ReadFileStep: Reading file '{file_path}'.")
         input_root = context.get("input_root", ".")

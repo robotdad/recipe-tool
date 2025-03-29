@@ -1,9 +1,8 @@
-from typing import Any, Dict
-
+from context import Context
 from liquid import Template
 
 
-def render_template(text: str, context: Dict[str, Any]) -> str:
+def render_template(text: str, context: Context) -> str:
     """
     Render the given text as a Liquid template using the provided context.
 
@@ -17,8 +16,6 @@ def render_template(text: str, context: Dict[str, Any]) -> str:
     Returns:
         str: The rendered text.
     """
-    # Always convert context if it has an as_dict() method.
-    if hasattr(context, "as_dict") and callable(context.as_dict):
-        context = context.as_dict()
+
     template = Template(text)
-    return template.render(**context)
+    return template.render(**context.as_dict())

@@ -11,13 +11,10 @@ class ReadFileConfig(BaseModel):
 class GenerateCodeConfig(BaseModel):
     input_key: str = "spec"  # Key in context where the specification is stored
     output_key: str = "codegen_result"  # Key to store the generated code result
-    model: Optional[str] = None  # Optionally specify a model
 
 
 class WriteFileConfig(BaseModel):
-    input_key: str = (
-        "codegen_result"  # Key in context where the codegen result is stored
-    )
+    input_key: str = "codegen_result"  # Key in context where the codegen result is stored
     output_root: str  # Root directory where files will be written
 
 

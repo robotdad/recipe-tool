@@ -29,7 +29,7 @@ def load_recipe(recipe_path: str, context: Context) -> Recipe:
     try:
         with open(recipe_path, "r", encoding="utf-8") as f:
             content = f.read()
-        rendered = render_template(content, context.as_dict()).strip()
+        rendered = render_template(content, context).strip()
         if rendered.startswith("{") or rendered.startswith("["):
             recipe_json = json.loads(rendered)
         else:

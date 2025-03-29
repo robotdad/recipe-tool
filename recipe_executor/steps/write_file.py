@@ -1,7 +1,7 @@
 import logging
 import os
-from typing import Any, Dict
 
+from context import Context
 from models import CodeGenResult, WriteFileConfig
 from utils import render_template
 
@@ -14,7 +14,7 @@ class WriteFileStep(Step):
         self.config = config
         self.logger = logger
 
-    def execute(self, context: Dict[str, Any]) -> None:
+    def execute(self, context: Context) -> None:
         self.logger.info("WriteFileStep: Starting to write generated files.")
         codegen_result: CodeGenResult = context.get(self.config.input_key)
         if codegen_result is None:
