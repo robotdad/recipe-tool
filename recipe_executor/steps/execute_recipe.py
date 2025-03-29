@@ -9,17 +9,23 @@ class ExecuteRecipeConfig(StepConfig):
     """Config for ExecuteRecipeStep."""
 
     recipe_path: str
+    context_overrides: dict = {}  # Optional overrides to merge into the current context
 
 
 class ExecuteRecipeStep(BaseStep):
     """
-    Step that executes a sub-recipe using the same context.
+    Step that executes a sub-recipe using the same context, merging any context overrides provided.
     """
 
     def __init__(self, config: dict, logger=None) -> None:
         super().__init__(ExecuteRecipeConfig(**config), logger)
 
     def execute(self, context: Context) -> None:
+        # Merge any context overrides into the current context
+        if hasattr(self.config, "context_overrides") and self.config.context_overrides:
+            for key, value in self.config.context_overrides.items():
+                context[key] = value
+
         recipe_path = self.config.recipe_path
 
         if not os.path.exists(recipe_path):

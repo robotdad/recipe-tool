@@ -20,9 +20,12 @@ The generated output should be a JSON object with two keys:
 ```json
 [
   {
-    "type": "generate",
-    "prompt": "Generate a Python module for the main CLI entry point of a recipe execution tool. The module should be named 'main.py'. It should:\n\n- Import 'argparse', 'Context', 'RecipeExecutor', and the logger initializer.\n- Parse command line arguments including a required 'recipe_path', an optional '--log-dir' with default 'logs', and optional '--context' values provided as key=value pairs.\n- Initialize the logger using the provided log directory, create a Context with the CLI context values, instantiate a RecipeExecutor, and execute the recipe specified by 'recipe_path'.\n- Define a main() function and include the standard 'if __name__ == \"__main__\": main()' block.\n\nInclude proper type annotations, error handling, and docstrings. The final output should be a JSON object with 'files' (a list of file objects with 'path' and 'content') and 'commentary' (a string with additional commentary).",
-    "artifact": "generated_main_cli_module"
+    "type": "execute_recipe",
+    "recipe_path": "code_generation_wrapper_recipe.md",
+    "context_overrides": {
+      "scenario_prompt": "Generate a Python module for the main CLI entry point of a recipe execution tool. The module should be named 'main.py'. It should:\n\n- Import 'argparse', 'Context', 'RecipeExecutor', and the logger initializer.\n- Parse command line arguments including a required 'recipe_path', an optional '--log-dir' with default 'logs', and optional '--context' values provided as key=value pairs.\n- Initialize the logger using the provided log directory, create a Context with the CLI context values, instantiate a RecipeExecutor, and execute the recipe specified by 'recipe_path'.\n- Define a main() function and include the standard 'if __name__ == \"__main__\": main()' block.\n\nInclude proper type annotations, error handling, and docstrings. The final output should be a JSON object with 'files' (a list of file objects with 'path' and 'content') and 'commentary' (a string with additional commentary).",
+      "target_artifact": "generated_main_cli_module"
+    }
   },
   {
     "type": "write_file",
