@@ -77,7 +77,7 @@ This developer likely values clear documentation, readable code, and believes go
 
 ### LLM Integration
 
-- Direct integration with LiteLLM
+- Direct integration with Pydantic AI
 - Minimal transformation of responses
 - Handle common error cases only
 - Skip elaborate caching initially
@@ -253,4 +253,4 @@ class EnhancedMcpClient:
 - Favor clarity over cleverness
 - The best code is often the simplest
 
-This philosophy document serves as the foundational guide for all implementation decisions in the Cortex Platform.
+This philosophy document serves as the foundational guide for all implementation decisions in the project.

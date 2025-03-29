@@ -1,6 +1,7 @@
 from recipe_executor.context import Context
 from recipe_executor.llm import call_llm
 from recipe_executor.steps.base import BaseStep, StepConfig
+from recipe_executor.utils import render_template
 
 
 class GenerateLLMConfig(StepConfig):
@@ -26,6 +27,18 @@ class GenerateWithLLMStep(BaseStep[GenerateLLMConfig]):
 
     def execute(self, context: Context) -> None:
         self.logger.info(f"Calling LLM with prompt for artifact: {self.config.artifact}")
-        response = call_llm(self.config.prompt)
-        context[self.config.artifact] = response
-        self.logger.debug(f"LLM response stored in context under '{self.config.artifact}'")
+
+        # Render the prompt with the current context to substitute template placeholders.
+        rendered_prompt = render_template(self.config.prompt, context)
+        response = call_llm(rendered_prompt)
+
+        # Process the artifact key using templating if needed.
+        artifact_key = self.config.artifact
+        self.logger.debug("Original artifact key: %s", artifact_key)
+        if "{{" in artifact_key and "}}" in artifact_key:
+            artifact_key = render_template(artifact_key, context)
+        self.logger.debug("Artifact key after rendering: %s", artifact_key)
+
+        # Store the LLM response in context under the rendered artifact key.
+        context[artifact_key] = response
+        self.logger.debug("LLM response stored in context under '%s'", artifact_key)

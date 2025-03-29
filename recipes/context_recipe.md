@@ -19,9 +19,9 @@ The generated output must be a JSON object with two keys:
 [
   {
     "type": "execute_recipe",
-    "recipe_path": "code_generation_wrapper_recipe.md",
+    "recipe_path": "recipes/code_generation_recipe.md",
     "context_overrides": {
-      "scenario_prompt": "Generate a Python module that defines a Context class for managing artifacts and configuration. The Context class must:\n\n- Initialize with optional 'artifacts' and 'config' dictionaries.\n- Support dict-like access via __getitem__ and __setitem__ methods for the artifacts.\n- Include a get(key, default=None) method to safely retrieve artifact values.\n- Provide an as_dict() method that returns a shallow copy of the artifacts dictionary.\n- Implement __iter__, __len__, and keys() methods for iterating over and checking the number of artifacts.\n\nInclude clear type annotations and docstrings. The final output should be a JSON object with two keys: 'files' (a list of file objects with 'path' and 'content') and 'commentary'.",
+      "scenario_prompt": "A Python module that defines a Context dataclass for managing artifacts and configuration. The Context dataclass must:\n\n- Initialize with optional 'artifacts' and 'config' dictionaries.\n- Support dict-like access via __getitem__ and __setitem__ methods for the artifacts.\n- Include a get(key, default=None) method to safely retrieve artifact values.\n- Provide an as_dict() method that returns a shallow copy of the artifacts dictionary.\n- Implement __iter__, __len__, and keys() methods for iterating over and checking the number of artifacts.\n\nInclude clear type annotations and docstrings. The final output should be a JSON object with two keys: 'files' (a list of file objects with 'path' and 'content') and 'commentary'.",
       "target_artifact": "generated_context_module"
     }
   },

@@ -61,8 +61,6 @@ Every time you (the AI assistant) begin a new conversation with a user about thi
 
 - Run All Tests: `python -m pytest`
 - Run Single Test: `python -m pytest tests/test_file.py::test_function -v`
-- Run Architecture Tests: `python -m pytest tests/architecture/test_layer_integrity.py`
-- Check Architecture Boundaries: `./check_imports.sh`
 
 ### Dependencies
 
@@ -128,7 +126,6 @@ When you identify potential dead code, verify it's unused by:
 - Write tests for all new functionality
 - Use dependency overrides, not patching, for FastAPI tests
 - Test each layer (API, service, repository) separately
-- Follow the guidelines in `docs/TESTING.md`
 
 ### Message Processing Flow
 
@@ -137,46 +134,6 @@ When you identify potential dead code, verify it's unused by:
 - **Direct communication**: Prefer direct calls to services over complex event chains when appropriate
 - **Clean resource management**: Always provide proper cleanup methods for background tasks
 - **Minimize conditional checks**: Remove redundant null checks when fields are required
-
-## Context and Background Information
-
-Look for `ai-context` directories containing architectural vision and technical information that should be referenced based on the task at hand:
-
-### Platform Design
-
-- `ai-context/<project-name>/` - Project-specific platform design and concepts
-  - Includes detailed information about the platform's design and values
-  - Reference when implementing features that should align with the platform's vision
-  - Review these files to understand the overall architectural approach and philosophy
-  - Essential when making decisions that affect the overall system architecture
-
-### Technical Documentation
-
-- `ai-context/libs/` - Technical documentation for various libraries and technologies
-
-  - Contains information about the libraries used in the project
-  - Reference when working with specific libraries or technologies
-  - Request clarification on any specific library or technology if needed
-  - Ask user to place any requested information in the appropriate directory
-
-- `ai-context/libs/mcp/` - Model Context Protocol (MCP) documentation
-
-  - Review when working on MCP integrations or domain expert services
-  - Contains SDK documentation for both Python and TypeScript
-  - Reference when implementing tools or services that communicate via MCP
-  - Key files: `python-sdk-README.md`, `llms-concepts.txt`
-
-- `ai-context/libs/misc/` - Miscellaneous technologies
-  - Contains information about supporting technologies that are single-file
-  - Reference when working with specific third-party integrations
-  - Example key files: `litellm-README.md`
-
-**When to Reference**:
-
-- When starting work on a new major feature
-- When making architectural decisions
-- When implementing integrations with external services
-- When clarifying the overall vision or philosophy guiding implementation
 
 ## Handling Documentation and Architecture
 
@@ -256,30 +213,6 @@ The codebase may already be quite large and complex in some areas. Actively work
 - Identify and address root causes, not just symptoms
 - Propose comprehensive solutions rather than patches
 - Look for patterns in issues that might indicate deeper problems
-
-## File Organization
-
-```
-<project-root>/
-├── app/                    # Main application code
-│   ├── api/                # API endpoints
-│   ├── components/         # Core components
-│   ├── database/           # Database connection and models
-│   │   └── repositories/   # Repository implementations
-│   ├── interfaces/         # Interface definitions
-│   ├── models/             # Data models
-│   │   ├── api/            # API models
-│   │   │   ├── request/    # Request models
-│   │   │   └── response/   # Response models
-│   │   └── domain/         # Domain models
-│   └── services/           # Service implementations
-├── docs/                   # Documentation
-│   └── adr/                # Architecture Decision Records
-└── tests/                  # Test suite
-    ├── e2e/                # End-to-End tests
-    ├── integration/        # Integration tests
-    └── unit/               # Unit tests
-```
 
 ## Engineering Excellence Guidelines
 

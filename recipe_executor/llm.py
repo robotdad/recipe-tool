@@ -17,8 +17,12 @@ try:
             "You are a code generation assistant. Given a specification, "
             "generate a JSON object with exactly two keys: 'files' and 'commentary'. "
             "The 'files' key should be a list of file objects with 'path' and 'content'. "
+            "IMPORTANT: When including code with backslashes (like Windows paths or regex), "
+            "ensure they are properly escaped for JSON (use \\\\ instead of \\). "
+            "All special characters in string values must be properly JSON-escaped. "
             "Do not output any extra text."
         ),
+        retries=3,
         result_type=FileGenerationResult,
     )
     logger.debug("LLM agent initialized successfully.")
