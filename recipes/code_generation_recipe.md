@@ -17,11 +17,6 @@ This recipe acts as a system-provided code generator. It takes a scenario-specif
   {
     "type": "generate",
     "prompt": "You are an expert software architect and code generator. A scenario-specific request has been provided:\n\n{{scenario_prompt}}\n\nAdditionally, consider these guiding documents:\n\n--- Implementation Philosophy ---\n{{implementation_philosophy}}\n\n--- LEGO-Inspired Vision ---\n{{lego_vision}}\n\nRefine and enhance the code generation request by incorporating best practices for maintainability, type safety, clarity, and simplicity. Then generate code that meets these high standards. Return a JSON object with two keys: 'files' (a list of file objects with 'path' and 'content') and 'commentary' (a summary of improvements made).",
-    "artifact": "enhanced_code_prompt"
-  },
-  {
-    "type": "generate",
-    "prompt": "{{enhanced_code_prompt}}",
     "artifact": "{{ target_artifact | default: 'final_generated_code' }}"
   }
 ]
