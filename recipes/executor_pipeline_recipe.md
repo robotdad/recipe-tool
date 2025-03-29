@@ -1,19 +1,5 @@
 # Executor Pipeline Module Recipe
 
-This recipe generates a Python module that defines the `RecipeExecutor` class. The class should:
-
-- Accept recipes in multiple forms (file path, JSON string, or dict).
-- If given a file path, read the file and attempt to extract a JSON code block (delimited by `json ... `) or parse the entire file as JSON.
-- Determine if the parsed recipe is a dictionary with a `steps` key or a list of steps.
-- Log the start and completion of each step as it iterates through them.
-- For each step, determine the step type, look up its implementation from a step registry, instantiate it with its configuration, and execute it using the provided context.
-- Handle errors by logging detailed information and re-raising exceptions.
-
-Include clear type annotations and docstrings. The final output must be a JSON object with two keys:
-
-- `files`: a list of file objects, each with `path` and `content`.
-- `commentary`: a string with additional commentary on the generation.
-
 ```json
 [
   {

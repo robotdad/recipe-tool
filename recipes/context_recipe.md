@@ -1,20 +1,5 @@
 # Context & Configuration Module Recipe
 
-This recipe generates the Python module that defines the `Context` class. The `Context` class should:
-
-- Hold two dictionaries: one for `artifacts` and one for `config`.
-- Provide dict-like access to artifacts using:
-  - `__getitem__` and `__setitem__`
-  - A safe `get` method with a default value.
-  - An `as_dict` method to return a shallow copy of artifacts.
-  - `__iter__`, `__len__`, and `keys` methods to support iteration and length checking.
-- Include proper type annotations and docstrings.
-
-The generated output must be a JSON object with two keys:
-
-- `files`: a list of file objects (each with a `path` and `content` field).
-- `commentary`: a string with additional comments on the generation.
-
 ```json
 [
   {

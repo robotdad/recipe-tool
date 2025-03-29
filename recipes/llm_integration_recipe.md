@@ -1,20 +1,5 @@
 # LLM Integration Module Recipe
 
-This recipe generates a Python module that defines the LLM integration for the recipe_executor tool. The module (to be written as `output/recipe_executor/llm.py`) should:
-
-- Import necessary modules (e.g., logging and Pydantic-AI components).
-- Initialize an LLM agent (for example, using GPT-4) with a system prompt that instructs the LLM to produce a JSON object with two keys: `files` (a list of file objects with `path` and `content`) and `commentary`.
-- Define a function `call_llm(prompt: str)` that:
-  - Uses the LLM agent to generate a response based on the provided prompt.
-  - Returns the structured output (with keys `files` and `commentary`).
-  - Handles errors by logging detailed information and, if needed, returns a dummy `FileGenerationResult` (e.g., a default file with a simple "Hello, Test!" message).
-- Include proper type annotations, clear docstrings, and error handling.
-
-The final output must be a JSON object with two keys:
-
-- `files`: a list of file objects (each with `path` and `content`).
-- `commentary`: a string with additional commentary on the generation.
-
 ```json
 [
   {

@@ -1,20 +1,5 @@
 # Logging & Templating Module Recipe
 
-This recipe generates two modules for the recipe_executor tool:
-
-1. **Logging Module:** Defines a function `init_logger` in `output/recipe_executor/logger.py`. This function should:
-
-   - Create a logs directory if it doesn't exist.
-   - Clear old log files.
-   - Configure a logger with a stream handler (writing to stdout) and file handlers for debug, info, and error logs.
-   - Use a consistent formatter and include detailed docstrings and type annotations.
-
-2. **Templating Module:** Defines a function `render_template` in `output/recipe_executor/utils.py`. This function should:
-   - Accept a text string (to be rendered as a Liquid template) and a context object.
-   - Convert the context to a dictionary using its `as_dict()` method.
-   - Render the text template and return the rendered string.
-   - Include proper error handling, docstrings, and type annotations.
-
 ```json
 [
   {
