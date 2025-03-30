@@ -1,0 +1,17 @@
+{
+  "steps": [
+    {
+      "type": "read_file",
+      "path": "recipe_executor/utils.py",
+      "artifact": "existing_utils_code"
+    },
+    {
+      "type": "execute_recipe",
+      "recipe_path": "recipes/recipe_executor_v2/utils_component_create.json",
+      "context_overrides": {
+        "existing_code_text": ", existing code,",
+        "existing_code_section": "Existing Code:\n{{existing_utils_code}}"
+      }
+    }
+  ]
+}
