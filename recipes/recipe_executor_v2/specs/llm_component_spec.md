@@ -6,11 +6,12 @@ This document outlines the specifications for the LLM (Large Language Model) com
 
 The LLM component should:
 
-1. Support multiple model providers (currently OpenAI, Anthropic, and Gemini)
-2. Provide a consistent interface for making LLM requests regardless of the underlying provider
-3. Return structured responses in a predictable format
-4. Handle errors gracefully and provide meaningful feedback
-5. Be configurable with different model settings
+1. Integrate the Pydantic AI library for LLM interactions
+2. Support multiple model providers (currently OpenAI, Anthropic, and Gemini)
+3. Provide a consistent interface for making LLM requests regardless of the underlying provider
+4. Return structured responses in a predictable format
+5. Handle errors gracefully and provide meaningful feedback
+6. Be configurable with different model settings
 
 ## Component Structure
 
@@ -22,7 +23,7 @@ The LLM component should consist of the following elements:
 def get_model(model_id: str) -> Model:
     """
     Initialize an LLM model based on a standardized model_id string.
-    Format: 'provider:model_name' (e.g., 'openai:gpt-4o', 'anthropic:claude-3-opus')
+    Format: 'provider:model_name' (e.g., 'openai:gpt-4o', 'openai:o3-mini', 'anthropic:claude-3.7-sonnet-latest')
 
     Supported providers:
     - 'openai': OpenAI models using the OpenAI Python SDK
@@ -67,7 +68,13 @@ def call_llm(prompt: str, model: Optional[str] = None) -> FileGenerationResult:
 
 ## Data Structures
 
-The component should define and use the following data structures:
+The component should import and utilize the following data structures from the `recipe_executor` module, as needed:
+
+```python
+from recipe_executor.models import FileGenerationResult, FileSpec
+```
+
+### File Generation Result Structure Reference
 
 ```python
 class FileSpec(BaseModel):
@@ -132,7 +139,7 @@ The system prompt used should instruct the LLM to:
 
 ## Logging Requirements
 
-The component should log:
+The component should log to the root logger: "RecipeExecutor"
 
 - LLM request prompts (debug level)
 - Response timing information (debug level)
