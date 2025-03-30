@@ -1,4 +1,4 @@
-# Top-Level Recipe: Regenerate Recipe Executor Tool
+# Top-Level Build Tool Recipe: Regenerate Recipe Executor Tool
 
 This recipe coordinates the regeneration of the entire recipe_executor tool by executing the following sub-recipes:
 
@@ -12,23 +12,23 @@ This recipe coordinates the regeneration of the entire recipe_executor tool by e
 [
   {
     "type": "execute_recipe",
-    "recipe_path": "recipes/context_recipe.md"
+    "recipe_path": "recipes/recipe_executor/context_recipe.md"
   },
   {
     "type": "execute_recipe",
-    "recipe_path": "recipes/executor_pipeline_recipe.md"
+    "recipe_path": "recipes/recipe_executor/executor_pipeline_recipe.md"
   },
   {
     "type": "execute_recipe",
-    "recipe_path": "recipes/steps_recipe.md"
+    "recipe_path": "recipes/recipe_executor/steps_recipe.md"
   },
   {
     "type": "execute_recipe",
-    "recipe_path": "recipes/logging_templating_recipe.md"
+    "recipe_path": "recipes/recipe_executor/logging_templating_recipe.md"
   },
   {
     "type": "execute_recipe",
-    "recipe_path": "recipes/llm_integration_recipe.md"
+    "recipe_path": "recipes/recipe_executor/llm_integration_recipe.md"
   }
 ]
 ```

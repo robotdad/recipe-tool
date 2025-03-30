@@ -14,6 +14,7 @@ class GenerateLLMConfig(StepConfig):
     """
 
     prompt: str
+    model: str
     artifact: str
 
 
@@ -26,18 +27,18 @@ class GenerateWithLLMStep(BaseStep[GenerateLLMConfig]):
         super().__init__(GenerateLLMConfig(**config), logger)
 
     def execute(self, context: Context) -> None:
-        self.logger.info(f"Calling LLM with prompt for artifact: {self.config.artifact}")
-
-        # Render the prompt with the current context to substitute template placeholders.
-        rendered_prompt = render_template(self.config.prompt, context)
-        response = call_llm(rendered_prompt)
-
         # Process the artifact key using templating if needed.
         artifact_key = self.config.artifact
         self.logger.debug("Original artifact key: %s", artifact_key)
         if "{{" in artifact_key and "}}" in artifact_key:
             artifact_key = render_template(artifact_key, context)
         self.logger.debug("Artifact key after rendering: %s", artifact_key)
+
+        # Render the prompt with the current context to substitute template placeholders.
+        rendered_prompt = render_template(self.config.prompt, context)
+        rendered_model = render_template(self.config.model, context)
+        self.logger.info(f"Calling LLM with prompt for artifact: {artifact_key}")
+        response = call_llm(rendered_prompt, rendered_model)
 
         # Store the LLM response in context under the rendered artifact key.
         context[artifact_key] = response

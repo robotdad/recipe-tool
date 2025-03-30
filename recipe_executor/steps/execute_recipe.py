@@ -3,6 +3,7 @@ import os
 from recipe_executor.context import Context
 from recipe_executor.executor import RecipeExecutor
 from recipe_executor.steps.base import BaseStep, StepConfig
+from recipe_executor.utils import render_template
 
 
 class ExecuteRecipeConfig(StepConfig):
@@ -24,7 +25,7 @@ class ExecuteRecipeStep(BaseStep):
         # Merge any context overrides into the current context
         if hasattr(self.config, "context_overrides") and self.config.context_overrides:
             for key, value in self.config.context_overrides.items():
-                context[key] = value
+                context[key] = render_template(value, context)
 
         recipe_path = self.config.recipe_path
 

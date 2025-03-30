@@ -6,7 +6,7 @@ This recipe demonstrates a simple workflow.
 [
   {
     "type": "read_file",
-    "path": "specs/sample_spec.txt",
+    "path": "recipes/example_simple/specs/sample_spec.txt",
     "artifact": "spec_text"
   },
   {

@@ -1,0 +1,24 @@
+# Code Generation Recipe
+
+This recipe acts as a system-provided code generator. It takes a scenario-specific code generation prompt provided in context as `scenario_prompt` and augments it with common quality guidelines from our documentation. It then generates improved code that meets high standards for maintainability, type safety, clarity, and simplicity. Rather than writing files to disk, the generated code is stored in the context under a key specified by `target_artifact` (defaulting to `"final_generated_code"` if not provided), so that the caller can decide how to handle the file output.
+
+```json
+[
+  {
+    "type": "read_file",
+    "path": "docs/IMPLEMENTATION_PHILOSOPHY.md",
+    "artifact": "implementation_philosophy"
+  },
+  {
+    "type": "read_file",
+    "path": "docs/Building Software with AI - A LEGO-Inspired Vision.md",
+    "artifact": "lego_vision"
+  },
+  {
+    "type": "generate",
+    "model": "{{ model | default: 'openai:o3-mini' }}",
+    "prompt": "You are an expert software architect and code generator. Refine and enhance the code generation request by incorporating best practices for maintainability, type safety, clarity, and simplicity. Generate code that not only meets these high standards but also reflects a holistic coding philosophy. Ensure the code is self-documenting and clearly expresses the developer's intent through its structure and type annotations. Furthermore, make sure that the generated code is fully compatible with standard static analysis tools (such as Pylance and Pyright) by using explicit, standard return types (for example, using Iterator[str] and KeysView[str]) and avoiding ambiguous overloads. Return a JSON object with two keys: 'files' (a list of file objects with 'path' and 'content') and 'commentary' (a summary of improvements made).\n\nHere is the scenario-specific request:\n\n{{scenario_prompt}}\n\nAdditionally, consider these guiding documents:\n\n<IMPLEMENTATION_PHILOSOPHY>\n{{implementation_philosophy}}\n</IMPLEMENTATION_PHILOSOPHY>\n\n<LEGO-INSPIRED_VISION>\n{{lego_vision}}</LEGO-INSPIRED_VISION>",
+    "artifact": "{{ target_artifact | default: 'final_generated_code' }}"
+  }
+]
+```

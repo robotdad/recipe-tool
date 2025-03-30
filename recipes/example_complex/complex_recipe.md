@@ -11,12 +11,12 @@ This recipe demonstrates a multi-step workflow that:
 [
   {
     "type": "read_file",
-    "path": "specs/main_spec.txt",
+    "path": "recipes/example_complex/specs/main_spec.txt",
     "artifact": "main_spec"
   },
   {
     "type": "read_file",
-    "path": "specs/auxiliary_spec.txt",
+    "path": "recipes/example_complex/specs/auxiliary_spec.txt",
     "artifact": "aux_spec"
   },
   {
@@ -31,7 +31,7 @@ This recipe demonstrates a multi-step workflow that:
   },
   {
     "type": "execute_recipe",
-    "recipe_path": "recipes/sub_recipe.md"
+    "recipe_path": "recipes/example_complex/sub_recipe.md"
   }
 ]
 ```
