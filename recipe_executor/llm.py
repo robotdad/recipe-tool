@@ -1,11 +1,8 @@
-# recipe_executor/llm.py
-
 import logging
 import time
 from typing import Optional
 
 from pydantic_ai import Agent
-from pydantic_ai.agent import AgentRunResult
 from pydantic_ai.models import Model
 from pydantic_ai.models.anthropic import AnthropicModel
 from pydantic_ai.models.gemini import GeminiModel
@@ -20,91 +17,103 @@ def get_model(model_id: str) -> Model:
     """
     Initializes the LLM model based on the provided model_id.
     The model_id should be in the format 'provider:model_name'.
-    Supported providers are 'anthropic', 'gemini', and 'openai'.
+    Supported providers: 'anthropic', 'gemini', 'openai'.
+
+    Returns:
+        Model: A configured model instance for the specified provider.
     """
-
     try:
-        provider, model_name = model_id.split(":")
+        provider, model_name = model_id.split(":", 1)
     except ValueError:
-        logger.error("Invalid model_id format. Expected 'provider:model_name'.")
-        raise ValueError("Invalid model_id format. Expected 'provider:model_name'.")
+        message = "Invalid model_id format. Expected 'provider:model_name'."
+        logger.error(message)
+        raise ValueError(message)
 
-    match provider:
-        case "anthropic":
-            return AnthropicModel(model_name=model_name)
-        case "gemini":
-            return GeminiModel(model_name=model_name)
-        case "openai":
-            return OpenAIModel(model_name=model_name)
-        case _:
-            raise ValueError(
-                "Unknown provider '%s'. Supported providers are 'anthropic', 'gemini', and 'openai'.", provider
-            )
+    if provider == "anthropic":
+        logger.debug(f"Using Anthropic model: {model_name}")
+        return AnthropicModel(model_name=model_name)
+    elif provider == "gemini":
+        logger.debug(f"Using Gemini model: {model_name}")
+        return GeminiModel(model_name=model_name)
+    elif provider == "openai":
+        logger.debug(f"Using OpenAI model: {model_name}")
+        return OpenAIModel(model_name=model_name)
+    else:
+        message = f"Unknown provider '{provider}'. Supported providers are 'anthropic', 'gemini', and 'openai'."
+        logger.error(message)
+        raise ValueError(message)
 
 
 def get_agent(model_id: Optional[str] = None) -> Agent[None, FileGenerationResult]:
     """
-    Initializes the LLM agent with the specified model name.
+    Initializes the LLM agent with the specified model.
 
-    If no model name is provided, defaults to "o3-mini". The agent is configured
-    with a system prompt that instructs it to generate a JSON object with
-    specific keys and formatting requirements. The agent is set to retry
-    requests up to 3 times in case of failures.
+    If no model_id is provided, defaults to 'openai:gpt-4o'.
+    The agent is configured with:
+      - A system prompt instructing it to generate JSON with exactly two keys: 'files' and 'commentary'.
+      - Retry logic up to 3 times.
+      - Return type validation using FileGenerationResult.
+
+    Returns:
+        Agent[None, FileGenerationResult]: A configured agent ready to handle LLM requests.
     """
-
     if model_id is None:
         model_id = "openai:gpt-4o"
+        logger.debug(f"No model_id provided. Using default model_id: {model_id}")
 
     model = get_model(model_id)
-    logger.debug("Initializing LLM agent with model: %s", model.model_name)
+    logger.debug(f"Initializing LLM agent with model: {model.model_name}")
+
+    system_prompt = (
+        "You are a file generation assistant. Given a specification, generate a JSON object with exactly two keys: 'files' and 'commentary'. "
+        "The 'files' key should be a list of file objects, each containing 'path' and 'content'. "
+        "Ensure that in any code you include, backslashes are properly escaped (\\ instead of \). "
+        "All special characters in string values must be properly JSON-escaped. Do not include any extra text."
+    )
 
     try:
         agent = Agent(
             model=model,
-            system_prompt=(
-                "You are a file generation assistant. Given a specification, "
-                "generate a JSON object with exactly two keys: 'files' and 'commentary'. "
-                "The 'files' key should be a list of file objects with 'path' and 'content'. "
-                "IMPORTANT: When including code with backslashes (like Windows paths or regex), "
-                "ensure they are properly escaped for JSON (use \\\\ instead of \\). "
-                "All special characters in string values must be properly JSON-escaped. "
-                "Do not output any extra text."
-            ),
+            system_prompt=system_prompt,
             retries=3,
             result_type=FileGenerationResult,
         )
         logger.debug("LLM agent initialized successfully.")
         return agent
     except Exception as e:
-        logger.error("Failed to initialize LLM agent: %s", e)
+        message = f"Failed to initialize LLM agent: {e}"
+        logger.error(message, exc_info=True)
         raise e
 
 
 def call_llm(prompt: str, model: Optional[str] = None) -> FileGenerationResult:
     """
-    Calls the LLM via Pydantic-AI and returns a structured FileGenerationResult.
+    Calls the LLM with the provided prompt and returns a structured FileGenerationResult.
 
-    Always logs the LLM request prompt and the full response at the debug level,
-    along with the time taken for the call. If the agent isn't initialized or the call fails,
-    returns a dummy FileGenerationResult.
+    Behavior:
+      - Logs the request prompt.
+      - Initializes the appropriate agent using the provided or default model.
+      - Measures and logs the response time.
+      - Handles errors gracefully, returning a dummy FileGenerationResult in case of failure.
+
+    Args:
+        prompt (str): The instruction prompt for the LLM.
+        model (Optional[str]): Optional model_id in 'provider:model_name' format.
+
+    Returns:
+        FileGenerationResult: Contains a list of generated files and optional commentary.
     """
-    logger.debug("LLM request prompt: %s", prompt)
-
+    logger.debug(f"LLM request prompt: {prompt}")
     agent = get_agent(model_id=model)
 
-    if agent is not None:
-        try:
-            start_time = time.perf_counter()
-            result: AgentRunResult[FileGenerationResult] = agent.run_sync(prompt)
-            elapsed_time = time.perf_counter() - start_time
-
-            logger.debug("LLM response received in %.2f seconds: %s", elapsed_time, result.data)
-
-            return result.data
-        except Exception as e:
-            logger.error("LLM call failed: %s", e, exc_info=True)
-            raise e
-    else:
-        # Dummy fallback for testing purposes.
+    try:
+        start_time = time.perf_counter()
+        result = agent.run_sync(prompt)
+        elapsed_time = time.perf_counter() - start_time
+        logger.debug(f"LLM response received in {elapsed_time:.2f} seconds: {result.data}")
+        return result.data
+    except Exception as e:
+        error_message = f"LLM call failed: {e}"
+        logger.error(error_message, exc_info=True)
         dummy_file = FileSpec(path="generated/hello.py", content='print("Hello, Test!")')
-        return FileGenerationResult(files=[dummy_file], commentary="Dummy LLM output")
+        return FileGenerationResult(files=[dummy_file], commentary="Dummy LLM output due to error")

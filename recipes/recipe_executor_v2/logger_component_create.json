@@ -1,0 +1,15 @@
+{
+  "steps": [
+    {
+      "type": "execute_recipe",
+      "recipe_path": "recipes/recipe_executor_v2/component_template.json",
+      "context_overrides": {
+        "component_id": "logger",
+        "component_name": "Logger component",
+        "component_description": "The logging configuration module",
+        "existing_code_text": "{{existing_code_text}}",
+        "existing_code_section": "{{existing_code_section}}"
+      }
+    }
+  ]
+}

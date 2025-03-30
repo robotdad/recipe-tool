@@ -1,0 +1,17 @@
+{
+  "steps": [
+    {
+      "type": "read_file",
+      "path": "recipe_executor/logger.py",
+      "artifact": "existing_logger_code"
+    },
+    {
+      "type": "execute_recipe",
+      "recipe_path": "recipes/recipe_executor_v2/logger_component_create.json",
+      "context_overrides": {
+        "existing_code_text": ", existing code,",
+        "existing_code_section": "Existing Code:\n{{existing_logger_code}}"
+      }
+    }
+  ]
+}
