@@ -2,94 +2,38 @@
 
 ## Purpose
 
-The Executor component is responsible for loading recipe definitions from various sources and executing their steps sequentially. It serves as the central orchestration mechanism for the Recipe Executor system.
+The Executor component is the central orchestration mechanism for the Recipe Executor system. It loads recipe definitions from various sources and executes their steps sequentially using the provided context.
 
 ## Core Requirements
 
-The Executor component should:
+1. Load and parse recipes from multiple input formats
+2. Validate recipe structure and step definitions
+3. Execute steps sequentially using registered step implementations
+4. Provide clear error messages for troubleshooting
+5. Support minimal logging for execution status
 
-1. Load recipes from multiple input types (file paths, JSON strings, dictionaries)
-2. Extract and validate recipe steps
-3. Execute steps in sequence using their type to instantiate the correct step class
-4. Handle errors gracefully with appropriate logging
-5. Support extraction of JSON from markdown fenced code blocks
-6. Follow a minimal design approach with clear error messages
+## Implementation Considerations
 
-## Component Structure
+- Parse recipes from file paths, JSON strings, or dictionaries
+- Extract JSON from markdown fenced code blocks when present
+- Use direct instantiation of step classes from the registry
+- Handle errors at both recipe and step levels
+- Maintain a simple, stateless design
 
-The Executor component should consist of a single `RecipeExecutor` class:
+## Component Dependencies
 
-```python
-class RecipeExecutor:
-    """
-    Unified executor that loads a recipe (from a file path, JSON string, or dict),
-    and executes its steps sequentially using the provided context.
-    """
+The Executor component depends on:
 
-    def execute(self, recipe, context: Context, logger: Optional[logging.Logger] = None) -> None:
-        """
-        Execute a recipe with the given context.
-
-        Args:
-            recipe: Recipe to execute, can be a file path, JSON string, or dict
-            context: Context instance to use for execution
-            logger: Optional logger to use, creates a default one if not provided
-
-        Raises:
-            ValueError: If recipe format is invalid or step execution fails
-            TypeError: If recipe type is not supported
-        """
-```
-
-## Recipe Loading Logic
-
-The Executor should handle the following input types:
-
-1. File paths:
-
-   - Read the file content
-   - Check for JSON fenced code blocks (`json ... `)
-   - If found, extract and parse the JSON from the block
-   - If not found, try to parse the entire file as JSON
-
-2. JSON strings:
-
-   - Parse the string as JSON
-
-3. Dictionaries:
-   - Use directly as a recipe
-
-After loading, the Executor should:
-
-- Check for a 'steps' key if the loaded data is a dict
-- Otherwise, assume the loaded data itself is the steps list
-- Validate that steps is a list of dictionaries
-
-## Step Execution Logic
-
-For each step in the recipe:
-
-1. Validate the step is a dictionary with a 'type' field
-2. Look up the step class in the STEP_REGISTRY using the 'type' field
-3. Instantiate the step class with the step configuration and logger
-4. Execute the step with the provided context
-5. Continue to the next step or handle any errors
+1. **Context** - Uses Context for data sharing between steps
+2. **Step Registry** - Uses STEP_REGISTRY to look up step classes by type
 
 ## Error Handling
 
-The Executor should provide clear error messages for:
-
-- Invalid recipe format or structure
-- Missing or unknown step types
-- Errors during step execution (with appropriate traceback)
-
-## Integration Points
-
-The Executor component integrates with:
-
-1. **Context**: Passed to each step for data sharing
-2. **Step Registry**: Used to look up step classes by type
-3. **Logger**: For providing execution status and error information
+- Validate recipe format before execution begins
+- Check that step types exist in the registry before instantiation
+- Verify each step is properly structured before execution
+- Provide specific error messages identifying problematic steps
+- Include original exceptions for debugging
 
 ## Future Considerations
 

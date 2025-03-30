@@ -63,6 +63,7 @@
     "fastmcp",
     "generatecode",
     "levelname",
+    "PYDANTIC",
     "stype",
     "toplevel"
   ]

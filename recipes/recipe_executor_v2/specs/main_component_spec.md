@@ -2,75 +2,47 @@
 
 ## Purpose
 
-The Main component serves as the command-line interface (CLI) and entry point for the Recipe Executor system. It parses command-line arguments, sets up logging, initializes context, and launches the executor with the appropriate recipe.
+The Main component serves as the command-line entry point for the Recipe Executor system. It parses command-line arguments, initializes the logger and context, executes the specified recipe, and handles top-level error reporting.
 
 ## Core Requirements
 
-The Main component should:
+1. Provide a command-line interface for executing recipes
+2. Parse arguments for recipe path and context values
+3. Initialize the logging system
+4. Create the context with command-line supplied values
+5. Execute the specified recipe with proper error handling
+6. Follow minimal design with clear user-facing error messages
 
-1. Provide a clean CLI interface with argument parsing
-2. Support specifying a recipe file path as a required argument
-3. Allow optional configuration for log directory
-4. Support passing additional context values as key=value pairs
-5. Initialize logging with appropriate configuration
-6. Create and populate the Context object
-7. Instantiate the RecipeExecutor and run the specified recipe
-8. Follow a minimal design approach with sensible defaults
+## Implementation Considerations
 
-## Component Structure
+- Use argparse for command-line argument parsing
+- Initialize logging early in execution flow
+- Parse context values from key=value pairs
+- Create a clean context for recipe execution
+- Keep the main function focused on orchestration
+- Provide meaningful exit codes and error messages
 
-The Main component should consist of a main module with a `main()` function as the entry point:
+## Component Dependencies
 
-```python
-def main() -> None:
-    """
-    CLI entry point for the Recipe Executor Tool.
+The Main component depends on:
 
-    Parses command-line arguments and calls the core runner function.
-    """
-```
-
-## Command Line Arguments
-
-The Main component should support the following command-line arguments:
-
-1. `recipe_path` (required): Path to the recipe file to execute
-2. `--log-dir` (optional): Directory for log files (default: "logs")
-3. `--context` (optional, multiple): Additional context values as key=value pairs
-
-Example usage:
-
-```
-python -m recipe_executor.main my_recipe.json --log-dir ./logs --context key1=value1 --context key2=value2
-```
-
-## Context Initialization
-
-The Main component should:
-
-1. Parse any `--context` arguments into key-value pairs
-2. Initialize a Context object with these values
-3. Pass this Context to the RecipeExecutor
+1. **Context** - Creates the Context object with CLI-supplied values
+2. **Executor** - Uses RecipeExecutor to run the specified recipe
+   - **IMPORTANT** - Must be imported with the full path to avoid circular imports
+   - Example: `from recipe_executor.executor import RecipeExecutor`
+3. **Logger** - Uses init_logger to set up the logging system
 
 ## Error Handling
 
-The Main component should:
-
-1. Provide clear error messages for missing or invalid arguments
-2. Use try/except blocks as appropriate for graceful error handling
-3. Ensure all errors are properly logged
-
-## Integration Points
-
-The Main component integrates with:
-
-1. **Context**: Creates and initializes the Context instance
-2. **Executor**: Instantiates and calls the RecipeExecutor
-3. **Logger**: Sets up the logging system
+- Validate command-line arguments
+- Provide clear error messages for missing or invalid recipe files
+- Handle context parsing errors gracefully
+- Log all errors before exiting
+- Use appropriate exit codes for different error conditions
 
 ## Future Considerations
 
 1. Support for environment variable configuration
 2. Interactive mode or REPL
-3. Support for recipe directories with auto-discovery
-4. Plugin system for adding custom step types
+3. Support for directory-based recipes
+4. Plugin system for extending functionality

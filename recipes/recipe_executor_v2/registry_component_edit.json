@@ -1,0 +1,16 @@
+{
+  "steps": [
+    {
+      "type": "read_file",
+      "path": "recipe_executor/steps/registry.py",
+      "artifact": "existing_code"
+    },
+    {
+      "type": "execute_recipe",
+      "recipe_path": "recipes/recipe_executor_v2/registry_component_create.json",
+      "context_overrides": {
+        "existing_code": "{{existing_code}}"
+      }
+    }
+  ]
+}

@@ -6,76 +6,34 @@ The Utils component provides utility functions for the Recipe Executor system, p
 
 ## Core Requirements
 
-The Utils component should:
-
 1. Provide a template rendering function using the Liquid templating engine
-   - The Liquid library is already installed in the environment
-   - The component should not include any additional dependencies beyond the Liquid library
 2. Support substituting values from the Context into templates
-   - `from context import Context`
-   - The Context object is a dictionary-like object that contains artifacts and other values
-   - The component should use the Context's `as_dict()` method to extract all artifacts
 3. Handle all context values by converting them to strings
-4. Follow a minimal design approach with focused functionality
-5. Ensure template rendering is reliable and error-resistant
+4. Provide clear error handling for template rendering failures
+5. Follow minimal design with focused functionality
 
-## Component Structure
+## Implementation Considerations
 
-The Utils component should consist of a single module with a `render_template` function:
+- Use the Liquid library directly without unnecessary abstraction
+- Convert context values to strings before rendering to prevent type errors
+- Handle rendering errors gracefully with clear error messages
+- Keep the implementation stateless and focused
 
-```python
-def render_template(text: str, context: Context) -> str:
-    """
-    Render the given text as a Liquid template using the provided context.
-    All values in the context are converted to strings before rendering.
+## Component Dependencies
 
-    Args:
-        text (str): The template text to render.
-        context (Context): The context for rendering the template.
+The Utils component depends on:
 
-    Returns:
-        str: The rendered text.
-    """
-```
+1. **Context** - Uses the Context class for accessing artifacts during template rendering
 
-## Template Rendering Logic
+## Error Handling
 
-The template rendering function should:
-
-1. Accept a string template and a Context object
-2. Extract all artifacts from the Context using its as_dict() method
-3. Convert all values to strings to ensure they can be safely used in templates
-4. Use the Liquid template engine to render the template
-5. Return the rendered string
-
-## Usage Example
-
-The component should support usage patterns like:
-
-```python
-# Example of how template rendering would be used in a step
-path = render_template(self.config.path, context)
-prompt = render_template(self.config.prompt, context)
-```
-
-## Implementation Philosophy
-
-The Utils component should follow these principles:
-
-1. **Ruthless Simplicity**: Provide only what's needed without extra complexity
-2. **Direct Library Usage**: Use the Liquid library directly with minimal wrapping
-3. **Error Resilience**: Handle edge cases gracefully (e.g., non-string values)
-
-## Integration Points
-
-The Utils component integrates with:
-
-1. **Context**: Uses the Context's as_dict() method to access artifacts
-2. **Steps**: All steps use the render_template function for dynamic configuration
+- Wrap template rendering in try/except blocks
+- Provide specific error messages that indicate the source of template failures
+- Propagate rendering errors with useful context
 
 ## Future Considerations
 
-1. Support for additional template filters or functions
-2. Error handling for invalid templates
-3. Template caching for performance optimization
-4. Support for more complex data types in templates
+1. Support for custom template filters or tags
+2. Caching for frequently used templates
+3. Template validation before rendering
+4. Extended error reporting with line/column information

@@ -1,0 +1,13 @@
+{
+  "steps": [
+    {
+      "type": "execute_recipe",
+      "recipe_path": "recipes/recipe_executor_v2/project_component_template.json",
+      "context_overrides": {
+        "component_id": "registry",
+        "component_path": "steps",
+        "existing_code": "{{existing_code}}"
+      }
+    }
+  ]
+}
