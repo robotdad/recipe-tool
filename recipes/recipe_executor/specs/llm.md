@@ -6,12 +6,14 @@ The LLM component provides a unified interface for interacting with various larg
 
 ## Core Requirements
 
-- Support multiple LLM providers (OpenAI, Anthropic, Gemini)
+- Support multiple LLM providers (OpenAI, Anthropic, Gemini, Azure OpenAI)
 - Provide model initialization based on a standardized model identifier format
 - Encapsulate LLM API details behind a unified interface
 - Use Pydantic AI for consistent handling and validation of LLM responses
 - Implement basic error handling and retry logic
 - Support structured output format for file generation
+- Support Azure OpenAI with both API key and managed identity authentication
+- Handle Azure-specific configuration requirements (endpoint, deployment name)
 
 ## Implementation Considerations
 
@@ -20,6 +22,9 @@ The LLM component provides a unified interface for interacting with various larg
 - Minimal wrapper functions with clear responsibilities
 - Consistent error handling with informative messages
 - Logging of request details and timing information
+- Use azure:model_name:deployment_name format for Azure OpenAI models
+- Support authentication through both API key and Azure managed identity
+- Leverage azure-identity library for managed identity token acquisition
 
 ## Component Dependencies
 

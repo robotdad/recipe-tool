@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The Models component defines the core data structures used throughout the Recipe Executor system. It provides Pydantic models for validating and structuring data, including recipe steps, file generation results, and step configurations.
+The Models component defines the core data structures used throughout the Recipe Executor system. It provides Pydantic models for validating and structuring data, including recipe steps, file generation results, step configurations, and provider settings.
 
 ## Core Requirements
 
@@ -11,6 +11,8 @@ The Models component defines the core data structures used throughout the Recipe
 - Support recipe structure validation
 - Leverage Pydantic for schema validation and documentation
 - Include clear type hints and docstrings
+- Support Azure OpenAI configuration with both API key and managed identity authentication options
+- Provide validation for provider-specific settings
 
 ## Implementation Considerations
 
@@ -19,6 +21,9 @@ The Models component defines the core data structures used throughout the Recipe
 - Provide sensible defaults where appropriate
 - Use descriptive field names and docstrings
 - Focus on essential fields without over-engineering
+- Create AzureOpenAISettings class for Azure-specific configuration
+- Use pydantic_settings.BaseSettings for environment variable handling
+- Implement validation to ensure the proper authentication method is configured
 
 ## Component Dependencies
 
