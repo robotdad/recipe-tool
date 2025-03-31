@@ -1,6 +1,6 @@
-# Cortex Platform Implementation Philosophy
+# Implementation Philosophy
 
-This document outlines the core implementation philosophy and guidelines for the Cortex Platform. It serves as a central reference for decision-making and development approach throughout the project.
+This document outlines the core implementation philosophy and guidelines for software development projects. It serves as a central reference for decision-making and development approach throughout the project.
 
 ## Core Philosophy
 
@@ -12,7 +12,7 @@ Embodies a Zen-like minimalism that values simplicity and clarity above all. Thi
 - **Present-moment focus**: The code handles what's needed now rather than anticipating every possible future scenario.
 - **Pragmatic trust**: The developer trusts external systems enough to interact with them directly, handling failures as they occur rather than assuming they'll happen.
 
-This developer likely values clear documentation, readable code, and believes good architecture emerges from simplicity rather than being imposed through complexity.
+This development philosophy values clear documentation, readable code, and belief that good architecture emerges from simplicity rather than being imposed through complexity.
 
 ## Core Design Principles
 
@@ -26,7 +26,7 @@ This developer likely values clear documentation, readable code, and believes go
 
 ### 2. Architectural Integrity with Minimal Implementation
 
-- **Preserve key architectural patterns**: MCP for service communication, SSE for events, separate I/O channels
+- **Preserve key architectural patterns**: MCP for service communication, SSE for events, separate I/O channels, etc.
 - **Simplify implementations**: Maintain pattern benefits with dramatically simpler code
 - **Scrappy but structured**: Lightweight implementations of solid architectural foundations
 - **End-to-end thinking**: Focus on complete flows rather than perfect components
@@ -57,6 +57,7 @@ This developer likely values clear documentation, readable code, and believes go
 ### MCP Implementation
 
 - Streamlined MCP client with minimal error handling
+- Utilize FastMCP when possible, falling back to lower-level only when necessary
 - Focus on core functionality without elaborate state management
 - Simplified connection lifecycle with basic error recovery
 - Implement only essential health checks
@@ -111,6 +112,7 @@ This developer likely values clear documentation, readable code, and believes go
 - Manual testability as a design goal
 - Focus on critical path testing initially
 - Add unit tests for complex logic and edge cases
+- Testing pyramid: 60% unit, 30% integration, 10% end-to-end
 
 ### Error Handling
 

@@ -15,6 +15,7 @@
       "recipe_path": "recipes/recipe_executor/build_component.json",
       "context_overrides": {
         "component_id": "llm",
+        "component_path": "",
         "existing_code": "{{existing_code}}",
         "additional_content": "<MODELS_DOCS>\n{{models_docs}}\n</MODELS_DOCS>\n<PYDANTIC_AI_DOCUMENTATION>\n{{pydantic_ai_docs}}\n</PYDANTIC_AI_DOCUMENTATION>"
       }

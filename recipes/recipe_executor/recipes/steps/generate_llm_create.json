@@ -25,7 +25,7 @@
       "recipe_path": "recipes/recipe_executor/build_component.json",
       "context_overrides": {
         "component_id": "generate_llm",
-        "component_path": "steps",
+        "component_path": "/steps",
         "existing_code": "{{existing_code}}",
         "additional_content": "<STEPS_BASE_DOCS>\n{{steps_base_docs}}\n</STEPS_BASE_DOCS>\n<CONTEXT_DOCS>\n{{context_docs}}\n</CONTEXT_DOCS>\n<LLM_DOCS>\n{{llm_docs}}\n</LLM_DOCS>\n<UTILS_DOCS>\n{{utils_docs}}\n</UTILS_DOCS>"
       }

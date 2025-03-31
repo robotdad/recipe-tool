@@ -5,7 +5,7 @@
       "recipe_path": "recipes/recipe_executor/build_component.json",
       "context_overrides": {
         "component_id": "registry",
-        "component_path": "steps",
+        "component_path": "/steps",
         "existing_code": "{{existing_code}}"
       }
     }

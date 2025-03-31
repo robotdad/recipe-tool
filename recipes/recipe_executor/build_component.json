@@ -2,12 +2,12 @@
   "steps": [
     {
       "type": "read_file",
-      "path": "recipes/recipe_executor/specs/{{component_path}}{{component_id}}.md",
+      "path": "recipes/recipe_executor/specs{{component_path}}/{{component_id}}.md",
       "artifact": "spec"
     },
     {
       "type": "read_file",
-      "path": "recipes/recipe_executor/docs/{{component_path}}{{component_id}}.md",
+      "path": "recipes/recipe_executor/docs{{component_path}}/{{component_id}}.md",
       "artifact": "usage_doc",
       "optional": true
     },
@@ -17,7 +17,7 @@
       "context_overrides": {
         "model": "openai:o3-mini",
         "output_root": "output",
-        "output_path": "recipe_executor{% if component_path %}/{{component_path}}{% endif %}",
+        "output_path": "recipe_executor{{component_path}}",
         "language": "python",
         "spec": "{{spec}}",
         "usage_doc": "{{usage_doc}}",
