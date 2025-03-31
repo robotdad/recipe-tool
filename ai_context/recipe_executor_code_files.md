@@ -1,3 +1,15 @@
+=== File: .env.example ===
+# Optional for the project
+#LOG_LEVEL=DEBUG
+
+# Required for the project
+OPENAI_API_KEY=
+
+# Additional APIs
+#ANTHROPIC_API_KEY=
+#GEMINI_API_KEY=
+
+
 === File: README.md ===
 # Recipe Executor
 

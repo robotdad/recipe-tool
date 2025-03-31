@@ -48,7 +48,7 @@ def build_context_files():
             "patterns": ["recipe_executor"],
             "output": f"{OUTPUT_DIR}/recipe_executor_code_files.md",
             "exclude": collect_files.DEFAULT_EXCLUDE + [OUTPUT_DIR],
-            "include": ["README.md", "pyproject.toml"],
+            "include": ["README.md", "pyproject.toml", ".env.example"],
         },
         # Task 2: Collect files from recipes/codebase_generator
         {
