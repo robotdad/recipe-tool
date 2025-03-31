@@ -27,12 +27,12 @@ The Component Blueprint Generator is a recipe-based system that creates comprehe
 
 For each component, the system generates:
 
-1. **Specification File**: `specs/[component_path]/[component_id].md`
-2. **Documentation File**: `docs/[component_path]/[component_id].md`
+1. **Specification File**: `<target_project>/specs/<component_id>.md`
+2. **Documentation File**: `<target_project>/docs/<component_id>.md`
 3. **Recipe Files**:
-   - `recipes/[component_id]/create.json`
-   - `recipes/[component_id]/edit.json`
-4. **Blueprint Summary**: `[component_id]_blueprint_summary.md`
+   - `<target_project>/recipes/<component_id>_create.json`
+   - `<target_project>/recipes/<component_id>_edit.json`
+4. **Blueprint Summary**: `<target_project>/<component_id>_blueprint_summary.md`
 
 ## Usage Instructions
 
@@ -43,7 +43,9 @@ To generate a component blueprint from a candidate specification:
 ```bash
 python recipe_executor/main.py recipes/component_blueprint_generator/build_blueprint.json \
   --context candidate_spec_path=/path/to/candidate_spec.md \
-  --context component_path=/path/in/project \
+  --context component_id=auth \
+  --context component_name="Authentication" \
+  --context target_project=recipe_executor \
   --context output_root=output
 ```
 
@@ -66,9 +68,13 @@ python recipe_executor/main.py recipes/component_blueprint_generator/generate_cl
 ### Parameters
 
 - `candidate_spec_path`: Path to the candidate specification file
-- `component_path`: Path where the component should be located in the project structure
+- `component_id`: ID of the component (lowercase, underscore-separated)
+- `component_name`: Human-readable name of the component
+- `target_project`: Name of the project/folder where component will be placed
 - `output_root`: Base directory for output files (default: "output")
-- `model`: LLM model to use (default: "openai:o3-mini")
+- `module_path` (optional): Import path for the component
+- `component_type` (optional): Type of component (utility, core, etc.)
+- `model` (optional): LLM model to use (default: "openai:o3-mini")
 
 ### Workflow
 
@@ -82,41 +88,18 @@ python recipe_executor/main.py recipes/component_blueprint_generator/generate_cl
 
 ## Files in this Recipe System
 
-| File | Purpose |
-|------|---------|
-| `build_blueprint.json` | Main entry point recipe for blueprint generation |
-| `create.json` | Orchestrates the blueprint generation process |
-| `create_spec.json` | Generates the formal specification |
-| `create_doc.json` | Creates component documentation |
-| `create_recipes.json` | Generates component recipe files |
-| `finalize_blueprint.json` | Creates a summary report |
-| `evaluate_candidate_spec.json` | Evaluates a candidate specification for completeness |
-| `generate_clarification_questions.json` | Generates questions to improve incomplete specs |
-| `spec_template.md` | Template for specification files |
-| `doc_template.md` | Template for documentation files |
-| `SPEC_DOC_GUIDE.md` | Comprehensive guide to creating specifications and documentation |
-| `IMPLEMENTATION_PHILOSOPHY.md` | Philosophy for implementation approaches |
-| `MODULAR_DESIGN_PHILOSOPHY.md` | Philosophy for modular, building-block design |
-
-## Example Workflow
-
-1. Create a candidate specification for a new "DataValidator" component
-2. Run the evaluation recipe to check for completeness and clarity
-3. If the specification is incomplete, review the clarification questions
-4. Update the candidate specification to address the identified gaps
-5. Run the blueprint generator to create the full set of component files
-6. Review the generated specification, documentation, and recipes
-7. Use the generated create.json recipe to implement the component
-8. If changes are needed, edit the specification and regenerate
-
-## Benefits
-
-- **Consistency**: All components follow the same structure and patterns
-- **Efficiency**: Automates the creation of boilerplate files
-- **Quality**: Ensures comprehensive specifications and documentation
-- **Flexibility**: Generate variations by adjusting the candidate spec
-- **Guidance**: Helps identify and address gaps in component specifications
-- **Iterative Improvement**: Supports an iterative approach to specification development
-- **Knowledge Transfer**: Educates developers on best practices for component design
-
-This system embodies the modular building-block approach to software development, where components are clearly specified with stable interfaces and can be independently regenerated without breaking the whole system.
+| File                                    | Purpose                                                          |
+| --------------------------------------- | ---------------------------------------------------------------- |
+| `build_blueprint.json`                  | Main entry point recipe for blueprint generation                 |
+| `create.json`                           | Orchestrates the blueprint generation process                    |
+| `create_spec.json`                      | Generates the formal specification                               |
+| `create_doc.json`                       | Creates component documentation                                  |
+| `create_recipes.json`                   | Generates component recipe files                                 |
+| `finalize_blueprint.json`               | Creates a summary report                                         |
+| `evaluate_candidate_spec.json`          | Evaluates a candidate specification for completeness             |
+| `generate_clarification_questions.json` | Generates questions to improve incomplete specs                  |
+| `spec_template.md`                      | Template for specification files                                 |
+| `doc_template.md`                       | Template for documentation files                                 |
+| `SPEC_DOC_GUIDE.md`                     | Comprehensive guide to creating specifications and documentation |
+| `IMPLEMENTATION_PHILOSOPHY.md`          | Philosophy for implementation approaches                         |
+| `MODULAR_DESIGN_PHILOSOPHY.md`          | Philosophy for modular, building-block design                    |

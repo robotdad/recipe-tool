@@ -22,16 +22,24 @@
     },
     {
       "type": "generate",
-      "prompt": "You are an expert developer tasked with analyzing a candidate specification and creating a blueprint for component generation. Review the candidate specification and extract key information needed to create a formal specification, documentation, and recipe files.\n\nCandidate Specification:\n{{candidate_spec}}\n\nYour task is to extract the following information:\n1. Component name\n2. Component ID (lowercase, underscore-separated version of the name)\n3. Module path (where the component would be imported from)\n4. Component type (utility, core, step, etc.)\n5. Key functionality (brief summary)\n6. Main dependencies\n\nFormat your response as a JSON object with these fields.\n\nUse the following guides for context:\n<SPEC_DOC_GUIDE>\n{{spec_doc_guide}}\n</SPEC_DOC_GUIDE>\n\n<IMPLEMENTATION_PHILOSOPHY>\n{{implementation_philosophy}}\n</IMPLEMENTATION_PHILOSOPHY>\n\n<MODULAR_DESIGN_PHILOSOPHY>\n{{modular_design_philosophy}}\n</MODULAR_DESIGN_PHILOSOPHY>",
+      "prompt": "You are an expert developer analyzing a candidate specification. Extract key information needed for component generation.\n\nCandidate Specification:\n{{candidate_spec}}\n\nExtract these fields only if not already provided:\n- component_id: {{component_id|default:''}}\n- component_name: {{component_name|default:''}}\n- module_path: {{module_path|default:''}}\n- component_type: {{component_type|default:''}}\n- key_dependencies: {{key_dependencies|default:''}}\n\nIf component_name is not provided and not in the spec, derive a clean title-case name from component_id.\n\nProvide a JSON object with these fields, using reasonable defaults when information is not clear.",
       "model": "{{model|default:'openai:o3-mini'}}",
-      "artifact": "component_info"
+      "artifact": "extracted_info"
     },
     {
       "type": "execute_recipe",
       "recipe_path": "recipes/component_blueprint_generator/create.json",
       "context_overrides": {
-        "component_info": "{{component_info}}",
-        "candidate_spec": "{{candidate_spec}}"
+        "candidate_spec": "{{candidate_spec}}",
+        "component_id": "{{component_id|default:extracted_info.component_id}}",
+        "component_name": "{{component_name|default:extracted_info.component_name}}",
+        "module_path": "{{module_path|default:extracted_info.module_path}}",
+        "component_type": "{{component_type|default:extracted_info.component_type}}",
+        "key_dependencies": "{{key_dependencies|default:extracted_info.key_dependencies}}",
+        "target_project": "{{target_project|default:''}}",
+        "component_path": "{{component_path|default:''}}",
+        "output_root": "{{output_root|default:'output'}}",
+        "project_recipe_path": "recipes/{{target_project}}"
       }
     }
   ]

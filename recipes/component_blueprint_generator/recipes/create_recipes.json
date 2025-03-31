@@ -2,20 +2,14 @@
   "steps": [
     {
       "type": "generate",
-      "prompt": "You are an expert developer creating recipe files for component generation and editing. Based on the component specification, documentation, and information, create JSON recipe files that will be used to generate and later edit the component code.\n\nComponent Specification:\n{{generated_spec}}\n\nComponent Documentation:\n{{generated_doc}}\n\nComponent Information:\n{{component_info}}\n\nUse the following guides for context:\n<IMPLEMENTATION_PHILOSOPHY>\n{{implementation_philosophy}}\n</IMPLEMENTATION_PHILOSOPHY>\n\n<MODULAR_DESIGN_PHILOSOPHY>\n{{modular_design_philosophy}}\n</MODULAR_DESIGN_PHILOSOPHY>\n\nCreate two recipe files:\n1. A 'create.json' recipe that generates the component from scratch\n2. An 'edit.json' recipe that can edit an existing implementation of the component\n\nBoth recipes should follow the pattern used in the recipe_executor and codebase_generator projects, using appropriate steps like read_file, generate, and write_file. The recipes should handle dependencies, read in the specification and documentation, and use them to generate or edit the component code.\n\nYour response should be a JSON object with two keys: 'create_recipe' and 'edit_recipe', each containing the full JSON content of the respective recipe file.",
-      "model": "{{model|default:'openai:o3-mini'}}",
-      "artifact": "generated_recipes"
-    },
-    {
-      "type": "generate",
-      "prompt": "You've just created JSON recipes for component generation. Based on these recipes, create a file list that we can use to write the files to disk. Extract the recipes from the JSON structure and format them for writing to individual files.\n\nGenerated Recipes:\n{{generated_recipes}}\n\nFormat your response as a FileGenerationResult with two files:\n1. 'recipes/{{component_id}}/create.json' - The create recipe\n2. 'recipes/{{component_id}}/edit.json' - The edit recipe\n\nEnsure the JSON is properly formatted and follows the structure of the other recipe files in the system.",
+      "prompt": "You are an expert developer creating recipe files for component generation and editing. Based on the component specification, documentation, and information, create JSON recipe files that will be used to generate and later edit the component code.\n\nComponent Specification:\n{{generated_spec}}\n\nComponent Documentation:\n{{generated_doc}}\n\nComponent ID: {{component_id}}\nComponent Name: {{component_name}}\nTarget Project: {{target_project}}\n\nUse the following guides for context:\n<IMPLEMENTATION_PHILOSOPHY>\n{{implementation_philosophy}}\n</IMPLEMENTATION_PHILOSOPHY>\n\n<MODULAR_DESIGN_PHILOSOPHY>\n{{modular_design_philosophy}}\n</MODULAR_DESIGN_PHILOSOPHY>\n\nIMPORTANT: All paths in the recipe files should be formatted as:\n- Read spec from: '{{project_recipe_path}}/specs/{{component_id}}.md'\n- Read docs from: '{{project_recipe_path}}/docs/{{component_id}}.md'\n- NOT as 'output/...' paths\n\nThese recipes will be placed directly in the project's recipes folder, so paths must be relative to the project root, not the output directory.\n\nCreate two recipe files:\n1. A '{{component_id}}_create.json' recipe that generates the component from scratch\n2. An '{{component_id}}_edit.json' recipe that can edit an existing implementation of the component\n\nFormat your response as a FileGenerationResult with two files:\n1. '{{component_id}}_create.json' - The create recipe\n2. '{{component_id}}_edit.json' - The edit recipe\n\nEnsure the JSON is properly formatted and follows the structure of the other recipe files in the system.",
       "model": "{{model|default:'openai:o3-mini'}}",
       "artifact": "recipe_files"
     },
     {
       "type": "write_file",
       "artifact": "recipe_files",
-      "root": "{{output_root|default:'output'}}"
+      "root": "{{output_root|default:'output'}}/{{target_project}}/recipes"
     }
   ]
 }

@@ -39,7 +39,9 @@ Once you've reviewed the evaluation and potentially improved the specification b
 ```bash
 python recipe_executor/main.py recipes/component_blueprint_generator/build_blueprint.json \
   --context candidate_spec_path=recipes/component_blueprint_generator/examples/auth_candidate_spec.md \
-  --context component_path=/auth \
+  --context component_id=auth \
+  --context component_name="Authentication" \
+  --context target_project=example_project \
   --context output_root=output
 ```
 
@@ -50,37 +52,38 @@ After running the full workflow, you should find these files in the `output` dir
 1. **Evaluation Report**: `auth_evaluation_summary.md` or `clarification_questions.md`
 2. **Clarification Questions**: `auth_specification_clarification_questions.md`
 3. **Blueprint Files**:
-   - `specs/auth/auth.md` - Formal specification
-   - `docs/auth/auth.md` - Usage documentation
-   - `recipes/auth/create.json` - Recipe for creating the component
-   - `recipes/auth/edit.json` - Recipe for editing the component
-   - `auth_blueprint_summary.md` - Summary of the generated blueprint
+   - `example_project/specs/auth.md` - Formal specification
+   - `example_project/docs/auth.md` - Usage documentation
+   - `example_project/recipes/auth_create.json` - Recipe for creating the component
+   - `example_project/recipes/auth_edit.json` - Recipe for editing the component
+   - `example_project/auth_blueprint_summary.md` - Summary of the generated blueprint
 
 ### Next Steps
 
 1. Review the evaluation and clarification questions
 2. Improve the candidate specification based on the feedback
 3. Regenerate the blueprint with the improved specification
-4. Use the generated `create.json` recipe to implement the actual component:
+4. Use the generated `auth_create.json` recipe to implement the actual component:
 
 ```bash
-python recipe_executor/main.py output/recipes/auth/create.json
+python recipe_executor/main.py output/example_project/recipes/auth_create.json \
+  --context output_root=src
 ```
 
 #### 4. Implementing the Component Using Generated Files
 
-After generating the blueprint, use the files in the `output` directory to implement the component:
+After generating the blueprint, use the files to implement the component:
 
 ```bash
 # First, create the component using the generated recipe
-python recipe_executor/main.py output/recipes/auth/create.json \
+python recipe_executor/main.py output/example_project/recipes/auth_create.json \
   --context output_root=src
 ```
 
 This command will:
 
-- Read the formal specification from `output/specs/auth/auth.md`
-- Use the documentation from `output/docs/auth/auth.md` for guidance
+- Read the formal specification from `output/example_project/specs/auth.md`
+- Use the documentation from `output/example_project/docs/auth.md` for guidance
 - Generate implementation code for both Auth0 and mock authentication
 - Write the files to the appropriate locations in your project
 - Create all necessary classes, functions, and utilities defined in the spec
@@ -98,7 +101,7 @@ The implementation will include:
 To test the implementation, follow the examples provided in the documentation file. If you need to make changes to the implementation later, use the edit recipe:
 
 ```bash
-python recipe_executor/main.py output/recipes/auth/edit.json \
+python recipe_executor/main.py output/example_project/recipes/auth_edit.json \
   --context output_root=src
 ```
 
