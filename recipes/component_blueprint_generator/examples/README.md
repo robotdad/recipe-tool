@@ -67,6 +67,41 @@ After running the full workflow, you should find these files in the `output` dir
 python recipe_executor/main.py output/recipes/auth/create.json
 ```
 
+#### 4. Implementing the Component Using Generated Files
+
+After generating the blueprint, use the files in the `output` directory to implement the component:
+
+```bash
+# First, create the component using the generated recipe
+python recipe_executor/main.py output/recipes/auth/create.json \
+  --context output_root=src
+```
+
+This command will:
+
+- Read the formal specification from `output/specs/auth/auth.md`
+- Use the documentation from `output/docs/auth/auth.md` for guidance
+- Generate implementation code for both Auth0 and mock authentication
+- Write the files to the appropriate locations in your project
+- Create all necessary classes, functions, and utilities defined in the spec
+
+The implementation will include:
+
+- FastAPI middleware for authentication
+- JWT token verification for Auth0
+- Mock authentication service for development
+- User information extraction from tokens
+- Role-based access control utilities
+- Configuration management with environment variables
+- Proper error handling and logging
+
+To test the implementation, follow the examples provided in the documentation file. If you need to make changes to the implementation later, use the edit recipe:
+
+```bash
+python recipe_executor/main.py output/recipes/auth/edit.json \
+  --context output_root=src
+```
+
 ## Creating Your Own Examples
 
 To create your own example candidate specifications:

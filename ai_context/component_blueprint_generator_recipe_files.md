@@ -1,4 +1,5 @@
 === File: recipes/component_blueprint_generator/README.md ===
+
 # Component Blueprint Generator - Summary
 
 ## Overview
@@ -83,21 +84,21 @@ python recipe_executor/main.py recipes/component_blueprint_generator/generate_cl
 
 ## Files in this Recipe System
 
-| File | Purpose |
-|------|---------|
-| `build_blueprint.json` | Main entry point recipe for blueprint generation |
-| `create.json` | Orchestrates the blueprint generation process |
-| `create_spec.json` | Generates the formal specification |
-| `create_doc.json` | Creates component documentation |
-| `create_recipes.json` | Generates component recipe files |
-| `finalize_blueprint.json` | Creates a summary report |
-| `evaluate_candidate_spec.json` | Evaluates a candidate specification for completeness |
-| `generate_clarification_questions.json` | Generates questions to improve incomplete specs |
-| `spec_template.md` | Template for specification files |
-| `doc_template.md` | Template for documentation files |
-| `SPEC_DOC_GUIDE.md` | Comprehensive guide to creating specifications and documentation |
-| `IMPLEMENTATION_PHILOSOPHY.md` | Philosophy for implementation approaches |
-| `MODULAR_DESIGN_PHILOSOPHY.md` | Philosophy for modular, building-block design |
+| File                                    | Purpose                                                          |
+| --------------------------------------- | ---------------------------------------------------------------- |
+| `build_blueprint.json`                  | Main entry point recipe for blueprint generation                 |
+| `create.json`                           | Orchestrates the blueprint generation process                    |
+| `create_spec.json`                      | Generates the formal specification                               |
+| `create_doc.json`                       | Creates component documentation                                  |
+| `create_recipes.json`                   | Generates component recipe files                                 |
+| `finalize_blueprint.json`               | Creates a summary report                                         |
+| `evaluate_candidate_spec.json`          | Evaluates a candidate specification for completeness             |
+| `generate_clarification_questions.json` | Generates questions to improve incomplete specs                  |
+| `spec_template.md`                      | Template for specification files                                 |
+| `doc_template.md`                       | Template for documentation files                                 |
+| `SPEC_DOC_GUIDE.md`                     | Comprehensive guide to creating specifications and documentation |
+| `IMPLEMENTATION_PHILOSOPHY.md`          | Philosophy for implementation approaches                         |
+| `MODULAR_DESIGN_PHILOSOPHY.md`          | Philosophy for modular, building-block design                    |
 
 ## Example Workflow
 
@@ -122,175 +123,171 @@ python recipe_executor/main.py recipes/component_blueprint_generator/generate_cl
 
 This system embodies the modular building-block approach to software development, where components are clearly specified with stable interfaces and can be independently regenerated without breaking the whole system.
 
-
 === File: recipes/component_blueprint_generator/build-blueprint.json ===
 {
-  "steps": [
-    {
-      "type": "read_file",
-      "path": "{{candidate_spec_path}}",
-      "artifact": "candidate_spec"
-    },
-    {
-      "type": "read_file",
-      "path": "recipes/component_blueprint_generator/includes/SPEC_DOC_GUIDE.md",
-      "artifact": "spec_doc_guide"
-    },
-    {
-      "type": "read_file",
-      "path": "recipes/codebase_generator/includes/IMPLEMENTATION_PHILOSOPHY.md",
-      "artifact": "implementation_philosophy"
-    },
-    {
-      "type": "read_file",
-      "path": "recipes/component_blueprint_generator/includes/MODULAR_DESIGN_PHILOSOPHY.md",
-      "artifact": "modular_design_philosophy"
-    },
-    {
-      "type": "generate",
-      "prompt": "You are an expert developer tasked with analyzing a candidate specification and creating a blueprint for component generation. Review the candidate specification and extract key information needed to create a formal specification, documentation, and recipe files.\n\nCandidate Specification:\n{{candidate_spec}}\n\nYour task is to extract the following information:\n1. Component name\n2. Component ID (lowercase, underscore-separated version of the name)\n3. Module path (where the component would be imported from)\n4. Component type (utility, core, step, etc.)\n5. Key functionality (brief summary)\n6. Main dependencies\n\nFormat your response as a JSON object with these fields.\n\nUse the following guides for context:\n<SPEC_DOC_GUIDE>\n{{spec_doc_guide}}\n</SPEC_DOC_GUIDE>\n\n<IMPLEMENTATION_PHILOSOPHY>\n{{implementation_philosophy}}\n</IMPLEMENTATION_PHILOSOPHY>\n\n<MODULAR_DESIGN_PHILOSOPHY>\n{{modular_design_philosophy}}\n</MODULAR_DESIGN_PHILOSOPHY>",
-      "model": "{{model|default:'openai:o3-mini'}}",
-      "artifact": "component_info"
-    },
-    {
-      "type": "execute_recipe",
-      "recipe_path": "recipes/component_blueprint_generator/create.json",
-      "context_overrides": {
-        "component_info": "{{component_info}}",
-        "candidate_spec": "{{candidate_spec}}"
-      }
-    }
-  ]
+"steps": [
+{
+"type": "read_file",
+"path": "{{candidate_spec_path}}",
+"artifact": "candidate_spec"
+},
+{
+"type": "read_file",
+"path": "recipes/component_blueprint_generator/includes/SPEC_DOC_GUIDE.md",
+"artifact": "spec_doc_guide"
+},
+{
+"type": "read_file",
+"path": "recipes/codebase_generator/includes/IMPLEMENTATION_PHILOSOPHY.md",
+"artifact": "implementation_philosophy"
+},
+{
+"type": "read_file",
+"path": "recipes/component_blueprint_generator/includes/MODULAR_DESIGN_PHILOSOPHY.md",
+"artifact": "modular_design_philosophy"
+},
+{
+"type": "generate",
+"prompt": "You are an expert developer tasked with analyzing a candidate specification and creating a blueprint for component generation. Review the candidate specification and extract key information needed to create a formal specification, documentation, and recipe files.\n\nCandidate Specification:\n{{candidate_spec}}\n\nYour task is to extract the following information:\n1. Component name\n2. Component ID (lowercase, underscore-separated version of the name)\n3. Module path (where the component would be imported from)\n4. Component type (utility, core, step, etc.)\n5. Key functionality (brief summary)\n6. Main dependencies\n\nFormat your response as a JSON object with these fields.\n\nUse the following guides for context:\n<SPEC_DOC_GUIDE>\n{{spec_doc_guide}}\n</SPEC_DOC_GUIDE>\n\n<IMPLEMENTATION_PHILOSOPHY>\n{{implementation_philosophy}}\n</IMPLEMENTATION_PHILOSOPHY>\n\n<MODULAR_DESIGN_PHILOSOPHY>\n{{modular_design_philosophy}}\n</MODULAR_DESIGN_PHILOSOPHY>",
+"model": "{{model|default:'openai:o3-mini'}}",
+"artifact": "component_info"
+},
+{
+"type": "execute_recipe",
+"recipe_path": "recipes/component_blueprint_generator/create.json",
+"context_overrides": {
+"component_info": "{{component_info}}",
+"candidate_spec": "{{candidate_spec}}"
 }
-
+}
+]
+}
 
 === File: recipes/component_blueprint_generator/create.json ===
 {
-  "steps": [
-    {
-      "type": "read_file",
-      "path": "recipes/component_blueprint_generator/includes/SPEC_DOC_GUIDE.md",
-      "artifact": "spec_doc_guide"
-    },
-    {
-      "type": "read_file",
-      "path": "recipes/codebase_generator/includes/IMPLEMENTATION_PHILOSOPHY.md",
-      "artifact": "implementation_philosophy"
-    },
-    {
-      "type": "read_file",
-      "path": "recipes/component_blueprint_generator/includes/MODULAR_DESIGN_PHILOSOPHY.md",
-      "artifact": "modular_design_philosophy"
-    },
-    {
-      "type": "execute_recipe",
-      "recipe_path": "recipes/component_blueprint_generator/recipes/create_spec.json"
-    },
-    {
-      "type": "execute_recipe",
-      "recipe_path": "recipes/component_blueprint_generator/recipes/create_doc.json"
-    },
-    {
-      "type": "execute_recipe",
-      "recipe_path": "recipes/component_blueprint_generator/recipes/create_recipes.json"
-    },
-    {
-      "type": "execute_recipe",
-      "recipe_path": "recipes/component_blueprint_generator/recipes/finalize_blueprint.json"
-    }
-  ]
+"steps": [
+{
+"type": "read_file",
+"path": "recipes/component_blueprint_generator/includes/SPEC_DOC_GUIDE.md",
+"artifact": "spec_doc_guide"
+},
+{
+"type": "read_file",
+"path": "recipes/codebase_generator/includes/IMPLEMENTATION_PHILOSOPHY.md",
+"artifact": "implementation_philosophy"
+},
+{
+"type": "read_file",
+"path": "recipes/component_blueprint_generator/includes/MODULAR_DESIGN_PHILOSOPHY.md",
+"artifact": "modular_design_philosophy"
+},
+{
+"type": "execute_recipe",
+"recipe_path": "recipes/component_blueprint_generator/recipes/create_spec.json"
+},
+{
+"type": "execute_recipe",
+"recipe_path": "recipes/component_blueprint_generator/recipes/create_doc.json"
+},
+{
+"type": "execute_recipe",
+"recipe_path": "recipes/component_blueprint_generator/recipes/create_recipes.json"
+},
+{
+"type": "execute_recipe",
+"recipe_path": "recipes/component_blueprint_generator/recipes/finalize_blueprint.json"
 }
-
+]
+}
 
 === File: recipes/component_blueprint_generator/evaluate-candidate-spec.json ===
 {
-  "steps": [
-    {
-      "type": "read_file",
-      "path": "{{candidate_spec_path}}",
-      "artifact": "candidate_spec"
-    },
-    {
-      "type": "read_file",
-      "path": "recipes/component_blueprint_generator/includes/SPEC_DOC_GUIDE.md",
-      "artifact": "spec_doc_guide"
-    },
-    {
-      "type": "read_file",
-      "path": "recipes/component_blueprint_generator/includes/IMPLEMENTATION_PHILOSOPHY.md",
-      "artifact": "implementation_philosophy"
-    },
-    {
-      "type": "read_file",
-      "path": "recipes/component_blueprint_generator/includes/MODULAR_DESIGN_PHILOSOPHY.md",
-      "artifact": "modular_design_philosophy"
-    },
-    {
-      "type": "generate",
-      "prompt": "You are an expert developer evaluating a candidate component specification to determine if it has enough context for effective implementation. You'll analyze the candidate specification and identify any areas that need clarification or additional information.\n\nCandidate Specification:\n{{candidate_spec}}\n\nUse the following guides as your evaluation criteria:\n<SPEC_DOC_GUIDE>\n{{spec_doc_guide}}\n</SPEC_DOC_GUIDE>\n\n<IMPLEMENTATION_PHILOSOPHY>\n{{implementation_philosophy}}\n</IMPLEMENTATION_PHILOSOPHY>\n\n<MODULAR_DESIGN_PHILOSOPHY>\n{{modular_design_philosophy}}\n</MODULAR_DESIGN_PHILOSOPHY>\n\nPerform a systematic evaluation of the candidate specification with these steps:\n\n1. Identify the component name and type (if possible)\n2. Determine if a clear purpose statement exists\n3. Check if core requirements are well-defined and specific\n4. Assess if implementation considerations are provided\n5. Evaluate whether component dependencies are properly identified\n6. Check if error handling approaches are specified\n7. Look for any information about future considerations\n\nFor each aspect, provide:\n- A score from 1-5 (1=Missing/Insufficient, 5=Excellent)\n- Brief explanation of the score\n- Specific clarification questions if the score is 3 or lower\n\nFormat your response with these sections:\n1. Overall Assessment - Brief overview with readiness determination\n2. Scoring Summary - Table with scores for each aspect\n3. Detailed Analysis - Detailed assessment of each aspect with clarification questions\n4. Improvement Recommendations - List of questions to improve the specification\n\nBe constructive but thorough in your assessment.",
-      "model": "{{model|default:'openai:o3-mini'}}",
-      "artifact": "evaluation_result"
-    },
-    {
-      "type": "generate",
-      "prompt": "Format the specification evaluation as a proper markdown file with informative title and sections.\n\nEvaluation Result:\n{{evaluation_result}}\n\nFormat your response as a FileGenerationResult with a single file. The file path should include the component name if it could be identified from the specification, otherwise use 'component'.\n\nIf the evaluation determined that the specification needs significant clarification, name the file 'clarification_questions.md'. If the specification was deemed sufficient, name the file 'evaluation_summary.md'.",
-      "model": "{{model|default:'openai:o3-mini'}}",
-      "artifact": "formatted_evaluation"
-    },
-    {
-      "type": "write_file",
-      "artifact": "formatted_evaluation",
-      "root": "{{output_root|default:'output'}}"
-    }
-  ]
+"steps": [
+{
+"type": "read_file",
+"path": "{{candidate_spec_path}}",
+"artifact": "candidate_spec"
+},
+{
+"type": "read_file",
+"path": "recipes/component_blueprint_generator/includes/SPEC_DOC_GUIDE.md",
+"artifact": "spec_doc_guide"
+},
+{
+"type": "read_file",
+"path": "recipes/codebase_generator/includes/IMPLEMENTATION_PHILOSOPHY.md",
+"artifact": "implementation_philosophy"
+},
+{
+"type": "read_file",
+"path": "recipes/component_blueprint_generator/includes/MODULAR_DESIGN_PHILOSOPHY.md",
+"artifact": "modular_design_philosophy"
+},
+{
+"type": "generate",
+"prompt": "You are an expert developer evaluating a candidate component specification to determine if it has enough context for effective implementation. You'll analyze the candidate specification and identify any areas that need clarification or additional information.\n\nCandidate Specification:\n{{candidate_spec}}\n\nUse the following guides as your evaluation criteria:\n<SPEC_DOC_GUIDE>\n{{spec_doc_guide}}\n</SPEC_DOC_GUIDE>\n\n<IMPLEMENTATION_PHILOSOPHY>\n{{implementation_philosophy}}\n</IMPLEMENTATION_PHILOSOPHY>\n\n<MODULAR_DESIGN_PHILOSOPHY>\n{{modular_design_philosophy}}\n</MODULAR_DESIGN_PHILOSOPHY>\n\nPerform a systematic evaluation of the candidate specification with these steps:\n\n1. Identify the component name and type (if possible)\n2. Determine if a clear purpose statement exists\n3. Check if core requirements are well-defined and specific\n4. Assess if implementation considerations are provided\n5. Evaluate whether component dependencies are properly identified\n6. Check if error handling approaches are specified\n7. Look for any information about future considerations\n\nFor each aspect, provide:\n- A score from 1-5 (1=Missing/Insufficient, 5=Excellent)\n- Brief explanation of the score\n- Specific clarification questions if the score is 3 or lower\n\nFormat your response with these sections:\n1. Overall Assessment - Brief overview with readiness determination\n2. Scoring Summary - Table with scores for each aspect\n3. Detailed Analysis - Detailed assessment of each aspect with clarification questions\n4. Improvement Recommendations - List of questions to improve the specification\n\nBe constructive but thorough in your assessment.",
+"model": "{{model|default:'openai:o3-mini'}}",
+"artifact": "evaluation_result"
+},
+{
+"type": "generate",
+"prompt": "Format the specification evaluation as a proper markdown file with informative title and sections.\n\nEvaluation Result:\n{{evaluation_result}}\n\nFormat your response as a FileGenerationResult with a single file. The file path should include the component name if it could be identified from the specification, otherwise use 'component'.\n\nIf the evaluation determined that the specification needs significant clarification, name the file 'clarification_questions.md'. If the specification was deemed sufficient, name the file 'evaluation_summary.md'.",
+"model": "{{model|default:'openai:o3-mini'}}",
+"artifact": "formatted_evaluation"
+},
+{
+"type": "write_file",
+"artifact": "formatted_evaluation",
+"root": "{{output_root|default:'output'}}"
 }
-
+]
+}
 
 === File: recipes/component_blueprint_generator/generate-clarification-questions.json ===
 {
-  "steps": [
-    {
-      "type": "read_file",
-      "path": "{{candidate_spec_path}}",
-      "artifact": "candidate_spec"
-    },
-    {
-      "type": "read_file",
-      "path": "recipes/component_blueprint_generator/includes/SPEC_DOC_GUIDE.md",
-      "artifact": "spec_doc_guide"
-    },
-    {
-      "type": "read_file",
-      "path": "recipes/component_blueprint_generator/includes/IMPLEMENTATION_PHILOSOPHY.md",
-      "artifact": "implementation_philosophy"
-    },
-    {
-      "type": "read_file",
-      "path": "recipes/component_blueprint_generator/includes/MODULAR_DESIGN_PHILOSOPHY.md",
-      "artifact": "modular_design_philosophy"
-    },
-    {
-      "type": "generate",
-      "prompt": "You are an expert developer helping to improve a candidate component specification by generating clarification questions. Based on the candidate specification and understanding of effective component design, create a comprehensive set of questions that would help make the specification complete and implementable.\n\nCandidate Specification:\n{{candidate_spec}}\n\nUse the following guides to understand what information is needed in an effective specification:\n<SPEC_DOC_GUIDE>\n{{spec_doc_guide}}\n</SPEC_DOC_GUIDE>\n\n<IMPLEMENTATION_PHILOSOPHY>\n{{implementation_philosophy}}\n</IMPLEMENTATION_PHILOSOPHY>\n\n<MODULAR_DESIGN_PHILOSOPHY>\n{{modular_design_philosophy}}\n</MODULAR_DESIGN_PHILOSOPHY>\n\nGenerate clarification questions organized into these categories:\n\n1. Purpose and Scope\n- Questions about the component's primary responsibility\n- Questions about boundaries and what's out of scope\n- Questions about the problem being solved\n\n2. Functional Requirements\n- Questions about specific capabilities needed\n- Questions about user/system interactions\n- Questions about expected inputs and outputs\n\n3. Technical Requirements\n- Questions about implementation constraints\n- Questions about performance requirements\n- Questions about security considerations\n\n4. Integration and Dependencies\n- Questions about how it interacts with other components\n- Questions about external dependencies\n- Questions about interface requirements\n\n5. Error Handling and Edge Cases\n- Questions about failure scenarios\n- Questions about edge cases\n- Questions about recovery mechanisms\n\nIn each category, provide 3-5 specific questions that would help improve the specification. Make the questions clear, specific, and directly relevant to the candidate specification. For each question, briefly explain why this information is important for implementation.",
-      "model": "{{model|default:'openai:o3-mini'}}",
-      "artifact": "clarification_questions"
-    },
-    {
-      "type": "generate",
-      "prompt": "Format the clarification questions as a structured markdown document that can be shared with stakeholders.\n\nClarification Questions:\n{{clarification_questions}}\n\nCandidate Specification:\n{{candidate_spec}}\n\nCreate a document with these sections:\n1. Introduction - Brief explanation of the purpose of this document and the component being specified\n2. Current Specification - A summary of the current candidate specification\n3. Key Areas Needing Clarification - Overview of the major gaps identified\n4. Detailed Questions - The clarification questions organized by category\n5. Next Steps - Guidance on how to use these questions to improve the specification\n\nFormat your response as a FileGenerationResult with a single file named 'component_specification_clarification_questions.md' (or use the component name if it can be identified).",
-      "model": "{{model|default:'openai:o3-mini'}}",
-      "artifact": "formatted_questions"
-    },
-    {
-      "type": "write_file",
-      "artifact": "formatted_questions",
-      "root": "{{output_root|default:'output'}}"
-    }
-  ]
+"steps": [
+{
+"type": "read_file",
+"path": "{{candidate_spec_path}}",
+"artifact": "candidate_spec"
+},
+{
+"type": "read_file",
+"path": "recipes/component_blueprint_generator/includes/SPEC_DOC_GUIDE.md",
+"artifact": "spec_doc_guide"
+},
+{
+"type": "read_file",
+"path": "recipes/codebase_generator/includes/IMPLEMENTATION_PHILOSOPHY.md",
+"artifact": "implementation_philosophy"
+},
+{
+"type": "read_file",
+"path": "recipes/component_blueprint_generator/includes/MODULAR_DESIGN_PHILOSOPHY.md",
+"artifact": "modular_design_philosophy"
+},
+{
+"type": "generate",
+"prompt": "You are an expert developer helping to improve a candidate component specification by generating clarification questions. Based on the candidate specification and understanding of effective component design, create a comprehensive set of questions that would help make the specification complete and implementable.\n\nCandidate Specification:\n{{candidate_spec}}\n\nUse the following guides to understand what information is needed in an effective specification:\n<SPEC_DOC_GUIDE>\n{{spec_doc_guide}}\n</SPEC_DOC_GUIDE>\n\n<IMPLEMENTATION_PHILOSOPHY>\n{{implementation_philosophy}}\n</IMPLEMENTATION_PHILOSOPHY>\n\n<MODULAR_DESIGN_PHILOSOPHY>\n{{modular_design_philosophy}}\n</MODULAR_DESIGN_PHILOSOPHY>\n\nGenerate clarification questions organized into these categories:\n\n1. Purpose and Scope\n- Questions about the component's primary responsibility\n- Questions about boundaries and what's out of scope\n- Questions about the problem being solved\n\n2. Functional Requirements\n- Questions about specific capabilities needed\n- Questions about user/system interactions\n- Questions about expected inputs and outputs\n\n3. Technical Requirements\n- Questions about implementation constraints\n- Questions about performance requirements\n- Questions about security considerations\n\n4. Integration and Dependencies\n- Questions about how it interacts with other components\n- Questions about external dependencies\n- Questions about interface requirements\n\n5. Error Handling and Edge Cases\n- Questions about failure scenarios\n- Questions about edge cases\n- Questions about recovery mechanisms\n\nIn each category, provide 3-5 specific questions that would help improve the specification. Make the questions clear, specific, and directly relevant to the candidate specification. For each question, briefly explain why this information is important for implementation.",
+"model": "{{model|default:'openai:o3-mini'}}",
+"artifact": "clarification_questions"
+},
+{
+"type": "generate",
+"prompt": "Format the clarification questions as a structured markdown document that can be shared with stakeholders.\n\nClarification Questions:\n{{clarification_questions}}\n\nCandidate Specification:\n{{candidate_spec}}\n\nCreate a document with these sections:\n1. Introduction - Brief explanation of the purpose of this document and the component being specified\n2. Current Specification - A summary of the current candidate specification\n3. Key Areas Needing Clarification - Overview of the major gaps identified\n4. Detailed Questions - The clarification questions organized by category\n5. Next Steps - Guidance on how to use these questions to improve the specification\n\nFormat your response as a FileGenerationResult with a single file named 'component_specification_clarification_questions.md' (or use the component name if it can be identified).",
+"model": "{{model|default:'openai:o3-mini'}}",
+"artifact": "formatted_questions"
+},
+{
+"type": "write_file",
+"artifact": "formatted_questions",
+"root": "{{output_root|default:'output'}}"
+}
+]
 }
 
-
 === File: recipes/component_blueprint_generator/includes/MODULAR_DESIGN_PHILOSOPHY.md ===
+
 # Building Software with AI: A Modular Block Approach
 
 _By Brian Krabach_
@@ -373,8 +370,8 @@ The outcome is a process that is more flexible, faster, and liberating. It empow
 
 > **Classified as Microsoft Confidential** > **Classified as Microsoft Confidential** > **Classified as Microsoft Confidential** > **Classified as Microsoft Confidential**
 
-
 === File: recipes/component_blueprint_generator/includes/SPEC_DOC_GUIDE.md ===
+
 # Comprehensive Guide to Creating Effective Component Specifications and Documentation
 
 ## Introduction
@@ -398,12 +395,14 @@ A well-structured component specification should include:
 ### 2. Purpose Statement Clarity
 
 The purpose statement should:
+
 - Define the component's role in the larger system
 - Establish boundaries of responsibility
 - Avoid implementation details
 - Be understandable without deep technical knowledge
 
 Example:
+
 ```
 "The Context component is the shared state container for the Recipe Executor system. It provides a simple dictionary-like interface that steps use to store and retrieve data during recipe execution."
 ```
@@ -411,6 +410,7 @@ Example:
 ### 3. Requirement Specificity
 
 Requirements should be:
+
 - Actionable and verifiable
 - Focused on what, not how
 - Free of ambiguity
@@ -418,6 +418,7 @@ Requirements should be:
 - Individually clear (one requirement per bullet)
 
 Example:
+
 ```
 - Store and provide access to artifacts (data shared between steps)
 - Maintain separate configuration values
@@ -428,12 +429,14 @@ Example:
 ### 4. Implementation Guidance
 
 Provide direction without over-constraining by:
+
 - Suggesting approaches without dictating exact implementations
 - Highlighting technical constraints or performance considerations
 - Addressing known challenges or trade-offs
 - Ensuring alignment with architectural principles
 
 Example:
+
 ```
 - Use simple dictionary-based storage internally
 - Copy input dictionaries to prevent external modification
@@ -444,12 +447,14 @@ Example:
 ### 5. Dependency Clarity
 
 When specifying dependencies:
+
 - List all components this one interacts with
 - Explain the nature of each dependency relationship
 - Note whether dependencies are required or optional
 - Include external libraries or services if relevant
 
 Example:
+
 ```
 The Executor component depends on:
 - **Context** - Uses Context for data sharing between steps
@@ -459,12 +464,14 @@ The Executor component depends on:
 ### 6. Error Handling Specificity
 
 For error handling sections:
+
 - Identify expected error conditions
 - Specify how each error should be handled
 - Define error communication mechanisms
 - Clarify recovery expectations
 
 Example:
+
 ```
 - Validate recipe format before execution begins
 - Check that step types exist in the registry before instantiation
@@ -477,6 +484,7 @@ Example:
 ### 1. Structure and Organization
 
 Well-structured documentation includes:
+
 - **Importing Section**: How to import the component
 - **Basic Usage**: Simple examples showing common use cases
 - **API Reference**: Detailed description of each method/function
@@ -487,6 +495,7 @@ Well-structured documentation includes:
 ### 2. Code Examples
 
 Effective code examples should:
+
 - Start with the simplest possible use case
 - Progress to more complex scenarios
 - Include comments explaining key parts
@@ -495,6 +504,7 @@ Effective code examples should:
 - Be complete enough to run if copied
 
 Example:
+
 ```python
 # Create context and executor
 context = Context()
@@ -511,6 +521,7 @@ executor.execute(json_string, context)
 ### 3. Method Documentation
 
 Document each method with:
+
 - Method signature with type hints
 - Purpose description
 - Parameter explanations
@@ -519,6 +530,7 @@ Document each method with:
 - Usage examples
 
 Example:
+
 ```
 def render_template(text: str, context: Context) -> str:
     """
@@ -540,12 +552,14 @@ def render_template(text: str, context: Context) -> str:
 ### 4. Integration Examples
 
 Show how components work together:
+
 - Demonstrate common integration patterns
 - Illustrate correct sequencing of operations
 - Show data flow between components
 - Include common use cases in the larger system
 
 Example:
+
 ```python
 # Initialize components
 context = Context(artifacts={"component_id": "utils"})
@@ -562,6 +576,7 @@ result = context["generation_result"]
 ### 5. Important Notes & Warnings
 
 Highlight critical information:
+
 - Common pitfalls or misunderstandings
 - Performance considerations
 - Thread safety concerns
@@ -569,6 +584,7 @@ Highlight critical information:
 - Breaking changes from previous versions
 
 Example:
+
 ```
 1. The context is mutable and shared between steps
 2. Values can be of any type
@@ -723,14 +739,14 @@ We might add namespacing later, so keep that in mind.
 
 ### Effective Documentation Example
 
-```
+````
 # Context Component Usage
 
 ## Importing
 
 ```python
 from recipe_executor.context import Context
-```
+````
 
 ## Initialization
 
@@ -791,11 +807,13 @@ value = context.get("key", default=None)  # Returns default if not found
 3. Configuration is read-only in typical usage (but not enforced)
 4. Step authors should document keys they read/write
 5. Context provides no thread safety - it's designed for sequential execution
+
 ```
 
 ### Ineffective Documentation Example
 
 ```
+
 # Context Usage
 
 The Context class is used to store data. You can create it like this:
@@ -812,7 +830,8 @@ x = c["key"]
 ```
 
 Make sure to handle errors.
-```
+
+````
 
 ## Conclusion
 
@@ -828,7 +847,7 @@ Remember that the goal is to provide sufficient information for independent impl
 
 ```python
 from {{module_path}} import {{component_name}}
-```
+````
 
 ## Initialization
 
@@ -883,8 +902,8 @@ Example:
 2. [Important note 2]
 3. ...
 
-
 === File: recipes/component_blueprint_generator/includes/templates/spec-template.md ===
+
 # {{component_name}} Component Specification
 
 ## Purpose
@@ -925,98 +944,92 @@ The {{component_name}} component depends on:
 - [Future consideration 2]
 - ...
 
-
 === File: recipes/component_blueprint_generator/recipes/create-doc.json ===
 {
-  "steps": [
-    {
-      "type": "read_file",
-      "path": "recipes/component_blueprint_generator/includes/templates/doc_template.md",
-      "artifact": "doc_template"
-    },
-    {
-      "type": "generate",
-      "prompt": "You are an expert developer creating component documentation. Based on the component specification and information, create comprehensive usage documentation following the template structure.\n\nComponent Specification:\n{{generated_spec}}\n\nComponent Information:\n{{component_info}}\n\nDocumentation Template:\n{{doc_template}}\n\nUse the following guides for context:\n<SPEC_DOC_GUIDE>\n{{spec_doc_guide}}\n</SPEC_DOC_GUIDE>\n\n<IMPLEMENTATION_PHILOSOPHY>\n{{implementation_philosophy}}\n</IMPLEMENTATION_PHILOSOPHY>\n\nCreate complete, detailed documentation for the component that follows the template structure but is tailored to this specific component's functionality. Include clear examples, method documentation, and integration guidance.",
-      "model": "{{model|default:'openai:o3-mini'}}",
-      "artifact": "generated_doc"
-    },
-    {
-      "type": "write_file",
-      "artifact": "generated_doc",
-      "root": "{{output_root|default:'output'}}/docs/{{component_path}}"
-    }
-  ]
+"steps": [
+{
+"type": "read_file",
+"path": "recipes/component_blueprint_generator/includes/templates/doc_template.md",
+"artifact": "doc_template"
+},
+{
+"type": "generate",
+"prompt": "You are an expert developer creating component documentation. Based on the component specification and information, create comprehensive usage documentation following the template structure.\n\nComponent Specification:\n{{generated_spec}}\n\nComponent Information:\n{{component_info}}\n\nDocumentation Template:\n{{doc_template}}\n\nUse the following guides for context:\n<SPEC_DOC_GUIDE>\n{{spec_doc_guide}}\n</SPEC_DOC_GUIDE>\n\n<IMPLEMENTATION_PHILOSOPHY>\n{{implementation_philosophy}}\n</IMPLEMENTATION_PHILOSOPHY>\n\nCreate complete, detailed documentation for the component that follows the template structure but is tailored to this specific component's functionality. Include clear examples, method documentation, and integration guidance.",
+"model": "{{model|default:'openai:o3-mini'}}",
+"artifact": "generated_doc"
+},
+{
+"type": "write_file",
+"artifact": "generated_doc",
+"root": "{{output_root|default:'output'}}/docs/{{component_path}}"
 }
-
+]
+}
 
 === File: recipes/component_blueprint_generator/recipes/create-recipes.json ===
 {
-  "steps": [
-    {
-      "type": "generate",
-      "prompt": "You are an expert developer creating recipe files for component generation and editing. Based on the component specification, documentation, and information, create JSON recipe files that will be used to generate and later edit the component code.\n\nComponent Specification:\n{{generated_spec}}\n\nComponent Documentation:\n{{generated_doc}}\n\nComponent Information:\n{{component_info}}\n\nUse the following guides for context:\n<IMPLEMENTATION_PHILOSOPHY>\n{{implementation_philosophy}}\n</IMPLEMENTATION_PHILOSOPHY>\n\n<MODULAR_DESIGN_PHILOSOPHY>\n{{modular_design_philosophy}}\n</MODULAR_DESIGN_PHILOSOPHY>\n\nCreate two recipe files:\n1. A 'create.json' recipe that generates the component from scratch\n2. An 'edit.json' recipe that can edit an existing implementation of the component\n\nBoth recipes should follow the pattern used in the recipe_executor and codebase_generator projects, using appropriate steps like read_file, generate, and write_file. The recipes should handle dependencies, read in the specification and documentation, and use them to generate or edit the component code.\n\nYour response should be a JSON object with two keys: 'create_recipe' and 'edit_recipe', each containing the full JSON content of the respective recipe file.",
-      "model": "{{model|default:'openai:o3-mini'}}",
-      "artifact": "generated_recipes"
-    },
-    {
-      "type": "generate",
-      "prompt": "You've just created JSON recipes for component generation. Based on these recipes, create a file list that we can use to write the files to disk. Extract the recipes from the JSON structure and format them for writing to individual files.\n\nGenerated Recipes:\n{{generated_recipes}}\n\nFormat your response as a FileGenerationResult with two files:\n1. 'recipes/{{component_id}}/create.json' - The create recipe\n2. 'recipes/{{component_id}}/edit.json' - The edit recipe\n\nEnsure the JSON is properly formatted and follows the structure of the other recipe files in the system.",
-      "model": "{{model|default:'openai:o3-mini'}}",
-      "artifact": "recipe_files"
-    },
-    {
-      "type": "write_file",
-      "artifact": "recipe_files",
-      "root": "{{output_root|default:'output'}}"
-    }
-  ]
+"steps": [
+{
+"type": "generate",
+"prompt": "You are an expert developer creating recipe files for component generation and editing. Based on the component specification, documentation, and information, create JSON recipe files that will be used to generate and later edit the component code.\n\nComponent Specification:\n{{generated_spec}}\n\nComponent Documentation:\n{{generated_doc}}\n\nComponent Information:\n{{component_info}}\n\nUse the following guides for context:\n<IMPLEMENTATION_PHILOSOPHY>\n{{implementation_philosophy}}\n</IMPLEMENTATION_PHILOSOPHY>\n\n<MODULAR_DESIGN_PHILOSOPHY>\n{{modular_design_philosophy}}\n</MODULAR_DESIGN_PHILOSOPHY>\n\nCreate two recipe files:\n1. A 'create.json' recipe that generates the component from scratch\n2. An 'edit.json' recipe that can edit an existing implementation of the component\n\nBoth recipes should follow the pattern used in the recipe_executor and codebase_generator projects, using appropriate steps like read_file, generate, and write_file. The recipes should handle dependencies, read in the specification and documentation, and use them to generate or edit the component code.\n\nYour response should be a JSON object with two keys: 'create_recipe' and 'edit_recipe', each containing the full JSON content of the respective recipe file.",
+"model": "{{model|default:'openai:o3-mini'}}",
+"artifact": "generated_recipes"
+},
+{
+"type": "generate",
+"prompt": "You've just created JSON recipes for component generation. Based on these recipes, create a file list that we can use to write the files to disk. Extract the recipes from the JSON structure and format them for writing to individual files.\n\nGenerated Recipes:\n{{generated_recipes}}\n\nFormat your response as a FileGenerationResult with two files:\n1. 'recipes/{{component_id}}/create.json' - The create recipe\n2. 'recipes/{{component_id}}/edit.json' - The edit recipe\n\nEnsure the JSON is properly formatted and follows the structure of the other recipe files in the system.",
+"model": "{{model|default:'openai:o3-mini'}}",
+"artifact": "recipe_files"
+},
+{
+"type": "write_file",
+"artifact": "recipe_files",
+"root": "{{output_root|default:'output'}}"
 }
-
+]
+}
 
 === File: recipes/component_blueprint_generator/recipes/create-spec.json ===
 {
-  "steps": [
-    {
-      "type": "read_file",
-      "path": "recipes/component_blueprint_generator/includes/templates/spec_template.md",
-      "artifact": "spec_template"
-    },
-    {
-      "type": "generate",
-      "prompt": "You are an expert developer creating a formal component specification. Based on the candidate specification and component information, create a detailed specification document following the template structure.\n\nCandidate Specification:\n{{candidate_spec}}\n\nComponent Information:\n{{component_info}}\n\nSpecification Template:\n{{spec_template}}\n\nUse the following guides for context:\n<SPEC_DOC_GUIDE>\n{{spec_doc_guide}}\n</SPEC_DOC_GUIDE>\n\n<IMPLEMENTATION_PHILOSOPHY>\n{{implementation_philosophy}}\n</IMPLEMENTATION_PHILOSOPHY>\n\n<MODULAR_DESIGN_PHILOSOPHY>\n{{modular_design_philosophy}}\n</MODULAR_DESIGN_PHILOSOPHY>\n\nCreate a complete, detailed specification for the component that follows the template structure but is tailored to this specific component's needs.",
-      "model": "{{model|default:'openai:o3-mini'}}",
-      "artifact": "generated_spec"
-    },
-    {
-      "type": "write_file",
-      "artifact": "generated_spec",
-      "root": "{{output_root|default:'output'}}/specs/{{component_path}}"
-    }
-  ]
+"steps": [
+{
+"type": "read_file",
+"path": "recipes/component_blueprint_generator/includes/templates/spec_template.md",
+"artifact": "spec_template"
+},
+{
+"type": "generate",
+"prompt": "You are an expert developer creating a formal component specification. Based on the candidate specification and component information, create a detailed specification document following the template structure.\n\nCandidate Specification:\n{{candidate_spec}}\n\nComponent Information:\n{{component_info}}\n\nSpecification Template:\n{{spec_template}}\n\nUse the following guides for context:\n<SPEC_DOC_GUIDE>\n{{spec_doc_guide}}\n</SPEC_DOC_GUIDE>\n\n<IMPLEMENTATION_PHILOSOPHY>\n{{implementation_philosophy}}\n</IMPLEMENTATION_PHILOSOPHY>\n\n<MODULAR_DESIGN_PHILOSOPHY>\n{{modular_design_philosophy}}\n</MODULAR_DESIGN_PHILOSOPHY>\n\nCreate a complete, detailed specification for the component that follows the template structure but is tailored to this specific component's needs.",
+"model": "{{model|default:'openai:o3-mini'}}",
+"artifact": "generated_spec"
+},
+{
+"type": "write_file",
+"artifact": "generated_spec",
+"root": "{{output_root|default:'output'}}/specs/{{component_path}}"
 }
-
+]
+}
 
 === File: recipes/component_blueprint_generator/recipes/finalize-blueprint.json ===
 {
-  "steps": [
-    {
-      "type": "generate",
-      "prompt": "You are an expert developer finalizing a component blueprint. Review all the generated artifacts and create a summary report that describes what has been created and how to use these artifacts to generate the component.\n\nComponent Specification:\n{{generated_spec}}\n\nComponent Documentation:\n{{generated_doc}}\n\nComponent Recipe Files:\n{{recipe_files}}\n\nComponent Information:\n{{component_info}}\n\nCreate a summary report that includes:\n1. An overview of the component\n2. A list of all generated files with their locations\n3. Instructions for using the recipes to generate the component\n4. Any special considerations or next steps\n\nThis report should serve as a guide for someone who wants to use these blueprint files to generate the actual component code.",
-      "model": "{{model|default:'openai:o3-mini'}}",
-      "artifact": "blueprint_summary"
-    },
-    {
-      "type": "generate",
-      "prompt": "Format the blueprint summary as a proper markdown file with the component ID as the file name.\n\nBlueprint Summary:\n{{blueprint_summary}}\n\nComponent Information:\n{{component_info}}\n\nFormat your response as a FileGenerationResult with a single file named '{{component_id}}_blueprint_summary.md' containing the formatted markdown summary.",
-      "model": "{{model|default:'openai:o3-mini'}}",
-      "artifact": "formatted_summary"
-    },
-    {
-      "type": "write_file",
-      "artifact": "formatted_summary",
-      "root": "{{output_root|default:'output'}}"
-    }
-  ]
+"steps": [
+{
+"type": "generate",
+"prompt": "You are an expert developer finalizing a component blueprint. Review all the generated artifacts and create a summary report that describes what has been created and how to use these artifacts to generate the component.\n\nComponent Specification:\n{{generated_spec}}\n\nComponent Documentation:\n{{generated_doc}}\n\nComponent Recipe Files:\n{{recipe_files}}\n\nComponent Information:\n{{component_info}}\n\nCreate a summary report that includes:\n1. An overview of the component\n2. A list of all generated files with their locations\n3. Instructions for using the recipes to generate the component\n4. Any special considerations or next steps\n\nThis report should serve as a guide for someone who wants to use these blueprint files to generate the actual component code.",
+"model": "{{model|default:'openai:o3-mini'}}",
+"artifact": "blueprint_summary"
+},
+{
+"type": "generate",
+"prompt": "Format the blueprint summary as a proper markdown file with the component ID as the file name.\n\nBlueprint Summary:\n{{blueprint_summary}}\n\nComponent Information:\n{{component_info}}\n\nFormat your response as a FileGenerationResult with a single file named '{{component_id}}_blueprint_summary.md' containing the formatted markdown summary.",
+"model": "{{model|default:'openai:o3-mini'}}",
+"artifact": "formatted_summary"
+},
+{
+"type": "write_file",
+"artifact": "formatted_summary",
+"root": "{{output_root|default:'output'}}"
 }
-
-
+]
+}
