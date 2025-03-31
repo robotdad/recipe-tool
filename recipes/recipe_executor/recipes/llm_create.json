@@ -7,7 +7,7 @@
     },
     {
       "type": "read_file",
-      "path": "docs/pydantic-ai/pydantic_ai_files.md",
+      "path": "recipes/recipe_executor/includes/PYDANTIC_AI_DOCS.md",
       "artifact": "pydantic_ai_docs"
     },
     {

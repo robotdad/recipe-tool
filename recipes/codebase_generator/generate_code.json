@@ -2,7 +2,7 @@
   "steps": [
     {
       "type": "read_file",
-      "path": "docs/IMPLEMENTATION_PHILOSOPHY.md",
+      "path": "recipes/codebase_generator/includes/IMPLEMENTATION_PHILOSOPHY.md",
       "artifact": "implementation_philosophy"
     },
     {
