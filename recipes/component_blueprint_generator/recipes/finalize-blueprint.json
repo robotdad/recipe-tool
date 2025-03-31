@@ -1,0 +1,21 @@
+{
+  "steps": [
+    {
+      "type": "generate",
+      "prompt": "You are an expert developer finalizing a component blueprint. Review all the generated artifacts and create a summary report that describes what has been created and how to use these artifacts to generate the component.\n\nComponent Specification:\n{{generated_spec}}\n\nComponent Documentation:\n{{generated_doc}}\n\nComponent Recipe Files:\n{{recipe_files}}\n\nComponent Information:\n{{component_info}}\n\nCreate a summary report that includes:\n1. An overview of the component\n2. A list of all generated files with their locations\n3. Instructions for using the recipes to generate the component\n4. Any special considerations or next steps\n\nThis report should serve as a guide for someone who wants to use these blueprint files to generate the actual component code.",
+      "model": "{{model|default:'openai:o3-mini'}}",
+      "artifact": "blueprint_summary"
+    },
+    {
+      "type": "generate",
+      "prompt": "Format the blueprint summary as a proper markdown file with the component ID as the file name.\n\nBlueprint Summary:\n{{blueprint_summary}}\n\nComponent Information:\n{{component_info}}\n\nFormat your response as a FileGenerationResult with a single file named '{{component_id}}_blueprint_summary.md' containing the formatted markdown summary.",
+      "model": "{{model|default:'openai:o3-mini'}}",
+      "artifact": "formatted_summary"
+    },
+    {
+      "type": "write_file",
+      "artifact": "formatted_summary",
+      "root": "{{output_root|default:'output'}}"
+    }
+  ]
+}

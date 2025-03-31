@@ -50,18 +50,25 @@ def build_context_files():
             "exclude": collect_files.DEFAULT_EXCLUDE + [OUTPUT_DIR],
             "include": ["README.md", "pyproject.toml", ".env.example"],
         },
-        # Task 2: Collect files from recipes/codebase_generator
+        # Task 2: Collect files recipes/component_blueprint_generator
+        {
+            "patterns": ["recipes/component_blueprint_generator"],
+            "output": f"{OUTPUT_DIR}/component_blueprint_generator_recipe_files.md",
+            "exclude": collect_files.DEFAULT_EXCLUDE + [OUTPUT_DIR],
+            "include": [],
+        },
+        # Task 3: Collect files from recipes/codebase_generator
         {
             "patterns": ["recipes/codebase_generator"],
             "output": f"{OUTPUT_DIR}/codebase_generator_recipe_files.md",
             "exclude": collect_files.DEFAULT_EXCLUDE + [OUTPUT_DIR],
             "include": [],
         },
-        # Task 3: Collect files from recipes/recipe_executor with exclusion
+        # Task 4: Collect files from recipes/recipe_executor with exclusion
         {
             "patterns": ["recipes/recipe_executor"],
             "output": f"{OUTPUT_DIR}/recipe_executor_recipe_files.md",
-            "exclude": collect_files.DEFAULT_EXCLUDE + ["recipes/recipe_executor/includes", OUTPUT_DIR],
+            "exclude": collect_files.DEFAULT_EXCLUDE + ["PYDANTIC_AI_DOCS.md", OUTPUT_DIR],
             "include": [],
         },
     ]

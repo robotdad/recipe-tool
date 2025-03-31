@@ -1,0 +1,38 @@
+{
+  "steps": [
+    {
+      "type": "read_file",
+      "path": "{{candidate_spec_path}}",
+      "artifact": "candidate_spec"
+    },
+    {
+      "type": "read_file",
+      "path": "recipes/component_blueprint_generator/includes/SPEC_DOC_GUIDE.md",
+      "artifact": "spec_doc_guide"
+    },
+    {
+      "type": "read_file",
+      "path": "recipes/codebase_generator/includes/IMPLEMENTATION_PHILOSOPHY.md",
+      "artifact": "implementation_philosophy"
+    },
+    {
+      "type": "read_file",
+      "path": "recipes/component_blueprint_generator/includes/MODULAR_DESIGN_PHILOSOPHY.md",
+      "artifact": "modular_design_philosophy"
+    },
+    {
+      "type": "generate",
+      "prompt": "You are an expert developer tasked with analyzing a candidate specification and creating a blueprint for component generation. Review the candidate specification and extract key information needed to create a formal specification, documentation, and recipe files.\n\nCandidate Specification:\n{{candidate_spec}}\n\nYour task is to extract the following information:\n1. Component name\n2. Component ID (lowercase, underscore-separated version of the name)\n3. Module path (where the component would be imported from)\n4. Component type (utility, core, step, etc.)\n5. Key functionality (brief summary)\n6. Main dependencies\n\nFormat your response as a JSON object with these fields.\n\nUse the following guides for context:\n<SPEC_DOC_GUIDE>\n{{spec_doc_guide}}\n</SPEC_DOC_GUIDE>\n\n<IMPLEMENTATION_PHILOSOPHY>\n{{implementation_philosophy}}\n</IMPLEMENTATION_PHILOSOPHY>\n\n<MODULAR_DESIGN_PHILOSOPHY>\n{{modular_design_philosophy}}\n</MODULAR_DESIGN_PHILOSOPHY>",
+      "model": "{{model|default:'openai:o3-mini'}}",
+      "artifact": "component_info"
+    },
+    {
+      "type": "execute_recipe",
+      "recipe_path": "recipes/component_blueprint_generator/create.json",
+      "context_overrides": {
+        "component_info": "{{component_info}}",
+        "candidate_spec": "{{candidate_spec}}"
+      }
+    }
+  ]
+}

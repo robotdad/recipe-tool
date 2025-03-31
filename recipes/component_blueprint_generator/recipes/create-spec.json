@@ -1,0 +1,20 @@
+{
+  "steps": [
+    {
+      "type": "read_file",
+      "path": "recipes/component_blueprint_generator/includes/templates/spec_template.md",
+      "artifact": "spec_template"
+    },
+    {
+      "type": "generate",
+      "prompt": "You are an expert developer creating a formal component specification. Based on the candidate specification and component information, create a detailed specification document following the template structure.\n\nCandidate Specification:\n{{candidate_spec}}\n\nComponent Information:\n{{component_info}}\n\nSpecification Template:\n{{spec_template}}\n\nUse the following guides for context:\n<SPEC_DOC_GUIDE>\n{{spec_doc_guide}}\n</SPEC_DOC_GUIDE>\n\n<IMPLEMENTATION_PHILOSOPHY>\n{{implementation_philosophy}}\n</IMPLEMENTATION_PHILOSOPHY>\n\n<MODULAR_DESIGN_PHILOSOPHY>\n{{modular_design_philosophy}}\n</MODULAR_DESIGN_PHILOSOPHY>\n\nCreate a complete, detailed specification for the component that follows the template structure but is tailored to this specific component's needs.",
+      "model": "{{model|default:'openai:o3-mini'}}",
+      "artifact": "generated_spec"
+    },
+    {
+      "type": "write_file",
+      "artifact": "generated_spec",
+      "root": "{{output_root|default:'output'}}/specs/{{component_path}}"
+    }
+  ]
+}
