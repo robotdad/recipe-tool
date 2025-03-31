@@ -82,7 +82,42 @@ The project includes several useful make commands:
 - **`make recipe-executor-create`**: Generates recipe executor code from scratch using the recipe itself
 - **`make recipe-executor-edit`**: Revises existing recipe executor code using recipes
 
-## Running Recipes
+## Quick Start
+
+Get started with Recipe Executor in minutes:
+
+### Simple Example
+
+Run a basic code generation recipe:
+
+```bash
+python recipe_executor/main.py recipes/example_simple/test_recipe.md
+```
+
+This generates a simple Python script based on a specification. See [Simple Example README](/recipes/example_simple/README.md) for details.
+
+### Complex Example
+
+Try a more advanced multi-step workflow:
+
+```bash
+python recipe_executor/main.py recipes/example_complex/complex_recipe.md
+```
+
+This demonstrates multiple specifications and sub-recipes. See [Complex Example README](/recipes/example_complex/README.md) for details.
+
+### Creating Your Own Project
+
+For real projects, use the blueprint generator to create a complete component structure:
+
+```bash
+python recipe_executor/main.py recipes/component_blueprint_generator/build_blueprint.json \
+  --context candidate_spec_path=your_spec.md \
+  --context component_id=your_component \
+  --context target_project=your_project
+```
+
+### Running Any Recipe
 
 Execute a recipe using the command line interface:
 
@@ -95,6 +130,8 @@ You can also pass context variables:
 ```bash
 python recipe_executor/main.py path/to/your/recipe.json --context key=value
 ```
+
+For comprehensive documentation, see the [User Guide](/docs/user_guide.md).
 
 ## Project Structure
 
