@@ -1,0 +1,28 @@
+{
+  "steps": [
+    {
+      "type": "execute_recipe",
+      "recipe_path": "recipes/recipe_executor/recipes/steps/registry_edit.json"
+    },
+    {
+      "type": "execute_recipe",
+      "recipe_path": "recipes/recipe_executor/recipes/steps/base_edit.json"
+    },
+    {
+      "type": "execute_recipe",
+      "recipe_path": "recipes/recipe_executor/recipes/steps/read_file_edit.json"
+    },
+    {
+      "type": "execute_recipe",
+      "recipe_path": "recipes/recipe_executor/recipes/steps/write_files_edit.json"
+    },
+    {
+      "type": "execute_recipe",
+      "recipe_path": "recipes/recipe_executor/recipes/steps/generate_llm_edit.json"
+    },
+    {
+      "type": "execute_recipe",
+      "recipe_path": "recipes/recipe_executor/recipes/steps/execute_recipe_edit.json"
+    }
+  ]
+}

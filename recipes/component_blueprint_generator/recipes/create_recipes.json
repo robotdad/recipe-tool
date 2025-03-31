@@ -1,0 +1,25 @@
+{
+  "steps": [
+    {
+      "type": "read_file",
+      "path": "recipes/component_blueprint_generator/includes/templates/create_recipe_template.json",
+      "artifact": "create_recipe_template"
+    },
+    {
+      "type": "read_file",
+      "path": "recipes/component_blueprint_generator/includes/templates/edit_recipe_template.json",
+      "artifact": "edit_recipe_template"
+    },
+    {
+      "type": "generate",
+      "prompt": "You are an expert developer creating recipe files for component generation and editing. Based on the component specification and template recipes, create the final recipe files.\n\nComponent Specification:\n{{generated_spec}}\n\nComponent Documentation:\n{{generated_doc}}\n\nComponent ID: {{component_id}}\nComponent Name: {{component_name}}\nTarget Project: {{target_project}}\nProject Recipe Path: {{project_recipe_path}}\n\nCreate Recipe Template:\n{{create_recipe_template}}\n\nEdit Recipe Template:\n{{edit_recipe_template}}\n\n# IMPORTANT GUIDELINES\n\n1. Use the templates as your starting point and maintain their overall structure\n\n2. For additional file includes and related docs:\n   - Analyze the component specification to identify related components or documentation it might need\n   - Include read_file steps for any relevant documents (like utils_docs for a component that uses utilities)\n   - Format additional content using XML-style tags (like <CONTEXT_DOCS>content</CONTEXT_DOCS>)\n   - Follow the pattern seen in executor_create.json, llm_create.json, etc.\n\n3. For context overrides:\n   - Keep all existing context variables provided in the template\n   - Add component-specific variables as needed\n   - Use the pattern: \"additional_content\": \"<TAG_NAME>\\n{{artifact_name}}\\n</TAG_NAME>\"\n\n4. Naming and paths:\n   - Use exactly '{{component_id}}_create.json' and '{{component_id}}_edit.json' for filenames\n   - Ensure all paths use correct variables: {{project_recipe_path}}, {{component_id}}, etc.\n\nFormat your response as a FileGenerationResult with two files:\n1. '{{component_id}}_create.json' - The create recipe\n2. '{{component_id}}_edit.json' - The edit recipe",
+      "model": "{{model|default:'openai:o3-mini'}}",
+      "artifact": "recipe_files"
+    },
+    {
+      "type": "write_file",
+      "artifact": "recipe_files",
+      "root": "{{output_root|default:'output'}}/{{target_project}}/recipes"
+    }
+  ]
+}
