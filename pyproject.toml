@@ -6,6 +6,7 @@ authors = [{ name = "Brian Krabach" }]
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "azure-identity>=1.21.0",
     "dotenv>=0.9.9",
     "pydantic-ai>=0.0.46",
     "pydantic-settings>=2.8.1",
