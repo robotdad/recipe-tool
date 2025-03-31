@@ -1,0 +1,23 @@
+{
+  "steps": [
+    {
+      "type": "read_file",
+      "path": "recipes/recipe_executor/docs/models.md",
+      "artifact": "models_docs"
+    },
+    {
+      "type": "read_file",
+      "path": "docs/pydantic-ai/pydantic_ai_files.md",
+      "artifact": "pydantic_ai_docs"
+    },
+    {
+      "type": "execute_recipe",
+      "recipe_path": "recipes/recipe_executor/build_component.json",
+      "context_overrides": {
+        "component_id": "llm",
+        "existing_code": "{{existing_code}}",
+        "additional_content": "<MODELS_DOCS>\n{{models_docs}}\n</MODELS_DOCS>\n<PYDANTIC_AI_DOCUMENTATION>\n{{pydantic_ai_docs}}\n</PYDANTIC_AI_DOCUMENTATION>"
+      }
+    }
+  ]
+}

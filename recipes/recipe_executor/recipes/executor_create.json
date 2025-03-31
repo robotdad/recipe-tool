@@ -1,0 +1,23 @@
+{
+  "steps": [
+    {
+      "type": "read_file",
+      "path": "recipes/recipe_executor/docs/steps/registry.md",
+      "artifact": "registry_docs"
+    },
+    {
+      "type": "read_file",
+      "path": "recipes/recipe_executor/docs/context.md",
+      "artifact": "context_docs"
+    },
+    {
+      "type": "execute_recipe",
+      "recipe_path": "recipes/recipe_executor/build_component.json",
+      "context_overrides": {
+        "component_id": "executor",
+        "existing_code": "{{existing_code}}",
+        "additional_content": "<REGISTRY_DOCS>\n{{registry_docs}}\n</REGISTRY_DOCS>\n<CONTEXT_DOCS>\n{{context_docs}}\n</CONTEXT_DOCS>"
+      }
+    }
+  ]
+}

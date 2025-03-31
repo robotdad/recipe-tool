@@ -1,0 +1,28 @@
+{
+  "steps": [
+    {
+      "type": "read_file",
+      "path": "recipes/recipe_executor/docs/context.md",
+      "artifact": "context_docs"
+    },
+    {
+      "type": "read_file",
+      "path": "recipes/recipe_executor/docs/executor.md",
+      "artifact": "executor_docs"
+    },
+    {
+      "type": "read_file",
+      "path": "recipes/recipe_executor/docs/logger.md",
+      "artifact": "logger_docs"
+    },
+    {
+      "type": "execute_recipe",
+      "recipe_path": "recipes/recipe_executor/build_component.json",
+      "context_overrides": {
+        "component_id": "main",
+        "existing_code": "{{existing_code}}",
+        "additional_content": "<STEPS_BASE_DOCS>\n{{steps_base_docs}}\n</STEPS_BASE_DOCS>\n<CONTEXT_DOCS>\n{{context_docs}}\n</CONTEXT_DOCS>\n<EXECUTOR_DOCS>\n{{executor_docs}}\n</EXECUTOR_DOCS>\n<LOGGER_DOCS>\n{{logger_docs}}\n</LOGGER_DOCS>"
+      }
+    }
+  ]
+}

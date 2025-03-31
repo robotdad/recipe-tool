@@ -1,0 +1,29 @@
+{
+  "steps": [
+    {
+      "type": "read_file",
+      "path": "recipes/recipe_executor/specs/{{component_path}}{{component_id}}.md",
+      "artifact": "spec"
+    },
+    {
+      "type": "read_file",
+      "path": "recipes/recipe_executor/docs/{{component_path}}{{component_id}}.md",
+      "artifact": "usage_doc",
+      "optional": true
+    },
+    {
+      "type": "execute_recipe",
+      "recipe_path": "recipes/codebase_generator/generate_code.json",
+      "context_overrides": {
+        "model": "openai:o3-mini",
+        "output_root": "output",
+        "output_path": "recipe_executor{% if component_path %}/{{component_path}}{% endif %}",
+        "language": "python",
+        "spec": "{{spec}}",
+        "usage_doc": "{{usage_doc}}",
+        "existing_code": "{{existing_code}}",
+        "additional_content": "{{additional_content}}"
+      }
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "steps": [
+    {
+      "type": "execute_recipe",
+      "recipe_path": "recipes/recipe_executor/build_component.json",
+      "context_overrides": {
+        "component_id": "models",
+        "existing_code": "{{existing_code}}"
+      }
+    }
+  ]
+}
