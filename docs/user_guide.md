@@ -35,10 +35,14 @@ Basic recipe structure:
 
 ### Step Types
 
+Recipe Executor is built on just four core primitive operations:
+
 1. **read_file**: Reads content from a file
 2. **generate**: Generates content using an LLM
 3. **write_file**: Writes content to files 
 4. **execute_recipe**: Runs another recipe (enables recipe composition)
+
+These primitives are sufficient for most code generation workflows.
 
 ### Context System
 
@@ -53,9 +57,71 @@ Recipe Executor uses Liquid templates for dynamic content generation:
 - Supports conditionals: `{% if condition %}...{% endif %}`
 - Templates are rendered using context values
 
-## Creating Custom Projects
+## Practical Usage Guide
 
-### Project Structure
+### Spec-Driven Development Workflow
+
+Recipe Executor is built around a spec-driven development approach:
+
+1. **Write specifications**: Define what you want in markdown spec files
+2. **Generate code**: Run recipes to generate code from specs
+3. **Test the generated code**: Run and verify the code works
+4. **Refine the specs, not the code**: If issues arise, update specs and regenerate
+5. **Version control**: Use git to track specs and allow easy rollback
+
+This workflow allows you to focus on defining what you want rather than how to implement it.
+
+### Working with Components
+
+#### Building Specific Components
+
+You can work on individual components rather than rebuilding entire systems:
+
+1. **Component-specific recipes**: Use `<component_name>_create.json` or `<component_name>_edit.json` to build or modify a single component
+   ```bash
+   python recipe_executor/main.py recipes/recipe_executor/recipes/context_create.json
+   ```
+
+2. **Component collections**: Build related component groups using folder-level recipes
+   ```bash
+   python recipe_executor/main.py recipes/recipe_executor/recipes/steps/create.json
+   ```
+
+3. **Dependency awareness**: When building a component, consider what other components might depend on it
+
+#### Creating vs. Editing
+
+Recipe Executor provides two main workflows for component development:
+
+- **Create recipes** (`<component>_create.json`): Generate components from scratch
+- **Edit recipes** (`<component>_edit.json`): Modify existing components while preserving structure
+
+As your specs improve, the difference between create and edit results becomes minimal.
+
+### Effective Recipe Development
+
+To get the most out of Recipe Executor:
+
+1. **Right-size your tasks**: Break down complex tasks into smaller, more reliable pieces
+   - "Breaking it down to smaller asks makes a big difference"
+   - LLMs perform more reliably with focused, clear instructions
+
+2. **Provide the right context**: Include only what's needed for a specific task
+   - Too little context: Model may miss important details
+   - Too much context: Model may get distracted or confused
+
+3. **Iterative recipe development**:
+   - Start with a working manual workflow
+   - Capture that workflow in a recipe
+   - Use it as long as it's useful
+   - Refine or discard as needed
+
+4. **Focus on testing output, not inspecting code**:
+   - Treat generated code as a means to an end
+   - Validate functionality, not implementation details
+   - If it works, move on; if not, update specs
+
+## Project Structure
 
 When creating your own projects with Recipe Executor:
 
@@ -63,7 +129,27 @@ When creating your own projects with Recipe Executor:
 2. **Create recipe files**: JSON files that orchestrate the generation process
 3. **Organize in folders**: Group related files by component
 
-### Recipe Writing Guidelines
+Recommended structure:
+```
+recipes/
+  ├── your_project/
+  │   ├── build_component.json     # Main recipe
+  │   ├── create.json              # Project creation recipe
+  │   ├── edit.json                # Project edit recipe
+  │   ├── specs/                   # Component specifications
+  │   │   ├── component1.md
+  │   │   ├── component2.md
+  │   ├── docs/                    # Component usage docs
+  │   │   ├── component1.md
+  │   │   ├── component2.md
+  │   └── recipes/                 # Component-specific recipes
+  │       ├── component1_create.json
+  │       ├── component1_edit.json
+  │       ├── component2_create.json
+  │       └── component2_edit.json
+```
+
+## Recipe Writing Guidelines
 
 1. **Start with the end in mind**: Define what files you want to create
 2. **Break down into steps**: 
