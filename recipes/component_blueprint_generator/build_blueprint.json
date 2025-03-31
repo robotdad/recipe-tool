@@ -22,7 +22,7 @@
     },
     {
       "type": "generate",
-      "prompt": "You are an expert developer analyzing a candidate specification. Extract key information needed for component generation.\n\nCandidate Specification:\n{{candidate_spec}}\n\nExtract these fields only if not already provided:\n- component_id: {{component_id|default:''}}\n- component_name: {{component_name|default:''}}\n- module_path: {{module_path|default:''}}\n- component_type: {{component_type|default:''}}\n- key_dependencies: {{key_dependencies|default:''}}\n\nIf component_name is not provided and not in the spec, derive a clean title-case name from component_id.\n\nProvide a JSON object with these fields, using reasonable defaults when information is not clear.",
+      "prompt": "You are an expert developer analyzing a candidate specification. Extract key information needed for component generation.\n\nCandidate Specification:\n{{candidate_spec}}\n\nExtract these fields only if not already provided:\n- component_id: {{component_id|default:''}}\n- component_name: {{component_name|default:''}}\n- module_path: {{module_path|default:''}}\n- component_type: {{component_type|default:''}}\n- key_dependencies: {{key_dependencies|default:''}}\n- related_docs: {{related_docs|default:''}}\n\nIf component_name is not provided and not in the spec, derive a clean title-case name from component_id.\n\nFor related_docs, identify any documentation files this component might need based on its dependencies, like 'context_docs', 'utils_docs', etc.\n\nProvide a JSON object with these fields, using reasonable defaults when information is not clear.",
       "model": "{{model|default:'openai:o3-mini'}}",
       "artifact": "extracted_info"
     },
@@ -36,6 +36,7 @@
         "module_path": "{{module_path|default:extracted_info.module_path}}",
         "component_type": "{{component_type|default:extracted_info.component_type}}",
         "key_dependencies": "{{key_dependencies|default:extracted_info.key_dependencies}}",
+        "related_docs": "{{related_docs|default:extracted_info.related_docs}}",
         "target_project": "{{target_project|default:''}}",
         "component_path": "{{component_path|default:''}}",
         "output_root": "{{output_root|default:'output'}}",
