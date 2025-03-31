@@ -6,7 +6,7 @@ This script imports the collect_files module and calls its functions directly
 to generate Markdown files containing code and recipe files for AI context.
 
 This script should be placed at:
-[repo_root]/recipes/recipe_executor/tools/build_ai_context_files.py
+[repo_root]/tools/build_ai_context_files.py
 
 And will be run from the repository root.
 """
@@ -14,7 +14,7 @@ And will be run from the repository root.
 import os
 import sys
 
-OUTPUT_DIR = "recipes/recipe_executor/ai_context"
+OUTPUT_DIR = "ai_context"
 
 # We're running from repo root, so that's our current directory
 repo_root = os.getcwd()

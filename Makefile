@@ -5,7 +5,7 @@ include $(repo_root)/tools/makefiles/python.mk
 .PHONY: recipe-executor-context
 recipe-executor-context:
 	@echo "Building AI context files for recipe executor development..."
-	@python $(repo_root)/recipes/recipe_executor/tools/build_ai_context_files.py
+	@python $(repo_root)/tools/build_ai_context_files.py
 
 # Create new recipe executor code from scratch using the recipe executor itself
 .PHONY: recipe-executor-create
