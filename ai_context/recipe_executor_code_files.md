@@ -1,3 +1,52 @@
+=== File: README.md ===
+# Recipe Executor
+
+A tool for executing natural language recipe-like instructions
+
+## Setup and Installation
+
+Simply run:
+
+```bash
+make
+```
+
+To create the virtual environment and install dependencies.
+
+
+=== File: pyproject.toml ===
+[project]
+name = "recipe-executor"
+version = "0.1.0"
+description = "A tool for executing natural language recipe-like instructions"
+authors = [{ name = "Brian Krabach" }]
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "dotenv>=0.9.9",
+    "pydantic-ai>=0.0.46",
+    "pydantic-settings>=2.8.1",
+    "python-dotenv>=1.1.0",
+    "python-liquid>=2.0.1",
+]
+
+[dependency-groups]
+dev = ["pyright>=1.1.389"]
+
+[tool.uv]
+package = true
+
+[project.scripts]
+recipe-executor = "recipe_executor.main:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["recipe_executor"]
+
+
 === File: recipe_executor/context.py ===
 from typing import Any, Dict, Iterator, Optional
 
