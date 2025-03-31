@@ -28,6 +28,40 @@ The Recipe Executor is a flexible orchestration system that executes "recipes" -
 
 ## Setup and Installation
 
+### Prerequisites
+
+Recommended installers:
+
+- Linux: apt or your distribution's package manager
+- macOS: [brew](https://brew.sh/)
+- Windows: [winget](https://learn.microsoft.com/en-us/windows/package-manager/winget/)
+
+#### Development tools
+
+The core dependencies you need to install are:
+
+- `make` - for scripting installation steps of the various projects within this repo
+- `uv` - for managing installed versions of `python` - for installing python dependencies
+
+Linux:
+
+    # make is installed by default on linux
+    sudo apt update && sudo apt install pipx
+    pipx ensurepath
+    pipx install uv
+
+macOS:
+
+    brew install make
+    brew install uv
+
+Windows:
+
+    winget install ezwinports.make -e
+    winget install astral-sh.uv  -e
+
+### Setup Steps
+
 1. Clone this repository
 2. Copy the environment file and configure your API keys:
    ```bash
@@ -37,6 +71,19 @@ The Recipe Executor is a flexible orchestration system that executes "recipes" -
 3. Run the setup command to create a virtual environment and install dependencies:
    ```bash
    make
+   ```
+4. Activate the virtual environment:
+   - **Linux/macOS**:
+     ```bash
+     source venv/bin/activate
+     ```
+   - **Windows**:
+     ```bash
+     .\venv\Scripts\activate
+     ```
+5. Test the installation by running the example recipe:
+   ```bash
+   make recipe-executor-create
    ```
 
 ## Using the Makefile
