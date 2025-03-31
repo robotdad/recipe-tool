@@ -7,6 +7,8 @@ The Main component serves as the command-line entry point for the Recipe Executo
 ## Core Requirements
 
 - Provide a command-line interface for executing recipes
+- Load environment variables from .env files using python-dotenv
+  - python-dotenv is already installed as a dependency of the project
 - Parse arguments for recipe path and context values
 - Initialize the logging system
 - Create the context with command-line supplied values
@@ -15,6 +17,7 @@ The Main component serves as the command-line entry point for the Recipe Executo
 
 ## Implementation Considerations
 
+- Call load_dotenv() early in the main function before any other initialization
 - Use argparse for command-line argument parsing
 - Initialize logging early in execution flow
 - Parse context values from key=value pairs
@@ -26,6 +29,7 @@ The Main component serves as the command-line entry point for the Recipe Executo
 
 The Main component depends on:
 
+- **python-dotenv** - Uses load_dotenv to load environment variables from .env files
 - **Context** - Creates the Context object with CLI-supplied values
 - **Executor** - Uses RecipeExecutor to run the specified recipe
 - **Logger** - Uses init_logger to set up the logging system

@@ -2,6 +2,7 @@ import argparse
 import sys
 from typing import Any, Dict, List
 
+from dotenv import load_dotenv
 from executor import RecipeExecutor
 
 from recipe_executor.context import Context
@@ -39,6 +40,9 @@ def main() -> None:
     This function parses command-line arguments, sets up logging, creates the context, and runs the recipe executor.
     It also handles errors and provides appropriate exit codes.
     """
+    # Load environment variables from .env file
+    load_dotenv()
+
     parser = argparse.ArgumentParser(
         description="Recipe Executor Tool - Executes a recipe with additional context information."
     )
