@@ -21,7 +21,11 @@ The Component Blueprint Generator is a recipe-based system that creates comprehe
 3. The system generates a formal specification document
 4. Documentation is created based on the specification
 5. Recipe files for component creation and editing are generated
+   - These recipe files are designed to call the [Codebase Generator](/recipes/codebase_generator/) recipe
+   - This creates a seamless workflow from spec to blueprint to actual code
 6. A summary report is created with instructions for using the generated files
+
+> **Integration with Codebase Generator**: The Blueprint Generator and Codebase Generator work together in a deliberate pipeline. The Blueprint Generator creates recipe files that call the Codebase Generator with the appropriate context, showing how Recipe Executor leverages recipe composition for complex workflows.
 
 ## Generated Files for Each Component
 

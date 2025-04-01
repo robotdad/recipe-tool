@@ -12,7 +12,8 @@ This recipe demonstrates a simple workflow.
   {
     "type": "generate",
     "prompt": "Using the following specification, generate a Python script that prints 'Hello, Test!'.\n\nSpecification:\n${spec_text}",
-    "artifact": "generated_code"
+    "artifact": "generated_code",
+    "model": "openai:o3-mini"
   },
   {
     "type": "write_file",
