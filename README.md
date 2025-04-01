@@ -106,17 +106,6 @@ python recipe_executor/main.py recipes/example_complex/complex_recipe.md
 
 This demonstrates multiple specifications and sub-recipes. See [Complex Example README](/recipes/example_complex/README.md) for details.
 
-### Creating Your Own Project
-
-For real projects, use the blueprint generator to create a complete component structure:
-
-```bash
-python recipe_executor/main.py recipes/component_blueprint_generator/build_blueprint.json \
-  --context candidate_spec_path=your_spec.md \
-  --context component_id=your_component \
-  --context target_project=your_project
-```
-
 ### Running Any Recipe
 
 Execute a recipe using the command line interface:

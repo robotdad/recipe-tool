@@ -34,6 +34,7 @@ python recipe_executor/main.py recipes/example_complex/complex_recipe.md
 ```
 
 This will generate:
+
 - A main module in `output/main_module/`
 - A utility module in `output/utility_module/`
 
@@ -47,6 +48,7 @@ python output/main_module/main.py
 ```
 
 The generated code includes:
+
 - A main module with functions to print "Hello from Main!" and return a greeting
 - A utility module with logging and data processing functions
 

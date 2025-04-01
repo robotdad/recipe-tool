@@ -10,7 +10,7 @@ The Codebase Generator is a simple but powerful recipe for generating code from 
 2. **Implementation Philosophy**: Code follows a consistent philosophy favoring simplicity and clarity
 3. **Support for Multiple Languages**: Configurable to generate code in different programming languages
 4. **Optional Documentation Integration**: Can incorporate usage documentation into the generation process
-5. **Existing Code Awareness**: Can build upon existing code when specified
+5. **Existing Code Awareness**: Can consider existing code when provided
 
 ## How It Works
 
@@ -39,12 +39,12 @@ python recipe_executor/main.py recipes/codebase_generator/generate_code.json \
 ### Optional Parameters
 
 - `output_path`: Path where generated code should be placed (default: current directory)
-- `language`: Programming language to generate (default: python)
-- `model`: LLM model to use (default: openai:o3-mini)
-- `existing_code`: Existing code to build upon (if any)
-- `usage_doc`: Usage documentation to incorporate
+- `language`: Programming language to generate (default: `python`)
+- `model`: LLM model to use (default: `openai:o3-mini`)
+- `existing_code`: Existing code to consider (if any)
+- `usage_doc`: Usage documentation to indicate what must be implemented
 - `additional_content`: Any additional content to include in the prompt
-- `output_root`: Base directory for output files (default: output)
+- `output_root`: Base directory for output files (default: `output`)
 
 ## Implementation Philosophy
 
@@ -110,12 +110,7 @@ The Recipe Executor project itself uses the codebase generator for its own compo
 ```
 
 This pattern shows how to:
+
 1. Read specifications and documentation
 2. Execute the codebase generator with specific context overrides
 3. Build a complete system through composition of recipes
-
-### Other Integration Patterns
-
-- The Component Blueprint Generator creates well-structured specs that work perfectly as inputs to this generator
-- You can create your own recipes that execute this generator with custom context
-- This generator can be combined with testing, documentation, or deployment recipes

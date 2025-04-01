@@ -21,6 +21,7 @@ Recipe Executor follows a modular architecture with these key components:
 Recipes are JSON files that define a sequence of steps to be executed. They can be standalone or reference other recipes through the `execute_recipe` step.
 
 Basic recipe structure:
+
 ```json
 {
   "steps": [
@@ -47,59 +48,65 @@ These primitives are sufficient for most code generation workflows.
 ### Context System
 
 The context is a shared state container that passes data between steps. It's dictionary-like and stores:
+
 - Artifacts (content read or generated)
 - Configuration values
 
 ### Template System
 
 Recipe Executor uses Liquid templates for dynamic content generation:
+
 - Template variables in double curly braces: `{{ variable }}`
 - Supports conditionals: `{% if condition %}...{% endif %}`
 - Templates are rendered using context values
 
-## Practical Usage Guide
+## Recipe Configuration
 
-### Spec-Driven Development Workflow
+### Default Configuration
 
-Recipe Executor is built around a spec-driven development approach:
+Recipe Executor defaults to using OpenAI models. The default configuration in recipe files uses:
 
-1. **Write specifications**: Define what you want in markdown spec files
-2. **Generate code**: Run recipes to generate code from specs
-3. **Test the generated code**: Run and verify the code works
-4. **Refine the specs, not the code**: If issues arise, update specs and regenerate
-5. **Version control**: Use git to track specs and allow easy rollback
-
-This workflow allows you to focus on defining what you want rather than how to implement it.
-
-## Project Structure
-
-When creating your own projects with Recipe Executor:
-
-1. **Define specifications**: Create markdown files describing component requirements
-2. **Create recipe files**: JSON files that orchestrate the generation process
-3. **Organize in folders**: Group related files by component
-
-Recommended structure:
-```
-recipes/
-  ├── your_project/
-  │   ├── build_component.json     # Main recipe
-  │   ├── create.json              # Project creation recipe
-  │   ├── edit.json                # Project edit recipe
-  │   ├── specs/                   # Component specifications
-  │   │   ├── component1.md
-  │   │   ├── component2.md
-  │   ├── docs/                    # Component usage docs
-  │   │   ├── component1.md
-  │   │   ├── component2.md
-  │   └── recipes/                 # Component-specific recipes
-  │       ├── component1_create.json
-  │       ├── component1_edit.json
-  │       ├── component2_create.json
-  │       └── component2_edit.json
+```json
+"model": "openai:o3-mini"
 ```
 
-> **Note**: The Component Blueprint Generator (`recipes/component_blueprint_generator/build_blueprint.json`) can automatically generate this entire structure for you based on simple candidate specifications. This is the recommended way to bootstrap new projects rather than creating this structure manually.
+This can be found in the following key recipe files:
+
+- `/recipes/codebase_generator/generate_code.json`
+- `/recipes/component_blueprint_generator/build_blueprint.json`
+- `/recipes/recipe_executor/build_component.json`
+
+### Using Multiple Model Providers
+
+While OpenAI is now the default, Recipe Executor still supports other providers:
+
+- Azure OpenAI: `azure:model_name:deployment_name` (e.g., `azure:gpt-4:my-deployment`)
+- OpenAI: `openai:model_name` (e.g., `openai:gpt-4o`, `openai:o3-mini`)
+- Anthropic: `anthropic:model_name` (e.g., `anthropic:claude-3.7-sonnet-latest`)
+- Gemini: `gemini:model_name` (e.g., `gemini:gemini-pro`)
+
+### Overriding Model Selection
+
+You can override the model selection in various ways:
+
+1. **In Recipe Files**: Change the `model` parameter directly
+
+   ```json
+   "model": "azure:gpt-4:my-custom-deployment"
+   ```
+
+2. **Via Context Variables**: Pass a context variable when executing a recipe
+
+   ```bash
+   python recipe_executor/main.py path/to/recipe.json --context model=azure:gpt-4:my-deployment
+   ```
+
+3. **In Sub-recipe Context Overrides**: When executing sub-recipes
+   ```json
+   "context_overrides": {
+     "model": "azure:gpt-4:my-deployment"
+   }
+   ```
 
 ## Recipe Writing Guidelines
 
@@ -110,49 +117,3 @@ recipes/
    - Write output files
 3. **Use templating**: Templates enable dynamic content generation
 4. **Compose recipes**: Use the execute_recipe step to create hierarchical workflows
-
-### Workflow Patterns
-
-1. **Blueprint Generation**: Validate specs → Generate blueprint → Create component
-   - Implemented in [Component Blueprint Generator](/recipes/component_blueprint_generator/)
-   - Entry point: `recipes/component_blueprint_generator/build_blueprint.json`
-   - Creates specifications, documentation, and recipe files for components
-
-2. **Code Generation**: Read specs → Generate code → Write files
-   - Implemented in [Codebase Generator](/recipes/codebase_generator/)
-   - Entry point: `recipes/codebase_generator/generate_code.json`
-   - Transforms specifications into working code
-
-3. **Sequential Refinement**: Create → Edit → Test → Refine
-   - Create recipes (e.g., `your_component_create.json`) for initial implementation
-   - Edit recipes (e.g., `your_component_edit.json`) for iterative improvements
-   - Both types are automatically generated by the Blueprint Generator
-
-## Extending the System
-
-### Creating New Step Types
-
-1. Create a new class extending `BaseStep`
-2. Define a configuration class using Pydantic
-3. Implement the `execute` method
-4. Register the step in `steps/registry.py`
-
-### Customizing LLM Integration
-
-The `llm.py` module handles communication with language model services. Extend it to:
-1. Add support for new providers
-2. Customize prompting strategies
-3. Implement specialized generation techniques
-
-### Adding Template Functions
-
-Enhance template rendering by adding custom filters and functions to the templating engine in `utils.py`.
-
-## Project Bootstrapping
-
-Recipe Executor can generate its own code, demonstrating its power for code generation:
-
-1. **Create from scratch**: `make recipe-executor-create`
-2. **Edit existing code**: `make recipe-executor-edit`
-
-This self-bootstrapping capability highlights how the system can be used for complex code generation tasks.
