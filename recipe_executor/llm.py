@@ -2,90 +2,93 @@ import logging
 import time
 from typing import Optional, Any
 
-# The llm component provides a unified interface to interact with different LLM providers.
-# Supported providers: openai, anthropic, gemini.
+from recipe_executor.models import FileGenerationResult
+from pydantic_ai import Agent
+from pydantic_ai.models.openai import OpenAIModel
+from pydantic_ai.models.anthropic import AnthropicModel
+from pydantic_ai.models.gemini import GeminiModel
+
+
+# Configure logging for this module
+logger = logging.getLogger(__name__)
+
+DEFAULT_MODEL_ID = "openai:gpt-4o"
 
 
 def get_model(model_id: str) -> Any:
     """
-    Initialize an LLM model based on the standardized model_id "provider:model_name".
+    Initialize an LLM model based on the standardized model_id string.
+    Expected format: 'provider:model_name'.
 
     Args:
-        model_id (str): The model identifier, e.g., "openai:gpt-4o", "anthropic:claude-3-5-sonnet-latest", or "gemini:gemini-pro".
+        model_id (str): The model identifier in format 'provider:model_name'.
 
     Returns:
-        A model instance appropriate for the provider.
+        A model instance corresponding to the specified provider and model.
 
     Raises:
-        ValueError: If the model_id format is invalid or the provider is unsupported.
+        ValueError: If the model_id format is invalid or if the provider is unsupported.
     """
-    parts = model_id.split(":")
-    if len(parts) != 2:
-        raise ValueError("Invalid model_id format. Expected format 'provider:model_name'.")
-
-    provider, model_name = parts
-    provider = provider.lower()
+    if ":" not in model_id:
+        raise ValueError(f"Invalid model_id format: {model_id}. Expected format 'provider:model_name'.")
+    provider, model_name = model_id.split(":", 1)
+    provider = provider.strip().lower()
+    model_name = model_name.strip()
 
     if provider == "openai":
-        try:
-            from pydantic_ai.models.openai import OpenAIModel
-        except ImportError as e:
-            raise ImportError("OpenAI model support is not available. Ensure the required packages are installed.") from e
         return OpenAIModel(model_name)
     elif provider == "anthropic":
-        try:
-            from pydantic_ai.models.anthropic import AnthropicModel
-        except ImportError as e:
-            raise ImportError("Anthropic model support is not available. Ensure the required packages are installed.") from e
         return AnthropicModel(model_name)
     elif provider == "gemini":
-        try:
-            from pydantic_ai.models.gemini import GeminiModel
-        except ImportError as e:
-            raise ImportError("Gemini model support is not available. Ensure the required packages are installed.") from e
         return GeminiModel(model_name)
     else:
         raise ValueError(f"Unsupported provider: {provider}")
 
 
-def get_agent(model_id: Optional[str] = None) -> Any:
+def get_agent(model_id: Optional[str] = None) -> Agent[None, FileGenerationResult]:
     """
     Initialize an LLM agent with the specified model.
 
-    If model_id is not provided, defaults to 'openai:gpt-4o'.
+    Args:
+        model_id (Optional[str]): The model identifier in format 'provider:model_name'. If None,
+                                  defaults to 'openai:gpt-4o'.
 
     Returns:
-        Agent: A configured Agent instance ready to process LLM requests.
+        Agent[None, FileGenerationResult]: A configured agent ready to process LLM requests with structured output.
     """
     if model_id is None:
-        model_id = "openai:gpt-4o"
+        model_id = DEFAULT_MODEL_ID
+
     model = get_model(model_id)
 
-    try:
-        from recipe_executor.models import FileGenerationResult
-    except ImportError as e:
-        raise ImportError("FileGenerationResult model not found. Ensure that recipe_executor/models.py is available.") from e
+    # Define a default system prompt instructing the LLM to produce a JSON structured output
+    system_prompt = (
+        "You are an LLM that generates a JSON object for file generation. "
+        "The JSON object must contain a key 'files' which is an array of file objects. "
+        "Each file object should have a 'path' (string) and 'content' (string). "
+        "Optionally, include a 'commentary' field with additional information."
+    )
 
-    try:
-        from pydantic_ai import Agent
-    except ImportError as e:
-        raise ImportError("PydanticAI Agent not available. Please install pydantic-ai.") from e
+    agent = Agent(
+        model=model,
+        result_type=FileGenerationResult,
+        system_prompt=system_prompt,
+    )
 
-    # Create the Agent with the given model and expected result type.
-    agent = Agent(model=model, result_type=FileGenerationResult)
     return agent
 
 
-def call_llm(prompt: str, model: Optional[str] = None) -> Any:
+def call_llm(prompt: str, model: Optional[str] = None) -> FileGenerationResult:
     """
     Call the LLM with the given prompt and return a structured FileGenerationResult.
 
     Args:
-        prompt (str): The prompt to send to the LLM.
-        model (Optional[str]): The model identifier in the format 'provider:model_name'. If None, defaults to 'openai:gpt-4o'.
+        prompt (str): The prompt string to be sent to the LLM.
+        model (Optional[str]): The model identifier in format 'provider:model_name'.
+                               If None, defaults to 'openai:gpt-4o'.
 
     Returns:
-        FileGenerationResult: Structured result containing generated files and optional commentary.
+        FileGenerationResult: A structured result containing generated files and commentary.
 
     Raises:
         Exception: If the LLM call fails or result validation fails.
@@ -95,8 +98,8 @@ def call_llm(prompt: str, model: Optional[str] = None) -> Any:
     try:
         result = agent.run_sync(prompt)
     except Exception as e:
-        logging.exception("LLM call failed")
-        raise
+        logger.exception("LLM call failed for prompt: %s", prompt)
+        raise e
     elapsed = time.time() - start_time
-    logging.debug(f"LLM call took {elapsed:.2f} seconds.")
+    logger.debug("LLM call completed in %.2f seconds", elapsed)
     return result.data

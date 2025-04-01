@@ -6,9 +6,6 @@
 from recipe_executor.models import (
     FileSpec,
     FileGenerationResult,
-    ReadFileConfig,
-    GenerateCodeConfig,
-    WriteFileConfig,
     RecipeStep,
     Recipe
 )
@@ -78,75 +75,6 @@ result = FileGenerationResult(
 for file in result.files:
     print(f"Writing to {file.path}")
     # ... write file.content to file.path
-```
-
-## Step Configuration Models
-
-### ReadFileConfig
-
-Configuration for a ReadFile step:
-
-```python
-class ReadFileConfig(BaseModel):
-    """Configuration for a ReadFile step.
-
-    Attributes:
-        file_path (str): The path of the file to read.
-        store_key (str): Key under which to store the file content. Defaults to "spec".
-    """
-
-    file_path: str
-    store_key: str = "spec"
-```
-
-Usage example:
-
-```python
-config = ReadFileConfig(
-    file_path="specs/component_spec.md",
-    store_key="component_spec"
-)
-
-# Use in a step definition
-step = {
-    "type": "read_file",
-    "file_path": config.file_path,
-    "store_key": config.store_key
-}
-```
-
-### GenerateCodeConfig
-
-Configuration for a GenerateCode step:
-
-```python
-class GenerateCodeConfig(BaseModel):
-    """Configuration for a GenerateCode step.
-
-    Attributes:
-        input_key (str): Key in context where the specification is stored. Defaults to "spec".
-        output_key (str): Key to store the generated code result. Defaults to "codegen_result".
-    """
-
-    input_key: str = "spec"
-    output_key: str = "codegen_result"
-```
-
-### WriteFileConfig
-
-Configuration for a WriteFile step:
-
-```python
-class WriteFileConfig(BaseModel):
-    """Configuration for a WriteFile step.
-
-    Attributes:
-        input_key (str): Key in context where the codegen result is stored. Defaults to "codegen_result".
-        output_root (str): Root directory where files will be written.
-    """
-
-    input_key: str = "codegen_result"
-    output_root: str
 ```
 
 ## Recipe Models
