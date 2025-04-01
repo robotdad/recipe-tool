@@ -1,7 +1,5 @@
-from typing import Dict, List, Optional
-
-from pydantic import BaseModel, Field, validator
-from pydantic_settings import BaseSettings
+from typing import List, Optional, Dict
+from pydantic import BaseModel
 
 
 class FileSpec(BaseModel):
@@ -84,40 +82,3 @@ class Recipe(BaseModel):
         steps (List[RecipeStep]): A list containing the steps of the recipe.
     """
     steps: List[RecipeStep]
-
-
-class AzureOpenAISettings(BaseSettings):
-    """
-    Configuration model for Azure OpenAI services.
-
-    This model supports configuring Azure OpenAI using either an API key or managed identity.
-
-    Attributes:
-        endpoint (str): The Azure OpenAI endpoint URL, mapped from environment variable AZURE_OPENAI_ENDPOINT.
-        openai_api_version (str): API version to use, mapped from environment variable OPENAI_API_VERSION.
-        api_key (Optional[str]): API key for authentication when not using managed identity, mapped from AZURE_OPENAI_API_KEY.
-        use_managed_identity (bool): Flag for managed identity auth, defaults to False, mapped from AZURE_USE_MANAGED_IDENTITY.
-        managed_identity_client_id (Optional[str]): Specific managed identity client ID, mapped from AZURE_MANAGED_IDENTITY_CLIENT_ID.
-    """
-    endpoint: str = Field(..., env="AZURE_OPENAI_ENDPOINT")
-    openai_api_version: str = Field(..., env="OPENAI_API_VERSION")
-    api_key: Optional[str] = Field(None, env="AZURE_OPENAI_API_KEY")
-    use_managed_identity: bool = Field(False, env="AZURE_USE_MANAGED_IDENTITY")
-    managed_identity_client_id: Optional[str] = Field(None, env="AZURE_MANAGED_IDENTITY_CLIENT_ID")
-
-    @validator('api_key', always=True)
-    def validate_authentication(cls, v, values):
-        """
-        Validates that either an API key is provided or managed identity is enabled.
-
-        Raises:
-            ValueError: If API key is not provided when managed identity is not used.
-        """
-        use_managed_identity = values.get('use_managed_identity', False)
-        if not use_managed_identity and not v:
-            raise ValueError("Authentication configuration error: API key must be provided when managed identity is not used.")
-        return v
-
-    class Config:
-        env_file = ".env"
-        env_file_encoding = 'utf-8'
