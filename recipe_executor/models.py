@@ -28,9 +28,13 @@ class RecipeStep(BaseModel):
     """A single step in a recipe.
 
     Attributes:
+        name (Optional[str]): The name of the step.
+        description (Optional[str]): A brief description of the step.
         type (str): The type of the recipe step.
         config (Dict): Dictionary containing configuration for the step.
     """
+    name: Optional[str] = None
+    description: Optional[str] = None
     type: str
     config: Dict
 
@@ -39,6 +43,10 @@ class Recipe(BaseModel):
     """A complete recipe with multiple steps.
 
     Attributes:
+        name (str): The name of the recipe.
+        description (Optional[str]): A brief description of the recipe.
         steps (List[RecipeStep]): A list containing the steps of the recipe.
     """
+    name: str
+    description: Optional[str] = None
     steps: List[RecipeStep]
