@@ -14,7 +14,7 @@ And will be run from the repository root.
 import os
 import sys
 
-OUTPUT_DIR = "ai_context"
+OUTPUT_DIR = "ai_context/generated"
 
 # We're running from repo root, so that's our current directory
 repo_root = os.getcwd()

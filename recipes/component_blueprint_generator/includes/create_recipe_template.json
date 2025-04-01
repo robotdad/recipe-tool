@@ -2,12 +2,6 @@
   "steps": [
     {
       "type": "read_file",
-      "path": "{{target_project}}/{{component_id}}.py",
-      "artifact": "existing_code",
-      "optional": true
-    },
-    {
-      "type": "read_file",
       "path": "{{project_recipe_path}}/specs/{{component_id}}.md",
       "artifact": "spec"
     },
@@ -19,13 +13,13 @@
     },
     {
       "type": "read_file",
-      "path": "recipes/codebase_generator/includes/IMPLEMENTATION_PHILOSOPHY.md",
+      "path": "ai_context/IMPLEMENTATION_PHILOSOPHY.md",
       "artifact": "implementation_philosophy",
       "optional": true
     },
     {
       "type": "read_file",
-      "path": "recipes/component_blueprint_generator/includes/MODULAR_DESIGN_PHILOSOPHY.md",
+      "path": "ai_context/MODULAR_DESIGN_PHILOSOPHY.md",
       "artifact": "modular_design_philosophy",
       "optional": true
     },
@@ -40,7 +34,6 @@
         "language": "{{language|default:'python'}}",
         "spec": "{{spec}}",
         "usage_doc": "{{usage_doc}}",
-        "existing_code": "{{existing_code}}",
         "additional_content": "<IMPLEMENTATION_PHILOSOPHY>\n{{implementation_philosophy}}\n</IMPLEMENTATION_PHILOSOPHY>\n<MODULAR_DESIGN_PHILOSOPHY>\n{{modular_design_philosophy}}\n</MODULAR_DESIGN_PHILOSOPHY>\n{% if related_docs %}<RELATED_DOCS>\n{{related_docs}}\n</RELATED_DOCS>{% endif %}"
       }
     }

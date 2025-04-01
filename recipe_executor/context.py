@@ -1,13 +1,16 @@
+from copy import deepcopy
 from typing import Any, Dict, Iterator, Optional
 
 
 class Context:
     """
-    The Context component is a shared state container for the Recipe Executor system.
-    It provides a dictionary-like interface for storing and retrieving artifacts during recipe execution.
+    Context is a shared state container for the Recipe Executor system.
+    It provides a dictionary-like interface to store and retrieve artifacts and configuration
+    used by different steps during recipe execution.
 
     Attributes:
-        config (Dict[str, Any]): Configuration values.
+        artifacts (Dict[str, Any]): Stores shared step data.
+        config (Dict[str, Any]): Stores configuration values, separate from artifacts.
     """
 
     def __init__(self, artifacts: Optional[Dict[str, Any]] = None, config: Optional[Dict[str, Any]] = None) -> None:
@@ -18,40 +21,52 @@ class Context:
             artifacts: Initial artifacts to store.
             config: Configuration values.
         """
-        # Copy input dictionaries to avoid external modifications
-        self._artifacts: Dict[str, Any] = artifacts.copy() if artifacts is not None else {}
-        self.config: Dict[str, Any] = config.copy() if config is not None else {}
+        # Use deepcopy to ensure isolation from initial inputs
+        self.artifacts: Dict[str, Any] = deepcopy(artifacts) if artifacts is not None else {}
+        self.config: Dict[str, Any] = deepcopy(config) if config is not None else {}
 
     def __setitem__(self, key: str, value: Any) -> None:
         """Dictionary-like setting of artifacts."""
-        self._artifacts[key] = value
+        self.artifacts[key] = value
 
     def __getitem__(self, key: str) -> Any:
-        """Dictionary-like access to artifacts. Raises KeyError if the key does not exist."""
-        if key not in self._artifacts:
-            raise KeyError(f"Artifact with key '{key}' does not exist.")
-        return self._artifacts[key]
+        """Dictionary-like access to artifacts. Raises KeyError if key is missing."""
+        if key not in self.artifacts:
+            raise KeyError(f"Artifact with key '{key}' not found in context.")
+        return self.artifacts[key]
 
     def get(self, key: str, default: Optional[Any] = None) -> Any:
-        """Get an artifact with an optional default value."""
-        return self._artifacts.get(key, default)
+        """Retrieve an artifact with an optional default value.
+
+        Args:
+            key: The key of the artifact.
+            default: Default value if key is not found.
+
+        Returns:
+            The value associated with key or default if key does not exist.
+        """
+        return self.artifacts.get(key, default)
 
     def __contains__(self, key: str) -> bool:
-        """Check if a key exists in artifacts."""
-        return key in self._artifacts
+        """Check if a key exists in the artifacts."""
+        return key in self.artifacts
 
     def __iter__(self) -> Iterator[str]:
-        """Iterate over artifact keys."""
-        return iter(self._artifacts)
+        """Iterate over the artifact keys."""
+        return iter(self.artifacts)
 
     def keys(self) -> Iterator[str]:
         """Return an iterator over the keys of artifacts."""
-        return iter(self._artifacts.keys())
+        return iter(self.artifacts.keys())
 
     def __len__(self) -> int:
         """Return the number of artifacts stored in the context."""
-        return len(self._artifacts)
+        return len(self.artifacts)
 
     def as_dict(self) -> Dict[str, Any]:
-        """Return a copy of the artifacts as a dictionary to ensure immutability."""
-        return self._artifacts.copy()
+        """Return a deep copy of the artifacts to ensure immutability from outside modifications."""
+        return deepcopy(self.artifacts)
+
+    def clone(self) -> 'Context':
+        """Return a deep copy of the current context including both artifacts and config."""
+        return Context(artifacts=deepcopy(self.artifacts), config=deepcopy(self.config))

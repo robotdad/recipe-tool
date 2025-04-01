@@ -11,12 +11,14 @@ OPENAI_API_KEY=
 
 # Azure OpenAI
 #AZURE_OPENAI_ENDPOINT=
+AZURE_OPENAI_API_VERSION=2025-03-01-preview
+AZURE_USE_MANAGED_IDENTITY=false
 #AZURE_OPENAI_API_KEY=
-#AZURE_USE_MANAGED_IDENTITY=false
 
 #(Optional) The client ID of the specific managed identity to use.
 #  If not provided, DefaultAzureCredential will be used.
 #AZURE_MANAGED_IDENTITY_CLIENT_ID=
+
 
 === File: README.md ===
 # Recipe Executor
@@ -127,17 +129,6 @@ python recipe_executor/main.py recipes/example_complex/complex_recipe.md
 
 This demonstrates multiple specifications and sub-recipes. See [Complex Example README](/recipes/example_complex/README.md) for details.
 
-### Creating Your Own Project
-
-For real projects, use the blueprint generator to create a complete component structure:
-
-```bash
-python recipe_executor/main.py recipes/component_blueprint_generator/build_blueprint.json \
-  --context candidate_spec_path=your_spec.md \
-  --context component_id=your_component \
-  --context target_project=your_project
-```
-
 ### Running Any Recipe
 
 Execute a recipe using the command line interface:
@@ -215,16 +206,19 @@ packages = ["recipe_executor"]
 
 
 === File: recipe_executor/context.py ===
+from copy import deepcopy
 from typing import Any, Dict, Iterator, Optional
 
 
 class Context:
     """
-    The Context component is a shared state container for the Recipe Executor system.
-    It provides a dictionary-like interface for storing and retrieving artifacts during recipe execution.
+    Context is a shared state container for the Recipe Executor system.
+    It provides a dictionary-like interface to store and retrieve artifacts and configuration
+    used by different steps during recipe execution.
 
     Attributes:
-        config (Dict[str, Any]): Configuration values.
+        artifacts (Dict[str, Any]): Stores shared step data.
+        config (Dict[str, Any]): Stores configuration values, separate from artifacts.
     """
 
     def __init__(self, artifacts: Optional[Dict[str, Any]] = None, config: Optional[Dict[str, Any]] = None) -> None:
@@ -235,43 +229,55 @@ class Context:
             artifacts: Initial artifacts to store.
             config: Configuration values.
         """
-        # Copy input dictionaries to avoid external modifications
-        self._artifacts: Dict[str, Any] = artifacts.copy() if artifacts is not None else {}
-        self.config: Dict[str, Any] = config.copy() if config is not None else {}
+        # Use deepcopy to ensure isolation from initial inputs
+        self.artifacts: Dict[str, Any] = deepcopy(artifacts) if artifacts is not None else {}
+        self.config: Dict[str, Any] = deepcopy(config) if config is not None else {}
 
     def __setitem__(self, key: str, value: Any) -> None:
         """Dictionary-like setting of artifacts."""
-        self._artifacts[key] = value
+        self.artifacts[key] = value
 
     def __getitem__(self, key: str) -> Any:
-        """Dictionary-like access to artifacts. Raises KeyError if the key does not exist."""
-        if key not in self._artifacts:
-            raise KeyError(f"Artifact with key '{key}' does not exist.")
-        return self._artifacts[key]
+        """Dictionary-like access to artifacts. Raises KeyError if key is missing."""
+        if key not in self.artifacts:
+            raise KeyError(f"Artifact with key '{key}' not found in context.")
+        return self.artifacts[key]
 
     def get(self, key: str, default: Optional[Any] = None) -> Any:
-        """Get an artifact with an optional default value."""
-        return self._artifacts.get(key, default)
+        """Retrieve an artifact with an optional default value.
+
+        Args:
+            key: The key of the artifact.
+            default: Default value if key is not found.
+
+        Returns:
+            The value associated with key or default if key does not exist.
+        """
+        return self.artifacts.get(key, default)
 
     def __contains__(self, key: str) -> bool:
-        """Check if a key exists in artifacts."""
-        return key in self._artifacts
+        """Check if a key exists in the artifacts."""
+        return key in self.artifacts
 
     def __iter__(self) -> Iterator[str]:
-        """Iterate over artifact keys."""
-        return iter(self._artifacts)
+        """Iterate over the artifact keys."""
+        return iter(self.artifacts)
 
     def keys(self) -> Iterator[str]:
         """Return an iterator over the keys of artifacts."""
-        return iter(self._artifacts.keys())
+        return iter(self.artifacts.keys())
 
     def __len__(self) -> int:
         """Return the number of artifacts stored in the context."""
-        return len(self._artifacts)
+        return len(self.artifacts)
 
     def as_dict(self) -> Dict[str, Any]:
-        """Return a copy of the artifacts as a dictionary to ensure immutability."""
-        return self._artifacts.copy()
+        """Return a deep copy of the artifacts to ensure immutability from outside modifications."""
+        return deepcopy(self.artifacts)
+
+    def clone(self) -> 'Context':
+        """Return a deep copy of the current context including both artifacts and config."""
+        return Context(artifacts=deepcopy(self.artifacts), config=deepcopy(self.config))
 
 
 === File: recipe_executor/executor.py ===
@@ -450,158 +456,106 @@ class RecipeExecutor:
 
 === File: recipe_executor/llm.py ===
 import logging
-import os
 import time
-from typing import Optional
+from typing import Optional, Any
 
-# Import Azure identity and AsyncAzureOpenAI if available
-try:
-    from azure.identity import DefaultAzureCredential, ManagedIdentityCredential
-except ImportError:
-    DefaultAzureCredential = None
-    ManagedIdentityCredential = None
-
-try:
-    from openai import AsyncAzureOpenAI
-except ImportError:
-    AsyncAzureOpenAI = None
-
-# Import Agent from Pydantic AI and the FileGenerationResult for structured output
-from pydantic_ai import Agent
-from recipe_executor.models import FileGenerationResult
+# The llm component provides a unified interface to interact with different LLM providers.
+# Supported providers: openai, anthropic, gemini.
 
 
-def get_model(model_id: str):
+def get_model(model_id: str) -> Any:
     """
-    Initialize and return an LLM model based on a colon-separated identifier.
-    Supported formats:
-      - openai:model_name
-      - anthropic:model_name
-      - gemini:model_name
-      - azure:model_name or azure:model_name:deployment_name
+    Initialize an LLM model based on the standardized model_id "provider:model_name".
+
+    Args:
+        model_id (str): The model identifier, e.g., "openai:gpt-4o", "anthropic:claude-3-5-sonnet-latest", or "gemini:gemini-pro".
+
+    Returns:
+        A model instance appropriate for the provider.
+
+    Raises:
+        ValueError: If the model_id format is invalid or the provider is unsupported.
     """
     parts = model_id.split(":")
-    if len(parts) < 2:
-        raise ValueError("Invalid model identifier. Expected format 'provider:model_name[:deployment_name]'")
-    
-    provider = parts[0].lower()
+    if len(parts) != 2:
+        raise ValueError("Invalid model_id format. Expected format 'provider:model_name'.")
+
+    provider, model_name = parts
+    provider = provider.lower()
 
     if provider == "openai":
-        if len(parts) != 2:
-            raise ValueError("Invalid format for OpenAI model. Expected 'openai:model_name'")
-        from pydantic_ai.models.openai import OpenAIModel
-        return OpenAIModel(parts[1])
-
+        try:
+            from pydantic_ai.models.openai import OpenAIModel
+        except ImportError as e:
+            raise ImportError("OpenAI model support is not available. Ensure the required packages are installed.") from e
+        return OpenAIModel(model_name)
     elif provider == "anthropic":
-        if len(parts) != 2:
-            raise ValueError("Invalid format for Anthropic model. Expected 'anthropic:model_name'")
-        from pydantic_ai.models.anthropic import AnthropicModel
-        return AnthropicModel(parts[1])
-
+        try:
+            from pydantic_ai.models.anthropic import AnthropicModel
+        except ImportError as e:
+            raise ImportError("Anthropic model support is not available. Ensure the required packages are installed.") from e
+        return AnthropicModel(model_name)
     elif provider == "gemini":
-        if len(parts) != 2:
-            raise ValueError("Invalid format for Gemini model. Expected 'gemini:model_name'")
-        from pydantic_ai.models.gemini import GeminiModel
-        return GeminiModel(parts[1])
-
-    elif provider == "azure":
-        # Azure supports either azure:model_name or azure:model_name:deployment_name, but deployment is handled via model parameter
-        from pydantic_ai.models.openai import OpenAIModel
-        from pydantic_ai.providers.azure import AzureProvider
-
-        azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
-        api_version = os.getenv("OPENAI_API_VERSION")
-        if not azure_endpoint or not api_version:
-            raise ValueError("Missing required environment variables: AZURE_OPENAI_ENDPOINT and OPENAI_API_VERSION")
-
-        if len(parts) == 2:
-            model_name = parts[1]
-        elif len(parts) == 3:
-            model_name = parts[1]  # deployment name provided as parts[2] is ignored because AzureProvider does not accept deployment_name
-        else:
-            raise ValueError("Invalid format for Azure model. Expected 'azure:model_name' or 'azure:model_name:deployment_name'")
-
-        use_managed_identity = os.getenv("AZURE_USE_MANAGED_IDENTITY", "false").lower() == "true"
-        if use_managed_identity:
-            if DefaultAzureCredential is None:
-                raise ImportError("azure-identity package is required for managed identity authentication")
-            client_id = os.getenv("AZURE_MANAGED_IDENTITY_CLIENT_ID")
-            if client_id:
-                credential = ManagedIdentityCredential(client_id=client_id)
-            else:
-                credential = DefaultAzureCredential()
-
-            if AsyncAzureOpenAI is None:
-                raise ImportError("openai package with AsyncAzureOpenAI is required for Azure managed identity support")
-
-            # Mandatory token scope for managed identity
-            def get_bearer_token_provider():
-                scope = "https://cognitiveservices.azure.com/.default"
-                token = credential.get_token(scope)
-                return token.token
-
-            custom_client = AsyncAzureOpenAI(
-                azure_endpoint=azure_endpoint,
-                api_version=api_version,
-                azure_ad_token_provider=get_bearer_token_provider
-            )
-            provider_instance = AzureProvider(openai_client=custom_client)
-        else:
-            api_key = os.getenv("AZURE_OPENAI_API_KEY")
-            if not api_key:
-                raise ValueError("Missing environment variable AZURE_OPENAI_API_KEY for Azure authentication")
-            provider_instance = AzureProvider(
-                azure_endpoint=azure_endpoint,
-                api_version=api_version,
-                api_key=api_key
-            )
-        
-        return OpenAIModel(model_name, provider=provider_instance)
-
+        try:
+            from pydantic_ai.models.gemini import GeminiModel
+        except ImportError as e:
+            raise ImportError("Gemini model support is not available. Ensure the required packages are installed.") from e
+        return GeminiModel(model_name)
     else:
         raise ValueError(f"Unsupported provider: {provider}")
 
 
-def get_agent(model_id: Optional[str] = None) -> Agent[None, FileGenerationResult]:
+def get_agent(model_id: Optional[str] = None) -> Any:
     """
-    Initializes and returns an Agent configured with a standardized system prompt for file generation.
-    Defaults to 'openai:gpt-4o' if no model_id is provided.
+    Initialize an LLM agent with the specified model.
+
+    If model_id is not provided, defaults to 'openai:gpt-4o'.
+
+    Returns:
+        Agent: A configured Agent instance ready to process LLM requests.
     """
     if model_id is None:
         model_id = "openai:gpt-4o"
     model = get_model(model_id)
-    system_prompt = (
-        "Generate a JSON object with exactly two keys: 'files' and 'commentary'. "
-        "The 'files' key should be an array of objects, each with 'path' and 'content' properties. "
-        "The 'commentary' field is optional. "
-        "Return your output strictly in JSON format."
-    )
 
-    return Agent(
-        model=model,
-        result_type=FileGenerationResult,
-        system_prompt=system_prompt,
-        retries=3
-    )
+    try:
+        from recipe_executor.models import FileGenerationResult
+    except ImportError as e:
+        raise ImportError("FileGenerationResult model not found. Ensure that recipe_executor/models.py is available.") from e
+
+    try:
+        from pydantic_ai import Agent
+    except ImportError as e:
+        raise ImportError("PydanticAI Agent not available. Please install pydantic-ai.") from e
+
+    # Create the Agent with the given model and expected result type.
+    agent = Agent(model=model, result_type=FileGenerationResult)
+    return agent
 
 
-def call_llm(prompt: str, model: Optional[str] = None) -> FileGenerationResult:
+def call_llm(prompt: str, model: Optional[str] = None) -> Any:
     """
-    Calls the LLM with the given prompt and optional model identifier, logging the execution time,
-    and returns a FileGenerationResult. Basic error handling and retry logic is implemented.
+    Call the LLM with the given prompt and return a structured FileGenerationResult.
+
+    Args:
+        prompt (str): The prompt to send to the LLM.
+        model (Optional[str]): The model identifier in the format 'provider:model_name'. If None, defaults to 'openai:gpt-4o'.
+
+    Returns:
+        FileGenerationResult: Structured result containing generated files and optional commentary.
+
+    Raises:
+        Exception: If the LLM call fails or result validation fails.
     """
-    logger = logging.getLogger("RecipeExecutor.LLM")
-    logger.debug(f"LLM call started with prompt: {prompt}")
+    agent = get_agent(model)
     start_time = time.time()
     try:
-        agent_instance = get_agent(model)
-        result = agent_instance.run_sync(prompt)
+        result = agent.run_sync(prompt)
     except Exception as e:
-        logger.error("Error during LLM call", exc_info=True)
-        raise e
+        logging.exception("LLM call failed")
+        raise
     elapsed = time.time() - start_time
-    logger.debug(f"LLM call finished in {elapsed:.2f} seconds")
-    logger.debug(f"LLM response: {result.data}")
+    logging.debug(f"LLM call took {elapsed:.2f} seconds.")
     return result.data
 
 
@@ -762,10 +716,8 @@ if __name__ == "__main__":
 
 
 === File: recipe_executor/models.py ===
-from typing import Dict, List, Optional
-
-from pydantic import BaseModel, Field, validator
-from pydantic_settings import BaseSettings
+from typing import List, Optional, Dict
+from pydantic import BaseModel
 
 
 class FileSpec(BaseModel):
@@ -848,43 +800,6 @@ class Recipe(BaseModel):
         steps (List[RecipeStep]): A list containing the steps of the recipe.
     """
     steps: List[RecipeStep]
-
-
-class AzureOpenAISettings(BaseSettings):
-    """
-    Configuration model for Azure OpenAI services.
-
-    This model supports configuring Azure OpenAI using either an API key or managed identity.
-
-    Attributes:
-        endpoint (str): The Azure OpenAI endpoint URL, mapped from environment variable AZURE_OPENAI_ENDPOINT.
-        openai_api_version (str): API version to use, mapped from environment variable OPENAI_API_VERSION.
-        api_key (Optional[str]): API key for authentication when not using managed identity, mapped from AZURE_OPENAI_API_KEY.
-        use_managed_identity (bool): Flag for managed identity auth, defaults to False, mapped from AZURE_USE_MANAGED_IDENTITY.
-        managed_identity_client_id (Optional[str]): Specific managed identity client ID, mapped from AZURE_MANAGED_IDENTITY_CLIENT_ID.
-    """
-    endpoint: str = Field(..., env="AZURE_OPENAI_ENDPOINT")
-    openai_api_version: str = Field(..., env="OPENAI_API_VERSION")
-    api_key: Optional[str] = Field(None, env="AZURE_OPENAI_API_KEY")
-    use_managed_identity: bool = Field(False, env="AZURE_USE_MANAGED_IDENTITY")
-    managed_identity_client_id: Optional[str] = Field(None, env="AZURE_MANAGED_IDENTITY_CLIENT_ID")
-
-    @validator('api_key', always=True)
-    def validate_authentication(cls, v, values):
-        """
-        Validates that either an API key is provided or managed identity is enabled.
-
-        Raises:
-            ValueError: If API key is not provided when managed identity is not used.
-        """
-        use_managed_identity = values.get('use_managed_identity', False)
-        if not use_managed_identity and not v:
-            raise ValueError("Authentication configuration error: API key must be provided when managed identity is not used.")
-        return v
-
-    class Config:
-        env_file = ".env"
-        env_file_encoding = 'utf-8'
 
 
 === File: recipe_executor/steps/__init__.py ===

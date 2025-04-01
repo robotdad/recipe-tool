@@ -9,6 +9,7 @@ The Context component is the shared state container for the Recipe Executor syst
 - Store and provide access to artifacts (data shared between steps)
 - Maintain separate configuration values
 - Support dictionary-like operations (get, set, iterate)
+- Provide a clone() method that returns a deep copy of the context's current artifacts and configuration
 - Ensure data isolation between different executions
 - Follow minimalist design principles
 
@@ -16,6 +17,7 @@ The Context component is the shared state container for the Recipe Executor syst
 
 - Use simple dictionary-based storage internally
 - Copy input dictionaries to prevent external modification
+- Implement a clone() method that returns a deep copy of the context's current state
 - Provide clear error messages for missing keys
 - Return copies of internal data to prevent external modification
 - Maintain minimal state with clear separation of concerns
@@ -32,3 +34,4 @@ The Context component has no external dependencies on other Recipe Executor comp
 ## Future Considerations
 
 - Namespacing of artifacts
+- Support for merging multiple contexts

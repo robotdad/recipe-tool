@@ -48,10 +48,6 @@ context = Context(
 ```python
 def __setitem__(self, key: str, value: Any) -> None:
     """Dictionary-like setting of artifacts."""
-    self._artifacts[key] = value
-
-# Usage example
-context["key"] = value
 ```
 
 ### Retrieving Values
@@ -59,13 +55,9 @@ context["key"] = value
 ```python
 def __getitem__(self, key: str) -> Any:
     """Dictionary-like access to artifacts."""
-    if key not in self._artifacts:
-        raise KeyError(f"Artifact with key '{key}' does not exist.")
-    return self._artifacts[key]
 
 def get(self, key: str, default: Optional[Any] = None) -> Any:
     """Get an artifact with an optional default value."""
-    return self._artifacts.get(key, default)
 
 # Usage examples
 value = context["key"]  # Raises KeyError if not found
@@ -77,7 +69,6 @@ value = context.get("key", default=None)  # Returns default if not found
 ```python
 def __contains__(self, key: str) -> bool:
     """Check if a key exists in artifacts."""
-    return key in self._artifacts
 
 # Usage example
 if "key" in context:
@@ -90,15 +81,12 @@ if "key" in context:
 ```python
 def __iter__(self) -> Iterator[str]:
     """Iterate over artifact keys."""
-    return iter(self._artifacts)
 
 def keys(self) -> Iterator[str]:
     """Return an iterator over the keys of artifacts."""
-    return iter(self._artifacts.keys())
 
 def __len__(self) -> int:
     """Return the number of artifacts."""
-    return len(self._artifacts)
 
 # Usage examples
 for key in context:
@@ -114,7 +102,6 @@ num_artifacts = len(context)
 ```python
 def as_dict(self) -> Dict[str, Any]:
     """Return a copy of the artifacts as a dictionary to ensure immutability."""
-    return self._artifacts.copy()
 
 # Usage example
 all_artifacts = context.as_dict()
@@ -128,6 +115,16 @@ all_artifacts = context.as_dict()
 
 # Usage example
 output_dir = context.config.get("output_dir", "./default")
+```
+
+### Cloning Context
+
+```python
+def clone(self) -> Context:
+    """Return a deep copy of the current context."""
+
+# Usage example
+cloned_context = context.clone()
 ```
 
 ## Integration with Steps

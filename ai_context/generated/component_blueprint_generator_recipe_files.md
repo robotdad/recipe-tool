@@ -120,17 +120,17 @@ python recipe_executor/main.py recipes/component_blueprint_generator/generate_cl
     },
     {
       "type": "read_file",
-      "path": "recipes/component_blueprint_generator/includes/SPEC_DOC_GUIDE.md",
+      "path": "ai_context/SPEC_DOC_GUIDE.md",
       "artifact": "spec_doc_guide"
     },
     {
       "type": "read_file",
-      "path": "recipes/codebase_generator/includes/IMPLEMENTATION_PHILOSOPHY.md",
+      "path": "ai_context/IMPLEMENTATION_PHILOSOPHY.md",
       "artifact": "implementation_philosophy"
     },
     {
       "type": "read_file",
-      "path": "recipes/component_blueprint_generator/includes/MODULAR_DESIGN_PHILOSOPHY.md",
+      "path": "ai_context/MODULAR_DESIGN_PHILOSOPHY.md",
       "artifact": "modular_design_philosophy"
     },
     {
@@ -165,17 +165,17 @@ python recipe_executor/main.py recipes/component_blueprint_generator/generate_cl
   "steps": [
     {
       "type": "read_file",
-      "path": "recipes/component_blueprint_generator/includes/SPEC_DOC_GUIDE.md",
+      "path": "ai_context/SPEC_DOC_GUIDE.md",
       "artifact": "spec_doc_guide"
     },
     {
       "type": "read_file",
-      "path": "recipes/codebase_generator/includes/IMPLEMENTATION_PHILOSOPHY.md",
+      "path": "ai_context/IMPLEMENTATION_PHILOSOPHY.md",
       "artifact": "implementation_philosophy"
     },
     {
       "type": "read_file",
-      "path": "recipes/component_blueprint_generator/includes/MODULAR_DESIGN_PHILOSOPHY.md",
+      "path": "ai_context/MODULAR_DESIGN_PHILOSOPHY.md",
       "artifact": "modular_design_philosophy"
     },
     {
@@ -208,17 +208,17 @@ python recipe_executor/main.py recipes/component_blueprint_generator/generate_cl
     },
     {
       "type": "read_file",
-      "path": "recipes/component_blueprint_generator/includes/SPEC_DOC_GUIDE.md",
+      "path": "ai_context/SPEC_DOC_GUIDE.md",
       "artifact": "spec_doc_guide"
     },
     {
       "type": "read_file",
-      "path": "recipes/codebase_generator/includes/IMPLEMENTATION_PHILOSOPHY.md",
+      "path": "ai_context/IMPLEMENTATION_PHILOSOPHY.md",
       "artifact": "implementation_philosophy"
     },
     {
       "type": "read_file",
-      "path": "recipes/component_blueprint_generator/includes/MODULAR_DESIGN_PHILOSOPHY.md",
+      "path": "ai_context/MODULAR_DESIGN_PHILOSOPHY.md",
       "artifact": "modular_design_philosophy"
     },
     {
@@ -426,17 +426,17 @@ def admin_route():
     },
     {
       "type": "read_file",
-      "path": "recipes/component_blueprint_generator/includes/SPEC_DOC_GUIDE.md",
+      "path": "ai_context/SPEC_DOC_GUIDE.md",
       "artifact": "spec_doc_guide"
     },
     {
       "type": "read_file",
-      "path": "recipes/codebase_generator/includes/IMPLEMENTATION_PHILOSOPHY.md",
+      "path": "ai_context/IMPLEMENTATION_PHILOSOPHY.md",
       "artifact": "implementation_philosophy"
     },
     {
       "type": "read_file",
-      "path": "recipes/component_blueprint_generator/includes/MODULAR_DESIGN_PHILOSOPHY.md",
+      "path": "ai_context/MODULAR_DESIGN_PHILOSOPHY.md",
       "artifact": "modular_design_philosophy"
     },
     {
@@ -460,477 +460,7 @@ def admin_route():
 }
 
 
-=== File: recipes/component_blueprint_generator/includes/MODULAR_DESIGN_PHILOSOPHY.md ===
-# Building Software with AI: A Modular Block Approach
-
-_By Brian Krabach_\
-_3/28/2025_
-
-Imagine you're about to build a complex construction brick spaceship. You dump out thousands of tiny bricks and open the blueprint. Step by step, the blueprint tells you which pieces to use and how to connect them. You don't need to worry about the details of each brick or whether it will fit --- the instructions guarantee that every piece snaps together correctly. **Now imagine those interlocking bricks could assemble themselves** whenever you gave them the right instructions. This is the essence of our new AI-driven software development approach: **we provide the blueprint, and AI builds the product, one modular piece at a time.**
-
-Like a brick model, our software is built from small, clear modules. Each module is a self-contained "brick" of functionality with defined connectors (interfaces) to the rest of the system. Because these connection points are standard and stable, we can generate or regenerate any single module independently without breaking the whole. Need to improve the user login component? We can have the AI rebuild just that piece according to its spec, then snap it back into place --- all while the rest of the system continues to work seamlessly. And if we ever need to make a broad, cross-cutting change that touches many pieces, we simply hand the AI a bigger blueprint (for a larger assembly or even the entire codebase) and let it rebuild that chunk in one go. **Crucially, the external system contracts --- the equivalent of brick studs and sockets where pieces connect --- remain unchanged.** This means even a regenerated system still fits perfectly into its environment, although inside it might be built differently, with fresh optimizations and improvements.
-
-When using LLM-powered tools today, even what looks like a tiny edit is actually the LLM generating new code based on the specifications we provide. We embrace this reality and don't treat code as something to tweak line-by-line; **we treat it as something to describe and then let the AI generate to create or assemble.** By keeping each task *small and self-contained* --- akin to one page of a blueprint --- we ensure the AI has all the context it needs to generate that piece correctly from start to finish. This makes the code generation more predictable and reliable. The system essentially always prefers regeneration of a module (or a set of modules) within a bounded context, rather than more challenging edits at the code level. The result is code that's consistently in sync with its specification, built in a clean sweep every time.
-
-# The Human Role: From Code Mechanics to Architects
-
-In this approach, humans step back from being code mechanics and instead take on the role of architects and quality inspectors. Much like a master builder, a human defines the vision and specifications up front --- the blueprint for what needs to be built. But once the spec (the blueprint) is handed off, the human doesn't hover over every brick placement. In fact, they don't need to read the code (just as you don't examine each brick's material for flaws). Instead, they focus on whether the assembled product meets the vision. They work at the specification level or higher: designing requirements, clarifying the intended behavior, and then evaluating the finished module or system by testing its behavior in action. If the login module is rebuilt, for example, the human reviews it by seeing if users can log in smoothly and securely --- not by poring over the source code. This elevates human involvement to where it's most valuable, letting AI handle the heavy lifting of code construction and assembly.
-
-# Building in Parallel
-
-The biggest leap is that we don't have to build just one solution at a time. Because our AI "builders" work so quickly and handle modular instructions so well, we can spawn multiple versions of the software in parallel --- like having several brick sets assembled simultaneously. Imagine generating and testing multiple variants of a feature at once --- the AI could try several different recommendation algorithms for a product in parallel to see which performs best. It could even build the same application for multiple platforms simultaneously (web, mobile, etc.) by following platform-specific instructions. We could have all these versions built and tested side by side in a fraction of the time it would take a traditional team to do one. Each variant teaches us something: we learn what works best, which design is most efficient, which user experience is superior. Armed with those insights, we can refine our high-level specifications and then regenerate the entire system or any module again for another iteration. This cycle of parallel experimentation and rapid regeneration means we can innovate faster and more fearlessly. It's a development playground on a scale previously unimaginable --- all enabled by trusting our AI co-builders to handle the intricate assembly while we guide the vision.
-
-In short, this brick-inspired, AI-driven approach flips the script of software development. We break the work into well-defined pieces, let AI assemble and reassemble those pieces as needed, and keep humans focused on guiding the vision and validating results. The outcome is a process that's more flexible, faster, and surprisingly liberating: we can reshape our software as easily as snapping together (or rebuilding) a model, and even build multiple versions of it in parallel. For our stakeholders, this means delivering the right solution faster, adapting to change without fear, and continually exploring new ideas --- brick by brick, at a pace and scale that set a new standard for innovation.
-
-
-=== File: recipes/component_blueprint_generator/includes/SPEC_DOC_GUIDE.md ===
-# Comprehensive Guide to Creating Effective Component Specifications and Documentation
-
-## Introduction
-
-This guide outlines how to create high-quality component specifications and documentation that enable AI-assisted code generation in a modular software architecture. When specifications and documentation work together effectively, they form a complete blueprint that allows for predictable, reliable code generation with minimal human intervention.
-
-## Component Specification Best Practices
-
-### 1. Structure and Organization
-
-A well-structured component specification should include:
-
-- **Component Title**: Clear, concise name that reflects the component's purpose
-- **Purpose Statement**: 2-3 sentences describing what the component does and why it exists
-- **Core Requirements**: Bulleted list of essential functionality
-- **Implementation Considerations**: Guidance on how to approach the implementation
-- **Component Dependencies**: Other components this one interacts with
-- **Error Handling**: Expected approach to failures and edge cases
-- **Future Considerations**: Optional section for planned extensions
-
-### 2. Purpose Statement Clarity
-
-The purpose statement should:
-- Define the component's role in the larger system
-- Establish boundaries of responsibility
-- Avoid implementation details
-- Be understandable without deep technical knowledge
-
-Example:
-```
-"The Context component is the shared state container for the Recipe Executor system. It provides a simple dictionary-like interface that steps use to store and retrieve data during recipe execution."
-```
-
-### 3. Requirement Specificity
-
-Requirements should be:
-- Actionable and verifiable
-- Focused on what, not how
-- Free of ambiguity
-- Collectively exhaustive (cover all needed functionality)
-- Individually clear (one requirement per bullet)
-
-Example:
-```
-- Store and provide access to artifacts (data shared between steps)
-- Maintain separate configuration values
-- Support dictionary-like operations (get, set, iterate)
-- Ensure data isolation between different executions
-```
-
-### 4. Implementation Guidance
-
-Provide direction without over-constraining by:
-- Suggesting approaches without dictating exact implementations
-- Highlighting technical constraints or performance considerations
-- Addressing known challenges or trade-offs
-- Ensuring alignment with architectural principles
-
-Example:
-```
-- Use simple dictionary-based storage internally
-- Copy input dictionaries to prevent external modification
-- Provide clear error messages for missing keys
-- Return copies of internal data to prevent external modification
-```
-
-### 5. Dependency Clarity
-
-When specifying dependencies:
-- List all components this one interacts with
-- Explain the nature of each dependency relationship
-- Note whether dependencies are required or optional
-- Include external libraries or services if relevant
-
-Example:
-```
-The Executor component depends on:
-- **Context** - Uses Context for data sharing between steps
-- **Step Registry** - Uses STEP_REGISTRY to look up step classes by type
-```
-
-### 6. Error Handling Specificity
-
-For error handling sections:
-- Identify expected error conditions
-- Specify how each error should be handled
-- Define error communication mechanisms
-- Clarify recovery expectations
-
-Example:
-```
-- Validate recipe format before execution begins
-- Check that step types exist in the registry before instantiation
-- Verify each step is properly structured before execution
-- Provide specific error messages identifying problematic steps
-```
-
-## Component Documentation Best Practices
-
-### 1. Structure and Organization
-
-Well-structured documentation includes:
-- **Importing Section**: How to import the component
-- **Basic Usage**: Simple examples showing common use cases
-- **API Reference**: Detailed description of each method/function
-- **Example Patterns**: More complex usage examples
-- **Integration Guidelines**: How to use with other components
-- **Important Notes**: Critical things developers should know
-
-### 2. Code Examples
-
-Effective code examples should:
-- Start with the simplest possible use case
-- Progress to more complex scenarios
-- Include comments explaining key parts
-- Show both initialization and usage
-- Demonstrate error handling where appropriate
-- Be complete enough to run if copied
-
-Example:
-```python
-# Create context and executor
-context = Context()
-executor = RecipeExecutor()
-
-# Execute a recipe from a file
-executor.execute("path/to/recipe.json", context)
-
-# Or from a JSON string
-json_string = '{"steps": [{"type": "read_file", "path": "example.txt", "artifact": "content"}]}'
-executor.execute(json_string, context)
-```
-
-### 3. Method Documentation
-
-Document each method with:
-- Method signature with type hints
-- Purpose description
-- Parameter explanations
-- Return value description
-- Possible exceptions/errors
-- Usage examples
-
-Example:
-```
-def render_template(text: str, context: Context) -> str:
-    """
-    Render the given text as a Liquid template using the provided context.
-    All values in the context are converted to strings before rendering.
-
-    Args:
-        text (str): The template text to render.
-        context (Context): The context for rendering the template.
-
-    Returns:
-        str: The rendered text.
-
-    Raises:
-        ValueError: If there is an error during template rendering.
-    """
-```
-
-### 4. Integration Examples
-
-Show how components work together:
-- Demonstrate common integration patterns
-- Illustrate correct sequencing of operations
-- Show data flow between components
-- Include common use cases in the larger system
-
-Example:
-```python
-# Initialize components
-context = Context(artifacts={"component_id": "utils"})
-logger = init_logger()
-executor = RecipeExecutor()
-
-# Execute recipe with context and logger
-executor.execute("recipes/generate_component.json", context, logger)
-
-# Access results from context
-result = context["generation_result"]
-```
-
-### 5. Important Notes & Warnings
-
-Highlight critical information:
-- Common pitfalls or misunderstandings
-- Performance considerations
-- Thread safety concerns
-- Order-dependent operations
-- Breaking changes from previous versions
-
-Example:
-```
-1. The context is mutable and shared between steps
-2. Values can be of any type
-3. Configuration is read-only in typical usage (but not enforced)
-4. Step authors should document keys they read/write
-5. Context provides no thread safety - it's designed for sequential execution
-```
-
-## The Component Specification and Documentation Relationship
-
-### 1. Complementary Focus
-
-- **Specifications**: Focus on requirements, constraints, and architectural fit
-- **Documentation**: Focus on usage, examples, and developer experience
-
-### 2. Consistent Terminology
-
-- Use identical terms for core concepts across specs and docs
-- Define terms clearly in both documents
-- Maintain consistent naming conventions for methods, parameters, and classes
-
-### 3. Functional Coverage Alignment
-
-- Every requirement in the spec should be addressed in the documentation
-- Documentation shouldn't introduce functionality not mentioned in specs
-- Both should reflect the same component boundaries and responsibilities
-
-## Optimizing for AI Code Generation
-
-### 1. Explicit Boundaries
-
-- Clearly define where one component ends and another begins
-- Specify exact interfaces and contracts
-- Make inputs and outputs unambiguous
-- Define error states and handling explicitly
-
-### 2. Context Sufficiency
-
-- Provide enough information for an isolated implementation
-- Include cross-references to related components when needed
-- Supply concrete examples that illustrate expected behavior
-- Clarify architectural principles that should guide implementation
-
-### 3. Implementation Independence
-
-- Focus on what the component does, not exactly how it does it
-- Allow for creative implementations within constraints
-- Specify constraints clearly but don't over-constrain
-- Separate required behavior from implementation suggestions
-
-### 4. Testability Focus
-
-- Include clear success criteria
-- Define expected behaviors for edge cases
-- Specify performance expectations where relevant
-- Provide examples of valid and invalid inputs/outputs
-
-## Modular Building-Block Approach Considerations
-
-### 1. Interface Stability
-
-- Define stable connecting points between components
-- Clearly mark which interfaces are public vs. internal
-- Version interfaces explicitly when they must change
-- Maintain backward compatibility where possible
-
-### 2. Independent Regeneration Support
-
-- Design components that can be replaced without breaking others
-- Document all cross-component dependencies
-- Ensure all state transitions are explicit
-- Avoid hidden dependencies or assumptions
-
-### 3. Compatibility with Parallel Development
-
-- Design components that can be developed independently
-- Document how variants might differ
-- Specify minimum viable implementations
-- Clarify how different implementations might be evaluated
-
-### 4. Evolution Path Support
-
-- Document anticipated extension points
-- Provide guidelines for future enhancements
-- Separate core functionality from optional features
-- Establish clear versioning expectations
-
-## Common Pitfalls to Avoid
-
-### 1. Specification Pitfalls
-
-- **Ambiguity**: Vague requirements open to multiple interpretations
-- **Implementation dictation**: Focusing too much on how instead of what
-- **Missing constraints**: Failing to specify important limitations
-- **Over-specification**: Constraining implementation unnecessarily
-- **Inconsistent terminology**: Using multiple terms for the same concept
-
-### 2. Documentation Pitfalls
-
-- **Incompleteness**: Failing to document all methods or parameters
-- **Outdated examples**: Examples that no longer work with current code
-- **Missing error handling**: Examples that don't show how to handle failures
-- **Inconsistent style**: Mixing different coding styles in examples
-- **Assuming context**: Not explaining prerequisites or dependencies
-
-## Comparative Examples
-
-### Effective Specification Example
-
-```
-# Context Component Specification
-
-## Purpose
-The Context component is the shared state container for the Recipe Executor system. It provides a simple dictionary-like interface that steps use to store and retrieve data during recipe execution.
-
-## Core Requirements
-- Store and provide access to artifacts (data shared between steps)
-- Maintain separate configuration values
-- Support dictionary-like operations (get, set, iterate)
-- Ensure data isolation between different executions
-- Follow minimalist design principles
-
-## Implementation Considerations
-- Use simple dictionary-based storage internally
-- Copy input dictionaries to prevent external modification
-- Provide clear error messages for missing keys
-- Return copies of internal data to prevent external modification
-- Maintain minimal state with clear separation of concerns
-
-## Component Dependencies
-The Context component has no external dependencies on other Recipe Executor components.
-
-## Error Handling
-- Raise KeyError with descriptive message when accessing non-existent keys
-- No special handling for setting values (all types allowed)
-
-## Future Considerations
-- Namespacing of artifacts
-```
-
-### Ineffective Specification Example
-
-```
-# Context Component Specification
-
-The Context will be a global data store object for passing data between steps. It should be as flexible as possible and handle all data types. We should consider potential threading issues, performance optimizations, and potential for future extensions.
-
-It will probably need to be a dictionary-like object, maybe with some extra features. Make sure to include good error handling.
-
-We might add namespacing later, so keep that in mind.
-```
-
-### Effective Documentation Example
-
-```
-# Context Component Usage
-
-## Importing
-
-```python
-from recipe_executor.context import Context
-```
-
-## Initialization
-
-The Context can be initialized with optional artifacts and configuration:
-
-```python
-# Method signature
-def __init__(self, artifacts: Optional[Dict[str, Any]] = None, config: Optional[Dict[str, Any]] = None) -> None:
-    """
-    Initialize the Context with optional artifacts and configuration.
-
-    Args:
-        artifacts: Initial artifacts to store
-        config: Configuration values
-    """
-```
-
-Examples:
-
-```python
-# Empty context
-context = Context()
-
-# With initial artifacts
-context = Context(artifacts={"spec": "specification content"})
-
-# With configuration
-context = Context(config={"output_dir": "./output"})
-
-# With both
-context = Context(
-    artifacts={"spec": "specification content"},
-    config={"output_dir": "./output"}
-)
-```
-
-## Core API
-
-### Storing Values
-
-```python
-# Usage example
-context["key"] = value
-```
-
-### Retrieving Values
-
-```python
-# Usage examples
-value = context["key"]  # Raises KeyError if not found
-value = context.get("key", default=None)  # Returns default if not found
-```
-
-## Important Notes
-
-1. Context is mutable and shared between steps
-2. Values can be of any type
-3. Configuration is read-only in typical usage (but not enforced)
-4. Step authors should document keys they read/write
-5. Context provides no thread safety - it's designed for sequential execution
-```
-
-### Ineffective Documentation Example
-
-```
-# Context Usage
-
-The Context class is used to store data. You can create it like this:
-
-```python
-c = Context()
-```
-
-You can store and retrieve data:
-
-```python
-c["key"] = value
-x = c["key"]
-```
-
-Make sure to handle errors.
-```
-
-## Conclusion
-
-Creating effective component specifications and documentation is crucial for enabling AI-assisted code generation in a modular architecture. By following these guidelines, you can create clear, comprehensive blueprints that allow for reliable and predictable implementation of each building block in your system.
-
-Remember that the goal is to provide sufficient information for independent implementation while maintaining compatibility with the overall system architecture. When specifications and documentation work together effectively, they create a foundation for an efficient, adaptable development process that leverages AI capabilities while preserving architectural integrity.
-
-
-=== File: recipes/component_blueprint_generator/includes/templates/create_recipe_template.json ===
+=== File: recipes/component_blueprint_generator/includes/create_recipe_template.json ===
 {
   "steps": [
     {
@@ -946,13 +476,13 @@ Remember that the goal is to provide sufficient information for independent impl
     },
     {
       "type": "read_file",
-      "path": "recipes/codebase_generator/includes/IMPLEMENTATION_PHILOSOPHY.md",
+      "path": "ai_context/IMPLEMENTATION_PHILOSOPHY.md",
       "artifact": "implementation_philosophy",
       "optional": true
     },
     {
       "type": "read_file",
-      "path": "recipes/component_blueprint_generator/includes/MODULAR_DESIGN_PHILOSOPHY.md",
+      "path": "ai_context/MODULAR_DESIGN_PHILOSOPHY.md",
       "artifact": "modular_design_philosophy",
       "optional": true
     },
@@ -974,7 +504,7 @@ Remember that the goal is to provide sufficient information for independent impl
 }
 
 
-=== File: recipes/component_blueprint_generator/includes/templates/doc_template.md ===
+=== File: recipes/component_blueprint_generator/includes/doc_template.md ===
 # {{component_name}} Component Usage
 
 ## Importing
@@ -1037,7 +567,7 @@ Example:
 3. ...
 
 
-=== File: recipes/component_blueprint_generator/includes/templates/edit_recipe_template.json ===
+=== File: recipes/component_blueprint_generator/includes/edit_recipe_template.json ===
 {
   "steps": [
     {
@@ -1059,13 +589,13 @@ Example:
     },
     {
       "type": "read_file",
-      "path": "recipes/codebase_generator/includes/IMPLEMENTATION_PHILOSOPHY.md",
+      "path": "ai_context/IMPLEMENTATION_PHILOSOPHY.md",
       "artifact": "implementation_philosophy",
       "optional": true
     },
     {
       "type": "read_file",
-      "path": "recipes/component_blueprint_generator/includes/MODULAR_DESIGN_PHILOSOPHY.md",
+      "path": "ai_context/MODULAR_DESIGN_PHILOSOPHY.md",
       "artifact": "modular_design_philosophy",
       "optional": true
     },
@@ -1088,7 +618,7 @@ Example:
 }
 
 
-=== File: recipes/component_blueprint_generator/includes/templates/spec_template.md ===
+=== File: recipes/component_blueprint_generator/includes/spec_template.md ===
 # {{component_name}} Component Specification
 
 ## Purpose
@@ -1135,7 +665,7 @@ The {{component_name}} component depends on:
   "steps": [
     {
       "type": "read_file",
-      "path": "recipes/component_blueprint_generator/includes/templates/doc_template.md",
+      "path": "recipes/component_blueprint_generator/includes/doc_template.md",
       "artifact": "doc_template"
     },
     {
@@ -1158,12 +688,12 @@ The {{component_name}} component depends on:
   "steps": [
     {
       "type": "read_file",
-      "path": "recipes/component_blueprint_generator/includes/templates/create_recipe_template.json",
+      "path": "recipes/component_blueprint_generator/includes/create_recipe_template.json",
       "artifact": "create_recipe_template"
     },
     {
       "type": "read_file",
-      "path": "recipes/component_blueprint_generator/includes/templates/edit_recipe_template.json",
+      "path": "recipes/component_blueprint_generator/includes/edit_recipe_template.json",
       "artifact": "edit_recipe_template"
     },
     {
@@ -1186,7 +716,7 @@ The {{component_name}} component depends on:
   "steps": [
     {
       "type": "read_file",
-      "path": "recipes/component_blueprint_generator/includes/templates/spec_template.md",
+      "path": "recipes/component_blueprint_generator/includes/spec_template.md",
       "artifact": "spec_template"
     },
     {

@@ -120,10 +120,6 @@ context = Context(
 ```python
 def __setitem__(self, key: str, value: Any) -> None:
     """Dictionary-like setting of artifacts."""
-    self._artifacts[key] = value
-
-# Usage example
-context["key"] = value
 ```
 
 ### Retrieving Values
@@ -131,13 +127,9 @@ context["key"] = value
 ```python
 def __getitem__(self, key: str) -> Any:
     """Dictionary-like access to artifacts."""
-    if key not in self._artifacts:
-        raise KeyError(f"Artifact with key '{key}' does not exist.")
-    return self._artifacts[key]
 
 def get(self, key: str, default: Optional[Any] = None) -> Any:
     """Get an artifact with an optional default value."""
-    return self._artifacts.get(key, default)
 
 # Usage examples
 value = context["key"]  # Raises KeyError if not found
@@ -149,7 +141,6 @@ value = context.get("key", default=None)  # Returns default if not found
 ```python
 def __contains__(self, key: str) -> bool:
     """Check if a key exists in artifacts."""
-    return key in self._artifacts
 
 # Usage example
 if "key" in context:
@@ -162,15 +153,12 @@ if "key" in context:
 ```python
 def __iter__(self) -> Iterator[str]:
     """Iterate over artifact keys."""
-    return iter(self._artifacts)
 
 def keys(self) -> Iterator[str]:
     """Return an iterator over the keys of artifacts."""
-    return iter(self._artifacts.keys())
 
 def __len__(self) -> int:
     """Return the number of artifacts."""
-    return len(self._artifacts)
 
 # Usage examples
 for key in context:
@@ -186,7 +174,6 @@ num_artifacts = len(context)
 ```python
 def as_dict(self) -> Dict[str, Any]:
     """Return a copy of the artifacts as a dictionary to ensure immutability."""
-    return self._artifacts.copy()
 
 # Usage example
 all_artifacts = context.as_dict()
@@ -200,6 +187,16 @@ all_artifacts = context.as_dict()
 
 # Usage example
 output_dir = context.config.get("output_dir", "./default")
+```
+
+### Cloning Context
+
+```python
+def clone(self) -> Context:
+    """Return a deep copy of the current context."""
+
+# Usage example
+cloned_context = context.clone()
 ```
 
 ## Integration with Steps
@@ -2456,7 +2453,7 @@ Templates are typically used in recipe step configurations:
     },
     {
       "type": "read_file",
-      "path": "recipes/recipe_executor/includes/PYDANTIC_AI_DOCS.md",
+      "path": "ai_context/PYDANTIC_AI_DOCS.md",
       "artifact": "pydantic_ai_docs"
     },
     {
@@ -3028,6 +3025,7 @@ The Context component is the shared state container for the Recipe Executor syst
 - Store and provide access to artifacts (data shared between steps)
 - Maintain separate configuration values
 - Support dictionary-like operations (get, set, iterate)
+- Provide a clone() method that returns a deep copy of the context's current artifacts and configuration
 - Ensure data isolation between different executions
 - Follow minimalist design principles
 
@@ -3035,6 +3033,7 @@ The Context component is the shared state container for the Recipe Executor syst
 
 - Use simple dictionary-based storage internally
 - Copy input dictionaries to prevent external modification
+- Implement a clone() method that returns a deep copy of the context's current state
 - Provide clear error messages for missing keys
 - Return copies of internal data to prevent external modification
 - Maintain minimal state with clear separation of concerns
@@ -3051,6 +3050,7 @@ The Context component has no external dependencies on other Recipe Executor comp
 ## Future Considerations
 
 - Namespacing of artifacts
+- Support for merging multiple contexts
 
 
 === File: recipes/recipe_executor/specs/executor.md ===
@@ -3108,14 +3108,12 @@ The LLM component provides a unified interface for interacting with various larg
 
 ## Core Requirements
 
-- Support multiple LLM providers (OpenAI, Anthropic, Gemini, Azure OpenAI)
+- Support multiple LLM providers (OpenAI, Anthropic, Gemini)
 - Provide model initialization based on a standardized model identifier format
 - Encapsulate LLM API details behind a unified interface
 - Use Pydantic AI for consistent handling and validation of LLM responses
 - Implement basic error handling and retry logic
 - Support structured output format for file generation
-- Support Azure OpenAI with both API key and managed identity authentication
-- Handle Azure-specific configuration requirements (endpoint, deployment name)
 
 ## Implementation Considerations
 
@@ -3124,87 +3122,6 @@ The LLM component provides a unified interface for interacting with various larg
 - Minimal wrapper functions with clear responsibilities
 - Consistent error handling with informative messages
 - Logging of request details and timing information
-- Use azure:model_name:deployment_name format for Azure OpenAI models
-- Support authentication through both API key and Azure managed identity
-- Leverage azure-identity library for managed identity token acquisition
-
-## Azure OpenAI Integration
-
-- DO NOT create or import a separate AzureOpenAIModel class - it does not exist in pydantic-ai
-- Use the existing OpenAIModel class with the AzureProvider for Azure OpenAI integration
-- Import azure.identity for managed identity support (DefaultAzureCredential and ManagedIdentityCredential)
-- Use AzureOpenAISettings from models.py to centralize configuration and environment variables
-
-### Authentication Implementation Details
-- Support both authentication methods with proper implementation:
-  - API key authentication: Pass api_key directly to AzureProvider constructor
-  - Managed identity authentication: 
-    - Check for AZURE_USE_MANAGED_IDENTITY environment variable
-    - Create a credential object (DefaultAzureCredential or ManagedIdentityCredential)
-    - Create a custom AsyncAzureOpenAI client with azure_ad_token_provider=credential.get_token
-    - Pass this custom client to AzureProvider via the openai_client parameter
-    - IMPORTANT: Do NOT pass the credential object directly to AzureProvider
-- Do not require API key when managed identity is enabled
-- Use the appropriate credential based on the managed_identity_client_id setting
-- Import openai.AsyncAzureOpenAI directly for creating the custom client
-- Handle token acquisition errors properly for managed identity scenarios
-- Provide clear error messages distinguishing between configuration issues
-
-### Model and Deployment Name Handling
-- Support two formats for Azure model IDs:
-  - "azure:model_name" - Use model_name as both the model and deployment name
-  - "azure:model_name:deployment_name" - Use explicit deployment_name
-- Default behavior for get_agent() should follow the pattern used for OpenAI:
-  - If no model_id is provided, default to "azure:gpt-4o" (similar to OpenAI's default)
-  - This means default model AND deployment name should be "gpt-4o"
-- Allow overriding via model_id parameter, not environment variables
-- This maintains consistency with how OpenAI models are currently handled
-
-### AzureProvider Initialization Requirements
-- CRITICAL: AzureProvider DOES NOT ACCEPT a deployment_name parameter
-- CRITICAL: When using openai_client, do NOT provide azure_endpoint, api_version, or api_key
-- For API key authentication, ONLY use this pattern:
-  ```python
-  # API key auth without custom client
-  provider_instance = AzureProvider(
-      azure_endpoint=azure_endpoint,
-      api_version=api_version,
-      api_key=api_key
-  )
-  ```
-
-### MANDATORY TOKEN SCOPE FOR MANAGED IDENTITY
-
-- For managed identity authentication, this EXACT implementation MUST be used:
-  ```python
-  # Create a token provider function with the REQUIRED scope
-  # DO NOT directly use credential.get_token without a scope - it will fail
-  # THIS IS THE MOST CRITICAL PART OF THE IMPLEMENTATION
-  def get_bearer_token_provider():
-      # This specific scope is required for Azure OpenAI
-      scope = "https://cognitiveservices.azure.com/.default"
-      # CRUCIAL: get_token returns an AccessToken object, but we need just the token string
-      token = credential.get_token(scope)
-      return token.token  # Extract just the string token from the AccessToken object
-      
-  # Pass the token provider FUNCTION, not the direct get_token method
-  custom_client = AsyncAzureOpenAI(
-      azure_endpoint=azure_endpoint,
-      api_version=api_version,
-      azure_ad_token_provider=get_bearer_token_provider  # This is a function reference
-  )
-  
-  # ONLY pass the custom client, NO other parameters
-  provider_instance = AzureProvider(
-      openai_client=custom_client
-  )
-  ```
-
-- NEVER call credential.get_token directly without a scope
-- NEVER pass deployment_name to AzureProvider
-- The token scope "https://cognitiveservices.azure.com/.default" is REQUIRED
-- Create a separate function for the token provider
-- The OpenAI SDK handles deployment names through the model name parameter
 
 ## Component Dependencies
 
@@ -3219,7 +3136,6 @@ The LLM component depends on:
 - Handle network and API errors gracefully
 - Log detailed error information for debugging
 - Include timing information for performance monitoring
-- Add specific error handling for Azure authentication failures, especially for managed identity scenarios
 
 ## Future Considerations
 
@@ -3322,7 +3238,7 @@ The Main component depends on:
 
 ## Purpose
 
-The Models component defines the core data structures used throughout the Recipe Executor system. It provides Pydantic models for validating and structuring data, including recipe steps, file generation results, step configurations, and provider settings.
+The Models component defines the core data structures used throughout the Recipe Executor system. It provides Pydantic models for validating and structuring data, including recipe steps, file generation results, and step configurations.
 
 ## Core Requirements
 
@@ -3331,8 +3247,6 @@ The Models component defines the core data structures used throughout the Recipe
 - Support recipe structure validation
 - Leverage Pydantic for schema validation and documentation
 - Include clear type hints and docstrings
-- Support Azure OpenAI configuration with both API key and managed identity authentication options
-- Provide validation for provider-specific settings
 
 ## Implementation Considerations
 
@@ -3341,36 +3255,6 @@ The Models component defines the core data structures used throughout the Recipe
 - Provide sensible defaults where appropriate
 - Use descriptive field names and docstrings
 - Focus on essential fields without over-engineering
-- Create AzureOpenAISettings class for Azure-specific configuration
-- Use pydantic_settings.BaseSettings for environment variable handling
-- Implement validation to ensure the proper authentication method is configured
-
-## Azure OpenAI Settings
-
-The AzureOpenAISettings class must:
-
-- Implement a Pydantic model derived from BaseSettings
-- Include the following fields:
-  - endpoint: Required string for the Azure OpenAI service endpoint (from AZURE_OPENAI_ENDPOINT)
-  - openai_api_version: Required string for the API version to use (from OPENAI_API_VERSION)
-  - api_key: Optional string for API key authentication (from AZURE_OPENAI_API_KEY)
-  - use_managed_identity: Boolean flag to enable managed identity, defaults to False (from AZURE_USE_MANAGED_IDENTITY)
-  - managed_identity_client_id: Optional string for specific managed identity client ID (from AZURE_MANAGED_IDENTITY_CLIENT_ID)
-
-- Implement validation that ensures:
-  - API key is provided when managed identity is not used
-  - Proper error messages for missing required fields
-  
-- Support reading from:
-  - Environment variables with appropriate naming
-  - Optional .env file configuration using pydantic-settings
-  
-- Authentication requirements:
-  - Standard OpenAI API key (OPENAI_API_KEY) must NOT be required when using Azure OpenAI
-  - Azure API key (AZURE_OPENAI_API_KEY) must NOT be required when managed identity is enabled
-  - Either Azure API key OR managed identity must be configured
-  - Provide clear validation error messages for authentication configuration issues
-  - Ensure the validation logic correctly distinguishes between managed identity and API key auth
 
 ## Component Dependencies
 
@@ -3379,8 +3263,6 @@ The Models component has no external dependencies on other Recipe Executor compo
 ## Future Considerations
 
 - Extended validation for complex fields
-- Support for additional provider-specific settings
-- Dynamic configuration based on environment variables
 
 
 === File: recipes/recipe_executor/specs/steps/base.md ===
