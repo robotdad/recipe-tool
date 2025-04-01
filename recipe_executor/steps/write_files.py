@@ -8,9 +8,9 @@ from recipe_executor.steps.base import BaseStep, StepConfig
 from recipe_executor.utils import render_template
 
 
-class WriteFilesConfig(StepConfig):
+class WriteFilessConfig(StepConfig):
     """
-    Config for WriteFileStep.
+    Config for WriteFilesStep.
 
     Attributes:
         artifact (str): Name of the context key holding a FileGenerationResult or List[FileSpec].
@@ -21,15 +21,15 @@ class WriteFilesConfig(StepConfig):
     root: str = "."
 
 
-class WriteFileStep(BaseStep[WriteFilesConfig]):
+class WriteFilesStep(BaseStep[WriteFilessConfig]):
     """
     Step that writes files to disk based on the provided artifact in the context.
     The artifact can be either a FileGenerationResult or a list of FileSpec objects.
     """
 
     def __init__(self, config: dict, logger: Optional[logging.Logger] = None) -> None:
-        # Initialize configuration using WriteFilesConfig
-        super().__init__(WriteFilesConfig(**config), logger)
+        # Initialize configuration using WriteFilessConfig
+        super().__init__(WriteFilessConfig(**config), logger)
 
     def execute(self, context: Context) -> None:
         """

@@ -5,7 +5,7 @@ from recipe_executor.steps.generate_llm import GenerateWithLLMStep
 from recipe_executor.steps.parallel import ParallelStep
 from recipe_executor.steps.read_file import ReadFileStep
 from recipe_executor.steps.registry import STEP_REGISTRY
-from recipe_executor.steps.write_files import WriteFileStep
+from recipe_executor.steps.write_files import WriteFilesStep
 
 # Explicitly populate the registry
 STEP_REGISTRY.update({
@@ -13,5 +13,5 @@ STEP_REGISTRY.update({
     "generate": GenerateWithLLMStep,
     "parallel": ParallelStep,
     "read_file": ReadFileStep,
-    "write_file": WriteFileStep,
+    "write_files": WriteFilesStep,
 })

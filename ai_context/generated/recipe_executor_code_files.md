@@ -105,31 +105,7 @@ The project includes several useful make commands:
 - **`make recipe-executor-create`**: Generates recipe executor code from scratch using the recipe itself
 - **`make recipe-executor-edit`**: Revises existing recipe executor code using recipes
 
-## Quick Start
-
-Get started with Recipe Executor in minutes:
-
-### Simple Example
-
-Run a basic code generation recipe:
-
-```bash
-python recipe_executor/main.py recipes/example_simple/test_recipe.md
-```
-
-This generates a simple Python script based on a specification. See [Simple Example README](/recipes/example_simple/README.md) for details.
-
-### Complex Example
-
-Try a more advanced multi-step workflow:
-
-```bash
-python recipe_executor/main.py recipes/example_complex/complex_recipe.md
-```
-
-This demonstrates multiple specifications and sub-recipes. See [Complex Example README](/recipes/example_complex/README.md) for details.
-
-### Running Any Recipe
+## Running Recipes
 
 Execute a recipe using the command line interface:
 
@@ -143,15 +119,12 @@ You can also pass context variables:
 python recipe_executor/main.py path/to/your/recipe.json --context key=value
 ```
 
-For comprehensive documentation, see the [User Guide](/docs/user_guide.md).
-
 ## Project Structure
 
 The project contains:
 
 - **`recipe_executor/`**: Core implementation with modules for execution, context management, and steps
 - **`recipes/`**: Recipe definition files that can be executed
-- **Implementation Philosophy**: Code follows a minimalist, functionally-focused approach with clear error handling
 
 ## Building from Recipes
 
@@ -459,90 +432,93 @@ import logging
 import time
 from typing import Optional, Any
 
-# The llm component provides a unified interface to interact with different LLM providers.
-# Supported providers: openai, anthropic, gemini.
+from recipe_executor.models import FileGenerationResult
+from pydantic_ai import Agent
+from pydantic_ai.models.openai import OpenAIModel
+from pydantic_ai.models.anthropic import AnthropicModel
+from pydantic_ai.models.gemini import GeminiModel
+
+
+# Configure logging for this module
+logger = logging.getLogger(__name__)
+
+DEFAULT_MODEL_ID = "openai:gpt-4o"
 
 
 def get_model(model_id: str) -> Any:
     """
-    Initialize an LLM model based on the standardized model_id "provider:model_name".
+    Initialize an LLM model based on the standardized model_id string.
+    Expected format: 'provider:model_name'.
 
     Args:
-        model_id (str): The model identifier, e.g., "openai:gpt-4o", "anthropic:claude-3-5-sonnet-latest", or "gemini:gemini-pro".
+        model_id (str): The model identifier in format 'provider:model_name'.
 
     Returns:
-        A model instance appropriate for the provider.
+        A model instance corresponding to the specified provider and model.
 
     Raises:
-        ValueError: If the model_id format is invalid or the provider is unsupported.
+        ValueError: If the model_id format is invalid or if the provider is unsupported.
     """
-    parts = model_id.split(":")
-    if len(parts) != 2:
-        raise ValueError("Invalid model_id format. Expected format 'provider:model_name'.")
-
-    provider, model_name = parts
-    provider = provider.lower()
+    if ":" not in model_id:
+        raise ValueError(f"Invalid model_id format: {model_id}. Expected format 'provider:model_name'.")
+    provider, model_name = model_id.split(":", 1)
+    provider = provider.strip().lower()
+    model_name = model_name.strip()
 
     if provider == "openai":
-        try:
-            from pydantic_ai.models.openai import OpenAIModel
-        except ImportError as e:
-            raise ImportError("OpenAI model support is not available. Ensure the required packages are installed.") from e
         return OpenAIModel(model_name)
     elif provider == "anthropic":
-        try:
-            from pydantic_ai.models.anthropic import AnthropicModel
-        except ImportError as e:
-            raise ImportError("Anthropic model support is not available. Ensure the required packages are installed.") from e
         return AnthropicModel(model_name)
     elif provider == "gemini":
-        try:
-            from pydantic_ai.models.gemini import GeminiModel
-        except ImportError as e:
-            raise ImportError("Gemini model support is not available. Ensure the required packages are installed.") from e
         return GeminiModel(model_name)
     else:
         raise ValueError(f"Unsupported provider: {provider}")
 
 
-def get_agent(model_id: Optional[str] = None) -> Any:
+def get_agent(model_id: Optional[str] = None) -> Agent[None, FileGenerationResult]:
     """
     Initialize an LLM agent with the specified model.
 
-    If model_id is not provided, defaults to 'openai:gpt-4o'.
+    Args:
+        model_id (Optional[str]): The model identifier in format 'provider:model_name'. If None,
+                                  defaults to 'openai:gpt-4o'.
 
     Returns:
-        Agent: A configured Agent instance ready to process LLM requests.
+        Agent[None, FileGenerationResult]: A configured agent ready to process LLM requests with structured output.
     """
     if model_id is None:
-        model_id = "openai:gpt-4o"
+        model_id = DEFAULT_MODEL_ID
+
     model = get_model(model_id)
 
-    try:
-        from recipe_executor.models import FileGenerationResult
-    except ImportError as e:
-        raise ImportError("FileGenerationResult model not found. Ensure that recipe_executor/models.py is available.") from e
+    # Define a default system prompt instructing the LLM to produce a JSON structured output
+    system_prompt = (
+        "You are an LLM that generates a JSON object for file generation. "
+        "The JSON object must contain a key 'files' which is an array of file objects. "
+        "Each file object should have a 'path' (string) and 'content' (string). "
+        "Optionally, include a 'commentary' field with additional information."
+    )
 
-    try:
-        from pydantic_ai import Agent
-    except ImportError as e:
-        raise ImportError("PydanticAI Agent not available. Please install pydantic-ai.") from e
+    agent = Agent(
+        model=model,
+        result_type=FileGenerationResult,
+        system_prompt=system_prompt,
+    )
 
-    # Create the Agent with the given model and expected result type.
-    agent = Agent(model=model, result_type=FileGenerationResult)
     return agent
 
 
-def call_llm(prompt: str, model: Optional[str] = None) -> Any:
+def call_llm(prompt: str, model: Optional[str] = None) -> FileGenerationResult:
     """
     Call the LLM with the given prompt and return a structured FileGenerationResult.
 
     Args:
-        prompt (str): The prompt to send to the LLM.
-        model (Optional[str]): The model identifier in the format 'provider:model_name'. If None, defaults to 'openai:gpt-4o'.
+        prompt (str): The prompt string to be sent to the LLM.
+        model (Optional[str]): The model identifier in format 'provider:model_name'.
+                               If None, defaults to 'openai:gpt-4o'.
 
     Returns:
-        FileGenerationResult: Structured result containing generated files and optional commentary.
+        FileGenerationResult: A structured result containing generated files and commentary.
 
     Raises:
         Exception: If the LLM call fails or result validation fails.
@@ -552,10 +528,10 @@ def call_llm(prompt: str, model: Optional[str] = None) -> Any:
     try:
         result = agent.run_sync(prompt)
     except Exception as e:
-        logging.exception("LLM call failed")
-        raise
+        logger.exception("LLM call failed for prompt: %s", prompt)
+        raise e
     elapsed = time.time() - start_time
-    logging.debug(f"LLM call took {elapsed:.2f} seconds.")
+    logger.debug("LLM call completed in %.2f seconds", elapsed)
     return result.data
 
 
@@ -716,13 +692,12 @@ if __name__ == "__main__":
 
 
 === File: recipe_executor/models.py ===
-from typing import List, Optional, Dict
+from typing import List, Dict, Optional
 from pydantic import BaseModel
 
 
 class FileSpec(BaseModel):
-    """
-    Represents a single file to be generated.
+    """Represents a single file to be generated.
 
     Attributes:
         path (str): Relative path where the file should be written.
@@ -733,8 +708,7 @@ class FileSpec(BaseModel):
 
 
 class FileGenerationResult(BaseModel):
-    """
-    Result of an LLM file generation request.
+    """Result of an LLM file generation request.
 
     Attributes:
         files (List[FileSpec]): List of files to generate.
@@ -744,45 +718,8 @@ class FileGenerationResult(BaseModel):
     commentary: Optional[str] = None
 
 
-class ReadFileConfig(BaseModel):
-    """
-    Configuration for a ReadFile step.
-
-    Attributes:
-        file_path (str): The path of the file to read.
-        store_key (str): Key under which to store the file content. Defaults to "spec".
-    """
-    file_path: str
-    store_key: str = "spec"
-
-
-class GenerateCodeConfig(BaseModel):
-    """
-    Configuration for a GenerateCode step.
-
-    Attributes:
-        input_key (str): Key in context where the specification is stored. Defaults to "spec".
-        output_key (str): Key to store the generated code result. Defaults to "codegen_result".
-    """
-    input_key: str = "spec"
-    output_key: str = "codegen_result"
-
-
-class WriteFileConfig(BaseModel):
-    """
-    Configuration for a WriteFile step.
-
-    Attributes:
-        input_key (str): Key in context where the codegen result is stored. Defaults to "codegen_result".
-        output_root (str): Root directory where files will be written.
-    """
-    input_key: str = "codegen_result"
-    output_root: str
-
-
 class RecipeStep(BaseModel):
-    """
-    A single step in a recipe.
+    """A single step in a recipe.
 
     Attributes:
         type (str): The type of the recipe step.
@@ -793,8 +730,7 @@ class RecipeStep(BaseModel):
 
 
 class Recipe(BaseModel):
-    """
-    A complete recipe with multiple steps.
+    """A complete recipe with multiple steps.
 
     Attributes:
         steps (List[RecipeStep]): A list containing the steps of the recipe.
@@ -807,16 +743,18 @@ class Recipe(BaseModel):
 
 from recipe_executor.steps.execute_recipe import ExecuteRecipeStep
 from recipe_executor.steps.generate_llm import GenerateWithLLMStep
+from recipe_executor.steps.parallel import ParallelStep
 from recipe_executor.steps.read_file import ReadFileStep
 from recipe_executor.steps.registry import STEP_REGISTRY
-from recipe_executor.steps.write_files import WriteFileStep
+from recipe_executor.steps.write_files import WriteFilesStep
 
 # Explicitly populate the registry
 STEP_REGISTRY.update({
-    "read_file": ReadFileStep,
-    "write_file": WriteFileStep,
-    "generate": GenerateWithLLMStep,
     "execute_recipe": ExecuteRecipeStep,
+    "generate": GenerateWithLLMStep,
+    "parallel": ParallelStep,
+    "read_file": ReadFileStep,
+    "write_files": WriteFilesStep,
 })
 
 
@@ -1032,6 +970,112 @@ class GenerateWithLLMStep(BaseStep[GenerateLLMConfig]):
         self.logger.debug("LLM response stored in context under '%s'", artifact_key)
 
 
+=== File: recipe_executor/steps/parallel.py ===
+import time
+from concurrent.futures import ThreadPoolExecutor, Future, as_completed
+from typing import Any, Dict, List
+
+from recipe_executor.steps.base import BaseStep, StepConfig
+from recipe_executor.steps.registry import STEP_REGISTRY
+from recipe_executor.context import Context
+
+from pydantic import BaseModel
+
+
+class ParallelConfig(StepConfig, BaseModel):
+    """Config for ParallelStep.
+
+    Fields:
+        substeps: List of sub-step configurations to execute in parallel. Each substep must be defined as an execute_recipe step.
+        max_concurrency: Maximum number of substeps to run concurrently. Default of 0 means no explicit limit.
+        delay: Optional delay (in seconds) between launching each substep. Default is 0.
+    """
+    substeps: List[Dict[str, Any]]
+    max_concurrency: int = 0
+    delay: float = 0.0
+
+
+class ParallelStep(BaseStep[ParallelConfig]):
+    """ParallelStep executes multiple sub-recipes concurrently in isolated contexts.
+
+    It clones the current context for each substep, launches them in a ThreadPoolExecutor, and enforces fail-fast behavior.
+    """
+    def __init__(self, config: dict, logger: Any = None) -> None:
+        # Initialize configuration via Pydantic validation
+        super().__init__(ParallelConfig(**config), logger)
+
+    def execute(self, context: Context) -> None:
+        self.logger.info("Starting ParallelStep execution with {} substeps.".format(len(self.config.substeps)))
+
+        substeps = self.config.substeps
+        total_substeps = len(substeps)
+
+        # Determine max_workers: if max_concurrency is set (>0), use it, otherwise allow all substeps concurrently.
+        max_workers = self.config.max_concurrency if self.config.max_concurrency > 0 else total_substeps
+        futures: Dict[Future, int] = {}
+        exception_occurred = False
+        first_exception = None
+        failed_index = None
+
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            # Submit substeps one by one, obeying delay and fail-fast policy
+            for index, substep_config in enumerate(substeps):
+                if exception_occurred:
+                    self.logger.info(f"Aborting submission of substep {index} due to a previous error.")
+                    break
+
+                # Clone the context for isolation
+                cloned_context = context.clone()
+
+                # Resolve and instantiate the sub-step from the registry
+                step_type = substep_config.get("type")
+                if step_type not in STEP_REGISTRY:
+                    raise ValueError(f"Substep at index {index} has unregistered type: {step_type}")
+
+                step_cls = STEP_REGISTRY[step_type]
+                try:
+                    step_instance = step_cls(substep_config, self.logger)
+                except Exception as e:
+                    self.logger.error(f"Failed to instantiate substep at index {index}: {e}")
+                    raise
+
+                self.logger.info(f"Submitting substep {index} of type '{step_type}'.")
+                future = executor.submit(step_instance.execute, cloned_context)
+                futures[future] = index
+
+                # If a delay is configured, wait before launching the next one
+                if self.config.delay > 0 and index < total_substeps - 1:
+                    time.sleep(self.config.delay)
+
+            # Process futures as they complete
+            try:
+                for future in as_completed(futures):
+                    index = futures[future]
+                    try:
+                        future.result()
+                        self.logger.info(f"Substep {index} completed successfully.")
+                    except Exception as e:
+                        self.logger.error(f"Substep {index} failed with error: {e}")
+                        exception_occurred = True
+                        first_exception = e
+                        failed_index = index
+                        # Fail fast: attempt to cancel any futures that haven't started
+                        for pending_future in futures:
+                            if not pending_future.done():
+                                pending_future.cancel()
+                        # Break out of the loop as soon as one error is encountered
+                        break
+            except Exception as overall_exception:
+                # If there was an exception while collecting results
+                self.logger.error(f"Exception during parallel execution: {overall_exception}")
+                raise overall_exception
+
+        if exception_occurred:
+            raise RuntimeError(f"ParallelStep aborted because substep {failed_index} failed: {first_exception}")
+
+        self.logger.info("All parallel substeps completed successfully.")
+
+
 === File: recipe_executor/steps/read_file.py ===
 import logging
 import os
@@ -1161,9 +1205,9 @@ from recipe_executor.steps.base import BaseStep, StepConfig
 from recipe_executor.utils import render_template
 
 
-class WriteFilesConfig(StepConfig):
+class WriteFilessConfig(StepConfig):
     """
-    Config for WriteFileStep.
+    Config for WriteFilesStep.
 
     Attributes:
         artifact (str): Name of the context key holding a FileGenerationResult or List[FileSpec].
@@ -1174,15 +1218,15 @@ class WriteFilesConfig(StepConfig):
     root: str = "."
 
 
-class WriteFileStep(BaseStep[WriteFilesConfig]):
+class WriteFilesStep(BaseStep[WriteFilessConfig]):
     """
     Step that writes files to disk based on the provided artifact in the context.
     The artifact can be either a FileGenerationResult or a list of FileSpec objects.
     """
 
     def __init__(self, config: dict, logger: Optional[logging.Logger] = None) -> None:
-        # Initialize configuration using WriteFilesConfig
-        super().__init__(WriteFilesConfig(**config), logger)
+        # Initialize configuration using WriteFilessConfig
+        super().__init__(WriteFilessConfig(**config), logger)
 
     def execute(self, context: Context) -> None:
         """

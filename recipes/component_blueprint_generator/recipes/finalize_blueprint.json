@@ -7,7 +7,7 @@
       "artifact": "formatted_summary"
     },
     {
-      "type": "write_file",
+      "type": "write_files",
       "artifact": "formatted_summary",
       "root": "{{output_root|default:'output'}}/{{target_project}}"
     }

@@ -17,7 +17,7 @@
       "artifact": "recipe_files"
     },
     {
-      "type": "write_file",
+      "type": "write_files",
       "artifact": "recipe_files",
       "root": "{{output_root|default:'output'}}/{{target_project}}/recipes"
     }

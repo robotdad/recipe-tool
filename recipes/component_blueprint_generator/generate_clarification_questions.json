@@ -33,7 +33,7 @@
       "artifact": "formatted_questions"
     },
     {
-      "type": "write_file",
+      "type": "write_files",
       "artifact": "formatted_questions",
       "root": "{{output_root|default:'output'}}"
     }

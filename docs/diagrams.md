@@ -120,7 +120,7 @@ sequenceDiagram
     participant Ctx as Context
     participant RFS as ReadFileStep
     participant GLL as GenerateWithLLMStep
-    participant WFS as WriteFileStep
+    participant WFS as WriteFilesStep
     participant LLM as LLM Service
 
     U->>RE: Execute Recipe

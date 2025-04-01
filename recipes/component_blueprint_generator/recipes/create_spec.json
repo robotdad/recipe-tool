@@ -12,7 +12,7 @@
       "artifact": "generated_spec"
     },
     {
-      "type": "write_file",
+      "type": "write_files",
       "artifact": "generated_spec",
       "root": "{{output_root|default:'output'}}/{{target_project}}/specs"
     }

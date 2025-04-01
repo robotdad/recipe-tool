@@ -33,7 +33,7 @@
       "artifact": "formatted_evaluation"
     },
     {
-      "type": "write_file",
+      "type": "write_files",
       "artifact": "formatted_evaluation",
       "root": "{{output_root|default:'output'}}"
     }
