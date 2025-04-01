@@ -19,6 +19,7 @@ The Context component is the shared state container for the Recipe Executor syst
 - Copy input dictionaries to prevent external modification
 - Implement a clone() method that returns a deep copy of the context's current state
 - Provide clear error messages for missing keys
+- Convert keys from dict_keys() to a list for iteration
 - Return copies of internal data to prevent external modification
 - Maintain minimal state with clear separation of concerns
 
