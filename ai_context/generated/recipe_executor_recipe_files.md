@@ -211,6 +211,7 @@ The Context component is the shared state container for the Recipe Executor syst
 - Copy input dictionaries to prevent external modification
 - Implement a clone() method that returns a deep copy of the context's current state
 - Provide clear error messages for missing keys
+- Convert keys from dict_keys() to a list for iteration
 - Return copies of internal data to prevent external modification
 - Maintain minimal state with clear separation of concerns
 
@@ -467,8 +468,8 @@ The Executor component depends on:
 
 ## Logging
 
-- Debug: Log recipe loading, parsing, and step execution details
-- Info: Log successful step executions and recipe completions
+- Debug: Log recipe loading (with file name), parsing, and step execution details
+- Info: None
 
 ## Error Handling
 
@@ -3603,12 +3604,12 @@ The Utils component depends on:
   "steps": [
     {
       "type": "read_file",
-      "path": "{{recipe_root|default:'recipes'}}/recipe_executor/components{{component_path}}/{{component_id}}/{{component_id}}_spec.md",
+      "path": "{{recipe_root|default:'recipes'}}/recipe_executor/components{{component_path}}{% if component_path != '/' %}/{% endif %}{{component_id}}/{{component_id}}_spec.md",
       "artifact": "spec"
     },
     {
       "type": "read_file",
-      "path": "{{recipe_root|default:'recipes'}}/recipe_executor/components{{component_path}}/{{component_id}}/{{component_id}}_docs.md",
+      "path": "{{recipe_root|default:'recipes'}}/recipe_executor/components{{component_path}}{% if component_path != '/' %}/{% endif %}{{component_id}}/{{component_id}}_docs.md",
       "artifact": "usage_doc",
       "optional": true
     },

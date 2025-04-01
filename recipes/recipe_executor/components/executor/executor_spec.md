@@ -29,8 +29,8 @@ The Executor component depends on:
 
 ## Logging
 
-- Debug: Log recipe loading, parsing, and step execution details
-- Info: Log successful step executions and recipe completions
+- Debug: Log recipe loading (with file name), parsing, and step execution details
+- Info: None
 
 ## Error Handling
 

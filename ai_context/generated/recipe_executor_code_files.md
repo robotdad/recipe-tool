@@ -179,19 +179,15 @@ packages = ["recipe_executor"]
 
 
 === File: recipe_executor/context.py ===
-from copy import deepcopy
-from typing import Any, Dict, Iterator, Optional
+from typing import Any, Dict, Optional, Iterator
+import copy
 
 
 class Context:
     """
-    Context is a shared state container for the Recipe Executor system.
-    It provides a dictionary-like interface to store and retrieve artifacts and configuration
-    used by different steps during recipe execution.
-
-    Attributes:
-        artifacts (Dict[str, Any]): Stores shared step data.
-        config (Dict[str, Any]): Stores configuration values, separate from artifacts.
+    The Context class provides a shared state container for the Recipe Executor system.
+    It allows steps to store and retrieve artifacts and configuration options within
+    a recipe execution. This implementation follows a minimalist design as specified.
     """
 
     def __init__(self, artifacts: Optional[Dict[str, Any]] = None, config: Optional[Dict[str, Any]] = None) -> None:
@@ -199,232 +195,252 @@ class Context:
         Initialize the Context with optional artifacts and configuration.
 
         Args:
-            artifacts: Initial artifacts to store.
-            config: Configuration values.
+            artifacts: Initial artifacts to store
+            config: Configuration values
         """
-        # Use deepcopy to ensure isolation from initial inputs
-        self.artifacts: Dict[str, Any] = deepcopy(artifacts) if artifacts is not None else {}
-        self.config: Dict[str, Any] = deepcopy(config) if config is not None else {}
-
-    def __setitem__(self, key: str, value: Any) -> None:
-        """Dictionary-like setting of artifacts."""
-        self.artifacts[key] = value
+        # Use deep copy to prevent external modifications
+        self._artifacts: Dict[str, Any] = copy.deepcopy(artifacts) if artifacts is not None else {}
+        self.config: Dict[str, Any] = copy.deepcopy(config) if config is not None else {}
 
     def __getitem__(self, key: str) -> Any:
-        """Dictionary-like access to artifacts. Raises KeyError if key is missing."""
-        if key not in self.artifacts:
-            raise KeyError(f"Artifact with key '{key}' not found in context.")
-        return self.artifacts[key]
-
-    def get(self, key: str, default: Optional[Any] = None) -> Any:
-        """Retrieve an artifact with an optional default value.
+        """
+        Dictionary-like access to artifacts.
 
         Args:
-            key: The key of the artifact.
-            default: Default value if key is not found.
+            key: The key of the artifact to retrieve
 
         Returns:
-            The value associated with key or default if key does not exist.
+            The value associated with the key
+
+        Raises:
+            KeyError: If the key does not exist
         """
-        return self.artifacts.get(key, default)
+        if key in self._artifacts:
+            return self._artifacts[key]
+        raise KeyError(f"Key '{key}' not found in context artifacts.")
+
+    def __setitem__(self, key: str, value: Any) -> None:
+        """
+        Dictionary-like setting of artifacts.
+
+        Args:
+            key: The key to be set
+            value: The value to associate with the key
+        """
+        self._artifacts[key] = value
+
+    def get(self, key: str, default: Optional[Any] = None) -> Any:
+        """
+        Get an artifact with an optional default value if the key is missing.
+
+        Args:
+            key: The key to retrieve
+            default: The value to return if key is not found
+
+        Returns:
+            The value associated with the key or the default value
+        """
+        return self._artifacts.get(key, default)
 
     def __contains__(self, key: str) -> bool:
-        """Check if a key exists in the artifacts."""
-        return key in self.artifacts
+        """
+        Check if a key exists in artifacts.
+
+        Args:
+            key: The key to check
+
+        Returns:
+            True if the key exists, False otherwise
+        """
+        return key in self._artifacts
 
     def __iter__(self) -> Iterator[str]:
-        """Iterate over the artifact keys."""
-        return iter(self.artifacts)
+        """
+        Iterate over the artifact keys. Converts keys to a list for safe iteration.
+
+        Returns:
+            An iterator over the keys of the artifacts
+        """
+        # Convert keys to a list to prevent issues if artifacts are modified during iteration
+        return iter(list(self._artifacts.keys()))
 
     def keys(self) -> Iterator[str]:
-        """Return an iterator over the keys of artifacts."""
-        return iter(self.artifacts.keys())
+        """
+        Return an iterator over the keys of artifacts.
+
+        Returns:
+            An iterator over artifact keys
+        """
+        return self.__iter__()
 
     def __len__(self) -> int:
-        """Return the number of artifacts stored in the context."""
-        return len(self.artifacts)
+        """
+        Return the number of artifacts stored in the context.
+
+        Returns:
+            The number of artifacts
+        """
+        return len(self._artifacts)
 
     def as_dict(self) -> Dict[str, Any]:
-        """Return a deep copy of the artifacts to ensure immutability from outside modifications."""
-        return deepcopy(self.artifacts)
+        """
+        Return a copy of the artifacts as a dictionary to ensure immutability.
+
+        Returns:
+            A copy of the artifacts dictionary
+        """
+        return copy.deepcopy(self._artifacts)
 
     def clone(self) -> 'Context':
-        """Return a deep copy of the current context including both artifacts and config."""
-        return Context(artifacts=deepcopy(self.artifacts), config=deepcopy(self.config))
+        """
+        Return a deep copy of the current context, including artifacts and configuration.
+
+        Returns:
+            A new Context object with a deep copy of the current state
+        """
+        return Context(artifacts=copy.deepcopy(self._artifacts), config=copy.deepcopy(self.config))
 
 
 === File: recipe_executor/executor.py ===
-import json
-import logging
 import os
+import json
 import re
-from typing import Any, Dict, List, Optional, Union
+import logging
+from typing import Any, Dict, Union, Optional
 
 from recipe_executor.context import Context
 from recipe_executor.steps.registry import STEP_REGISTRY
 
-
 class RecipeExecutor:
-    """
-    RecipeExecutor is the central orchestration mechanism for the Recipe Executor system.
-    It loads and executes recipes from various input formats sequentially using a provided context.
-    """
-
     def __init__(self) -> None:
-        # Stateless design; no initialization required
+        # Nothing to init for now
         pass
 
     def execute(
         self,
-        recipe: Union[str, Dict[str, Any], List[Dict[str, Any]]],
+        recipe: Union[str, Dict[str, Any]],
         context: Context,
-        logger: Optional[logging.Logger] = None,
+        logger: Optional[logging.Logger] = None
     ) -> None:
         """
-        Execute a recipe with the provided context.
+        Execute a recipe with the given context.
 
         Args:
-            recipe: Recipe to execute. It can be a file path, a JSON string, a dict, or a list of step dicts.
-            context: Context instance to use for execution.
-            logger: Optional logger to use, defaults to a simple console logger if not provided.
+            recipe: Recipe to execute, can be a file path, JSON string, or dictionary
+            context: Context instance to use for execution
+            logger: Optional logger to use, creates a default one if not provided
 
         Raises:
-            ValueError: If the recipe format is invalid or a step execution fails.
-            TypeError: If the recipe type is not supported.
+            ValueError: If recipe format is invalid or step execution fails
+            TypeError: If recipe type is not supported
         """
         if logger is None:
             logger = logging.getLogger(__name__)
-            if not logger.handlers:
-                # Set up a basic console handler if no handlers exist
+            if not logger.hasHandlers():
                 handler = logging.StreamHandler()
-                formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+                formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
                 handler.setFormatter(formatter)
                 logger.addHandler(handler)
-            logger.setLevel(logging.INFO)
+            logger.setLevel(logging.DEBUG)
 
         try:
-            # Parse the recipe based on its type
-            recipe_data = self._load_recipe(recipe, logger)
+            recipe_dict = self._load_and_parse_recipe(recipe, logger)
         except Exception as e:
-            msg = f"Failed to load recipe: {str(e)}"
-            logger.error(msg)
-            raise ValueError(msg) from e
+            raise ValueError(f"Failed to load and parse recipe: {str(e)}") from e
 
-        # Validate recipe structure - expecting either a dict with a 'steps' key or a list of steps
-        steps = []
-        if isinstance(recipe_data, dict):
-            if "steps" not in recipe_data:
-                msg = "Recipe dictionary must have a 'steps' key."
-                logger.error(msg)
-                raise ValueError(msg)
-            steps = recipe_data["steps"]
-        elif isinstance(recipe_data, list):
-            steps = recipe_data
-        else:
-            msg = f"Unsupported recipe format: {type(recipe_data)}."
-            logger.error(msg)
-            raise TypeError(msg)
+        # Validate recipe structure
+        if "steps" not in recipe_dict or not isinstance(recipe_dict["steps"], list):
+            raise ValueError("Invalid recipe format: 'steps' key missing or not a list")
 
-        if not isinstance(steps, list):
-            msg = "'steps' should be a list of step definitions."
-            logger.error(msg)
-            raise ValueError(msg)
+        steps = recipe_dict["steps"]
+        logger.debug(f"Executing {len(steps)} step(s) from recipe")
 
-        logger.info(f"Executing recipe with {len(steps)} steps.")
-
-        # Execute each step sequentially
-        for index, step in enumerate(steps):
+        # Execute each step in sequence
+        for idx, step in enumerate(steps):
             if not isinstance(step, dict):
-                msg = f"Step at index {index} is not a dictionary."
-                logger.error(msg)
-                raise ValueError(msg)
-
+                raise ValueError(f"Step at index {idx} is not a valid dict")
             if "type" not in step:
-                msg = f"Step at index {index} is missing the 'type' field."
-                logger.error(msg)
-                raise ValueError(msg)
+                raise ValueError(f"Step at index {idx} missing required 'type' field")
 
             step_type = step["type"]
             if step_type not in STEP_REGISTRY:
-                msg = f"Unknown step type '{step_type}' at index {index}."
-                logger.error(msg)
-                raise ValueError(msg)
+                raise ValueError(f"Unknown step type '{step_type}' at index {idx}")
 
             step_class = STEP_REGISTRY[step_type]
             try:
-                logger.info(f"Executing step {index + 1}/{len(steps)}: {step_type}")
+                logger.debug(f"Executing step {idx} of type '{step_type}'")
                 step_instance = step_class(step, logger)
                 step_instance.execute(context)
             except Exception as e:
-                msg = f"Error executing step {index} (type: {step_type}): {str(e)}"
-                logger.error(msg)
-                raise ValueError(msg) from e
+                # Provide detailed error message including step index and original error
+                raise ValueError(f"Error executing step {idx} of type '{step_type}': {str(e)}") from e
 
-        logger.info("Recipe execution completed successfully.")
-
-    def _load_recipe(
-        self, recipe: Union[str, Dict[str, Any], List[Dict[str, Any]]], logger: logging.Logger
-    ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
+    def _load_and_parse_recipe(
+        self,
+        recipe_input: Union[str, Dict[str, Any]],
+        logger: logging.Logger
+    ) -> Dict[str, Any]:
         """
-        Load and parse the recipe from various formats:
+        Load and parse the recipe from supported formats.
 
-        - If recipe is a path to a file, load its content.
-        - If the file is markdown, extract JSON from fenced code blocks.
-        - If recipe is a JSON string, parse it.
-        - If recipe is already a dict or list, return it directly.
-        """
-        logger.info(f"Loading recipe from: {recipe}")
-
-        # If recipe is a dict or list, return it directly
-        if isinstance(recipe, (dict, list)):
-            return recipe
-
-        if isinstance(recipe, str):
-            # If the string is a path to an existing file, load file content
-            if os.path.exists(recipe) and os.path.isfile(recipe):
-                try:
-                    with open(recipe, "r", encoding="utf-8") as file:
-                        content = file.read()
-                        logger.info(f"Loaded recipe from file: {recipe}")
-                except Exception as e:
-                    raise ValueError(f"Failed to read recipe file '{recipe}': {str(e)}") from e
-
-                # Check if it's a markdown file by extension
-                if recipe.lower().endswith(".md"):
-                    # Extract JSON from markdown fenced code blocks
-                    json_content = self._extract_json_from_markdown(content)
-                    if json_content is None:
-                        raise ValueError("No JSON code block found in markdown recipe.")
-                    content = json_content
-
-                # Parse the content as JSON
-                try:
-                    return json.loads(content)
-                except Exception as e:
-                    raise ValueError(f"Invalid JSON in recipe file '{recipe}': {str(e)}") from e
-            else:
-                # Try to parse the string directly as JSON
-                try:
-                    return json.loads(recipe)
-                except Exception as e:
-                    raise ValueError(f"Invalid recipe format string: {str(e)}") from e
-
-        # Unsupported recipe type
-        raise TypeError(f"Recipe type {type(recipe)} is not supported.")
-
-    def _extract_json_from_markdown(self, content: str) -> Optional[str]:
-        """
-        Extract the first JSON fenced code block from a markdown string.
+        Args:
+            recipe_input: File path, JSON string, or dictionary representing a recipe
+            logger: Logger for debug messages
 
         Returns:
-            The JSON string if found, otherwise None.
+            A dictionary representing the recipe
+
+        Raises:
+            ValueError: if the recipe cannot be parsed
+            TypeError: if the recipe_input type is unsupported
         """
-        # Regex to match fenced code block with json language indicator
-        pattern = r"```json\s*(.*?)\s*```"
-        match = re.search(pattern, content, re.DOTALL | re.IGNORECASE)
+        if isinstance(recipe_input, dict):
+            logger.debug("Recipe input provided as a dictionary")
+            return recipe_input
+        elif isinstance(recipe_input, str):
+            # Check if it's a file path
+            if os.path.exists(recipe_input):
+                logger.debug(f"Loading recipe from file: {recipe_input}")
+                try:
+                    with open(recipe_input, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                except Exception as e:
+                    raise ValueError(f"Error reading recipe file '{recipe_input}': {str(e)}") from e
+            else:
+                logger.debug("Recipe input provided as a JSON string")
+                content = recipe_input
+
+            # Attempt to extract JSON from markdown fenced code blocks
+            content = self._extract_json_from_markdown(content, logger)
+
+            try:
+                recipe_dict = json.loads(content)
+            except Exception as e:
+                raise ValueError(f"Invalid JSON format in recipe: {str(e)}") from e
+            return recipe_dict
+        else:
+            raise TypeError(f"Unsupported recipe type: {type(recipe_input)}")
+
+    def _extract_json_from_markdown(self, content: str, logger: logging.Logger) -> str:
+        """
+        Extract JSON content from a markdown fenced code block if present.
+
+        Args:
+            content: Input string that might contain Markdown code fences
+            logger: Logger for debug messages
+
+        Returns:
+            JSON string extracted from the fenced code block, or the original content if not found
+        """
+        # Look for a fenced code block with json
+        pattern = re.compile(r"```json\s*(\{.*?\})\s*```", re.DOTALL)
+        match = pattern.search(content)
         if match:
-            return match.group(1).strip()
-        return None
+            logger.debug("Extracted JSON from markdown code fence")
+            return match.group(1)
+        else:
+            logger.debug("No markdown code fence found, using raw content")
+            return content
 
 
 === File: recipe_executor/llm.py ===
@@ -692,7 +708,7 @@ if __name__ == "__main__":
 
 
 === File: recipe_executor/models.py ===
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Any
 from pydantic import BaseModel
 
 
@@ -723,10 +739,10 @@ class RecipeStep(BaseModel):
 
     Attributes:
         type (str): The type of the recipe step.
-        config (Dict): Dictionary containing configuration for the step.
+        config (Dict[str, Any]): Dictionary containing configuration for the step.
     """
     type: str
-    config: Dict
+    config: Dict[str, Any]
 
 
 class Recipe(BaseModel):
