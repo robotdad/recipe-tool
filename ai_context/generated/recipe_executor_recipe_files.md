@@ -873,12 +873,12 @@ AZURE_OPENAI_DEPLOYMENT_NAME= # Optional, defaults to model_name
   "steps": [
     {
       "type": "read_file",
-      "path": "{% if existing_code_root %}{{existing_code_root}}/{% endif %}recipe_executor/llm/azure_openai.py",
+      "path": "{% if existing_code_root %}{{existing_code_root}}/{% endif %}recipe_executor/llm_utils/azure_openai.py",
       "artifact": "existing_code"
     },
     {
       "type": "execute_recipe",
-      "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/llm/azure_openai/azure_openai_create.json",
+      "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/llm_utils/azure_openai/azure_openai_create.json",
       "context_overrides": {
         "existing_code": "{{existing_code}}"
       }
@@ -1881,31 +1881,31 @@ The Steps Base component depends on:
       "substeps": [
         {
           "type": "execute_recipe",
-          "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/registry_edit.json"
+          "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/registry/registry_edit.json"
         },
         {
           "type": "execute_recipe",
-          "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/base_edit.json"
+          "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/base/base_edit.json"
         },
         {
           "type": "execute_recipe",
-          "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/execute_recipe_edit.json"
+          "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/execute_recipe/execute_recipe_edit.json"
         },
         {
           "type": "execute_recipe",
-          "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/generate_llm_edit.json"
+          "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/generate_llm/generate_llm_edit.json"
         },
         {
           "type": "execute_recipe",
-          "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/parallel_edit.json"
+          "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/parallel/parallel_edit.json"
         },
         {
           "type": "execute_recipe",
-          "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/read_file_edit.json"
+          "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/read_file/read_file_edit.json"
         },
         {
           "type": "execute_recipe",
-          "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/write_files_edit.json"
+          "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/write_files/write_files_edit.json"
         }
       ],
       "max_concurrency": 0,
@@ -3081,29 +3081,6 @@ STEP_REGISTRY: Dict[str, Type[BaseStep]] = {
 }
 ```
 
-## Registering Steps
-
-Steps are typically registered in the steps package `__init__.py`:
-
-```python
-# In recipe_executor/steps/__init__.py
-from recipe_executor.steps.registry import STEP_REGISTRY
-from recipe_executor.steps.execute_recipe import ExecuteRecipeStep
-from recipe_executor.steps.generate_llm import GenerateWithLLMStep
-from recipe_executor.steps.parallel import ParallelStep
-from recipe_executor.steps.read_file import ReadFileStep
-from recipe_executor.steps.write_files import WriteFilesStep
-
-# Register steps by updating the registry
-STEP_REGISTRY.update({
-    "execute_recipe": ExecuteRecipeStep,
-    "generate": GenerateWithLLMStep,
-    "parallel": ParallelStep,
-    "read_file": ReadFileStep,
-    "write_files": WriteFilesStep,
-})
-```
-
 Custom steps can be registered in the same way:
 
 ```python
@@ -3184,6 +3161,29 @@ The Step Registry component provides a central mechanism for registering and loo
 - Keep the registry structure simple and stateless
 - Avoid unnecessary abstractions or wrapper functions
 
+## Additional Files
+
+Create the `__init__.py` file in the `steps` directory to ensure it is treated as a package. Steps are registered in the steps package `__init__.py`:
+
+```python
+# In recipe_executor/steps/__init__.py
+from recipe_executor.steps.registry import STEP_REGISTRY
+from recipe_executor.steps.execute_recipe import ExecuteRecipeStep
+from recipe_executor.steps.generate_llm import GenerateWithLLMStep
+from recipe_executor.steps.parallel import ParallelStep
+from recipe_executor.steps.read_file import ReadFileStep
+from recipe_executor.steps.write_files import WriteFilesStep
+
+# Register steps by updating the registry
+STEP_REGISTRY.update({
+    "execute_recipe": ExecuteRecipeStep,
+    "generate": GenerateWithLLMStep,
+    "parallel": ParallelStep,
+    "read_file": ReadFileStep,
+    "write_files": WriteFilesStep,
+})
+```
+
 ## Component Dependencies
 
 The Step Registry component has no external dependencies on other Recipe Executor components.
@@ -3237,15 +3237,15 @@ The Step Registry component has no external dependencies on other Recipe Executo
 ## Importing
 
 ```python
-from recipe_executor.steps.write_files import WriteFilesStep, WriteFilessConfig
+from recipe_executor.steps.write_files import WriteFilesStep, WriteFilesConfig
 ```
 
 ## Configuration
 
-The WriteFilesStep is configured with a WriteFilessConfig:
+The WriteFilesStep is configured with a WriteFilesConfig:
 
 ```python
-class WriteFilessConfig(StepConfig):
+class WriteFilesConfig(StepConfig):
     """
     Config for WriteFilesStep.
 
@@ -3779,6 +3779,10 @@ The Utils component depends on:
         },
         {
           "type": "execute_recipe",
+          "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/llm_utils/azure_openai/azure_openai_create.json"
+        },
+        {
+          "type": "execute_recipe",
           "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/executor/executor_create.json"
         },
         {
@@ -3825,6 +3829,10 @@ The Utils component depends on:
         },
         {
           "type": "execute_recipe",
+          "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/llm_utils/azure_openai/azure_openai_edit.json"
+        },
+        {
+          "type": "execute_recipe",
           "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/executor/executor_edit.json"
         },
         {
@@ -3861,7 +3869,7 @@ The Utils component depends on:
       "type": "execute_recipe",
       "recipe_path": "{{recipe_root|default:'recipes'}}/codebase_generator/generate_code.json",
       "context_overrides": {
-        "model": "{{model|default:'azure:o3-mini'}}",
+        "model": "{{model|default:'openai:o3-mini'}}",
         "output_root": "{{output_root|default:'output'}}",
         "output_path": "recipe_executor{{component_path}}",
         "language": "{{language|default:'python'}}",
