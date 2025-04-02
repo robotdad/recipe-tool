@@ -304,7 +304,6 @@ class Context:
 === File: recipe_executor/executor.py ===
 import os
 import json
-import re
 import logging
 from typing import Any, Dict, Union, Optional
 
@@ -312,9 +311,11 @@ from recipe_executor.context import Context
 from recipe_executor.steps.registry import STEP_REGISTRY
 
 class RecipeExecutor:
-    def __init__(self) -> None:
-        # Nothing to init for now
-        pass
+    """
+    The RecipeExecutor is responsible for orchestrating the execution of a recipe.
+    It supports loading recipes from file paths, JSON strings, or dictionaries, validates
+    the recipe structure, and executes each step sequentially using the provided context.
+    """
 
     def execute(
         self,
@@ -336,219 +337,296 @@ class RecipeExecutor:
         """
         if logger is None:
             logger = logging.getLogger(__name__)
-            if not logger.hasHandlers():
-                handler = logging.StreamHandler()
-                formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-                handler.setFormatter(formatter)
-                logger.addHandler(handler)
-            logger.setLevel(logging.DEBUG)
+            if not logger.handlers:
+                # Create a basic configuration if none exists
+                logging.basicConfig(level=logging.DEBUG)
 
-        try:
-            recipe_dict = self._load_and_parse_recipe(recipe, logger)
-        except Exception as e:
-            raise ValueError(f"Failed to load and parse recipe: {str(e)}") from e
+        logger.debug("Starting recipe execution.")
 
-        # Validate recipe structure
-        if "steps" not in recipe_dict or not isinstance(recipe_dict["steps"], list):
-            raise ValueError("Invalid recipe format: 'steps' key missing or not a list")
+        # Load and parse recipe into a dictionary
+        recipe_payload: Dict[str, Any]
+        if isinstance(recipe, dict):
+            recipe_payload = recipe
+            logger.debug("Recipe provided as dictionary.")
+        elif isinstance(recipe, str):
+            # Check if it's a file path
+            if os.path.exists(recipe):
+                logger.debug(f"Loading recipe from file: {recipe}")
+                try:
+                    with open(recipe, 'r', encoding='utf-8') as file:
+                        recipe_payload = json.load(file)
+                except Exception as e:
+                    raise ValueError(f"Failed to load recipe from file '{recipe}': {e}")
+            else:
+                # Assume it's a JSON string
+                logger.debug("Loading recipe from JSON string.")
+                try:
+                    recipe_payload = json.loads(recipe)
+                except Exception as e:
+                    raise ValueError(f"Failed to parse recipe JSON string: {e}")
+        else:
+            raise TypeError("Unsupported recipe type. Must be a file path, JSON string, or dictionary.")
 
-        steps = recipe_dict["steps"]
-        logger.debug(f"Executing {len(steps)} step(s) from recipe")
+        logger.debug(f"Parsed recipe payload: {recipe_payload}")
 
-        # Execute each step in sequence
-        for idx, step in enumerate(steps):
+        # Validate that the recipe contains a 'steps' key
+        if 'steps' not in recipe_payload or not isinstance(recipe_payload['steps'], list):
+            raise ValueError("Invalid recipe format: Missing 'steps' list.")
+
+        steps = recipe_payload['steps']
+
+        # Execute steps sequentially
+        for index, step in enumerate(steps):
+            logger.debug(f"Processing step {index + 1}: {step}")
+
             if not isinstance(step, dict):
-                raise ValueError(f"Step at index {idx} is not a valid dict")
-            if "type" not in step:
-                raise ValueError(f"Step at index {idx} missing required 'type' field")
+                raise ValueError(f"Invalid step format at index {index}: Step must be a dictionary.")
 
-            step_type = step["type"]
+            if 'type' not in step:
+                raise ValueError(f"Missing 'type' in step at index {index}.")
+
+            step_type = step['type']
             if step_type not in STEP_REGISTRY:
-                raise ValueError(f"Unknown step type '{step_type}' at index {idx}")
+                raise ValueError(f"Unknown step type '{step_type}' at index {index}.")
 
             step_class = STEP_REGISTRY[step_type]
+
             try:
-                logger.debug(f"Executing step {idx} of type '{step_type}'")
+                # Instantiate the step with its definition and logger
                 step_instance = step_class(step, logger)
+                logger.debug(f"Executing step {index + 1} of type '{step_type}'.")
                 step_instance.execute(context)
+                logger.debug(f"Completed step {index + 1}.")
             except Exception as e:
-                # Provide detailed error message including step index and original error
-                raise ValueError(f"Error executing step {idx} of type '{step_type}': {str(e)}") from e
+                # Wrap and re-raise with step index for clarity
+                raise ValueError(f"Error executing step {index + 1} (type: '{step_type}'): {e}") from e
 
-    def _load_and_parse_recipe(
-        self,
-        recipe_input: Union[str, Dict[str, Any]],
-        logger: logging.Logger
-    ) -> Dict[str, Any]:
-        """
-        Load and parse the recipe from supported formats.
-
-        Args:
-            recipe_input: File path, JSON string, or dictionary representing a recipe
-            logger: Logger for debug messages
-
-        Returns:
-            A dictionary representing the recipe
-
-        Raises:
-            ValueError: if the recipe cannot be parsed
-            TypeError: if the recipe_input type is unsupported
-        """
-        if isinstance(recipe_input, dict):
-            logger.debug("Recipe input provided as a dictionary")
-            return recipe_input
-        elif isinstance(recipe_input, str):
-            # Check if it's a file path
-            if os.path.exists(recipe_input):
-                logger.debug(f"Loading recipe from file: {recipe_input}")
-                try:
-                    with open(recipe_input, 'r', encoding='utf-8') as f:
-                        content = f.read()
-                except Exception as e:
-                    raise ValueError(f"Error reading recipe file '{recipe_input}': {str(e)}") from e
-            else:
-                logger.debug("Recipe input provided as a JSON string")
-                content = recipe_input
-
-            # Attempt to extract JSON from markdown fenced code blocks
-            content = self._extract_json_from_markdown(content, logger)
-
-            try:
-                recipe_dict = json.loads(content)
-            except Exception as e:
-                raise ValueError(f"Invalid JSON format in recipe: {str(e)}") from e
-            return recipe_dict
-        else:
-            raise TypeError(f"Unsupported recipe type: {type(recipe_input)}")
-
-    def _extract_json_from_markdown(self, content: str, logger: logging.Logger) -> str:
-        """
-        Extract JSON content from a markdown fenced code block if present.
-
-        Args:
-            content: Input string that might contain Markdown code fences
-            logger: Logger for debug messages
-
-        Returns:
-            JSON string extracted from the fenced code block, or the original content if not found
-        """
-        # Look for a fenced code block with json
-        pattern = re.compile(r"```json\s*(\{.*?\})\s*```", re.DOTALL)
-        match = pattern.search(content)
-        if match:
-            logger.debug("Extracted JSON from markdown code fence")
-            return match.group(1)
-        else:
-            logger.debug("No markdown code fence found, using raw content")
-            return content
+        logger.debug("Recipe execution completed successfully.")
 
 
 === File: recipe_executor/llm.py ===
 import logging
 import time
-from typing import Optional, Any
+from typing import Optional, Union
 
-from recipe_executor.models import FileGenerationResult
 from pydantic_ai import Agent
 from pydantic_ai.models.openai import OpenAIModel
 from pydantic_ai.models.anthropic import AnthropicModel
 from pydantic_ai.models.gemini import GeminiModel
 
-
-# Configure logging for this module
-logger = logging.getLogger(__name__)
-
-DEFAULT_MODEL_ID = "openai:gpt-4o"
+# Import our structured result models
+from recipe_executor.models import FileGenerationResult
 
 
-def get_model(model_id: str) -> Any:
+# The function get_model initializes the appropriate LLM model based on a standardized model id
+# Format: 'provider:model_name' or 'provider:model_name:deployment_name' (for Azure OpenAI)
+
+def get_model(model_id: str) -> Union[OpenAIModel, AnthropicModel, GeminiModel]:
     """
-    Initialize an LLM model based on the standardized model_id string.
-    Expected format: 'provider:model_name'.
+    Initialize an LLM model based on a standardized model_id string.
+
+    Expected format:
+      - For OpenAI:      "openai:model_name"
+      - For Anthropic:   "anthropic:model_name"
+      - For Gemini:      "gemini:model_name"
+      - For Azure OpenAI: "azure:model_name" or "azure:model_name:deployment_name"
 
     Args:
-        model_id (str): The model identifier in format 'provider:model_name'.
+        model_id (str): The model identifier in the format specified.
 
     Returns:
-        A model instance corresponding to the specified provider and model.
+        An instance of the appropriate model class.
 
     Raises:
-        ValueError: If the model_id format is invalid or if the provider is unsupported.
+        ValueError: If the model_id format is invalid or provider unsupported.
     """
-    if ":" not in model_id:
-        raise ValueError(f"Invalid model_id format: {model_id}. Expected format 'provider:model_name'.")
-    provider, model_name = model_id.split(":", 1)
-    provider = provider.strip().lower()
-    model_name = model_name.strip()
+    parts = model_id.split(":")
+    if len(parts) < 2:
+        raise ValueError("Invalid model_id format. Expected 'provider:model_name' at minimum.")
 
-    if provider == "openai":
+    provider = parts[0].lower()
+    model_name = parts[1]
+
+    if provider == "azure":
+        # For Azure OpenAI, deployment_name may be provided; if not, default deployment equals model_name
+        deployment_name = model_name if len(parts) == 2 else parts[2]
+        try:
+            # Dynamically import the azure openai model initializer
+            from recipe_executor.llm_utils.azure_openai import get_openai_model as get_azure_openai_model
+        except ImportError as e:
+            raise ImportError("Azure OpenAI support is not available. Ensure llm_utils/azure_openai.py exists and is accessible.") from e
+        return get_azure_openai_model(model_name, deployment_name)
+    elif provider == "openai":
         return OpenAIModel(model_name)
     elif provider == "anthropic":
         return AnthropicModel(model_name)
     elif provider == "gemini":
         return GeminiModel(model_name)
     else:
-        raise ValueError(f"Unsupported provider: {provider}")
+        raise ValueError(f"Unsupported model provider: {provider}")
+
 
 
 def get_agent(model_id: Optional[str] = None) -> Agent[None, FileGenerationResult]:
     """
-    Initialize an LLM agent with the specified model.
+    Initialize an LLM agent with the specified model using structured output.
 
     Args:
-        model_id (Optional[str]): The model identifier in format 'provider:model_name'. If None,
-                                  defaults to 'openai:gpt-4o'.
+        model_id (Optional[str]): Model identifier in format 'provider:model_name'.
+                                    If None, defaults to 'openai:gpt-4o'.
 
     Returns:
-        Agent[None, FileGenerationResult]: A configured agent ready to process LLM requests with structured output.
+        Agent[None, FileGenerationResult]: A configured Agent ready to process LLM requests.
     """
-    if model_id is None:
-        model_id = DEFAULT_MODEL_ID
-
-    model = get_model(model_id)
-
-    # Define a default system prompt instructing the LLM to produce a JSON structured output
-    system_prompt = (
-        "You are an LLM that generates a JSON object for file generation. "
-        "The JSON object must contain a key 'files' which is an array of file objects. "
-        "Each file object should have a 'path' (string) and 'content' (string). "
-        "Optionally, include a 'commentary' field with additional information."
-    )
-
-    agent = Agent(
-        model=model,
-        result_type=FileGenerationResult,
-        system_prompt=system_prompt,
-    )
-
+    if not model_id:
+        model_id = "openai:gpt-4o"
+    model_instance = get_model(model_id)
+    agent = Agent(model_instance, result_type=FileGenerationResult)
     return agent
 
 
-def call_llm(prompt: str, model: Optional[str] = None) -> FileGenerationResult:
+
+def call_llm(prompt: str, model: Optional[str] = None, logger: Optional[logging.Logger] = None) -> FileGenerationResult:
     """
     Call the LLM with the given prompt and return a structured FileGenerationResult.
 
     Args:
-        prompt (str): The prompt string to be sent to the LLM.
-        model (Optional[str]): The model identifier in format 'provider:model_name'.
+        prompt (str): The prompt to send to the LLM.
+        model (Optional[str]): The model identifier in the format 'provider:model_name' (or with deployment for Azure).
                                If None, defaults to 'openai:gpt-4o'.
+        logger (Optional[logging.Logger]): Logger instance; if None, a default logger named "RecipeExecutor" is used.
 
     Returns:
-        FileGenerationResult: A structured result containing generated files and commentary.
+        FileGenerationResult: The structured result containing files and commentary.
 
     Raises:
-        Exception: If the LLM call fails or result validation fails.
+        Exception: If model configuration is invalid or the LLM call fails.
     """
+    if logger is None:
+        logger = logging.getLogger("RecipeExecutor")
+
+    if not model:
+        model = "openai:gpt-4o"
+
     agent = get_agent(model)
+
+    logger.debug(f"LLM Request Payload: prompt={prompt}, model={model}")
     start_time = time.time()
     try:
         result = agent.run_sync(prompt)
     except Exception as e:
-        logger.exception("LLM call failed for prompt: %s", prompt)
+        logger.exception(f"LLM call failed for model {model} with prompt: {prompt}")
         raise e
     elapsed = time.time() - start_time
-    logger.debug("LLM call completed in %.2f seconds", elapsed)
+    logger.info(f"Model '{model}' executed in {elapsed:.2f} seconds")
+    logger.debug(f"LLM Response Payload: {result.all_messages()}")
+
+    # Return the result data (structured FileGenerationResult)
     return result.data
+
+
+=== File: recipe_executor/llm_utils/azure_openai.py ===
+import os
+import logging
+from typing import Optional
+
+import openai
+from azure.identity import DefaultAzureCredential, get_bearer_token_provider
+
+# Import PydanticAI models for OpenAI
+from pydantic_ai.models.openai import OpenAIModel
+from pydantic_ai.providers.openai import OpenAIProvider
+
+
+def get_openai_model(
+    model_name: str,
+    deployment_name: Optional[str] = None,
+    logger: Optional[logging.Logger] = None
+) -> OpenAIModel:
+    """
+    Create a PydanticAI OpenAIModel instance for Azure OpenAI, configured from environment variables.
+
+    Environment Variables:
+      - AZURE_OPENAI_ENDPOINT: Required. The endpoint for the Azure OpenAI resource.
+      - AZURE_OPENAI_API_VERSION: Optional. Defaults to '2024-07-01-preview'.
+      - AZURE_USE_MANAGED_IDENTITY: Set to 'true' to use Managed Identity authentication.
+      - AZURE_MANAGED_IDENTITY_CLIENT_ID: Optional. Client ID for a user-assigned managed identity.
+      - AZURE_OPENAI_API_KEY: Required if not using managed identity.
+
+    Args:
+      model_name: The name of the model to use (e.g. "gpt-4o").
+      deployment_name: Optional deployment name; defaults to model_name if not provided.
+      logger: An optional logger to log creation info.
+
+    Returns:
+      An instance of OpenAIModel configured for Azure OpenAI.
+
+    Raises:
+      ValueError: If critical environment variables are missing.
+    """
+    if logger is None:
+        logger = logging.getLogger("RecipeExecutor")
+
+    # Read required configuration
+    azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
+    if not azure_endpoint:
+        raise ValueError("Environment variable AZURE_OPENAI_ENDPOINT is required.")
+
+    api_version = os.getenv("AZURE_OPENAI_API_VERSION", "2024-07-01-preview")
+    deployment = deployment_name if deployment_name else model_name
+
+    use_managed_identity = os.getenv("AZURE_USE_MANAGED_IDENTITY", "false").lower() == "true"
+
+    if use_managed_identity:
+        # Use Azure Identity via DefaultAzureCredential
+        client_id = os.getenv("AZURE_MANAGED_IDENTITY_CLIENT_ID")
+        # If a client id is provided, pass it to DefaultAzureCredential
+        if client_id:
+            credential = DefaultAzureCredential(managed_identity_client_id=client_id)
+        else:
+            credential = DefaultAzureCredential()
+
+        token_provider = get_bearer_token_provider(credential, "https://cognitiveservices.azure.com/.default")
+
+        try:
+            azure_client = openai.AsyncAzureOpenAI(
+                api_version=api_version,
+                azure_endpoint=azure_endpoint,
+                azure_ad_token_provider=token_provider,
+                azure_deployment=deployment
+            )
+        except Exception as e:
+            logger.error("Error creating AzureOpenAI client with managed identity: %s", str(e))
+            raise
+    else:
+        # Use API Key authentication
+        api_key = os.getenv("AZURE_OPENAI_API_KEY")
+        if not api_key:
+            raise ValueError("AZURE_OPENAI_API_KEY must be provided if not using managed identity.")
+        try:
+            azure_client = openai.AsyncAzureOpenAI(
+                api_version=api_version,
+                azure_endpoint=azure_endpoint,
+                api_key=api_key,
+                azure_deployment=deployment
+            )
+        except Exception as e:
+            logger.error("Error creating AzureOpenAI client with API key: %s", str(e))
+            raise
+
+    # Create a PydanticAI OpenAIModel instance using the OpenAIProvider
+    try:
+        provider = OpenAIProvider(openai_client=azure_client)
+        openai_model = OpenAIModel(
+            model_name=model_name,
+            provider=provider
+        )
+    except Exception as e:
+        logger.error("Error creating PydanticAI OpenAIModel: %s", str(e))
+        raise
+
+    logger.info("Azure OpenAI model created with endpoint %s and deployment %s", azure_endpoint, deployment)
+    return openai_model
 
 
 === File: recipe_executor/logger.py ===
