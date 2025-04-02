@@ -4,7 +4,7 @@ from typing import Optional
 
 from recipe_executor.models import FileGenerationResult
 
-# Import the LLM model classes from pydantic_ai
+# Import LLM model classes from pydantic_ai package
 from pydantic_ai import Agent
 from pydantic_ai.models.openai import OpenAIModel
 from pydantic_ai.models.anthropic import AnthropicModel
@@ -13,68 +13,57 @@ from pydantic_ai.models.gemini import GeminiModel
 
 def get_model(model_id: str):
     """
-    Initialize and return a model instance based on the standardized model identifier.
+    Initialize and return an LLM model instance based on a standardized model identifier format.
 
-    Supported model_id formats:
-        provider:model_name
-        For Azure, it can also be: azure:model_name:deployment_name
-
-    Supported providers: openai, anthropic, gemini, azure
-
-    Args:
-        model_id (str): the identifier for the model
-
-    Returns:
-        Instance of the appropriate model class
+    Supported model id formats:
+      - openai:model_name
+      - anthropic:model_name
+      - gemini:model_name
+      - azure:model_name or azure:model_name:deployment_name
 
     Raises:
-        ValueError: if model_id is improperly formatted or provider is not supported
+        ValueError: for an improperly formatted model_id or unsupported provider.
     """
     parts = model_id.split(":")
     if len(parts) < 2:
-        raise ValueError(f"Invalid model_id format: {model_id}")
+        raise ValueError(f"Invalid model identifier: {model_id}")
 
     provider = parts[0].lower()
 
-    if provider == "azure":
-        # For Azure, expected formats: azure:model_name or azure:model_name:deployment_name
-        if len(parts) == 3:
-            model_name = parts[1]
-            deployment_name = parts[2]
-        elif len(parts) == 2:
-            model_name = parts[1]
-            deployment_name = model_name  # default deployment same as model name
-        else:
-            raise ValueError(f"Invalid azure model identifier: {model_id}")
-        # Use azure-specific helper to get the model instance
-        from recipe_executor.llm_utils.azure_openai import get_openai_model
-        return get_openai_model(model_name=model_name, deployment_name=deployment_name)
-
-    elif provider == "openai":
+    if provider == "openai":
         model_name = parts[1]
         return OpenAIModel(model_name)
-
     elif provider == "anthropic":
         model_name = parts[1]
         return AnthropicModel(model_name)
-
     elif provider == "gemini":
         model_name = parts[1]
         return GeminiModel(model_name)
-
+    elif provider == "azure":
+        # For Azure, allowed formats are: azure:model_name or azure:model_name:deployment_name
+        if len(parts) == 2:
+            model_name = parts[1]
+            deployment_name = model_name  # Default deployment name is same as model name
+        elif len(parts) == 3:
+            model_name = parts[1]
+            deployment_name = parts[2]
+        else:
+            raise ValueError(f"Invalid Azure model identifier: {model_id}")
+        # Import the azure-specific function to get the model
+        from recipe_executor.llm_utils.azure_openai import get_openai_model
+        return get_openai_model(model_name=model_name, deployment_name=deployment_name)
     else:
         raise ValueError(f"Unsupported provider: {provider}")
 
 
 def get_agent(model_id: Optional[str] = None) -> Agent[None, FileGenerationResult]:
     """
-    Initialize and return an Agent configured with the given model identifier.
+    Initialize and return an Agent configured with the specified model identifier.
 
-    Args:
-        model_id (Optional[str]): The identifier for the model to use. Defaults to 'openai:gpt-4o'.
+    If model_id is not specified, it defaults to 'openai:gpt-4o'.
 
     Returns:
-        Agent instance with result type FileGenerationResult.
+        Agent instance with the result type set to FileGenerationResult.
     """
     if model_id is None:
         model_id = "openai:gpt-4o"
@@ -85,18 +74,19 @@ def get_agent(model_id: Optional[str] = None) -> Agent[None, FileGenerationResul
 
 def call_llm(prompt: str, model: Optional[str] = None, logger: Optional[logging.Logger] = None) -> FileGenerationResult:
     """
-    Call the LLM with the provided prompt and return a structured FileGenerationResult.
+    Send a prompt to the LLM and return the validated FileGenerationResult.
 
     Args:
-        prompt (str): The prompt/query to send to the model.
-        model (Optional[str]): The model identifier (e.g. "openai:gpt-4o"). Default is 'openai:gpt-4o'.
-        logger (Optional[logging.Logger]): Logger to record debug/info. Defaults to a logger named "RecipeExecutor".
+        prompt (str): The prompt/query to send to the LLM.
+        model (Optional[str]): The LLM model identifier in the format 'provider:model_name' (or for Azure: 'azure:model_name[:deployment_name]').
+                                Defaults to 'openai:gpt-4o' if not provided.
+        logger (Optional[logging.Logger]): Logger instance to log debug and info messages. If not specified, a default logger named 'RecipeExecutor' is used.
 
     Returns:
-        FileGenerationResult: The validated output returned by the LLM
+        FileGenerationResult: The structured result produced by the LLM.
 
     Raises:
-        Exception: Propagates any exceptions raised during the LLM call.
+        Exception: Propagates any exceptions encountered during the LLM call with appropriate logging.
     """
     if logger is None:
         logger = logging.getLogger("RecipeExecutor")
@@ -117,5 +107,5 @@ def call_llm(prompt: str, model: Optional[str] = None, logger: Optional[logging.
     logger.info(f"Model {model} responded in {elapsed:.2f} seconds")
     logger.debug(f"LLM Response: {result}")
 
-    # Return only the structured data
+    # Return only the structured data from the result
     return result.data

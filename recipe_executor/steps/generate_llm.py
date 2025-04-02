@@ -46,17 +46,17 @@ class GenerateWithLLMStep(BaseStep[GenerateLLMConfig]):
     def execute(self, context: Context) -> None:
         """
         Execute the LLM generation step using the provided context.
-
+        
         This method performs the following:
           1. Dynamically render artifact key, prompt, and model values from the context.
           2. Log debug and info messages with details of the rendered parameters.
           3. Call the LLM using the rendered prompt and model.
           4. Store the resulting FileGenerationResult in the context under the rendered artifact key.
           5. Handle and log any errors encountered during generation.
-
+        
         Args:
             context (Context): The shared context for execution containing input data and used for storing results.
-
+        
         Raises:
             Exception: Propagates any exception encountered during processing, after logging the error.
         """

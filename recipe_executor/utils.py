@@ -1,8 +1,6 @@
 from typing import Any
 
 from liquid import Template
-# Depending on the version of the liquid library, errors might originate from different submodules.
-# For now, we catch all exceptions during rendering.
 
 from recipe_executor.context import Context
 
@@ -13,25 +11,25 @@ def render_template(text: str, context: Context) -> str:
     All values in the context are converted to strings before rendering.
 
     Args:
-        text (str): The template text to render.
-        context (Context): The context for rendering the template.
+        text (str): The Liquid template text to be rendered.
+        context (Context): The context containing values for substitution.
 
     Returns:
-        str: The rendered text.
+        str: The rendered template string.
 
     Raises:
-        ValueError: If there is an error during template rendering.
+        ValueError: When there is an error during template rendering.
     """
     try:
-        # Retrieve artifacts from the context and convert all values to strings to avoid type issues
+        # Retrieve all artifacts from the context as a dictionary.
+        # Convert each value to a string to ensure compatibility with the Liquid engine.
         context_dict = context.as_dict()
-        safe_context = { key: str(value) for key, value in context_dict.items() }
+        safe_context = {key: str(value) for key, value in context_dict.items()}
         
-        # Create the Liquid template and render it using the safe_context
+        # Create the Liquid template and render it using the prepared safe context.
         template = Template(text)
         rendered = template.render(**safe_context)
         return rendered
-
     except Exception as e:
-        # Wrap and raise a ValueError with additional context
+        # Raise a ValueError wrapping the original error with a clear error message.
         raise ValueError(f"Error rendering template: {e}") from e

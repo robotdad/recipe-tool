@@ -33,6 +33,7 @@ class BaseStep(Generic[ConfigType], ABC):
     def __init__(self, config: ConfigType, logger: Optional[logging.Logger] = None) -> None:
         self.config: ConfigType = config
         self.logger: logging.Logger = logger or logging.getLogger("RecipeExecutor")
+        self.logger.debug(f"Initialized {self.__class__.__name__} with config: {self.config.dict()}" if hasattr(self.config, 'dict') else f"Initialized {self.__class__.__name__}")
 
     @abstractmethod
     def execute(self, context: Context) -> None:
@@ -45,5 +46,5 @@ class BaseStep(Generic[ConfigType], ABC):
         Raises:
             NotImplementedError: Must be implemented by subclasses.
         """
-        # Subclasses must override this method
-        raise NotImplementedError("Each step must implement the execute method.")
+        # Subclasses must override this method.
+        raise NotImplementedError(f"Each step must implement the execute method. {self.__class__.__name__} did not.")

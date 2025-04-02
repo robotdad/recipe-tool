@@ -39,13 +39,13 @@ def main() -> None:
     """
     CLI entry point for the Recipe Executor Tool.
 
-    This function parses command-line arguments, loads environment variables,
-    sets up logging, creates a context from CLI inputs, and executes the specified recipe.
+    This function parses command-line arguments, loads environment variables, sets up logging,
+    creates a Context from CLI inputs, and executes the specified recipe.
     """
-    # Load environment variables early
+    # Load environment variables from .env file
     load_dotenv()
 
-    # Parse command-line arguments
+    # Define command-line argument parser
     parser = argparse.ArgumentParser(
         description="Recipe Executor Tool - Executes a recipe with additional context information."
     )
@@ -61,15 +61,15 @@ def main() -> None:
         sys.stderr.write(f"Context Error: {str(e)}\n")
         sys.exit(1)
 
-    # Initialize logging
+    # Initialize logging system
     logger = init_logger(args.log_dir)
     logger.info("Starting Recipe Executor Tool")
 
-    # Create the Context object with CLI-supplied artifacts
+    # Create the execution context with CLI-supplied artifacts
     context = Context(artifacts=cli_context)
 
     try:
-        # Execute the recipe
+        # Execute the specified recipe
         executor = RecipeExecutor()
         executor.execute(args.recipe_path, context, logger=logger)
     except Exception as e:

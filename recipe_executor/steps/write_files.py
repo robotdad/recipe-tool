@@ -65,10 +65,10 @@ class WriteFilesStep(BaseStep[WriteFilesConfig]):
         except Exception as e:
             raise ValueError(f"Error rendering root path '{self.config.root}': {str(e)}")
 
-        # Process each file: render file path, create directories, and write the file
+        # Process each file: resolve file path, create directories, and write the file
         for file in files:
             try:
-                # Render the file path using context; file.path may contain template variables
+                # Render the file path; file.path may contain template variables
                 rel_path = render_template(file.path, context)
                 full_path = os.path.join(output_root, rel_path)
 

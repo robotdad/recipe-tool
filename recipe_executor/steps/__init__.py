@@ -6,12 +6,10 @@ from recipe_executor.steps.read_file import ReadFileStep
 from recipe_executor.steps.write_files import WriteFilesStep
 
 # Register steps by updating the registry
-action_map = {
+STEP_REGISTRY.update({
     "execute_recipe": ExecuteRecipeStep,
     "generate": GenerateWithLLMStep,
     "parallel": ParallelStep,
     "read_file": ReadFileStep,
     "write_files": WriteFilesStep,
-}
-
-STEP_REGISTRY.update(action_map)
+})

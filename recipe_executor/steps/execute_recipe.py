@@ -20,7 +20,15 @@ class ExecuteRecipeConfig(StepConfig):
 
 
 class ExecuteRecipeStep(BaseStep[ExecuteRecipeConfig]):
-    """Step to execute a sub-recipe using a provided recipe file path and context overrides."""
+    """Step to execute a sub-recipe using a provided recipe file path and context overrides.
+
+    This step:
+      - Applies template rendering on the recipe path and on context overrides.
+      - Shares the current context with the sub-recipe, modifying it as needed with overrides.
+      - Validates that the sub-recipe file exists before executing it.
+      - Logs the start and completion details of sub-recipe execution.
+      - Uses the existing RecipeExecutor to run the sub-recipe.
+    """
 
     def __init__(self, config: dict, logger: Optional[logging.Logger] = None) -> None:
         # Initialize with config converted by ExecuteRecipeConfig
