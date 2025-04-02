@@ -5,10 +5,6 @@
       "substeps": [
         {
           "type": "execute_recipe",
-          "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/steps_create.json"
-        },
-        {
-          "type": "execute_recipe",
           "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/registry/registry_create.json"
         },
         {
