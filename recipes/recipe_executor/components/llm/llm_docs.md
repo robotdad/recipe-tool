@@ -40,15 +40,75 @@ result = call_llm(
     prompt="Create a React component for a user profile page.",
     model="openai:o3-mini"
 )
+```
 
-# Access generated files
-for file in result.files:
-    print(f"File: {file.path}")
-    print(file.content)
+```python
+def get_model(model_id: str) -> Union[OpenAIModel, AnthropicModel, GeminiModel]:
+    """
+    Initialize an LLM model based on a standardized model_id string.
+    Expected format: 'provider:model_name' or 'provider:model_name:deployment_name'.
 
-# Access commentary
-if result.commentary:
-    print(f"Commentary: {result.commentary}")
+    Supported providers:
+    - openai
+    - anthropic
+    - gemini
+    - azure (for Azure OpenAI, use 'azure:model_name:deployment_name' or 'azure:model_name')
+
+    Args:
+        model_id (str): Model identifier in format 'provider:model_name'
+            or 'provider:model_name:deployment_name'.
+            If None, defaults to 'openai:gpt-4o'.
+
+    Returns:
+        The model instance for the specified provider and model.
+
+    Raises:
+        ValueError: If model_id format is invalid or if the provider is unsupported.
+    """
+```
+
+Usage example:
+
+```python
+# Get an OpenAI model
+openai_model = get_model("openai:o3-mini")
+# Uses OpenAIModel('o3-mini')
+
+# Get an Anthropic model
+anthropic_model = get_model("anthropic:claude-3.7-sonnet-latest")
+# Uses AnthropicModel('claude-3.7-sonnet-latest')
+
+# Get a Gemini model
+gemini_model = get_model("gemini:gemini-pro")
+# Uses GeminiModel('gemini-pro')
+```
+
+```python
+def get_agent(model_id: Optional[str] = None) -> Agent[None, FileGenerationResult]:
+    """
+    Initialize an LLM agent with the specified model using structured output.
+
+    Args:
+        model_id (Optional[str]): Model identifier in format 'provider:model_name'.
+        If None, defaults to 'openai:gpt-4o'.
+
+    Returns:
+        Agent[None, FileGenerationResult]: A configured Agent ready to process LLM requests and return structured results with files and commentary.
+    """
+```
+
+Usage example:
+
+```python
+# Get default agent (openai:gpt-4o)
+default_agent = get_agent()
+
+# Get agent with specific model
+custom_agent = get_agent(model_id="anthropic:claude-3.7-sonnet-latest")
+results = custom_agent.run_async("Generate a Python utility module for handling dates.")
+# Access FileGenerationResult
+file_generation_result = results.data
+
 ```
 
 ## Model ID Format
@@ -65,82 +125,11 @@ azure:model_name:deployment_name
 
 ### Supported providers:
 
-#### Azure OpenAI
-
-```python
-# Example model IDs
-model=`azure:gpt-4o:deployment_name`
-model=`azure:o3-mini` # if deployment_name is the same as model_name
-```
-
-Authentication environment variables (.e.g., in .env file):
-
-```bash
-# Option 1: Managed identity with default managed identity
-AZURE_USE_MANAGED_IDENTITY=true # Set to true to use managed identity
-AZURE_OPENAI_ENDPOINT= # Required
-AZURE_OPENAI_API_VERSION= # Optional, defaults to 2025-03-01-preview
-AZURE_OPENAI_DEPLOYMENT_NAME= # Optional, defaults to model_name
-```
-
-```bash
-# Option 2: Managed identity with custom client ID
-AZURE_USE_MANAGED_IDENTITY=true # Set to true to use managed identity
-AZURE_MANAGED_IDENTITY_CLIENT_ID= # Required
-AZURE_OPENAI_ENDPOINT= # Required
-AZURE_OPENAI_API_VERSION= # Optional, defaults to 2025-03-01-preview
-AZURE_OPENAI_DEPLOYMENT_NAME= # Optional, defaults to model_name
-```
-
-```bash
-# Option 3: API key authentication
-AZURE_OPENAI_API_KEY= # Required
-AZURE_OPENAI_ENDPOINT= # Required
-AZURE_OPENAI_API_VERSION= # Optional, defaults to 2025-03-01-preview
-AZURE_OPENAI_DEPLOYMENT_NAME= # Optional, defaults to model_name
-```
-
-````
-
-#### OpenAI
-
-```python
-# Example model IDs
-model=`openai:gpt-4o`
-model=`openai:o3-mini`
-````
-
-Authentication environment variables (.e.g., in .env file):
-
-```bash
-OPENAI_API_KEY= # Required
-```
-
-#### Anthropic
-
-```python
-# Example model IDs
-model=`anthropic:claude-3.7-sonnet-latest`
-```
-
-Authentication environment variables (.e.g., in .env file):
-
-```bash
-ANTHROPIC_API_KEY= # Required
-```
-
-#### Gemini
-
-```python
-# Example model IDs
-model=`gemini:gemini-2.5`
-```
-
-Authentication environment variables (.e.g., in .env file):
-
-```bash
-GEMINI_API_KEY= # Required
-```
+- **openai**: OpenAI models (e.g., `gpt-4o`, `o3-mini`)
+- **anthropic**: Anthropic models (e.g., `claude-3.7-sonnet-latest`)
+- **gemini**: Gemini models (e.g., `gemini-pro`)
+- **azure**: Azure OpenAI models (e.g., `azure:gpt-4o`, `azure:o3-mini`)
+- **azure**: Azure OpenAI models with custom deployment name (e.g., `azure:gpt-4o:my_deployment_name`)
 
 ## Error Handling
 
