@@ -3,15 +3,15 @@
 ## Importing
 
 ```python
-from recipe_executor.steps.write_files import WriteFilesStep, WriteFilessConfig
+from recipe_executor.steps.write_files import WriteFilesStep, WriteFilesConfig
 ```
 
 ## Configuration
 
-The WriteFilesStep is configured with a WriteFilessConfig:
+The WriteFilesStep is configured with a WriteFilesConfig:
 
 ```python
-class WriteFilessConfig(StepConfig):
+class WriteFilesConfig(StepConfig):
     """
     Config for WriteFilesStep.
 

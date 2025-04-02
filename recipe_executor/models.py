@@ -3,7 +3,8 @@ from pydantic import BaseModel
 
 
 class FileSpec(BaseModel):
-    """Represents a single file to be generated.
+    """
+    Represents a single file to be generated.
 
     Attributes:
         path (str): Relative path where the file should be written.
@@ -14,7 +15,8 @@ class FileSpec(BaseModel):
 
 
 class FileGenerationResult(BaseModel):
-    """Result of an LLM file generation request.
+    """
+    Result of an LLM file generation request.
 
     Attributes:
         files (List[FileSpec]): List of files to generate.
@@ -25,7 +27,8 @@ class FileGenerationResult(BaseModel):
 
 
 class RecipeStep(BaseModel):
-    """A single step in a recipe.
+    """
+    A single step in a recipe.
 
     Attributes:
         type (str): The type of the recipe step.
@@ -36,7 +39,8 @@ class RecipeStep(BaseModel):
 
 
 class Recipe(BaseModel):
-    """A complete recipe with multiple steps.
+    """
+    A complete recipe with multiple steps.
 
     Attributes:
         steps (List[RecipeStep]): A list containing the steps of the recipe.

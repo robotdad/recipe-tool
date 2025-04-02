@@ -1,26 +1,10 @@
 from typing import Any
 
 from liquid import Template
+# Depending on the version of the liquid library, errors might originate from different submodules.
+# For now, we catch all exceptions during rendering.
 
 from recipe_executor.context import Context
-
-
-def _convert_values_to_str(value: Any) -> Any:
-    """
-    Recursively convert all values in the provided data structure to strings.
-
-    Args:
-        value: The input value, which may be a dict, list, or primitive.
-
-    Returns:
-        The data structure with all values converted to strings.
-    """
-    if isinstance(value, dict):
-        return {k: _convert_values_to_str(v) for k, v in value.items()}
-    elif isinstance(value, list):
-        return [_convert_values_to_str(item) for item in value]
-    else:
-        return str(value)
 
 
 def render_template(text: str, context: Context) -> str:
@@ -39,13 +23,15 @@ def render_template(text: str, context: Context) -> str:
         ValueError: If there is an error during template rendering.
     """
     try:
-        # Get artifacts from the context and convert all values to strings
-        raw_context = context.as_dict()
-        str_context = _convert_values_to_str(raw_context)
-
-        # Create and render the Liquid template with the provided context
+        # Retrieve artifacts from the context and convert all values to strings to avoid type issues
+        context_dict = context.as_dict()
+        safe_context = { key: str(value) for key, value in context_dict.items() }
+        
+        # Create the Liquid template and render it using the safe_context
         template = Template(text)
-        rendered_text = template.render(**str_context)
-        return rendered_text
+        rendered = template.render(**safe_context)
+        return rendered
+
     except Exception as e:
-        raise ValueError(f"Template rendering failed: {e}") from e
+        # Wrap and raise a ValueError with additional context
+        raise ValueError(f"Error rendering template: {e}") from e

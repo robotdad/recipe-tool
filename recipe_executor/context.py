@@ -1,12 +1,12 @@
-from typing import Any, Dict, Optional, Iterator
 import copy
+from typing import Any, Dict, Iterator, Optional
 
 
 class Context:
     """
-    The Context class provides a shared state container for the Recipe Executor system.
-    It allows steps to store and retrieve artifacts and configuration options within
-    a recipe execution. This implementation follows a minimalist design as specified.
+    Context is the shared state container for the Recipe Executor system.
+    It provides a simple dictionary-like interface for storing and accessing artifacts
+    and maintains a separate configuration for use during recipe execution.
     """
 
     def __init__(self, artifacts: Optional[Dict[str, Any]] = None, config: Optional[Dict[str, Any]] = None) -> None:
@@ -14,37 +14,37 @@ class Context:
         Initialize the Context with optional artifacts and configuration.
 
         Args:
-            artifacts: Initial artifacts to store
-            config: Configuration values
+            artifacts: Initial artifacts to store in the context.
+            config: Configuration values for the context.
         """
-        # Use deep copy to prevent external modifications
+        # Use deep copy to ensure data isolation
         self._artifacts: Dict[str, Any] = copy.deepcopy(artifacts) if artifacts is not None else {}
         self.config: Dict[str, Any] = copy.deepcopy(config) if config is not None else {}
 
     def __getitem__(self, key: str) -> Any:
         """
-        Dictionary-like access to artifacts.
+        Retrieve an artifact by key. Raises KeyError with a descriptive error message if key does not exist.
 
         Args:
-            key: The key of the artifact to retrieve
+            key: The key of the artifact.
 
         Returns:
-            The value associated with the key
+            The artifact associated with the key.
 
         Raises:
-            KeyError: If the key does not exist
+            KeyError: If the key is not found in the artifacts.
         """
-        if key in self._artifacts:
-            return self._artifacts[key]
-        raise KeyError(f"Key '{key}' not found in context artifacts.")
+        if key not in self._artifacts:
+            raise KeyError(f"Artifact '{key}' not found in context.")
+        return self._artifacts[key]
 
     def __setitem__(self, key: str, value: Any) -> None:
         """
-        Dictionary-like setting of artifacts.
+        Set an artifact in the context.
 
         Args:
-            key: The key to be set
-            value: The value to associate with the key
+            key: The key under which the artifact is stored.
+            value: The artifact value to store.
         """
         self._artifacts[key] = value
 
@@ -53,68 +53,69 @@ class Context:
         Get an artifact with an optional default value if the key is missing.
 
         Args:
-            key: The key to retrieve
-            default: The value to return if key is not found
+            key: The key to retrieve.
+            default: The value to return if key is not found.
 
         Returns:
-            The value associated with the key or the default value
+            The artifact associated with the key or the default value if not found.
         """
         return self._artifacts.get(key, default)
 
     def __contains__(self, key: str) -> bool:
         """
-        Check if a key exists in artifacts.
+        Check if a key exists in the artifacts.
 
         Args:
-            key: The key to check
+            key: The key to check.
 
         Returns:
-            True if the key exists, False otherwise
+            True if the key exists, False otherwise.
         """
         return key in self._artifacts
 
     def __iter__(self) -> Iterator[str]:
         """
-        Iterate over the artifact keys. Converts keys to a list for safe iteration.
+        Return an iterator over the artifact keys.
 
         Returns:
-            An iterator over the keys of the artifacts
+            An iterator over the keys of the artifacts.
         """
-        # Convert keys to a list to prevent issues if artifacts are modified during iteration
+        # Convert keys to a list to isolate internal state from modifications
         return iter(list(self._artifacts.keys()))
 
     def keys(self) -> Iterator[str]:
         """
-        Return an iterator over the keys of artifacts.
+        Return an iterator over the artifact keys.
 
         Returns:
-            An iterator over artifact keys
+            An iterator over the keys of the artifacts.
         """
-        return self.__iter__()
+        return iter(list(self._artifacts.keys()))
 
     def __len__(self) -> int:
         """
         Return the number of artifacts stored in the context.
 
         Returns:
-            The number of artifacts
+            The number of stored artifacts.
         """
         return len(self._artifacts)
 
     def as_dict(self) -> Dict[str, Any]:
         """
-        Return a copy of the artifacts as a dictionary to ensure immutability.
+        Return a deep copy of the artifacts dictionary.
+        This ensures the internal state is isolated from external modification.
 
         Returns:
-            A copy of the artifacts dictionary
+            A deep copy of the artifacts dictionary.
         """
         return copy.deepcopy(self._artifacts)
 
-    def clone(self) -> 'Context':
+    def clone(self) -> "Context":
         """
         Return a deep copy of the current context, including artifacts and configuration.
 
         Returns:
-            A new Context object with a deep copy of the current state
+            A new Context instance with copies of the current artifacts and configuration.
         """
         return Context(artifacts=copy.deepcopy(self._artifacts), config=copy.deepcopy(self.config))
