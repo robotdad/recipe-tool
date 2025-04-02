@@ -12,11 +12,11 @@ This recipe demonstrates a simple workflow.
   {
     "type": "generate",
     "prompt": "Using the following specification, generate a Python script that prints 'Hello, Test!'.\n\nSpecification:\n${spec_text}",
-    "artifact": "generated_code",
-    "model": "openai:o3-mini"
+    "model": "{{model|default:'openai:o3-mini'}}",
+    "artifact": "generated_code"
   },
   {
-    "type": "write_file",
+    "type": "write_files",
     "artifact": "generated_code",
     "root": "output"
   }

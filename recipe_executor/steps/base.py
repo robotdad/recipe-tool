@@ -9,45 +9,42 @@ from recipe_executor.context import Context
 
 class StepConfig(BaseModel):
     """
-    Base class for all step configurations. Extend this class to add custom configuration fields.
-    """
+    Base class for step configurations.
 
+    Extend this class to create custom configuration models for steps.
+    """
     pass
 
 
-# Type variable for generic configuration types, bound to StepConfig
+# Type variable for generic configuration type
 ConfigType = TypeVar("ConfigType", bound=StepConfig)
 
 
-class BaseStep(ABC, Generic[ConfigType]):
+class BaseStep(Generic[ConfigType], ABC):
     """
-    Abstract base class for all steps. Subclasses should implement the execute method.
+    Base abstract class for all steps in the Recipe Executor system.
 
-    Attributes:
-        config (ConfigType): The configuration for the step, validated via Pydantic.
-        logger (logging.Logger): Logger instance for logging messages during execution.
+    Each concrete step must inherit from this class and implement the execute method.
+
+    Args:
+        config (ConfigType): The step configuration object validated via Pydantic.
+        logger (Optional[logging.Logger]): Logger instance, defaults to 'RecipeExecutor' if not provided.
     """
-
     def __init__(self, config: ConfigType, logger: Optional[logging.Logger] = None) -> None:
-        self.config = config
-        self.logger = logger or logging.getLogger("RecipeExecutor")
-        if not self.logger.handlers:
-            # Basic handler setup if no handlers are present, ensuring logging output
-            handler = logging.StreamHandler()
-            formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-            handler.setFormatter(formatter)
-            self.logger.addHandler(handler)
-            self.logger.setLevel(logging.INFO)
+        self.config: ConfigType = config
+        self.logger: logging.Logger = logger or logging.getLogger("RecipeExecutor")
+        self.logger.debug(f"Initialized {self.__class__.__name__} with config: {self.config.dict()}" if hasattr(self.config, 'dict') else f"Initialized {self.__class__.__name__}")
 
     @abstractmethod
     def execute(self, context: Context) -> None:
         """
-        Execute the step using a provided context.
+        Execute the step using the provided context.
 
         Args:
-            context (Context): Shared context object carrying data between steps.
+            context (Context): The execution context for the recipe, enabling data sharing between steps.
 
         Raises:
-            NotImplementedError: If the subclass does not implement this method.
+            NotImplementedError: Must be implemented by subclasses.
         """
-        raise NotImplementedError("Subclasses must implement the execute method.")
+        # Subclasses must override this method.
+        raise NotImplementedError(f"Each step must implement the execute method. {self.__class__.__name__} did not.")

@@ -2,7 +2,7 @@
   "steps": [
     {
       "type": "read_file",
-      "path": "recipes/component_blueprint_generator/includes/templates/spec_template.md",
+      "path": "recipes/component_blueprint_generator/includes/spec_template.md",
       "artifact": "spec_template"
     },
     {
@@ -12,7 +12,7 @@
       "artifact": "generated_spec"
     },
     {
-      "type": "write_file",
+      "type": "write_files",
       "artifact": "generated_spec",
       "root": "{{output_root|default:'output'}}/{{target_project}}/specs"
     }

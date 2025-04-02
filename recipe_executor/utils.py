@@ -5,47 +5,31 @@ from liquid import Template
 from recipe_executor.context import Context
 
 
-def _convert_values_to_str(value: Any) -> Any:
-    """
-    Recursively convert all values in the provided data structure to strings.
-
-    Args:
-        value: The input value, which may be a dict, list, or primitive.
-
-    Returns:
-        The data structure with all values converted to strings.
-    """
-    if isinstance(value, dict):
-        return {k: _convert_values_to_str(v) for k, v in value.items()}
-    elif isinstance(value, list):
-        return [_convert_values_to_str(item) for item in value]
-    else:
-        return str(value)
-
-
 def render_template(text: str, context: Context) -> str:
     """
     Render the given text as a Liquid template using the provided context.
     All values in the context are converted to strings before rendering.
 
     Args:
-        text (str): The template text to render.
-        context (Context): The context for rendering the template.
+        text (str): The Liquid template text to be rendered.
+        context (Context): The context containing values for substitution.
 
     Returns:
-        str: The rendered text.
+        str: The rendered template string.
 
     Raises:
-        ValueError: If there is an error during template rendering.
+        ValueError: When there is an error during template rendering.
     """
     try:
-        # Get artifacts from the context and convert all values to strings
-        raw_context = context.as_dict()
-        str_context = _convert_values_to_str(raw_context)
-
-        # Create and render the Liquid template with the provided context
+        # Retrieve all artifacts from the context as a dictionary.
+        # Convert each value to a string to ensure compatibility with the Liquid engine.
+        context_dict = context.as_dict()
+        safe_context = {key: str(value) for key, value in context_dict.items()}
+        
+        # Create the Liquid template and render it using the prepared safe context.
         template = Template(text)
-        rendered_text = template.render(**str_context)
-        return rendered_text
+        rendered = template.render(**safe_context)
+        return rendered
     except Exception as e:
-        raise ValueError(f"Template rendering failed: {e}") from e
+        # Raise a ValueError wrapping the original error with a clear error message.
+        raise ValueError(f"Error rendering template: {e}") from e

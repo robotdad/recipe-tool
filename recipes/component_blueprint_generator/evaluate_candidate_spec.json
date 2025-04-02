@@ -7,17 +7,17 @@
     },
     {
       "type": "read_file",
-      "path": "recipes/component_blueprint_generator/includes/SPEC_DOC_GUIDE.md",
+      "path": "ai_context/SPEC_DOC_GUIDE.md",
       "artifact": "spec_doc_guide"
     },
     {
       "type": "read_file",
-      "path": "recipes/codebase_generator/includes/IMPLEMENTATION_PHILOSOPHY.md",
+      "path": "ai_context/IMPLEMENTATION_PHILOSOPHY.md",
       "artifact": "implementation_philosophy"
     },
     {
       "type": "read_file",
-      "path": "recipes/component_blueprint_generator/includes/MODULAR_DESIGN_PHILOSOPHY.md",
+      "path": "ai_context/MODULAR_DESIGN_PHILOSOPHY.md",
       "artifact": "modular_design_philosophy"
     },
     {
@@ -33,7 +33,7 @@
       "artifact": "formatted_evaluation"
     },
     {
-      "type": "write_file",
+      "type": "write_files",
       "artifact": "formatted_evaluation",
       "root": "{{output_root|default:'output'}}"
     }

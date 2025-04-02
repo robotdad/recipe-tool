@@ -2,7 +2,7 @@
   "steps": [
     {
       "type": "read_file",
-      "path": "recipes/component_blueprint_generator/includes/templates/doc_template.md",
+      "path": "recipes/component_blueprint_generator/includes/doc_template.md",
       "artifact": "doc_template"
     },
     {
@@ -12,7 +12,7 @@
       "artifact": "generated_doc"
     },
     {
-      "type": "write_file",
+      "type": "write_files",
       "artifact": "generated_doc",
       "root": "{{output_root|default:'output'}}/{{target_project}}/docs"
     }

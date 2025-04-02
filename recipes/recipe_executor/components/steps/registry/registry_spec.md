@@ -1,0 +1,51 @@
+# Step Registry Component Specification
+
+## Purpose
+
+The Step Registry component provides a central mechanism for registering and looking up step implementations by their type names. It enables the dynamic discovery of step classes during recipe execution.
+
+## Core Requirements
+
+- Provide a simple mapping between step type names and their implementation classes
+- Support registration of step implementations from anywhere in the codebase
+- Enable the executor to look up step classes by their type name
+- Follow a minimal, dictionary-based approach with no unnecessary complexity
+
+## Implementation Considerations
+
+- Use a single, global dictionary to store all step registrations
+- Allow steps to register themselves upon import
+- Keep the registry structure simple and stateless
+- Avoid unnecessary abstractions or wrapper functions
+
+## Additional Files
+
+Create the `__init__.py` file in the `steps` directory to ensure it is treated as a package. Steps are registered in the steps package `__init__.py`:
+
+```python
+# In recipe_executor/steps/__init__.py
+from recipe_executor.steps.registry import STEP_REGISTRY
+from recipe_executor.steps.execute_recipe import ExecuteRecipeStep
+from recipe_executor.steps.generate_llm import GenerateWithLLMStep
+from recipe_executor.steps.parallel import ParallelStep
+from recipe_executor.steps.read_file import ReadFileStep
+from recipe_executor.steps.write_files import WriteFilesStep
+
+# Register steps by updating the registry
+STEP_REGISTRY.update({
+    "execute_recipe": ExecuteRecipeStep,
+    "generate": GenerateWithLLMStep,
+    "parallel": ParallelStep,
+    "read_file": ReadFileStep,
+    "write_files": WriteFilesStep,
+})
+```
+
+## Component Dependencies
+
+The Step Registry component has no external dependencies on other Recipe Executor components.
+
+## Future Considerations
+
+- Dynamic loading of external step implementations
+- Step metadata and documentation
