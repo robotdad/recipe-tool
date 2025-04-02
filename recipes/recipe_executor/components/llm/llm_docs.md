@@ -11,7 +11,7 @@ from recipe_executor.llm import call_llm
 The LLM component provides one main function:
 
 ```python
-def call_llm(prompt: str, model: Optional[str] = None) -> FileGenerationResult:
+def call_llm(prompt: str, model: Optional[str] = None, logger: Optional[logging.Logger] = "RecipeExecutor") -> FileGenerationResult:
     """
     Call the LLM with the given prompt and return a structured FileGenerationResult.
 
@@ -19,12 +19,13 @@ def call_llm(prompt: str, model: Optional[str] = None) -> FileGenerationResult:
         prompt (str): The prompt string to be sent to the LLM.
         model (Optional[str]): The model identifier in the format 'provider:model_name' (or 'provider:model_name:deployment_name').
         If None, defaults to 'openai:gpt-4o'.
+        logger (Optional[logging.Logger]): Logger instance, defaults to "RecipeExecutor"
 
     Returns:
         FileGenerationResult: The structured result data containing generated files and commentary.
 
     Raises:
-        Exception: If LLM call fails or result validation fails.
+        Exception: If model value cannot be mapped to valid provider/model_name , LLM call fails, or result validation fails.
     """
 ```
 
@@ -62,12 +63,84 @@ Additional option for Azure OpenAI (otherwise assume deployment_name is the same
 azure:model_name:deployment_name
 ```
 
-Supported providers:
+### Supported providers:
 
-- `azure`: Azure OpenAI models (e.g., `azure:gpt-4o:deployment_name` or `azure:gpt-4o`)
-- `openai`: OpenAI models (e.g., `openai:gpt-4o`, `openai:o3-mini`)
-- `anthropic`: Anthropic models (e.g., `anthropic:claude-3.7-sonnet-latest`)
-- `gemini`: Google Gemini models (e.g., `gemini:gemini-pro`)
+#### Azure OpenAI
+
+```python
+# Example model IDs
+model=`azure:gpt-4o:deployment_name`
+model=`azure:o3-mini` # if deployment_name is the same as model_name
+```
+
+Authentication environment variables (.e.g., in .env file):
+
+```bash
+# Option 1: Managed identity with default managed identity
+AZURE_USE_MANAGED_IDENTITY=true # Set to true to use managed identity
+AZURE_OPENAI_ENDPOINT= # Required
+AZURE_OPENAI_API_VERSION= # Optional, defaults to 2025-03-01-preview
+AZURE_OPENAI_DEPLOYMENT_NAME= # Optional, defaults to model_name
+```
+
+```bash
+# Option 2: Managed identity with custom client ID
+AZURE_USE_MANAGED_IDENTITY=true # Set to true to use managed identity
+AZURE_MANAGED_IDENTITY_CLIENT_ID= # Required
+AZURE_OPENAI_ENDPOINT= # Required
+AZURE_OPENAI_API_VERSION= # Optional, defaults to 2025-03-01-preview
+AZURE_OPENAI_DEPLOYMENT_NAME= # Optional, defaults to model_name
+```
+
+```bash
+# Option 3: API key authentication
+AZURE_OPENAI_API_KEY= # Required
+AZURE_OPENAI_ENDPOINT= # Required
+AZURE_OPENAI_API_VERSION= # Optional, defaults to 2025-03-01-preview
+AZURE_OPENAI_DEPLOYMENT_NAME= # Optional, defaults to model_name
+```
+
+````
+
+#### OpenAI
+
+```python
+# Example model IDs
+model=`openai:gpt-4o`
+model=`openai:o3-mini`
+````
+
+Authentication environment variables (.e.g., in .env file):
+
+```bash
+OPENAI_API_KEY= # Required
+```
+
+#### Anthropic
+
+```python
+# Example model IDs
+model=`anthropic:claude-3.7-sonnet-latest`
+```
+
+Authentication environment variables (.e.g., in .env file):
+
+```bash
+ANTHROPIC_API_KEY= # Required
+```
+
+#### Gemini
+
+```python
+# Example model IDs
+model=`gemini:gemini-2.5`
+```
+
+Authentication environment variables (.e.g., in .env file):
+
+```bash
+GEMINI_API_KEY= # Required
+```
 
 ## Error Handling
 
@@ -103,8 +176,7 @@ def execute(self, context: Context) -> None:
 
 ## Important Notes
 
-1. Calling a model incurs API costs with the respective provider
-2. OpenAI is the default provider if none is specified
-3. The component logs request details at debug level
-4. Responses are validated against the FileGenerationResult model
-5. The llm calls will retry 3 times for transient errors
+- Calling a model incurs API costs with the respective provider
+- OpenAI is the default provider if none is specified
+- The component logs request details at debug level
+- Responses are validated against the FileGenerationResult model

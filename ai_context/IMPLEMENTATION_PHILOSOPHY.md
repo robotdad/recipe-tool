@@ -78,7 +78,7 @@ This development philosophy values clear documentation, readable code, and belie
 
 ### LLM Integration
 
-- Direct integration with Pydantic AI
+- Direct integration with PydanticAI
 - Minimal transformation of responses
 - Handle common error cases only
 - Skip elaborate caching initially

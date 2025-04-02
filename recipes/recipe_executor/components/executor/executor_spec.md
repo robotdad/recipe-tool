@@ -15,7 +15,6 @@ The Executor component is the central orchestration mechanism for the Recipe Exe
 ## Implementation Considerations
 
 - Parse recipes from file paths, JSON strings, or dictionaries
-- Extract JSON from markdown fenced code blocks when present
 - Use direct instantiation of step classes from the registry
 - Handle errors at both recipe and step levels
 - Maintain a simple, stateless design
@@ -29,7 +28,7 @@ The Executor component depends on:
 
 ## Logging
 
-- Debug: Log recipe loading (with file name), parsing, and step execution details
+- Debug: Log recipe start, file name, parsed payload, step execution details, and completion
 - Info: None
 
 ## Error Handling
