@@ -18,6 +18,29 @@ The Step Registry component provides a central mechanism for registering and loo
 - Keep the registry structure simple and stateless
 - Avoid unnecessary abstractions or wrapper functions
 
+## Additional Files
+
+Create the `__init__.py` file in the `steps` directory to ensure it is treated as a package. Steps are registered in the steps package `__init__.py`:
+
+```python
+# In recipe_executor/steps/__init__.py
+from recipe_executor.steps.registry import STEP_REGISTRY
+from recipe_executor.steps.execute_recipe import ExecuteRecipeStep
+from recipe_executor.steps.generate_llm import GenerateWithLLMStep
+from recipe_executor.steps.parallel import ParallelStep
+from recipe_executor.steps.read_file import ReadFileStep
+from recipe_executor.steps.write_files import WriteFilesStep
+
+# Register steps by updating the registry
+STEP_REGISTRY.update({
+    "execute_recipe": ExecuteRecipeStep,
+    "generate": GenerateWithLLMStep,
+    "parallel": ParallelStep,
+    "read_file": ReadFileStep,
+    "write_files": WriteFilesStep,
+})
+```
+
 ## Component Dependencies
 
 The Step Registry component has no external dependencies on other Recipe Executor components.

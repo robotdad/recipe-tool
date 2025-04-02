@@ -1,12 +1,12 @@
 import time
-from concurrent.futures import ThreadPoolExecutor, Future, as_completed
+from concurrent.futures import Future, ThreadPoolExecutor, as_completed
 from typing import Any, Dict, List
 
+from pydantic import BaseModel
+
+from recipe_executor.context import Context
 from recipe_executor.steps.base import BaseStep, StepConfig
 from recipe_executor.steps.registry import STEP_REGISTRY
-from recipe_executor.context import Context
-
-from pydantic import BaseModel
 
 
 class ParallelConfig(StepConfig, BaseModel):
@@ -17,6 +17,7 @@ class ParallelConfig(StepConfig, BaseModel):
         max_concurrency: Maximum number of substeps to run concurrently. Default of 0 means no explicit limit.
         delay: Optional delay (in seconds) between launching each substep. Default is 0.
     """
+
     substeps: List[Dict[str, Any]]
     max_concurrency: int = 0
     delay: float = 0.0
@@ -27,6 +28,7 @@ class ParallelStep(BaseStep[ParallelConfig]):
 
     It clones the current context for each substep, launches them in a ThreadPoolExecutor, and enforces fail-fast behavior.
     """
+
     def __init__(self, config: dict, logger: Any = None) -> None:
         # Initialize configuration via Pydantic validation
         super().__init__(ParallelConfig(**config), logger)
