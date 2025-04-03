@@ -1,22 +1,27 @@
 {
   "steps": [
     {
-      "type": "read_file",
-      "path": "{{project_recipe_path}}/{{component_id}}/{{component_id}}_spec.md",
+      "type": "read_files",
+      "path": "{{target_project}}/components/{{component_id}}/{{component_id}}.py",
+      "artifact": "existing_code"
+    },
+    {
+      "type": "read_files",
+      "path": "{{project_recipe_path}}/components/{{component_id}}/{{component_id}}_spec.md",
       "artifact": "spec"
     },
     {
-      "type": "read_file",
-      "path": "{{project_recipe_path}}/{{component_id}}/{{component_id}}_docs.md",
+      "type": "read_files",
+      "path": "{{project_recipe_path}}/components/{{component_id}}/{{component_id}}_docs.md",
       "artifact": "usage_docs"
     },
     {
-      "type": "read_file",
+      "type": "read_files",
       "path": "ai_context/IMPLEMENTATION_PHILOSOPHY.md",
       "artifact": "implementation_philosophy"
     },
     {
-      "type": "read_file",
+      "type": "read_files",
       "path": "ai_context/MODULAR_DESIGN_PHILOSOPHY.md",
       "artifact": "modular_design_philosophy"
     },
@@ -31,6 +36,7 @@
         "language": "{{language|default:'python'}}",
         "spec": "{{spec}}",
         "usage_docs": "{{usage_docs}}",
+        "existing_code": "{{existing_code}}",
         "additional_content": "<IMPLEMENTATION_PHILOSOPHY>\n{{implementation_philosophy}}\n</IMPLEMENTATION_PHILOSOPHY>\n<MODULAR_DESIGN_PHILOSOPHY>\n{{modular_design_philosophy}}\n</MODULAR_DESIGN_PHILOSOPHY>\n{% if related_docs %}<RELATED_DOCS>\n{{related_docs}}\n</RELATED_DOCS>{% endif %}"
       }
     }

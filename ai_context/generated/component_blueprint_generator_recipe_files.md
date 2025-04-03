@@ -1,23 +1,23 @@
-=== File: recipes/component_blueprint_generator/build_blueprint.json ===
+=== File: recipes/blueprint_generator/build_blueprint.json ===
 {
 "steps": [
 {
-"type": "read_file",
+"type": "read_files",
 "path": "{{candidate_spec_path}}",
 "artifact": "candidate_spec"
 },
 {
-"type": "read_file",
+"type": "read_files",
 "path": "ai_context/COMPONENT_DOCS_SPEC_GUIDE.md",
 "artifact": "COMPONENT_DOCS_SPEC_GUIDE"
 },
 {
-"type": "read_file",
+"type": "read_files",
 "path": "ai_context/IMPLEMENTATION_PHILOSOPHY.md",
 "artifact": "implementation_philosophy"
 },
 {
-"type": "read_file",
+"type": "read_files",
 "path": "ai_context/MODULAR_DESIGN_PHILOSOPHY.md",
 "artifact": "modular_design_philosophy"
 },
@@ -29,7 +29,7 @@
 },
 {
 "type": "execute_recipe",
-"recipe_path": "recipes/component_blueprint_generator/create.json",
+"recipe_path": "recipes/blueprint_generator/create.json",
 "context_overrides": {
 "candidate_spec": "{{candidate_spec}}",
 "component_id": "{{component_id|default:extracted_info.component_id}}",
@@ -47,63 +47,63 @@
 ]
 }
 
-=== File: recipes/component_blueprint_generator/create.json ===
+=== File: recipes/blueprint_generator/create.json ===
 {
 "steps": [
 {
-"type": "read_file",
+"type": "read_files",
 "path": "ai_context/COMPONENT_DOCS_SPEC_GUIDE.md",
 "artifact": "COMPONENT_DOCS_SPEC_GUIDE"
 },
 {
-"type": "read_file",
+"type": "read_files",
 "path": "ai_context/IMPLEMENTATION_PHILOSOPHY.md",
 "artifact": "implementation_philosophy"
 },
 {
-"type": "read_file",
+"type": "read_files",
 "path": "ai_context/MODULAR_DESIGN_PHILOSOPHY.md",
 "artifact": "modular_design_philosophy"
 },
 {
 "type": "execute_recipe",
-"recipe_path": "recipes/component_blueprint_generator/recipes/create_spec.json"
+"recipe_path": "recipes/blueprint_generator/recipes/create_spec.json"
 },
 {
 "type": "execute_recipe",
-"recipe_path": "recipes/component_blueprint_generator/recipes/create_docs.json"
+"recipe_path": "recipes/blueprint_generator/recipes/create_docs.json"
 },
 {
 "type": "execute_recipe",
-"recipe_path": "recipes/component_blueprint_generator/recipes/create_recipes.json"
+"recipe_path": "recipes/blueprint_generator/recipes/create_recipes.json"
 },
 {
 "type": "execute_recipe",
-"recipe_path": "recipes/component_blueprint_generator/recipes/finalize_blueprint.json"
+"recipe_path": "recipes/blueprint_generator/recipes/finalize_blueprint.json"
 }
 ]
 }
 
-=== File: recipes/component_blueprint_generator/evaluate_candidate_spec.json ===
+=== File: recipes/blueprint_generator/evaluate_candidate_spec.json ===
 {
 "steps": [
 {
-"type": "read_file",
+"type": "read_files",
 "path": "{{candidate_spec_path}}",
 "artifact": "candidate_spec"
 },
 {
-"type": "read_file",
+"type": "read_files",
 "path": "ai_context/COMPONENT_DOCS_SPEC_GUIDE.md",
 "artifact": "COMPONENT_DOCS_SPEC_GUIDE"
 },
 {
-"type": "read_file",
+"type": "read_files",
 "path": "ai_context/IMPLEMENTATION_PHILOSOPHY.md",
 "artifact": "implementation_philosophy"
 },
 {
-"type": "read_file",
+"type": "read_files",
 "path": "ai_context/MODULAR_DESIGN_PHILOSOPHY.md",
 "artifact": "modular_design_philosophy"
 },
@@ -127,7 +127,7 @@
 ]
 }
 
-=== File: recipes/component_blueprint_generator/examples/README.md ===
+=== File: recipes/blueprint_generator/examples/README.md ===
 
 # Component Blueprint Generator Examples
 
@@ -144,8 +144,8 @@ The `auth_candidate_spec.md` file provides a sample candidate specification for 
 First, evaluate the candidate specification to check for completeness and identify areas that need clarification:
 
 ```bash
-python recipe_executor/main.py recipes/component_blueprint_generator/evaluate_candidate_spec.json \
-  --context candidate_spec_path=recipes/component_blueprint_generator/examples/auth_candidate_spec.md \
+python recipe_executor/main.py recipes/blueprint_generator/evaluate_candidate_spec.json \
+  --context candidate_spec_path=recipes/blueprint_generator/examples/auth_candidate_spec.md \
   --context output_root=output
 ```
 
@@ -156,8 +156,8 @@ This will generate an evaluation report in the `output` directory, which will hi
 If the evaluation indicates that the specification needs improvement, generate specific clarification questions:
 
 ```bash
-python recipe_executor/main.py recipes/component_blueprint_generator/generate_clarification_questions.json \
-  --context candidate_spec_path=recipes/component_blueprint_generator/examples/auth_candidate_spec.md \
+python recipe_executor/main.py recipes/blueprint_generator/generate_clarification_questions.json \
+  --context candidate_spec_path=recipes/blueprint_generator/examples/auth_candidate_spec.md \
   --context output_root=output
 ```
 
@@ -168,8 +168,8 @@ This will create a structured document with targeted questions organized by cate
 Once you've reviewed the evaluation and potentially improved the specification based on the clarification questions, generate the complete component blueprint:
 
 ```bash
-python recipe_executor/main.py recipes/component_blueprint_generator/build_blueprint.json \
-  --context candidate_spec_path=recipes/component_blueprint_generator/examples/auth_candidate_spec.md \
+python recipe_executor/main.py recipes/blueprint_generator/build_blueprint.json \
+  --context candidate_spec_path=recipes/blueprint_generator/examples/auth_candidate_spec.md \
   --context component_id=auth \
   --context component_name="Authentication" \
   --context target_project=example_project \
@@ -246,7 +246,7 @@ To create your own example candidate specifications:
 
 The more detail you provide in your candidate specification, the more complete the generated blueprint will be. However, the system is designed to help identify gaps, so even incomplete specifications can be a good starting point.
 
-=== File: recipes/component_blueprint_generator/examples/auth_candidate_spec.md ===
+=== File: recipes/blueprint_generator/examples/auth_candidate_spec.md ===
 
 # Authentication Component Specification
 
@@ -301,26 +301,26 @@ def admin_route():
     return {"message": "Admin access granted"}
 ```
 
-=== File: recipes/component_blueprint_generator/generate_clarification_questions.json ===
+=== File: recipes/blueprint_generator/generate_clarification_questions.json ===
 {
 "steps": [
 {
-"type": "read_file",
+"type": "read_files",
 "path": "{{candidate_spec_path}}",
 "artifact": "candidate_spec"
 },
 {
-"type": "read_file",
+"type": "read_files",
 "path": "ai_context/COMPONENT_DOCS_SPEC_GUIDE.md",
 "artifact": "COMPONENT_DOCS_SPEC_GUIDE"
 },
 {
-"type": "read_file",
+"type": "read_files",
 "path": "ai_context/IMPLEMENTATION_PHILOSOPHY.md",
 "artifact": "implementation_philosophy"
 },
 {
-"type": "read_file",
+"type": "read_files",
 "path": "ai_context/MODULAR_DESIGN_PHILOSOPHY.md",
 "artifact": "modular_design_philosophy"
 },
@@ -344,28 +344,28 @@ def admin_route():
 ]
 }
 
-=== File: recipes/component_blueprint_generator/includes/create_recipe_template.json ===
+=== File: recipes/blueprint_generator/includes/create_recipe_template.json ===
 {
 "steps": [
 {
-"type": "read_file",
+"type": "read_files",
 "path": "{{project_recipe_path}}/specs/{{component_id}}.md",
 "artifact": "spec"
 },
 {
-"type": "read_file",
+"type": "read_files",
 "path": "{{project_recipe_path}}/docs/{{component_id}}.md",
 "artifact": "usage_docs",
 "optional": true
 },
 {
-"type": "read_file",
+"type": "read_files",
 "path": "ai_context/IMPLEMENTATION_PHILOSOPHY.md",
 "artifact": "implementation_philosophy",
 "optional": true
 },
 {
-"type": "read_file",
+"type": "read_files",
 "path": "ai_context/MODULAR_DESIGN_PHILOSOPHY.md",
 "artifact": "modular_design_philosophy",
 "optional": true
@@ -387,7 +387,7 @@ def admin_route():
 ]
 }
 
-=== File: recipes/component_blueprint_generator/includes/docs_template.md ===
+=== File: recipes/blueprint_generator/includes/docs_template.md ===
 
 # {{component_name}} Component Usage
 
@@ -450,34 +450,34 @@ Example:
 2. [Important note 2]
 3. ...
 
-=== File: recipes/component_blueprint_generator/includes/edit_recipe_template.json ===
+=== File: recipes/blueprint_generator/includes/edit_recipe_template.json ===
 {
 "steps": [
 {
-"type": "read_file",
+"type": "read_files",
 "path": "{{target_project}}/{{component_id}}.py",
 "artifact": "existing_code",
 "optional": true
 },
 {
-"type": "read_file",
+"type": "read_files",
 "path": "{{project_recipe_path}}/specs/{{component_id}}.md",
 "artifact": "spec"
 },
 {
-"type": "read_file",
+"type": "read_files",
 "path": "{{project_recipe_path}}/docs/{{component_id}}.md",
 "artifact": "usage_docs",
 "optional": true
 },
 {
-"type": "read_file",
+"type": "read_files",
 "path": "ai_context/IMPLEMENTATION_PHILOSOPHY.md",
 "artifact": "implementation_philosophy",
 "optional": true
 },
 {
-"type": "read_file",
+"type": "read_files",
 "path": "ai_context/MODULAR_DESIGN_PHILOSOPHY.md",
 "artifact": "modular_design_philosophy",
 "optional": true
@@ -500,7 +500,7 @@ Example:
 ]
 }
 
-=== File: recipes/component_blueprint_generator/includes/spec_template.md ===
+=== File: recipes/blueprint_generator/includes/spec_template.md ===
 
 # {{component_name}} Component Specification
 
@@ -542,12 +542,12 @@ The {{component_name}} component depends on:
 - [Future consideration 2]
 - ...
 
-=== File: recipes/component_blueprint_generator/recipes/create_docs.json ===
+=== File: recipes/blueprint_generator/recipes/create_docs.json ===
 {
 "steps": [
 {
-"type": "read_file",
-"path": "recipes/component_blueprint_generator/includes/docs_template.md",
+"type": "read_files",
+"path": "recipes/blueprint_generator/includes/docs_template.md",
 "artifact": "docs_template"
 },
 {
@@ -564,17 +564,17 @@ The {{component_name}} component depends on:
 ]
 }
 
-=== File: recipes/component_blueprint_generator/recipes/create_recipes.json ===
+=== File: recipes/blueprint_generator/recipes/create_recipes.json ===
 {
 "steps": [
 {
-"type": "read_file",
-"path": "recipes/component_blueprint_generator/includes/create_recipe_template.json",
+"type": "read_files",
+"path": "recipes/blueprint_generator/includes/create_recipe_template.json",
 "artifact": "create_recipe_template"
 },
 {
-"type": "read_file",
-"path": "recipes/component_blueprint_generator/includes/edit_recipe_template.json",
+"type": "read_files",
+"path": "recipes/blueprint_generator/includes/edit_recipe_template.json",
 "artifact": "edit_recipe_template"
 },
 {
@@ -591,12 +591,12 @@ The {{component_name}} component depends on:
 ]
 }
 
-=== File: recipes/component_blueprint_generator/recipes/create_spec.json ===
+=== File: recipes/blueprint_generator/recipes/create_spec.json ===
 {
 "steps": [
 {
-"type": "read_file",
-"path": "recipes/component_blueprint_generator/includes/spec_template.md",
+"type": "read_files",
+"path": "recipes/blueprint_generator/includes/spec_template.md",
 "artifact": "spec_template"
 },
 {
@@ -613,7 +613,7 @@ The {{component_name}} component depends on:
 ]
 }
 
-=== File: recipes/component_blueprint_generator/recipes/finalize_blueprint.json ===
+=== File: recipes/blueprint_generator/recipes/finalize_blueprint.json ===
 {
 "steps": [
 {

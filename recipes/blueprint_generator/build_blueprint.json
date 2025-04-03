@@ -1,22 +1,22 @@
 {
   "steps": [
     {
-      "type": "read_file",
+      "type": "read_files",
       "path": "{{candidate_spec_path}}",
       "artifact": "candidate_spec"
     },
     {
-      "type": "read_file",
+      "type": "read_files",
       "path": "ai_context/COMPONENT_DOCS_SPEC_GUIDE.md",
       "artifact": "component_docs_spec_guide"
     },
     {
-      "type": "read_file",
+      "type": "read_files",
       "path": "ai_context/IMPLEMENTATION_PHILOSOPHY.md",
       "artifact": "implementation_philosophy"
     },
     {
-      "type": "read_file",
+      "type": "read_files",
       "path": "ai_context/MODULAR_DESIGN_PHILOSOPHY.md",
       "artifact": "modular_design_philosophy"
     },
@@ -28,7 +28,7 @@
     },
     {
       "type": "execute_recipe",
-      "recipe_path": "recipes/component_blueprint_generator/create.json",
+      "recipe_path": "recipes/blueprint_generator/recipes/create_package.json",
       "context_overrides": {
         "candidate_spec": "{{candidate_spec}}",
         "component_id": "{{component_id|default:extracted_info.component_id}}",

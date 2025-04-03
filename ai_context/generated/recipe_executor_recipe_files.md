@@ -1,20 +1,20 @@
 === File: recipes/recipe_executor/components/context/context_create.json ===
 {
-"steps": [
-{
-"type": "execute_recipe",
-"recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/utils/build_component.json",
-"context_overrides": {
-"component_id": "context",
-"component_path": "/",
-"existing_code": "{{existing_code}}"
+  "steps": [
+    {
+      "type": "execute_recipe",
+      "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/utils/build_component.json",
+      "context_overrides": {
+        "component_id": "context",
+        "component_path": "/",
+        "existing_code": "{{existing_code}}"
+      }
+    }
+  ]
 }
-}
-]
-}
+
 
 === File: recipes/recipe_executor/components/context/context_docs.md ===
-
 # Context Component Usage
 
 ## Importing
@@ -169,26 +169,27 @@ def execute(self, context: Context) -> None:
 - Context provides no thread safety - it's designed for sequential execution
 - Use `clone` to create a snapshot of the context if needed - for parallel execution
 
+
 === File: recipes/recipe_executor/components/context/context_edit.json ===
 {
-"steps": [
-{
-"type": "read_file",
-"path": "{% if existing_code_root %}{{existing_code_root}}/{% endif %}recipe_executor/context.py",
-"artifact": "existing_code"
-},
-{
-"type": "execute_recipe",
-"recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/context/context_create.json",
-"context_overrides": {
-"existing_code": "{{existing_code}}"
+  "steps": [
+    {
+      "type": "read_files",
+      "path": "{% if existing_code_root %}{{existing_code_root}}/{% endif %}recipe_executor/context.py",
+      "artifact": "existing_code"
+    },
+    {
+      "type": "execute_recipe",
+      "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/context/context_create.json",
+      "context_overrides": {
+        "existing_code": "{{existing_code}}"
+      }
+    }
+  ]
 }
-}
-]
-}
+
 
 === File: recipes/recipe_executor/components/context/context_spec.md ===
-
 # Context Component Specification
 
 ## Purpose
@@ -214,59 +215,81 @@ The Context component is the shared state container for the Recipe Executor syst
 - Return copies of internal data to prevent external modification
 - Maintain minimal state with clear separation of concerns
 
-## Component Dependencies
+## Logging
 
-The Context component has no external dependencies on other Recipe Executor components.
+- Debug: None
+- Info: None
+
+## Dependency Integration Considerations
+
+None
+
+### Internal Components
+
+None
+
+### External Libraries
+
+None
+
+### Configuration Dependencies
+
+None
 
 ## Error Handling
 
 - Raise KeyError with descriptive message when accessing non-existent keys
 - No special handling for setting values (all types allowed)
 
+## Output Files
+
+- `context.py`
+
 ## Future Considerations
 
 - Namespacing of artifacts
 - Support for merging multiple contexts
 
+
 === File: recipes/recipe_executor/components/executor/executor_create.json ===
 {
-"steps": [
-{
-"type": "read_file",
-"path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/registry/registry_docs.md",
-"artifact": "registry_docs"
-},
-{
-"type": "read_file",
-"path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/context/context_docs.md",
-"artifact": "context_docs"
-},
-{
-"type": "execute_recipe",
-"recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/utils/build_component.json",
-"context_overrides": {
-"component_id": "executor",
-"component_path": "/",
-"existing_code": "{{existing_code}}",
-"additional_content": "<REGISTRY_DOCS>\n{{registry_docs}}\n</REGISTRY_DOCS>\n<CONTEXT_DOCS>\n{{context_docs}}\n</CONTEXT_DOCS>"
+  "steps": [
+    {
+      "type": "read_files",
+      "path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/registry/registry_docs.md",
+      "artifact": "registry_docs"
+    },
+    {
+      "type": "read_files",
+      "path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/context/context_docs.md",
+      "artifact": "context_docs"
+    },
+    {
+      "type": "execute_recipe",
+      "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/utils/build_component.json",
+      "context_overrides": {
+        "component_id": "executor",
+        "component_path": "/",
+        "existing_code": "{{existing_code}}",
+        "additional_content": "<REGISTRY_DOCS>\n{{registry_docs}}\n</REGISTRY_DOCS>\n<CONTEXT_DOCS>\n{{context_docs}}\n</CONTEXT_DOCS>"
+      }
+    }
+  ]
 }
-}
-]
-}
+
 
 === File: recipes/recipe_executor/components/executor/executor_docs.md ===
-
 # Executor Component Usage
 
 ## Importing
 
 ```python
-from recipe_executor.executor import RecipeExecutor
+from recipe_executor.executor import Executor
 ```
 
 ## Basic Usage
 
-The RecipeExecutor has a single primary method: `execute()`. This method loads and runs a recipe with a given context:
+The Executor has a single primary method: `execute()`. This method loads and runs a recipe with a given context:
 
 ```python
 # Method signature
@@ -295,19 +318,19 @@ Examples:
 ```python
 # Create context and executor
 context = Context()
-executor = RecipeExecutor()
+executor = Executor()
 
 # Execute a recipe from a file
 executor.execute("path/to/recipe.json", context)
 
 # Or from a JSON string
-json_string = '{"steps": [{"type": "read_file", "path": "example.txt", "artifact": "content"}]}'
+json_string = '{"steps": [{"type": "read_files", "path": "example.txt", "artifact": "content"}]}'
 executor.execute(json_string, context)
 
 # Or from a dictionary
 recipe_dict: Dict[str, List[Dict[str, Any]]] = {
     "steps": [
-        {"type": "read_file", "path": "example.txt", "artifact": "content"}
+        {"type": "read_files", "path": "example.txt", "artifact": "content"}
     ]
 }
 executor.execute(recipe_dict, context)
@@ -323,7 +346,7 @@ The recipe structure must contain a "steps" key, which is a list of step definit
 {
   "steps": [
     {
-      "type": "read_file",
+      "type": "read_files",
       "path": "input.txt",
       "artifact": "input_content"
     },
@@ -342,7 +365,7 @@ The recipe structure must contain a "steps" key, which is a list of step definit
 recipe_dict = {
     "steps": [
         {
-            "type": "read_file",
+            "type": "read_files",
             "path": "input.txt",
             "artifact": "input_content"
         },
@@ -369,19 +392,6 @@ logger.setLevel(logging.DEBUG)
 executor.execute(recipe, context, logger=logger)
 ```
 
-## Error Handling
-
-The executor provides detailed error messages:
-
-```python
-try:
-    executor.execute(recipe, context)
-except ValueError as e:
-    print(f"Recipe execution failed: {e}")
-except TypeError as e:
-    print(f"Unsupported recipe type: {e}")
-```
-
 ## Integration with Steps
 
 The executor uses the Step Registry to instantiate steps based on their type:
@@ -389,22 +399,10 @@ The executor uses the Step Registry to instantiate steps based on their type:
 ```python
 # Each step in a recipe must have a "type" field:
 step: Dict[str, Any] = {
-    "type": "read_file",  # Must match a key in STEP_REGISTRY
+    "type": "read_files",  # Must match a key in STEP_REGISTRY
     "path": "input.txt",
     "artifact": "content"
 }
-```
-
-Steps are looked up in the STEP_REGISTRY by their type name:
-
-```python
-# Simplified example of what happens inside the executor
-from recipe_executor.steps.registry import STEP_REGISTRY
-
-step_type = step["type"]
-step_class = STEP_REGISTRY[step_type]
-step_instance = step_class(step, logger)
-step_instance.execute(context)
 ```
 
 ## Important Notes
@@ -414,26 +412,27 @@ step_instance.execute(context)
 3. Each step receives the same context object
 4. Execution is sequential by default
 
+
 === File: recipes/recipe_executor/components/executor/executor_edit.json ===
 {
-"steps": [
-{
-"type": "read_file",
-"path": "{% if existing_code_root %}{{existing_code_root}}/{% endif %}recipe_executor/executor.py",
-"artifact": "existing_code"
-},
-{
-"type": "execute_recipe",
-"recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/executor/executor_create.json",
-"context_overrides": {
-"existing_code": "{{existing_code}}"
+  "steps": [
+    {
+      "type": "read_files",
+      "path": "{% if existing_code_root %}{{existing_code_root}}/{% endif %}recipe_executor/executor.py",
+      "artifact": "existing_code"
+    },
+    {
+      "type": "execute_recipe",
+      "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/executor/executor_create.json",
+      "context_overrides": {
+        "existing_code": "{{existing_code}}"
+      }
+    }
+  ]
 }
-}
-]
-}
+
 
 === File: recipes/recipe_executor/components/executor/executor_spec.md ===
-
 # Executor Component Specification
 
 ## Purpose
@@ -457,10 +456,18 @@ The Executor component is the central orchestration mechanism for the Recipe Exe
 
 ## Component Dependencies
 
-The Executor component depends on:
+### Internal Components
 
-- **Context** - Uses Context for data sharing between steps
-- **Step Registry** - Uses STEP_REGISTRY to look up step classes by type
+- **Context** - (Required) Uses Context for data sharing between steps during recipe execution
+- **Step Registry** - (Required) Uses STEP_REGISTRY to look up and instantiate step classes by type
+
+### External Libraries
+
+None
+
+### Configuration Dependencies
+
+None
 
 ## Logging
 
@@ -475,6 +482,10 @@ The Executor component depends on:
 - Provide specific error messages identifying problematic steps
 - Include original exceptions for debugging
 
+## Output Files
+
+- `executor.py`
+
 ## Future Considerations
 
 - Parallel step execution
@@ -482,39 +493,40 @@ The Executor component depends on:
 - Step retry policies
 - Progress tracking and reporting
 
+
 === File: recipes/recipe_executor/components/llm/llm_create.json ===
 {
-"steps": [
-{
-"type": "read_file",
-"path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/models/models_docs.md",
-"artifact": "models_docs"
-},
-{
-"type": "read_file",
-"path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/llm_utils/azure_openai/azure_openai_docs.md",
-"artifact": "azure_openai_docs"
-},
-{
-"type": "read_file",
-"path": "ai_context/PYDANTIC_AI_DOCS.md",
-"artifact": "pydantic_ai_docs"
-},
-{
-"type": "execute_recipe",
-"recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/utils/build_component.json",
-"context_overrides": {
-"component_id": "llm",
-"component_path": "/",
-"existing_code": "{{existing_code}}",
-"additional_content": "<MODELS_DOCS>\n{{models_docs}}\n</MODELS_DOCS>\n<AZURE_OPENAI_DOCUMENTATION>\n{{azure_openai_docs}}\n</AZURE_OPENAI_DOCUMENTATION>\n<PYDANTIC_AI_DOCUMENTATION>\n{{pydantic_ai_docs}}\n</PYDANTIC_AI_DOCUMENTATION>"
+  "steps": [
+    {
+      "type": "read_files",
+      "path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/models/models_docs.md",
+      "artifact": "models_docs"
+    },
+    {
+      "type": "read_files",
+      "path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/llm_utils/azure_openai/azure_openai_docs.md",
+      "artifact": "azure_openai_docs"
+    },
+    {
+      "type": "read_files",
+      "path": "ai_context/PYDANTIC_AI_DOCS.md",
+      "artifact": "pydantic_ai_docs"
+    },
+    {
+      "type": "execute_recipe",
+      "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/utils/build_component.json",
+      "context_overrides": {
+        "component_id": "llm",
+        "component_path": "/",
+        "existing_code": "{{existing_code}}",
+        "additional_content": "<MODELS_DOCS>\n{{models_docs}}\n</MODELS_DOCS>\n<AZURE_OPENAI_DOCUMENTATION>\n{{azure_openai_docs}}\n</AZURE_OPENAI_DOCUMENTATION>\n<PYDANTIC_AI_DOCUMENTATION>\n{{pydantic_ai_docs}}\n</PYDANTIC_AI_DOCUMENTATION>"
+      }
+    }
+  ]
 }
-}
-]
-}
+
 
 === File: recipes/recipe_executor/components/llm/llm_docs.md ===
-
 # LLM Component Usage
 
 ## Importing
@@ -557,47 +569,6 @@ result = call_llm(
     prompt="Create a React component for a user profile page.",
     model="openai:o3-mini"
 )
-```
-
-```python
-def get_model(model_id: str) -> Union[OpenAIModel, AnthropicModel, GeminiModel]:
-    """
-    Initialize an LLM model based on a standardized model_id string.
-    Expected format: 'provider:model_name' or 'provider:model_name:deployment_name'.
-
-    Supported providers:
-    - openai
-    - anthropic
-    - gemini
-    - azure (for Azure OpenAI, use 'azure:model_name:deployment_name' or 'azure:model_name')
-
-    Args:
-        model_id (str): Model identifier in format 'provider:model_name'
-            or 'provider:model_name:deployment_name'.
-            If None, defaults to 'openai:gpt-4o'.
-
-    Returns:
-        The model instance for the specified provider and model.
-
-    Raises:
-        ValueError: If model_id format is invalid or if the provider is unsupported.
-    """
-```
-
-Usage example:
-
-```python
-# Get an OpenAI model
-openai_model = get_model("openai:o3-mini")
-# Uses OpenAIModel('o3-mini')
-
-# Get an Anthropic model
-anthropic_model = get_model("anthropic:claude-3.7-sonnet-latest")
-# Uses AnthropicModel('claude-3.7-sonnet-latest')
-
-# Get a Gemini model
-gemini_model = get_model("gemini:gemini-pro")
-# Uses GeminiModel('gemini-pro')
 ```
 
 ```python
@@ -687,26 +658,27 @@ def execute(self, context: Context) -> None:
 - The component logs request details at debug level
 - Responses are validated against the FileGenerationResult model
 
+
 === File: recipes/recipe_executor/components/llm/llm_edit.json ===
 {
-"steps": [
-{
-"type": "read_file",
-"path": "{% if existing_code_root %}{{existing_code_root}}/{% endif %}recipe_executor/llm.py",
-"artifact": "existing_code"
-},
-{
-"type": "execute_recipe",
-"recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/llm/llm_create.json",
-"context_overrides": {
-"existing_code": "{{existing_code}}"
+  "steps": [
+    {
+      "type": "read_files",
+      "path": "{% if existing_code_root %}{{existing_code_root}}/{% endif %}recipe_executor/llm.py",
+      "artifact": "existing_code"
+    },
+    {
+      "type": "execute_recipe",
+      "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/llm/llm_create.json",
+      "context_overrides": {
+        "existing_code": "{{existing_code}}"
+      }
+    }
+  ]
 }
-}
-]
-}
+
 
 === File: recipes/recipe_executor/components/llm/llm_spec.md ===
-
 # LLM Component Specification
 
 ## Purpose
@@ -737,15 +709,25 @@ The LLM component provides a unified interface for interacting with various larg
 ## Logging
 
 - Debug: Log full request payload before making call and then full response payload after receiving it
-- Info: Log model name and provider (no payload details) and response times
+- Info: Log model name and provider before making call (do not include the request payload details) and response times upon completion (do not include the response payload details)
 
 ## Component Dependencies
 
-The LLM component depends on:
+### Internal Components
 
-- **Models** - Uses FileGenerationResult and FileSpec for structured output
-- **Azure OpenAI** - Uses get_azure_openai_model for Azure OpenAI model initialization
-- **External Libraries**: Relies on pydantic-ai for model, Agent, and LLM interactions
+- **Models** - (Required) Uses FileGenerationResult and FileSpec for structured output validation
+- **Azure OpenAI** - (Required for Azure provider) Uses get_azure_openai_model for Azure OpenAI model initialization
+
+### External Libraries
+
+- **pydantic-ai** - (Required) Relies on PydanticAI for model initialization, Agent-based request handling, and structured-output response processing
+
+### Configuration Dependencies
+
+- **DEFAULT_MODEL** - (Optional) Environment variable specifying the default LLM model in format "provider:model_name"
+- **OPENAI_API_KEY** - (Required for OpenAI) API key for OpenAI access
+- **ANTHROPIC_API_KEY** - (Required for Anthropic) API key for Anthropic access
+- **GEMINI_API_KEY** - (Required for Gemini) API key for Google Gemini AI access
 
 ## Error Handling
 
@@ -753,44 +735,91 @@ The LLM component depends on:
 - Handle network and API errors gracefully
 - Log detailed error information for debugging
 
+## Output Files
+
+- `llm.py`
+
 ## Future Considerations
 
 - Additional LLM providers
 - Enhanced parameter control for model fine-tuning
 
+## Dependency Integration Considerstions
+
+### PydanticAI
+
+Create a PydanticAI model for the LLM provider and model name. This will be used to initialize the model and make requests.
+
+```python
+def get_model(model_id: str) -> OpenAIModel | AnthropicModel | GeminiModel:
+    """
+    Initialize an LLM model based on a standardized model_id string.
+    Expected format: 'provider:model_name' or 'provider:model_name:deployment_name'.
+
+    Supported providers:
+    - openai
+    - anthropic
+    - gemini
+    - azure (for Azure OpenAI, use 'azure:model_name:deployment_name' or 'azure:model_name')
+
+    Args:
+        model_id (str): Model identifier in format 'provider:model_name'
+            or 'provider:model_name:deployment_name'.
+            If None, defaults to 'openai:gpt-4o'.
+
+    Returns:
+        The model instance for the specified provider and model.
+
+    Raises:
+        ValueError: If model_id format is invalid or if the provider is unsupported.
+    """
+```
+
+Usage example:
+
+```python
+# Get an OpenAI model
+openai_model = get_model("openai:o3-mini")
+# Uses OpenAIModel('o3-mini')
+
+# Get an Anthropic model
+anthropic_model = get_model("anthropic:claude-3.7-sonnet-latest")
+# Uses AnthropicModel('claude-3.7-sonnet-latest')
+
+# Get a Gemini model
+gemini_model = get_model("gemini:gemini-pro")
+# Uses GeminiModel('gemini-pro')
+```
+
+
 === File: recipes/recipe_executor/components/llm_utils/azure_openai/azure_openai_create.json ===
 {
-"steps": [
-{
-"type": "read_file",
-"path": "ai_context/AZURE_IDENTITY_CLIENT_DOCS.md",
-"artifact": "azure_identity_client_docs"
-},
-{
-"type": "read_file",
-"path": "ai_context/OPENAI_PYTHON_DOCS.md",
-"artifact": "openai_python_docs"
-},
-{
-"type": "read_file",
-"path": "ai_context/PYDANTIC_AI_DOCS.md",
-"artifact": "pydantic_ai_docs"
-},
-{
-"type": "execute_recipe",
-"recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/utils/build_component.json",
-"context_overrides": {
-"component_id": "azure_openai",
-"component_path": "/llm_utils",
-"existing_code": "{{existing_code}}",
-"additional_content": "<AZURE_IDENTITY_CLIENT_DOCS>\n{{azure_identity_client_docs}}\n</AZURE_IDENTITY_CLIENT_DOCS>\n<OPENAI_PYTHON_DOCS>\n{{openai_python_docs}}\n</OPENAI_PYTHON_DOCS>\n<MODELS_DOCS>\n{{models_docs}}\n</MODELS_DOCS>\n<PYDANTIC_AI_DOCUMENTATION>\n{{pydantic_ai_docs}}\n</PYDANTIC_AI_DOCUMENTATION>"
+  "steps": [
+    {
+      "type": "read_files",
+      "path": "ai_context/AZURE_IDENTITY_CLIENT_DOCS.md",
+      "artifact": "azure_identity_client_docs"
+    },
+    {
+      "type": "read_files",
+      "path": "ai_context/PYDANTIC_AI_DOCS.md",
+      "artifact": "pydantic_ai_docs"
+    },
+    {
+      "type": "execute_recipe",
+      "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/utils/build_component.json",
+      "context_overrides": {
+        "component_id": "azure_openai",
+        "component_path": "/llm_utils",
+        "existing_code": "{{existing_code}}",
+        "additional_content": "<AZURE_IDENTITY_CLIENT_DOCS>\n{{azure_identity_client_docs}}\n</AZURE_IDENTITY_CLIENT_DOCS>\n<MODELS_DOCS>\n{{models_docs}}\n</MODELS_DOCS>\n<PYDANTIC_AI_DOCUMENTATION>\n{{pydantic_ai_docs}}\n</PYDANTIC_AI_DOCUMENTATION>"
+      }
+    }
+  ]
 }
-}
-]
-}
+
 
 === File: recipes/recipe_executor/components/llm_utils/azure_openai/azure_openai_docs.md ===
-
 # Azure OpenAI Component Usage
 
 ## Importing
@@ -861,26 +890,27 @@ AZURE_OPENAI_API_VERSION= # Optional, defaults to 2025-03-01-preview
 AZURE_OPENAI_DEPLOYMENT_NAME= # Optional, defaults to model_name
 ```
 
+
 === File: recipes/recipe_executor/components/llm_utils/azure_openai/azure_openai_edit.json ===
 {
-"steps": [
-{
-"type": "read_file",
-"path": "{% if existing_code_root %}{{existing_code_root}}/{% endif %}recipe_executor/llm_utils/azure_openai.py",
-"artifact": "existing_code"
-},
-{
-"type": "execute_recipe",
-"recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/llm_utils/azure_openai/azure_openai_create.json",
-"context_overrides": {
-"existing_code": "{{existing_code}}"
+  "steps": [
+    {
+      "type": "read_files",
+      "path": "{% if existing_code_root %}{{existing_code_root}}/{% endif %}recipe_executor/llm_utils/azure_openai.py",
+      "artifact": "existing_code"
+    },
+    {
+      "type": "execute_recipe",
+      "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/llm_utils/azure_openai/azure_openai_create.json",
+      "context_overrides": {
+        "existing_code": "{{existing_code}}"
+      }
+    }
+  ]
 }
-}
-]
-}
+
 
 === File: recipes/recipe_executor/components/llm_utils/azure_openai/azure_openai_spec.md ===
-
 # Azure OpenAI Component Specification
 
 ## Purpose
@@ -900,13 +930,22 @@ The Azure OpenAI component provides a PydanticAI wrapper for Azure OpenAI models
 - If using Azure Identity:
   - AsyncAzureOpenAI client must be created with a token provider function
   - If using a custom client ID, use `ManagedIdentityCredential` with the specified client ID
-- Create an `openai.AzureOpenAI` client with the provided token provider or API key
+- Create an `openai.AsyncAzureOpenAI` client with the provided token provider or API key
 - Create a `pydantic_ai.providers.openai.OpenAIProvider` with the Azure OpenAI client
 - Return a `pydantic_ai.models.openai.OpenAIModel` with the model name and provider
 
 ## Implementation Hints
 
 ```python
+# Option 1: Create AsyncAzureOpenAI client with API key
+azure_client = AsyncAzureOpenAI(
+    api_key=AZURE_OPENAI_API_KEY,
+    azure_endpoint=AZURE_OPENAI_ENDPOINT,
+    api_version=AZURE_OPENAI_API_VERSION,
+    azure_deployment=AZURE_OPENAI_DEPLOYMENT_NAME,
+)
+
+# Option 2: Create AsyncAzureOpenAI client with Azure Identity
 azure_client = AsyncAzureOpenAI(
     azure_ad_token_provider=token_provider,
     azure_endpoint=AZURE_OPENAI_ENDPOINT,
@@ -914,41 +953,65 @@ azure_client = AsyncAzureOpenAI(
     azure_deployment=AZURE_OPENAI_DEPLOYMENT_NAME,
 )
 
+# Use the client to create the OpenAIProvider
 openai_model = OpenAIModel(
     model_name,
     provider=OpenAIProvider(openai_client=azure_client),
 )
 ```
 
+## Logging
+
+- Debug: Log the loaded environment variables (masking all but first/last character of api keys)
+- Info: Log the model name and auth method (api key or Azure Identity)
+
 ## Component Dependencies
 
-The Azure OpenAI component depends on:
+### Internal Components
 
-- **External Libraries**:
-  - Relies on PydanticAI for model interactions and Azure Identity for authentication
-  - The `pydantic-ai`, `openai`, and `azure-identity` libraries are installed as dependencies
+None
+
+### External Libraries
+
+- **pydantic-ai** - (Required) Uses PydanticAI's OpenAIModel and OpenAIProvider for model management
+- **openai** - (Required) Uses AsyncAzureOpenAI client for API communication
+- **azure-identity** - (Required for managed identity) Uses DefaultAzureCredential, ManagedIdentityCredential, and get_bearer_token_provider for token provision
+
+### Configuration Dependencies
+
+- **AZURE_USE_MANAGED_IDENTITY** - (Optional) Boolean flag to use Azure Identity for authentication
+- **AZURE_OPENAI_API_KEY** - (Required for API key auth) API key for Azure OpenAI authentication
+- **AZURE_OPENAI_ENDPOINT** - (Required) Endpoint URL for Azure OpenAI service
+- **AZURE_OPENAI_DEPLOYMENT_NAME** - (Required) Deployment name in Azure OpenAI
+- **AZURE_OPENAI_API_VERSION** - (Required) API version to use with Azure OpenAI
+- **AZURE_CLIENT_ID** - (Optional) Client ID for managed identity authentication
 
 ## Error Handling
 
 - Log detailed error information for debugging
 
+## Output Files
+
+- `llm_utils/azure_openai.py`
+
+
 === File: recipes/recipe_executor/components/logger/logger_create.json ===
 {
-"steps": [
-{
-"type": "execute_recipe",
-"recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/utils/build_component.json",
-"context_overrides": {
-"component_id": "logger",
-"component_path": "/",
-"existing_code": "{{existing_code}}"
+  "steps": [
+    {
+      "type": "execute_recipe",
+      "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/utils/build_component.json",
+      "context_overrides": {
+        "component_id": "logger",
+        "component_path": "/",
+        "existing_code": "{{existing_code}}"
+      }
+    }
+  ]
 }
-}
-]
-}
+
 
 === File: recipes/recipe_executor/components/logger/logger_docs.md ===
-
 # Logger Component Usage
 
 ## Importing
@@ -1044,17 +1107,17 @@ The logger is typically initialized in the main component and passed to the exec
 
 ```python
 from recipe_executor.logger import init_logger
-from recipe_executor.executor import RecipeExecutor
+from recipe_executor.executor import Executor
 
 logger = init_logger(log_dir="logs")
-executor = RecipeExecutor()
+executor = Executor()
 executor.execute(recipe_path, context, logger=logger)
 ```
 
 Steps receive the logger in their constructor:
 
 ```python
-class ReadFileStep(BaseStep):
+class ReadFilesStep(BaseStep):
     def __init__(self, config: dict, logger: Optional[logging.Logger] = None):
         self.logger = logger or logging.getLogger("RecipeExecutor")
         # ...
@@ -1067,26 +1130,27 @@ class ReadFileStep(BaseStep):
 3. The log directory is created if it doesn't exist
 4. The logger name "RecipeExecutor" is consistent across the system
 
+
 === File: recipes/recipe_executor/components/logger/logger_edit.json ===
 {
-"steps": [
-{
-"type": "read_file",
-"path": "{% if existing_code_root %}{{existing_code_root}}/{% endif %}recipe_executor/logger.py",
-"artifact": "existing_code"
-},
-{
-"type": "execute_recipe",
-"recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/logger/logger_create.json",
-"context_overrides": {
-"existing_code": "{{existing_code}}"
+  "steps": [
+    {
+      "type": "read_files",
+      "path": "{% if existing_code_root %}{{existing_code_root}}/{% endif %}recipe_executor/logger.py",
+      "artifact": "existing_code"
+    },
+    {
+      "type": "execute_recipe",
+      "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/logger/logger_create.json",
+      "context_overrides": {
+        "existing_code": "{{existing_code}}"
+      }
+    }
+  ]
 }
-}
-]
-}
+
 
 === File: recipes/recipe_executor/components/logger/logger_spec.md ===
-
 # Logger Component Specification
 
 ## Purpose
@@ -1098,6 +1162,7 @@ The Logger component provides a consistent logging interface for the Recipe Exec
 - Initialize a logger that writes to both stdout and log files
 - Support different log levels (DEBUG, INFO, ERROR)
 - Create separate log files for each level
+- For stdout, set the log level to INFO
 - Clear existing logs on each run to prevent unbounded growth
 - Provide a consistent log format with timestamps and log levels
 - Create log directories if they don't exist
@@ -1110,9 +1175,24 @@ The Logger component provides a consistent logging interface for the Recipe Exec
 - Create the log directory if it doesn't exist
 - Use mode="w" for file handlers to clear previous logs
 
+## Logging
+
+- Debug: Log that the logger is being initialized, the log directory being created, and any errors encountered during initialization
+- Info: None
+
 ## Component Dependencies
 
-The Logger component has no external dependencies on other Recipe Executor components.
+### Internal Components
+
+None
+
+### External Libraries
+
+- **Python stdlib logging** - (Required) Uses Python's standard logging module for core functionality
+
+### Configuration Dependencies
+
+None
 
 ## Error Handling
 
@@ -1124,39 +1204,44 @@ The Logger component has no external dependencies on other Recipe Executor compo
 
 - Customizable log formats
 
+## Output Files
+
+- `logger.py`
+
+
 === File: recipes/recipe_executor/components/main/main_create.json ===
 {
-"steps": [
-{
-"type": "read_file",
-"path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/context/context_docs.md",
-"artifact": "context_docs"
-},
-{
-"type": "read_file",
-"path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/executor/executor_docs.md",
-"artifact": "executor_docs"
-},
-{
-"type": "read_file",
-"path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/logger/logger_docs.md",
-"artifact": "logger_docs"
-},
-{
-"type": "execute_recipe",
-"recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/utils/build_component.json",
-"context_overrides": {
-"component_id": "main",
-"component_path": "/",
-"existing_code": "{{existing_code}}",
-"additional_content": "<STEPS_BASE_DOCS>\n{{steps_base_docs}}\n</STEPS_BASE_DOCS>\n<CONTEXT_DOCS>\n{{context_docs}}\n</CONTEXT_DOCS>\n<EXECUTOR_DOCS>\n{{executor_docs}}\n</EXECUTOR_DOCS>\n<LOGGER_DOCS>\n{{logger_docs}}\n</LOGGER_DOCS>"
+  "steps": [
+    {
+      "type": "read_files",
+      "path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/context/context_docs.md",
+      "artifact": "context_docs"
+    },
+    {
+      "type": "read_files",
+      "path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/executor/executor_docs.md",
+      "artifact": "executor_docs"
+    },
+    {
+      "type": "read_files",
+      "path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/logger/logger_docs.md",
+      "artifact": "logger_docs"
+    },
+    {
+      "type": "execute_recipe",
+      "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/utils/build_component.json",
+      "context_overrides": {
+        "component_id": "main",
+        "component_path": "/",
+        "existing_code": "{{existing_code}}",
+        "additional_content": "<STEPS_BASE_DOCS>\n{{steps_base_docs}}\n</STEPS_BASE_DOCS>\n<CONTEXT_DOCS>\n{{context_docs}}\n</CONTEXT_DOCS>\n<EXECUTOR_DOCS>\n{{executor_docs}}\n</EXECUTOR_DOCS>\n<LOGGER_DOCS>\n{{logger_docs}}\n</LOGGER_DOCS>"
+      }
+    }
+  ]
 }
-}
-]
-}
+
 
 === File: recipes/recipe_executor/components/main/main_docs.md ===
-
 # Main Component Usage
 
 ## Command-Line Interface
@@ -1225,26 +1310,27 @@ logger.error(f"An error occurred during recipe execution: {str(e)}", exc_info=Tr
 4. All steps in the recipe share the same context
 5. The executable exits with non-zero status on error
 
+
 === File: recipes/recipe_executor/components/main/main_edit.json ===
 {
-"steps": [
-{
-"type": "read_file",
-"path": "{% if existing_code_root %}{{existing_code_root}}/{% endif %}recipe_executor/main.py",
-"artifact": "existing_code"
-},
-{
-"type": "execute_recipe",
-"recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/main/main_create.json",
-"context_overrides": {
-"existing_code": "{{existing_code}}"
+  "steps": [
+    {
+      "type": "read_files",
+      "path": "{% if existing_code_root %}{{existing_code_root}}/{% endif %}recipe_executor/main.py",
+      "artifact": "existing_code"
+    },
+    {
+      "type": "execute_recipe",
+      "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/main/main_create.json",
+      "context_overrides": {
+        "existing_code": "{{existing_code}}"
+      }
+    }
+  ]
 }
-}
-]
-}
+
 
 === File: recipes/recipe_executor/components/main/main_spec.md ===
-
 # Main Component Specification
 
 ## Purpose
@@ -1258,13 +1344,13 @@ The Main component serves as the command-line entry point for the Recipe Executo
   - python-dotenv is already installed as a dependency of the project
 - Parse arguments for recipe path and context values
 - Initialize the logging system
-- Create the context with command-line supplied values
+- Create the context with command-line supplied values as artifacts
 - Execute the specified recipe with proper error handling
 - Follow minimal design with clear user-facing error messages
 
 ## Implementation Considerations
 
-- Call load_dotenv() early in the main function before any other initialization
+- Call load_dotenv() early in the main function before any other initialization to make environment variables available in other components as soon as possible
 - Use argparse for command-line argument parsing
 - Initialize logging early in execution flow
 - Parse context values from key=value pairs
@@ -1272,14 +1358,31 @@ The Main component serves as the command-line entry point for the Recipe Executo
 - Keep the main function focused on orchestration
 - Provide meaningful exit codes and error messages
 
+## Implementation Details
+
+- Import Executor using `from executor import Executor` to avoid circular import issues, despite continuing to use the full `recipe_executor.context`, etc. for other imports to maintain consistency with the rest of the codebase
+
+## Logging
+
+- Debug: Log the start of the main function, including parsed arguments and context values
+- Info: Log the initialization of the Recipe Executor Tool and the start of recipe execution, upon completion report the success or failure of the execution along with total time taken
+
 ## Component Dependencies
 
-The Main component depends on:
+### Internal Components
 
-- **python-dotenv** - Uses load_dotenv to load environment variables from .env files
-- **Context** - Creates the Context object with CLI-supplied values
-- **Executor** - Uses RecipeExecutor to run the specified recipe
-- **Logger** - Uses init_logger to set up the logging system
+- **Context** - (Required) Creates the Context object with CLI-supplied values
+- **Executor** - (Required) Uses Executor to run the specified recipe
+- **Logger** - (Required) Uses init_logger to set up the logging system
+
+### External Libraries
+
+- **python-dotenv** - (Required) Uses load_dotenv to load environment variables from .env files
+- **argparse** - (Required) Uses argparse for command-line argument parsing
+
+### Configuration Dependencies
+
+- **.env file** - (Optional) For environment variable configuration
 
 ## Error Handling
 
@@ -1288,70 +1391,38 @@ The Main component depends on:
 - Handle context parsing errors gracefully
 - Log all errors before exiting
 - Use appropriate exit codes for different error conditions
+- Raise SystemExit with appropriate exit codes for different error conditions
+- Employ a global try-except block to catch unhandled exceptions and log them
+- Neatly format error messages for user-friendliness, considering use of `traceback.format_exc()` and other techniques for making the error reporting easy to identify main error and still provide useful context
+- Use a finally block to ensure proper cleanup and logging of execution time
 
-## Implementation Details
+## Output Files
 
-```python
-def main() -> None:
-    """
-    CLI entry point for the Recipe Executor Tool.
-
-    Parses command-line arguments, sets up logging, creates the context, and runs the recipe executor.
-    """
-    # Parse command-line arguments
-    parser = argparse.ArgumentParser(
-        description="Recipe Executor Tool - Executes a recipe with additional context information."
-    )
-    parser.add_argument("recipe_path", help="Path to the recipe file to execute.")
-    parser.add_argument("--log-dir", default="logs", help="Directory for log files (default: logs)")
-    parser.add_argument("--context", action="append", default=[], help="Additional context values as key=value pairs")
-    args = parser.parse_args()
-
-    # Parse context key=value pairs
-    try:
-        cli_context = parse_context(args.context) if args.context else {}
-    except ValueError as e:
-        sys.stderr.write(f"Context Error: {str(e)}\n")
-        sys.exit(1)
-
-    # Initialize logging
-    logger = init_logger(args.log_dir)
-    logger.info("Starting Recipe Executor Tool")
-
-    # Create the Context object with CLI-supplied artifacts
-    context = Context(artifacts=cli_context)
-
-    try:
-        # Execute the recipe
-        executor = RecipeExecutor()
-        executor.execute(args.recipe_path, context, logger=logger)
-    except Exception as e:
-        logger.error(f"An error occurred during recipe execution: {str(e)}", exc_info=True)
-        sys.exit(1)
-```
+- `main.py`
 
 ## Future Considerations
 
 - Support for environment variable configuration
 - Support for directory-based recipes
 
+
 === File: recipes/recipe_executor/components/models/models_create.json ===
 {
-"steps": [
-{
-"type": "execute_recipe",
-"recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/utils/build_component.json",
-"context_overrides": {
-"component_id": "models",
-"component_path": "/",
-"existing_code": "{{existing_code}}"
+  "steps": [
+    {
+      "type": "execute_recipe",
+      "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/utils/build_component.json",
+      "context_overrides": {
+        "component_id": "models",
+        "component_path": "/",
+        "existing_code": "{{existing_code}}"
+      }
+    }
+  ]
 }
-}
-]
-}
+
 
 === File: recipes/recipe_executor/components/models/models_docs.md ===
-
 # Models Component Usage
 
 ## Importing
@@ -1518,26 +1589,27 @@ valid_file = FileSpec(path="file.txt", content="File content")
 3. Models can be converted to dictionaries with `.dict()` method
 4. Models can be created from dictionaries with `Model(**dict_data)`
 
+
 === File: recipes/recipe_executor/components/models/models_edit.json ===
 {
-"steps": [
-{
-"type": "read_file",
-"path": "{% if existing_code_root %}{{existing_code_root}}/{% endif %}recipe_executor/models.py",
-"artifact": "existing_code"
-},
-{
-"type": "execute_recipe",
-"recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/models/models_create.json",
-"context_overrides": {
-"existing_code": "{{existing_code}}"
+  "steps": [
+    {
+      "type": "read_files",
+      "path": "{% if existing_code_root %}{{existing_code_root}}/{% endif %}recipe_executor/models.py",
+      "artifact": "existing_code"
+    },
+    {
+      "type": "execute_recipe",
+      "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/models/models_create.json",
+      "context_overrides": {
+        "existing_code": "{{existing_code}}"
+      }
+    }
+  ]
 }
-}
-]
-}
+
 
 === File: recipes/recipe_executor/components/models/models_spec.md ===
-
 # Models Component Specification
 
 ## Purpose
@@ -1560,42 +1632,62 @@ The Models component defines the core data structures used throughout the Recipe
 - Use descriptive field names and docstrings
 - Focus on essential fields without over-engineering
 
+## Logging
+
+- Debug: None
+- Info: None
+
 ## Component Dependencies
 
-The Models component has no external dependencies on other Recipe Executor components.
+### Internal Components
+
+None
+
+### External Libraries
+
+- **pydantic** - (Required) Uses Pydantic for schema validation and model definition
+
+### Configuration Dependencies
+
+None
+
+## Output Files
+
+- `models.py`
 
 ## Future Considerations
 
 - Extended validation for complex fields
 
+
 === File: recipes/recipe_executor/components/steps/base/base_create.json ===
 {
-"steps": [
-{
-"type": "read_file",
-"path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/context/context_docs.md",
-"artifact": "context_docs"
-},
-{
-"type": "read_file",
-"path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/models/models_docs.md",
-"artifact": "models_docs"
-},
-{
-"type": "execute_recipe",
-"recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/utils/build_component.json",
-"context_overrides": {
-"component_id": "base",
-"component_path": "/steps",
-"existing_code": "{{existing_code}}",
-"additional_content": "<CONTEXT_DOCS>\n{{context_docs}}\n</CONTEXT_DOCS>\n<MODELS_DOCS>\n{{models_docs}}\n</MODELS_DOCS>"
+  "steps": [
+    {
+      "type": "read_files",
+      "path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/context/context_docs.md",
+      "artifact": "context_docs"
+    },
+    {
+      "type": "read_files",
+      "path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/models/models_docs.md",
+      "artifact": "models_docs"
+    },
+    {
+      "type": "execute_recipe",
+      "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/utils/build_component.json",
+      "context_overrides": {
+        "component_id": "base",
+        "component_path": "/steps",
+        "existing_code": "{{existing_code}}",
+        "additional_content": "<CONTEXT_DOCS>\n{{context_docs}}\n</CONTEXT_DOCS>\n<MODELS_DOCS>\n{{models_docs}}\n</MODELS_DOCS>"
+      }
+    }
+  ]
 }
-}
-]
-}
+
 
 === File: recipes/recipe_executor/components/steps/base/base_docs.md ===
-
 # Steps Base Component Usage
 
 ## Importing
@@ -1629,8 +1721,8 @@ ConfigType = TypeVar("ConfigType", bound=StepConfig)
 Example of extending StepConfig:
 
 ```python
-class ReadFileConfig(StepConfig):
-    """Configuration for ReadFileStep"""
+class ReadsFileConfig(StepConfig):
+    """Configuration for ReadFilesStep"""
     path: str
     artifact: str
     encoding: str = "utf-8"  # With default value
@@ -1747,32 +1839,33 @@ def execute(self, context: Context) -> None:
 
 ## Important Notes
 
-1. All step implementations must inherit from BaseStep
-2. The execute method must be implemented by all subclasses
-3. Steps should validate their configuration using Pydantic models
-4. Steps receive and modify a shared Context object
-5. Steps should use the logger for appropriate messages
+- All step implementations must inherit from BaseStep
+- The execute method must be implemented by all subclasses
+- Steps should validate their configuration using Pydantic models
+- Steps receive and modify a shared Context object
+- Steps should use the logger for appropriate messages
+
 
 === File: recipes/recipe_executor/components/steps/base/base_edit.json ===
 {
-"steps": [
-{
-"type": "read_file",
-"path": "{% if existing_code_root %}{{existing_code_root}}/{% endif %}recipe_executor/steps/base.py",
-"artifact": "existing_code"
-},
-{
-"type": "execute_recipe",
-"recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/base/base_create.json",
-"context_overrides": {
-"existing_code": "{{existing_code}}"
+  "steps": [
+    {
+      "type": "read_files",
+      "path": "{% if existing_code_root %}{{existing_code_root}}/{% endif %}recipe_executor/steps/base.py",
+      "artifact": "existing_code"
+    },
+    {
+      "type": "execute_recipe",
+      "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/base/base_create.json",
+      "context_overrides": {
+        "existing_code": "{{existing_code}}"
+      }
+    }
+  ]
 }
-}
-]
-}
+
 
 === File: recipes/recipe_executor/components/steps/base/base_spec.md ===
-
 # Steps Base Component Specification
 
 ## Purpose
@@ -1795,18 +1888,36 @@ The Steps Base component defines the foundational abstract classes and interface
 - Use Pydantic for configuration validation
 - Provide sensible defaults where appropriate
 
+## Logging
+
+- Debug: Step component initialized, including configuration details
+- Info: None
+
 ## Component Dependencies
 
-The Steps Base component depends on:
+### Internal Components
 
-- **Context** - Steps operate on a context object for data sharing
-- **Models** - Uses Pydantic's BaseModel for configuration validation
+- **Context** - (Required) Steps operate on a context object for data sharing
+- **Models** - (Required) Uses Pydantic-based models for configuration validation
+
+### External Libraries
+
+- **pydantic** - (Required) Uses Pydantic for configuration class definition and validation
+- **typing** - (Required) Uses Python typing for type hints and generics
+
+### Configuration Dependencies
+
+None
 
 ## Error Handling
 
 - Define clear error handling responsibilities for steps
 - Propagate errors with appropriate context
 - Use logger for tracking execution progress and errors
+
+## Output Files
+
+- `steps/base.py`
 
 ## Future Considerations
 
@@ -1815,126 +1926,129 @@ The Steps Base component depends on:
 - Step validation and dependency checking
 - Composition of steps into more complex steps
 
+
 === File: recipes/recipe_executor/components/steps/create.json ===
 {
-"steps": [
-{
-"type": "parallel",
-"substeps": [
-{
-"type": "execute_recipe",
-"recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/registry/registry_create.json"
-},
-{
-"type": "execute_recipe",
-"recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/base/base_create.json"
-},
-{
-"type": "execute_recipe",
-"recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/execute_recipe/execute_recipe_create.json"
-},
-{
-"type": "execute_recipe",
-"recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/generate_llm/generate_llm_create.json"
-},
-{
-"type": "execute_recipe",
-"recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/parallel/parallel_create.json"
-},
-{
-"type": "execute_recipe",
-"recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/read_file/read_file_create.json"
-},
-{
-"type": "execute_recipe",
-"recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/write_files/write_files_create.json"
+  "steps": [
+    {
+      "type": "parallel",
+      "substeps": [
+        {
+          "type": "execute_recipe",
+          "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/registry/registry_create.json"
+        },
+        {
+          "type": "execute_recipe",
+          "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/base/base_create.json"
+        },
+        {
+          "type": "execute_recipe",
+          "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/execute_recipe/execute_recipe_create.json"
+        },
+        {
+          "type": "execute_recipe",
+          "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/generate_llm/generate_llm_create.json"
+        },
+        {
+          "type": "execute_recipe",
+          "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/parallel/parallel_create.json"
+        },
+        {
+          "type": "execute_recipe",
+          "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/read_file/read_file_create.json"
+        },
+        {
+          "type": "execute_recipe",
+          "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/write_files/write_files_create.json"
+        }
+      ],
+      "max_concurrency": 0,
+      "delay": 0
+    }
+  ]
 }
-],
-"max_concurrency": 0,
-"delay": 0
-}
-]
-}
+
 
 === File: recipes/recipe_executor/components/steps/edit.json ===
 {
-"steps": [
-{
-"type": "parallel",
-"substeps": [
-{
-"type": "execute_recipe",
-"recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/registry/registry_edit.json"
-},
-{
-"type": "execute_recipe",
-"recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/base/base_edit.json"
-},
-{
-"type": "execute_recipe",
-"recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/execute_recipe/execute_recipe_edit.json"
-},
-{
-"type": "execute_recipe",
-"recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/generate_llm/generate_llm_edit.json"
-},
-{
-"type": "execute_recipe",
-"recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/parallel/parallel_edit.json"
-},
-{
-"type": "execute_recipe",
-"recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/read_file/read_file_edit.json"
-},
-{
-"type": "execute_recipe",
-"recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/write_files/write_files_edit.json"
+  "steps": [
+    {
+      "type": "parallel",
+      "substeps": [
+        {
+          "type": "execute_recipe",
+          "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/registry/registry_edit.json"
+        },
+        {
+          "type": "execute_recipe",
+          "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/base/base_edit.json"
+        },
+        {
+          "type": "execute_recipe",
+          "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/execute_recipe/execute_recipe_edit.json"
+        },
+        {
+          "type": "execute_recipe",
+          "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/generate_llm/generate_llm_edit.json"
+        },
+        {
+          "type": "execute_recipe",
+          "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/parallel/parallel_edit.json"
+        },
+        {
+          "type": "execute_recipe",
+          "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/read_file/read_file_edit.json"
+        },
+        {
+          "type": "execute_recipe",
+          "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/write_files/write_files_edit.json"
+        }
+      ],
+      "max_concurrency": 0,
+      "delay": 0
+    }
+  ]
 }
-],
-"max_concurrency": 0,
-"delay": 0
-}
-]
-}
+
 
 === File: recipes/recipe_executor/components/steps/execute_recipe/execute_recipe_create.json ===
 {
-"steps": [
-{
-"type": "read_file",
-"path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/base/base_docs.md",
-"artifact": "steps_base_docs"
-},
-{
-"type": "read_file",
-"path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/context/context_docs.md",
-"artifact": "context_docs"
-},
-{
-"type": "read_file",
-"path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/executor/executor_docs.md",
-"artifact": "executor_docs"
-},
-{
-"type": "read_file",
-"path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/utils/utils_docs.md",
-"artifact": "utils_docs"
-},
-{
-"type": "execute_recipe",
-"recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/utils/build_component.json",
-"context_overrides": {
-"component_id": "execute_recipe",
-"component_path": "/steps",
-"existing_code": "{{existing_code}}",
-"additional_content": "<STEPS_BASE_DOCS>\n{{steps_base_docs}}\n</STEPS_BASE_DOCS>\n<CONTEXT_DOCS>\n{{context_docs}}\n</CONTEXT_DOCS>\n<EXECUTOR_DOCS>\n{{executor_docs}}\n</EXECUTOR_DOCS>\n<UTILS_DOCS>\n{{utils_docs}}\n</UTILS_DOCS>"
+  "steps": [
+    {
+      "type": "read_files",
+      "path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/base/base_docs.md",
+      "artifact": "steps_base_docs"
+    },
+    {
+      "type": "read_files",
+      "path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/context/context_docs.md",
+      "artifact": "context_docs"
+    },
+    {
+      "type": "read_files",
+      "path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/executor/executor_docs.md",
+      "artifact": "executor_docs"
+    },
+    {
+      "type": "read_files",
+      "path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/utils/utils_docs.md",
+      "artifact": "utils_docs"
+    },
+    {
+      "type": "execute_recipe",
+      "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/utils/build_component.json",
+      "context_overrides": {
+        "component_id": "execute_recipe",
+        "component_path": "/steps",
+        "existing_code": "{{existing_code}}",
+        "additional_content": "<STEPS_BASE_DOCS>\n{{steps_base_docs}}\n</STEPS_BASE_DOCS>\n<CONTEXT_DOCS>\n{{context_docs}}\n</CONTEXT_DOCS>\n<EXECUTOR_DOCS>\n{{executor_docs}}\n</EXECUTOR_DOCS>\n<UTILS_DOCS>\n{{utils_docs}}\n</UTILS_DOCS>"
+      }
+    }
+  ]
 }
-}
-]
-}
+
 
 === File: recipes/recipe_executor/components/steps/execute_recipe/execute_recipe_docs.md ===
-
 # ExecuteRecipeStep Component Usage
 
 ## Importing
@@ -2032,7 +2146,7 @@ Sub-recipes can be composed to create more complex workflows:
 {
   "steps": [
     {
-      "type": "read_file",
+      "type": "read_files",
       "path": "specs/project_spec.md",
       "artifact": "project_spec"
     },
@@ -2055,119 +2169,72 @@ Sub-recipes can be composed to create more complex workflows:
 }
 ```
 
-## Implementation Details
-
-The ExecuteRecipeStep works by:
-
-1. Rendering the recipe path with the current context
-2. Applying context overrides (also rendered with the current context)
-3. Creating a RecipeExecutor instance
-4. Executing the sub-recipe with the modified context
-
-```python
-def execute(self, context: Context) -> None:
-    # Merge any context overrides into the current context
-    if hasattr(self.config, "context_overrides") and self.config.context_overrides:
-        for key, value in self.config.context_overrides.items():
-            context[key] = render_template(value, context)
-
-    # Render the recipe path
-    recipe_path = render_template(self.config.recipe_path, context)
-
-    # Verify recipe exists
-    if not os.path.exists(recipe_path):
-        raise FileNotFoundError(f"Sub-recipe file not found: {recipe_path}")
-
-    # Log sub-recipe execution
-    self.logger.info(f"Executing sub-recipe: {recipe_path}")
-
-    # Execute the sub-recipe
-    executor = RecipeExecutor()
-    executor.execute(recipe=recipe_path, context=context, logger=self.logger)
-
-    # Log completion
-    self.logger.info(f"Completed sub-recipe: {recipe_path}")
-```
-
-## Error Handling
-
-The ExecuteRecipeStep can raise several types of errors:
-
-```python
-try:
-    execute_recipe_step.execute(context)
-except FileNotFoundError as e:
-    # Sub-recipe file not found
-    print(f"File error: {e}")
-except ValueError as e:
-    # Recipe format or execution errors
-    print(f"Recipe error: {e}")
-```
-
 ## Common Use Cases
 
-1. **Component Generation**:
+**Component Generation**:
 
-   ```json
-   {
-     "type": "execute_recipe",
-     "recipe_path": "recipes/generate_component.json",
-     "context_overrides": {
-       "component_id": "utils",
-       "component_name": "Utils Component"
-     }
-   }
-   ```
+```json
+{
+  "type": "execute_recipe",
+  "recipe_path": "recipes/generate_component.json",
+  "context_overrides": {
+    "component_id": "utils",
+    "component_name": "Utils Component"
+  }
+}
+```
 
-2. **Template-Based Recipes**:
+**Template-Based Recipes**:
 
-   ```json
-   {
-     "type": "execute_recipe",
-     "recipe_path": "recipes/component_template.json",
-     "context_overrides": {
-       "template_type": "create",
-       "component_id": "{{component_id}}"
-     }
-   }
-   ```
+```json
+{
+  "type": "execute_recipe",
+  "recipe_path": "recipes/component_template.json",
+  "context_overrides": {
+    "template_type": "create",
+    "component_id": "{{component_id}}"
+  }
+}
+```
 
-3. **Multi-Step Workflows**:
-   ```json
-   {
-     "type": "execute_recipe",
-     "recipe_path": "recipes/workflow/{{workflow_name}}.json"
-   }
-   ```
+**Multi-Step Workflows**:
+
+```json
+{
+  "type": "execute_recipe",
+  "recipe_path": "recipes/workflow/{{workflow_name}}.json"
+}
+```
 
 ## Important Notes
 
-1. The sub-recipe receives the same context object as the parent recipe
-2. Context overrides are applied before sub-recipe execution
-3. Changes made to the context by the sub-recipe persist after it completes
-4. Template variables in both recipe_path and context_overrides are resolved before execution
-5. Sub-recipes can execute their own sub-recipes (nested execution)
+- The sub-recipe receives the same context object as the parent recipe
+- Context overrides are applied before sub-recipe execution
+- Changes made to the context by the sub-recipe persist after it completes
+- Template variables in both recipe_path and context_overrides are resolved before execution
+- Sub-recipes can execute their own sub-recipes (nested execution)
+
 
 === File: recipes/recipe_executor/components/steps/execute_recipe/execute_recipe_edit.json ===
 {
-"steps": [
-{
-"type": "read_file",
-"path": "{% if existing_code_root %}{{existing_code_root}}/{% endif %}recipe_executor/steps/execute_recipe.py",
-"artifact": "existing_code"
-},
-{
-"type": "execute_recipe",
-"recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/execute_recipe/execute_recipe_create.json",
-"context_overrides": {
-"existing_code": "{{existing_code}}"
+  "steps": [
+    {
+      "type": "read_files",
+      "path": "{% if existing_code_root %}{{existing_code_root}}/{% endif %}recipe_executor/steps/execute_recipe.py",
+      "artifact": "existing_code"
+    },
+    {
+      "type": "execute_recipe",
+      "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/execute_recipe/execute_recipe_create.json",
+      "context_overrides": {
+        "existing_code": "{{existing_code}}"
+      }
+    }
+  ]
 }
-}
-]
-}
+
 
 === File: recipes/recipe_executor/components/steps/execute_recipe/execute_recipe_spec.md ===
-
 # ExecuteRecipeStep Component Specification
 
 ## Purpose
@@ -2191,14 +2258,27 @@ The ExecuteRecipeStep component enables recipes to execute other recipes as sub-
 - Keep the implementation simple and focused on a single responsibility
 - Log detailed information about sub-recipe execution
 
+## Logging
+
+- Debug: None
+- Info: Log the path of the sub-recipe being executed at both start and end of execution
+
 ## Component Dependencies
 
-The ExecuteRecipeStep component depends on:
+### Internal Components
 
-- **Steps Base** - Extends BaseStep with a specific config type
-- **Context** - Shares context between main recipe and sub-recipes
-- **Executor** - Uses RecipeExecutor to run the sub-recipe
-- **Utils** - Uses render_template for dynamic content resolution
+- **Steps Base** - (Required) Extends BaseStep to implement the step interface
+- **Context** - (Required) Shares context between main recipe and sub-recipes
+- **Executor** - (Required) Uses Executor to run the sub-recipe
+- **Utils** - (Required) Uses render_template for dynamic content resolution in paths and context overrides
+
+### External Libraries
+
+None
+
+### Configuration Dependencies
+
+None
 
 ## Error Handling
 
@@ -2207,6 +2287,10 @@ The ExecuteRecipeStep component depends on:
 - Log sub-recipe execution start and completion
 - Include sub-recipe path in error messages for debugging
 
+## Output Files
+
+- `steps/execute_recipe.py`
+
 ## Future Considerations
 
 - Support for recipe content passed directly in configuration
@@ -2214,44 +2298,45 @@ The ExecuteRecipeStep component depends on:
 - Result mapping from sub-recipes back to parent recipes
 - Conditional sub-recipe execution
 
+
 === File: recipes/recipe_executor/components/steps/generate_llm/generate_llm_create.json ===
 {
-"steps": [
-{
-"type": "read_file",
-"path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/base/base_docs.md",
-"artifact": "steps_base_docs"
-},
-{
-"type": "read_file",
-"path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/context/context_docs.md",
-"artifact": "context_docs"
-},
-{
-"type": "read_file",
-"path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/llm/llm_docs.md",
-"artifact": "llm_docs"
-},
-{
-"type": "read_file",
-"path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/utils/utils_docs.md",
-"artifact": "utils_docs"
-},
-{
-"type": "execute_recipe",
-"recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/utils/build_component.json",
-"context_overrides": {
-"component_id": "generate_llm",
-"component_path": "/steps",
-"existing_code": "{{existing_code}}",
-"additional_content": "<STEPS_BASE_DOCS>\n{{steps_base_docs}}\n</STEPS_BASE_DOCS>\n<CONTEXT_DOCS>\n{{context_docs}}\n</CONTEXT_DOCS>\n<LLM_DOCS>\n{{llm_docs}}\n</LLM_DOCS>\n<UTILS_DOCS>\n{{utils_docs}}\n</UTILS_DOCS>"
+  "steps": [
+    {
+      "type": "read_files",
+      "path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/base/base_docs.md",
+      "artifact": "steps_base_docs"
+    },
+    {
+      "type": "read_files",
+      "path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/context/context_docs.md",
+      "artifact": "context_docs"
+    },
+    {
+      "type": "read_files",
+      "path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/llm/llm_docs.md",
+      "artifact": "llm_docs"
+    },
+    {
+      "type": "read_files",
+      "path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/utils/utils_docs.md",
+      "artifact": "utils_docs"
+    },
+    {
+      "type": "execute_recipe",
+      "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/utils/build_component.json",
+      "context_overrides": {
+        "component_id": "generate_llm",
+        "component_path": "/steps",
+        "existing_code": "{{existing_code}}",
+        "additional_content": "<STEPS_BASE_DOCS>\n{{steps_base_docs}}\n</STEPS_BASE_DOCS>\n<CONTEXT_DOCS>\n{{context_docs}}\n</CONTEXT_DOCS>\n<LLM_DOCS>\n{{llm_docs}}\n</LLM_DOCS>\n<UTILS_DOCS>\n{{utils_docs}}\n</UTILS_DOCS>"
+      }
+    }
+  ]
 }
-}
-]
-}
+
 
 === File: recipes/recipe_executor/components/steps/generate_llm/generate_llm_docs.md ===
-
 # GenerateWithLLMStep Component Usage
 
 ## Importing
@@ -2316,7 +2401,7 @@ The prompt can include template variables from the context:
 {
   "steps": [
     {
-      "type": "read_file",
+      "type": "read_files",
       "path": "specs/component_spec.md",
       "artifact": "spec"
     },
@@ -2364,36 +2449,6 @@ The artifact key can be templated to create dynamic storage locations:
 }
 ```
 
-## Implementation Details
-
-The GenerateWithLLMStep works by:
-
-1. Rendering the prompt with the current context
-2. Rendering the model identifier
-3. Rendering the artifact key (if it contains templates)
-4. Calling the LLM with the rendered prompt and model
-5. Storing the result in the context under the artifact key
-
-```python
-def execute(self, context: Context) -> None:
-    # Process the artifact key using templating if needed
-    artifact_key = self.config.artifact
-    if "{{" in artifact_key and "}}" in artifact_key:
-        artifact_key = render_template(artifact_key, context)
-
-    # Render the prompt and model with the current context
-    rendered_prompt = render_template(self.config.prompt, context)
-    rendered_model = render_template(self.config.model, context)
-
-    # Call the LLM
-    self.logger.info(f"Calling LLM with prompt for artifact: {artifact_key}")
-    response = call_llm(rendered_prompt, rendered_model)
-
-    # Store the LLM response in context
-    context[artifact_key] = response
-    self.logger.debug(f"LLM response stored in context under '{artifact_key}'")
-```
-
 ## LLM Response Format
 
 The response from call_llm is a FileGenerationResult object:
@@ -2409,83 +2464,70 @@ result = FileGenerationResult(
 )
 ```
 
-## Error Handling
-
-The GenerateWithLLMStep can raise several types of errors:
-
-```python
-try:
-    generate_step.execute(context)
-except ValueError as e:
-    # Template rendering or model format errors
-    print(f"Value error: {e}")
-except RuntimeError as e:
-    # LLM call failures
-    print(f"Runtime error: {e}")
-```
-
 ## Common Use Cases
 
-1. **Code Generation**:
+**Code Generation**:
 
-   ```json
-   {
-     "type": "generate",
-     "prompt": "Generate Python code for: {{specification}}",
-     "model": "{{model|default:'openai:o3-mini'}}",
-     "artifact": "code_result"
-   }
-   ```
+```json
+{
+  "type": "generate",
+  "prompt": "Generate Python code for: {{specification}}",
+  "model": "{{model|default:'openai:o3-mini'}}",
+  "artifact": "code_result"
+}
+```
 
-2. **Content Creation**:
+**Content Creation**:
 
-   ```json
-   {
-     "type": "generate",
-     "prompt": "Write a blog post about: {{topic}}",
-     "model": "anthropic:claude-3-haiku",
-     "artifact": "blog_post"
-   }
-   ```
+```json
+{
+  "type": "generate",
+  "prompt": "Write a blog post about: {{topic}}",
+  "model": "anthropic:claude-3-haiku",
+  "artifact": "blog_post"
+}
+```
 
-3. **Analysis and Transformation**:
-   ```json
-   {
-     "type": "generate",
-     "prompt": "Analyze this code and suggest improvements:\n\n{{code}}",
-     "model": "{{model|default:'openai:o3-mini'}}",
-     "artifact": "code_analysis"
-   }
-   ```
+**Analysis and Transformation**:
+
+```json
+{
+  "type": "generate",
+  "prompt": "Analyze this code and suggest improvements:\n\n{{code}}",
+  "model": "{{model|default:'openai:o3-mini'}}",
+  "artifact": "code_analysis"
+}
+```
 
 ## Important Notes
 
-1. The artifact key can be dynamic using template variables
-2. The prompt is rendered using the current context before sending to the LLM
-3. The model identifier follows the format "provider:model_name"
-4. The LLM response is a FileGenerationResult object with files and commentary
-5. LLM calls may incur costs with the respective provider
+- The artifact key can be dynamic using template variables
+- The prompt is rendered using the current context before sending to the LLM
+- The model identifier follows the format "provider:model_name"
+- The LLM response is a FileGenerationResult object with files and commentary
+- LLM calls may incur costs with the respective provider
+
 
 === File: recipes/recipe_executor/components/steps/generate_llm/generate_llm_edit.json ===
 {
-"steps": [
-{
-"type": "read_file",
-"path": "{% if existing_code_root %}{{existing_code_root}}/{% endif %}recipe_executor/steps/generate_llm.py",
-"artifact": "existing_code"
-},
-{
-"type": "execute_recipe",
-"recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/generate_llm/generate_llm_create.json",
-"context_overrides": {
-"existing_code": "{{existing_code}}"
+  "steps": [
+    {
+      "type": "read_files",
+      "path": "{% if existing_code_root %}{{existing_code_root}}/{% endif %}recipe_executor/steps/generate_llm.py",
+      "artifact": "existing_code"
+    },
+    {
+      "type": "execute_recipe",
+      "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/generate_llm/generate_llm_create.json",
+      "context_overrides": {
+        "existing_code": "{{existing_code}}"
+      }
+    }
+  ]
 }
-}
-]
-}
+
 
 === File: recipes/recipe_executor/components/steps/generate_llm/generate_llm_spec.md ===
-
 # GenerateWithLLMStep Component Specification
 
 ## Purpose
@@ -2509,14 +2551,27 @@ The GenerateWithLLMStep component enables recipes to generate content using larg
 - Keep the implementation simple and focused on a single responsibility
 - Log detailed information about LLM requests
 
+## Logging
+
+- Debug: Log that the LLM call is being made (leave the details to the LLM component to log)
+- Info: None
+
 ## Component Dependencies
 
-The GenerateWithLLMStep component depends on:
+### Internal Components
 
-- **Steps Base** - Extends BaseStep with a specific config type
-- **Context** - Retrieves input values and stores generation results
-- **LLM** - Uses call_llm function to interact with language models
-- **Utils** - Uses render_template for dynamic content resolution
+- **Steps Base** - (Required) Extends BaseStep to implement the step interface
+- **Context** - (Required) Retrieves input values and stores generation results
+- **LLM** - (Required) Uses call_llm function to interact with language models
+- **Utils** - (Required) Uses render_template for dynamic content resolution in prompts and model identifiers
+
+### External Libraries
+
+None
+
+### Configuration Dependencies
+
+None
 
 ## Error Handling
 
@@ -2525,48 +2580,55 @@ The GenerateWithLLMStep component depends on:
 - Ensure proper error propagation for debugging
 - Validate configuration before making LLM calls
 
+## Output Files
+
+- `steps/generate_llm.py`
+
 ## Future Considerations
 
 - Additional LLM parameters (temperature, max tokens, etc.)
 
+
 === File: recipes/recipe_executor/components/steps/parallel/parallel_create.json ===
 {
-"steps": [
-{
-"type": "read_file",
-"path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/base/base_docs.md",
-"artifact": "steps_base_docs"
-},
-{
-"type": "read_file",
-"path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/context/context_docs.md",
-"artifact": "context_docs"
-},
-{
-"type": "read_file",
-"path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/utils/utils_docs.md",
-"artifact": "utils_docs"
-},
-{
-"type": "execute_recipe",
-"recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/utils/build_component.json",
-"context_overrides": {
-"component_id": "parallel",
-"component_path": "/steps",
-"existing_code": "{{existing_code}}",
-"additional_content": "<STEPS_BASE_DOCS>\n{{steps_base_docs}}\n</STEPS_BASE_DOCS>\n<CONTEXT_DOCS>\n{{context_docs}}\n</CONTEXT_DOCS>\n<UTILS_DOCS>\n{{utils_docs}}\n</UTILS_DOCS>"
+  "steps": [
+    {
+      "type": "read_files",
+      "path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/base/base_docs.md",
+      "artifact": "steps_base_docs"
+    },
+    {
+      "type": "read_files",
+      "path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/context/context_docs.md",
+      "artifact": "context_docs"
+    },
+    {
+      "type": "read_files",
+      "path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/utils/utils_docs.md",
+      "artifact": "utils_docs"
+    },
+    {
+      "type": "execute_recipe",
+      "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/utils/build_component.json",
+      "context_overrides": {
+        "component_id": "parallel",
+        "component_path": "/steps",
+        "existing_code": "{{existing_code}}",
+        "additional_content": "<STEPS_BASE_DOCS>\n{{steps_base_docs}}\n</STEPS_BASE_DOCS>\n<CONTEXT_DOCS>\n{{context_docs}}\n</CONTEXT_DOCS>\n<UTILS_DOCS>\n{{utils_docs}}\n</UTILS_DOCS>"
+      }
+    }
+  ]
 }
-}
-]
-}
+
 
 === File: recipes/recipe_executor/components/steps/parallel/parallel_docs.md ===
+# Parallel Component Usage
 
-# ParallelStep Component Usage
+The **ParallelStep** component enables the concurrent execution of multiple sub-steps within a recipe. It is ideal for improving performance when independent tasks can be executed in parallel.
 
 ## Importing
 
-To use the ParallelStep in your project, import the step class and its configuration class from the recipe executor’s steps module:
+Import the ParallelStep and its configuration:
 
 ```python
 from recipe_executor.steps.parallel import ParallelStep, ParallelConfig
@@ -2574,7 +2636,7 @@ from recipe_executor.steps.parallel import ParallelStep, ParallelConfig
 
 ## Configuration
 
-The ParallelStep is configured with a corresponding `ParallelConfig` class, which defines its parameters:
+The ParallelStep is configured via a ParallelConfig object. This configuration defines the list of sub-steps to run concurrently, along with optional settings for controlling concurrency.
 
 ```python
 class ParallelConfig(StepConfig):
@@ -2593,15 +2655,9 @@ class ParallelConfig(StepConfig):
     delay: float = 0
 ```
 
-In the configuration:
-
-- **`substeps`** (required) is a list of step configurations, where each item is typically an object/dict specifying an `execute_recipe` step (with its `recipe_path`, and optionally `context_overrides`, etc.). This defines which sub-recipes will be run in parallel.
-- **`max_concurrency`** (optional) limits how many sub-recipes run at the same time. For example, setting `max_concurrency` to 2 will ensure at most two substeps are executing in parallel; additional substeps will wait until a slot is free. If this value is 0 or not set, the ParallelStep will attempt to run all substeps concurrently (unbounded, which effectively means as many threads as substeps).
-- **`delay`** (optional) if provided, introduces a pause between launching each substep. This is useful to stagger execution starts. For instance, a delay of `1.5` means after starting one substep, the ParallelStep will wait 1.5 seconds before starting the next substep. By default this is 0, meaning no deliberate delay between thread launches.
-
 ## Step Registration
 
-Like other step types, the ParallelStep must be registered so the Recipe Executor knows about it. This is typically done in the steps registry setup:
+To enable the use of ParallelStep in recipes, register it in the step registry:
 
 ```python
 from recipe_executor.steps.registry import STEP_REGISTRY
@@ -2610,11 +2666,11 @@ from recipe_executor.steps.parallel import ParallelStep
 STEP_REGISTRY["parallel"] = ParallelStep
 ```
 
-Registering the `"parallel"` type ensures that when a recipe contains a step with `"type": "parallel"`, the executor will instantiate and use a `ParallelStep` to execute it.
-
 ## Basic Usage in Recipes
 
-The ParallelStep is used in recipes to run multiple sub-recipes concurrently. This is ideal when you have several independent tasks that can be executed in parallel to reduce overall runtime. For example, suppose you want to run two separate sub-recipes at the same time — you can define a parallel step as follows:
+The ParallelStep allows you to run multiple steps concurrently. Sub-steps are defined within a dedicated `steps` array.
+
+### Example Recipe (JSON)
 
 ```json
 {
@@ -2644,189 +2700,231 @@ The ParallelStep is used in recipes to run multiple sub-recipes concurrently. Th
 }
 ```
 
-In this JSON snippet:
+## Integration with Other Steps
 
-- The `ParallelStep` is represented by an object with `"type": "parallel"`. It contains a `substeps` array defining two sub-steps, each of which is an `execute_recipe` step running a sub-recipe (`subtask_a.json` and `subtask_b.json`). Both sub-recipes in this example use a context value `shared_input` (passed via context overrides) but they will run in isolation from each other.
-- The `max_concurrency` is set to `2`, meaning up to two substeps can run at the same time. Here we have exactly two substeps, so they will indeed run simultaneously. If there were more substeps than the concurrency limit, the extra ones would wait until others finish before starting.
-- The `delay` is set to `1` second. This will cause the ParallelStep to wait 1 second after launching the first substep (`subtask_a`) before launching the second substep (`subtask_b`). The delay can help in staggering the workload (for example, to avoid hitting a resource spike by starting many tasks at the exact same moment). In this case, since `max_concurrency` is 2 and we have 2 substeps, both will still run in parallel (just with a 1-second offset in their start times).
+The ParallelStep is designed to integrate seamlessly with the rest of your recipe:
 
-When the ParallelStep executes, it will start both **Subtask A** and **Subtask B** almost concurrently (with the specified delay). Each subtask will run in its own cloned context, so any changes they make to context (like artifacts or intermediate data) remain in their sub-recipe’s context. The parent recipe’s context (`shared_input` in this case) is not modified by the sub-recipes, unless you explicitly write results back to it (which by default does not happen in the current design).
-
-## Error Handling
-
-If any sub-recipe within the parallel step fails or throws an error, the ParallelStep will halt and propagate that error immediately (fail-fast). This means you should be prepared to catch exceptions from a ParallelStep execution just as you would for other steps. For example:
-
-```python
-try:
-    parallel_step.execute(context)
-except Exception as e:
-    # If any substep fails, an exception will be raised here
-    print(f"Parallel step failed: {e}")
-```
-
-In practice, the type of exception will depend on the nature of the sub-recipe failure. For instance, if one sub-recipe tries to read a missing file, a `FileNotFoundError` might be raised; if a sub-recipe has an invalid configuration, it could raise a `ValueError` or custom step error. The ParallelStep does not yet define a special exception type for aggregated errors, so it will typically raise the first encountered sub-step exception. The error message should include information to identify which substep failed (e.g., the recipe path or an index) to aid in debugging. All other substeps will be canceled or stopped as soon as an error is detected, so their effects (if any) might be partial or rolled back when the exception is raised.
+- **Copies of Context:** All sub-steps are provided a copy of the same context, enabling them to read from common data.
+- **Independent Execution:** Use ParallelStep only for tasks that do not depend on each other nor write back to context beyond the lifecycle of the parallel execution, as the context is discarded after the parallel block completes.
 
 ## Important Notes
 
-1. **Context Isolation:** Each substep runs with its own cloned Context. The ParallelStep uses a deep copy of the parent context for each sub-recipe, meaning substeps do not share state with each other. Any modifications a sub-recipe makes to its context will _not_ appear in the parent or sibling contexts. This prevents race conditions or data leaks between parallel tasks. (The parent context remains unchanged by default through the parallel execution.)
-2. **Concurrency Control:** The `max_concurrency` setting governs how many sub-recipes execute simultaneously. If you have more substeps than the `max_concurrency`, the extra substeps will wait in a queue until a running substep finishes. By default (`max_concurrency: 0` meaning unlimited), the ParallelStep will launch all substeps at once, which can maximize parallelism but also increase load on the system. It’s often wise to set a reasonable limit based on your environment (e.g., number of CPU cores or external API rate limits).
-3. **Launch Delay:** Using the `delay` parameter, you can stagger the start of each parallel task. In high-load scenarios, a slight delay (even a fraction of a second) between launches can prevent all threads from spiking at exactly the same time. The delay is applied between each substep launch. For example, with `delay: 2`, there will be a 2-second pause before launching each subsequent substep. If `max_concurrency` is also set, the delay still applies as long as additional substeps are being started.
-4. **Fail-Fast Behavior:** ParallelStep is designed to fail fast. If any one of the parallel sub-recipes fails, the entire ParallelStep is considered failed immediately. In such a case, no further substeps will be started, and any substeps that are still running may be interrupted or will be awaited to stop. This ensures that you don’t continue a workflow when part of the parallel work has gone wrong. You should design parallel tasks such that they can either all succeed or handle partial failure if that’s acceptable (future enhancements may allow continuing despite one failure, but currently the behavior is to abort on first error).
-5. **Limitations:** As of now, the ParallelStep can only execute substeps of type `execute_recipe`. In other words, each parallel subtask must be an entire sub-recipe executed via an ExecuteRecipeStep. You cannot yet list arbitrary step types under `substeps` (e.g., you cannot directly put a `"type": "read_file"` step in substeps for parallel execution at this time). This may be expanded in the future to allow more flexible parallelization of different step kinds.
-6. **No Automatic Result Merging:** Results produced by sub-recipes (for example, artifacts or context changes within those sub-recipes) are not automatically merged back into the parent context. Currently, the ParallelStep treats sub-recipes as isolated parallel jobs whose side-effects remain in their own contexts. If you need to use results from sub-recipes, you would have to handle that in the sub-recipes themselves (e.g. writing to a common output or updating an external resource), or a future enhancement of ParallelStep may provide a way to collect outputs. This is an important consideration when designing your recipes – ensure that either the parallel tasks are truly independent or that you implement a mechanism to consolidate their outcomes afterward.
+- **Error Handling:** If any sub-step fails, the entire parallel execution aborts. Handle errors within each sub-step to ensure graceful degradation.
+- **Resource Constraints:** Adjust `max_concurrency` based on system resources to avoid overwhelming the executor.
+- **Delay Between Sub-steps:** Use the `delay` parameter to control the timing of sub-step execution, which can help manage resource contention.
+
 
 === File: recipes/recipe_executor/components/steps/parallel/parallel_edit.json ===
 {
-"steps": [
-{
-"type": "read_file",
-"path": "{% if existing_code_root %}{{existing_code_root}}/{% endif %}recipe_executor/steps/parallel.py",
-"artifact": "existing_code"
-},
-{
-"type": "execute_recipe",
-"recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/parallel/parallel_create.json",
-"context_overrides": {
-"existing_code": "{{existing_code}}"
+  "steps": [
+    {
+      "type": "read_files",
+      "path": "{% if existing_code_root %}{{existing_code_root}}/{% endif %}recipe_executor/steps/parallel.py",
+      "artifact": "existing_code"
+    },
+    {
+      "type": "execute_recipe",
+      "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/parallel/parallel_create.json",
+      "context_overrides": {
+        "existing_code": "{{existing_code}}"
+      }
+    }
+  ]
 }
-}
-]
-}
+
 
 === File: recipes/recipe_executor/components/steps/parallel/parallel_spec.md ===
-
 # ParallelStep Component Specification
 
 ## Purpose
 
-The ParallelStep component enables the Recipe Executor to run multiple sub-recipes concurrently within a single step. It is designed to improve execution efficiency by parallelizing independent tasks, while isolating each sub-recipe’s state to prevent interference. This step type allows complex workflows to launch several sub-steps at once (up to a limit), coordinating their execution and consolidating their outcomes in a controlled manner.
+The ParallelStep component enables the Recipe Executor to run multiple sub-recipes concurrently within a single step. It improves execution efficiency by parallelizing independent tasks while maintaining isolation between them.
 
 ## Core Requirements
 
-- Accept a list of sub-step configurations (each sub-step must be of type `execute_recipe` representing a sub-recipe to run)
-- Clone the current execution context for each sub-step to ensure isolation between parallel tasks (no cross-contamination of data)
-- Launch sub-steps concurrently, respecting a configurable maximum concurrency limit (number of sub-steps running in parallel at a time)
-- Optionally introduce a configurable delay (in seconds) between launching each sub-step to stagger start times if needed
-- Wait for all spawned sub-steps to complete before marking the parallel step as finished (block until all threads finish or error out)
-- **Fail-fast behavior**: if any sub-step encounters an error, immediately stop launching new sub-steps (and cancel running ones if possible) and report the error without waiting for the remaining sub-steps to finish
+- Accept a list of sub-step configurations (each of type `execute_recipe`)
+- Clone the current execution context for each sub-step to ensure isolation
+- Execute sub-steps concurrently with a configurable maximum concurrency limit
+- Support optional delay between launching sub-steps
+- Wait for all sub-steps to complete before proceeding
+- Implement fail-fast behavior: if any sub-step fails, stop launching new ones and report the error
 
 ## Implementation Considerations
 
-- Utilize a `ThreadPoolExecutor` (or similar threading mechanism) to manage parallel execution of sub-steps, using the provided concurrency limit as the `max_workers` to control the number of threads
-- Use the Context’s `clone()` method to create a deep copy of the execution context for each sub-step. This ensures each sub-recipe operates on an independent context snapshot, preserving the initial state while preventing modifications from affecting the parent or sibling sub-steps
-- If a launch delay is configured, implement a brief pause (e.g. using `time.sleep`) between submitting each sub-step to the thread pool. This delay helps to stagger the tasks’ start times for resource management or sequencing needs
-- Provide detailed logging for each sub-step’s lifecycle: log when each sub-recipe starts, when it completes successfully, and any results or key outputs. Also log a final summary after all sub-steps finish (e.g. how many succeeded or failed) to give clarity on the parallel execution as a whole
-- Collect and monitor exceptions from each thread as they finish. If an exception arises in any sub-step, capture it immediately and initiate a “fail-fast” shutdown of the remaining parallel tasks. This may involve canceling queued sub-steps in the ThreadPoolExecutor and preventing new submissions. Ensure thread pool shutdown and cleanup is handled to avoid lingering threads
-- Consider the performance implications of context cloning and thread startup. Cloning a large context for many sub-steps could be memory-intensive; use efficient deep copy methods and possibly limit concurrency by default to avoid overwhelming system resources
+- Use a ThreadPoolExecutor to manage parallel execution of sub-steps
+- Use Context.clone() to create independent context copies for each sub-step
+- Implement configurable launch delay using time.sleep for staggered start times
+- Monitor exceptions from each thread and implement fail-fast behavior
+- Provide clear logging for sub-step lifecycle events and execution summary
+- Manage resources efficiently to prevent memory or thread management issues
 
 ## Component Dependencies
 
-The ParallelStep component depends on:
+### Internal Components
 
-- **Steps Base** – Inherits from the BaseStep abstract class (and uses a Pydantic StepConfig) to integrate with the step execution framework and configuration validation
-- **Context** – Utilizes the Context component for passing data to sub-recipes, specifically calling `Context.clone()` to produce isolated context instances for each parallel sub-step
-- **Step Registry** – Uses the Step Registry to resolve and instantiate the `execute_recipe` step for each sub-step configuration. The registry ensures the correct step class (ExecuteRecipeStep) is retrieved using the `type` field of each sub-step definition
-- **Executor** – Leverages the RecipeExecutor (or similar execution engine) to actually run each sub-recipe in a separate thread. Each sub-step execution may internally create a new RecipeExecutor instance or use the existing executor infrastructure to perform the sub-recipe’s steps
-- **Utils (Template Renderer)** – (Potentially) uses utility functions such as template rendering if sub-step definitions contain templated strings (e.g. in recipe paths or context overrides), ensuring that each sub-step’s configuration is fully resolved before execution
+- **Steps Base** - (Required) Inherits from BaseStep for integration with the step execution framework
+- **Context** - (Required) Uses Context.clone() to create isolated contexts for each parallel sub-step
+- **Step Registry** - (Required) Uses registry to instantiate execute_recipe step for sub-steps
+- **Executor** - (Required) Uses Executor to run each sub-recipe in separate threads
+- **Utils** - (Optional) Uses template rendering for sub-step configurations
+
+### External Libraries
+
+- **ThreadPoolExecutor** - (Required) Uses concurrent.futures.ThreadPoolExecutor for parallel execution
+- **time** - (Optional) Uses time.sleep for implementing launch delays between sub-steps
+
+### Configuration Dependencies
+
+None
+
+## Output Files
+
+- `steps/parallel.py` - Implementation of the ParallelStep class
+
+## Logging
+
+- Debug: Log sub-step start/completion events, thread allocation, and configuration details
+- Info: Log start/completion with summary of parallel execution including numuber of steps and success/failure counts
 
 ## Error Handling
 
-- If any substep raises an exception during execution, the ParallelStep should immediately abort the parallel execution. This means no new substeps are started, and any pending substeps in the queue are canceled. The first encountered exception is propagated outward as the ParallelStep’s failure
-- The error reported by the ParallelStep must clearly convey the context of the failure. For example, include which sub-recipe or sub-step index failed and the original exception message/stack trace. This helps users identify the failing parallel branch quickly
-- Log an error entry when a sub-step fails, capturing the exception details and possibly the sub-step’s configuration or identifier. All other substeps should also log their completion status (whether skipped due to failure, canceled, or completed before the abort) for transparency
-- Ensure that no threads remain running in the background after a failure is handled. The system should either join all threads or properly shut down the ThreadPoolExecutor to prevent orphaned threads. This guarantees that a failure in one parallel sub-step does not leave the system in an unstable state
-- On normal completion (no errors), handle any exceptions or edge cases like timeouts or cancellations gracefully. If a sub-step times out or is externally canceled, treat it as a failure scenario and apply the same fail-fast handling
+- Implement fail-fast behavior when any sub-step encounters an error
+- Cancel pending sub-steps when an error occurs
+- Include clear error context identifying which sub-step failed
+- Ensure proper thread pool shutdown to prevent orphaned threads
+- Propagate the original exception with contextual information about the failure
 
 ## Future Considerations
 
-- **Support for arbitrary step types**: Expand the ParallelStep to allow running any step type in parallel (not just `execute_recipe`). This would enable parallel execution of fine-grained steps (like file reads, LLM calls, etc.) directly, not only whole sub-recipes. It would involve generalizing sub-step handling and possibly refining context sharing/merging strategies
-- **Result aggregation**: Provide mechanisms to collect outputs or artifacts from sub-steps back into the parent context once all substeps have finished. Future versions might allow specifying how each sub-step’s results (modified contexts, artifacts, or return values) are merged or reported to the parent execution flow. This could include combining artifacts, selecting a particular sub-step’s result to propagate, or summarizing multiple outcomes
-- **Dynamic concurrency control**: Consider more advanced features like dynamically adjusting the concurrency level based on system load or sub-step characteristics, and providing better scheduling (e.g. prioritize certain substeps)
-- **Timeout and isolation options**: Introduce optional timeouts for substeps or the entire parallel block, and more configurable isolation (for example, choosing to merge contexts automatically vs keep them separate) as the ParallelStep evolves to handle more complex scenarios
+- Support for arbitrary step types beyond just execute_recipe
+- Result aggregation from sub-steps back to parent context
+- Dynamic concurrency control based on system load
+- Timeout and isolation options for sub-steps
 
-=== File: recipes/recipe_executor/components/steps/read_file/read_file_create.json ===
+
+=== File: recipes/recipe_executor/components/steps/read_files/read_files_create.json ===
 {
-"steps": [
-{
-"type": "read_file",
-"path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/base/base_docs.md",
-"artifact": "steps_base_docs"
-},
-{
-"type": "read_file",
-"path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/context/context_docs.md",
-"artifact": "context_docs"
-},
-{
-"type": "read_file",
-"path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/utils/utils_docs.md",
-"artifact": "utils_docs"
-},
-{
-"type": "execute_recipe",
-"recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/utils/build_component.json",
-"context_overrides": {
-"component_id": "read_file",
-"component_path": "/steps",
-"existing_code": "{{existing_code}}",
-"additional_content": "<STEPS_BASE_DOCS>\n{{steps_base_docs}}\n</STEPS_BASE_DOCS>\n<CONTEXT_DOCS>\n{{context_docs}}\n</CONTEXT_DOCS>\n<UTILS_DOCS>\n{{utils_docs}}\n</UTILS_DOCS>"
-}
-}
-]
+  "steps": [
+    {
+      "type": "read_files",
+      "path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/base/base_docs.md",
+      "artifact": "steps_base_docs"
+    },
+    {
+      "type": "read_files",
+      "path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/context/context_docs.md",
+      "artifact": "context_docs"
+    },
+    {
+      "type": "read_files",
+      "path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/utils/utils_docs.md",
+      "artifact": "utils_docs"
+    },
+    {
+      "type": "execute_recipe",
+      "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/utils/build_component.json",
+      "context_overrides": {
+        "component_id": "read_files",
+        "component_path": "/steps",
+        "existing_code": "{{existing_code}}",
+        "additional_content": "<STEPS_BASE_DOCS>\n{{steps_base_docs}}\n</STEPS_BASE_DOCS>\n<CONTEXT_DOCS>\n{{context_docs}}\n</CONTEXT_DOCS>\n<UTILS_DOCS>\n{{utils_docs}}\n</UTILS_DOCS>"
+      }
+    }
+  ]
 }
 
-=== File: recipes/recipe_executor/components/steps/read_file/read_file_docs.md ===
 
-# ReadFileStep Component Usage
+=== File: recipes/recipe_executor/components/steps/read_files/read_files_docs.md ===
+# ReadFilesStep Component Usage
 
 ## Importing
 
 ```python
-from recipe_executor.steps.read_file import ReadFileStep, ReadFileConfig
+from recipe_executor.steps.read_files import ReadFilesStep, ReadFilesConfig
 ```
 
 ## Configuration
 
-The ReadFileStep is configured with a ReadFileConfig:
+The ReadFilesStep is configured with a ReadFilesConfig:
 
 ```python
-class ReadFileConfig(StepConfig):
+class ReadFilesConfig(StepConfig):
     """
-    Configuration for ReadFileStep.
+    Configuration for ReadFilesStep.
 
     Fields:
-        path (str): Path to the file to read (may be templated).
+        path (Union[str, List[str]]): Path or list of paths to the file(s) to read (may be templated).
         artifact (str): Name to store the file contents in context.
-        optional (bool): Whether to continue if the file is not found.
+        optional (bool): Whether to continue if a file is not found.
+        merge_mode (str): How to handle multiple files' content. Options:
+            - "concat" (default): Concatenate all files with newlines between filenames + contents
+            - "dict": Store a dictionary with filenames as keys and contents as values
     """
 
-    path: str
+    path: Union[str, List[str]]
     artifact: str
     optional: bool = False
+    merge_mode: str = "concat"
 ```
 
 ## Step Registration
 
-The ReadFileStep is typically registered in the steps package:
+The ReadFilesStep is typically registered in the steps package:
 
 ```python
 from recipe_executor.steps.registry import STEP_REGISTRY
-from recipe_executor.steps.read_file import ReadFileStep
+from recipe_executor.steps.read_files import ReadFilesStep
 
-STEP_REGISTRY["read_file"] = ReadFileStep
+STEP_REGISTRY["read_files"] = ReadFilesStep
 ```
 
 ## Basic Usage in Recipes
 
-The ReadFileStep can be used in recipes like this:
+### Reading a Single File
+
+The ReadFilesStep can be used to read a single file just like the original read_file step:
 
 ```json
 {
   "steps": [
     {
-      "type": "read_file",
+      "type": "read_files",
       "path": "specs/component_spec.md",
       "artifact": "component_spec"
+    }
+  ]
+}
+```
+
+### Reading Multiple Files
+
+You can read multiple files by providing a list of paths:
+
+```json
+{
+  "steps": [
+    {
+      "type": "read_files",
+      "path": ["specs/component_spec.md", "specs/component_docs.md"],
+      "artifact": "component_specs",
+      "merge_mode": "concat"
+    }
+  ]
+}
+```
+
+### Reading Multiple Files as a Dictionary
+
+You can also store multiple files as a dictionary with filenames as keys:
+
+```json
+{
+  "steps": [
+    {
+      "type": "read_files",
+      "path": ["specs/component_spec.md", "specs/component_docs.md"],
+      "artifact": "component_specs",
+      "merge_mode": "dict"
     }
   ]
 }
@@ -2840,7 +2938,7 @@ The path can include template variables from the context:
 {
   "steps": [
     {
-      "type": "read_file",
+      "type": "read_files",
       "path": "specs/{{component_id}}_spec.md",
       "artifact": "component_spec"
     }
@@ -2848,186 +2946,228 @@ The path can include template variables from the context:
 }
 ```
 
-## Optional Files
-
-You can specify that a file is optional, and execution will continue even if the file doesn't exist:
+Template variables can also be used in list paths:
 
 ```json
 {
   "steps": [
     {
-      "type": "read_file",
-      "path": "specs/optional_file.md",
-      "artifact": "optional_content",
+      "type": "read_files",
+      "path": [
+        "specs/{{component_id}}_spec.md",
+        "specs/{{component_id}}_docs.md"
+      ],
+      "artifact": "component_files"
+    }
+  ]
+}
+```
+
+## Optional Files
+
+You can specify that files are optional, and execution will continue even if files don't exist:
+
+```json
+{
+  "steps": [
+    {
+      "type": "read_files",
+      "path": ["specs/required_file.md", "specs/optional_file.md"],
+      "artifact": "component_files",
       "optional": true
     }
   ]
 }
 ```
 
-If an optional file is not found, an empty string is stored in the context.
+If an optional file is not found:
 
-## Implementation Details
-
-The ReadFileStep works by:
-
-1. Resolving the path using template rendering
-2. Checking if the file exists
-3. Reading the file content
-4. Storing the content in the context
-
-```python
-def execute(self, context: Context) -> None:
-    # Render the path using the current context
-    path = render_template(self.config.path, context)
-
-    # Check if file exists
-    if not os.path.exists(path):
-        if self.config.optional:
-            self.logger.warning(f"Optional file not found at path: {path}, continuing anyway")
-            context[self.config.artifact] = ""  # Set empty string for missing optional file
-            return
-        else:
-            raise FileNotFoundError(f"ReadFileStep: file not found at path: {path}")
-
-    # Read the file
-    self.logger.info(f"Reading file from: {path}")
-    with open(path, "r", encoding="utf-8") as f:
-        content = f.read()
-
-    # Store in context
-    context[self.config.artifact] = content
-    self.logger.debug(f"Stored file contents in context under key: '{self.config.artifact}'")
-```
-
-## Error Handling
-
-If a file doesn't exist and is not marked as optional, the step will raise a FileNotFoundError:
-
-```python
-try:
-    read_file_step.execute(context)
-except FileNotFoundError as e:
-    print(f"File error: {e}")
-    # Handle the error
-```
+- For a single file: an empty string is stored in the context
+- For multiple files with `merge_mode: "concat"`: the file is skipped in the concatenation
+- For multiple files with `merge_mode: "dict"`: an empty string is stored for that file key
 
 ## Common Use Cases
 
-1. **Loading Specifications**:
+**Loading Multiple Related Specifications**:
 
-   ```json
-   {
-     "type": "read_file",
-     "path": "specs/component_spec.md",
-     "artifact": "spec"
-   }
-   ```
+```json
+{
+  "type": "read_files",
+  "path": ["specs/{{component_id}}_spec.md", "specs/{{component_id}}_docs.md"],
+  "artifact": "component_files",
+  "merge_mode": "concat"
+}
+```
 
-2. **Loading Templates**:
+**Loading Templates with Optional Components**:
 
-   ```json
-   {
-     "type": "read_file",
-     "path": "templates/email_template.txt",
-     "artifact": "email_template"
-   }
-   ```
+```json
+{
+  "type": "read_files",
+  "path": [
+    "templates/email_base.txt",
+    "templates/email_header.txt",
+    "templates/email_footer.txt"
+  ],
+  "artifact": "email_templates",
+  "optional": true,
+  "merge_mode": "dict"
+}
+```
 
-3. **Dynamic Path Resolution**:
-   ```json
-   {
-     "type": "read_file",
-     "path": "docs/{{project}}/{{component}}.md",
-     "artifact": "documentation"
-   }
-   ```
+**Dynamic Path Resolution with Multiple Files**:
+
+```json
+{
+  "type": "read_files",
+  "path": [
+    "docs/{{project}}/{{component}}/README.md",
+    "docs/{{project}}/{{component}}/USAGE.md"
+  ],
+  "artifact": "documentation",
+  "optional": true
+}
+```
+
+**Command Line Integration**:
+
+```bash
+python -m recipe_executor.main recipes/generate.json --context files_to_read="specs/component_a.md,specs/component_b.md"
+```
+
+```json
+{
+  "steps": [
+    {
+      "type": "read_files",
+      "path": "{{files_to_read.split(',')|default:'specs/default.md'}}",
+      "artifact": "input_files"
+    }
+  ]
+}
+```
 
 ## Important Notes
 
-1. The step uses UTF-8 encoding by default
-2. The file content is stored as a string in the context
-3. Template variables in the path are resolved before reading the file
-4. When a file is optional and missing, an empty string is stored
+- The step uses UTF-8 encoding by default for all files
+- When a file is optional and missing, it's handled differently based on merge_mode
+- Template variables in all paths are resolved before reading the files
+- For backwards compatibility, single file behavior matches the original read_file step
+- When using merge_mode "dict", the keys are the basenames of the files (not full paths)
+- All paths support template rendering, including paths in a list
 
-=== File: recipes/recipe_executor/components/steps/read_file/read_file_edit.json ===
+
+=== File: recipes/recipe_executor/components/steps/read_files/read_files_edit.json ===
 {
-"steps": [
-{
-"type": "read_file",
-"path": "{% if existing_code_root %}{{existing_code_root}}/{% endif %}recipe_executor/steps/read_file.py",
-"artifact": "existing_code"
-},
-{
-"type": "execute_recipe",
-"recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/read_file/read_file_create.json",
-"context_overrides": {
-"existing_code": "{{existing_code}}"
-}
-}
-]
+  "steps": [
+    {
+      "type": "read_files",
+      "path": "{% if existing_code_root %}{{existing_code_root}}/{% endif %}recipe_executor/steps/read_files.py",
+      "artifact": "existing_code",
+      "optional": true
+    },
+    {
+      "type": "execute_recipe",
+      "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/read_files/read_files_create.json",
+      "context_overrides": {
+        "existing_code": "{{existing_code}}"
+      }
+    }
+  ]
 }
 
-=== File: recipes/recipe_executor/components/steps/read_file/read_file_spec.md ===
 
-# ReadFileStep Component Specification
+=== File: recipes/recipe_executor/components/steps/read_files/read_files_spec.md ===
+# ReadFilesStep Component Specification
 
 ## Purpose
 
-The ReadFileStep component reads a file from the filesystem and stores its contents in the execution context. It serves as a foundational step for loading data into recipes, such as specifications, templates, and other input files.
+The ReadFilesStep component reads one or more files from the filesystem and stores their contents in the execution context. It serves as a foundational step for loading data into recipes, such as specifications, templates, and other input files, with support for both single file and multi-file operations.
 
 ## Core Requirements
 
-- Read a file from a specified path
-- Support template-based path resolution
-- Store file contents in the context under a specified key
-- Provide optional file handling for cases when files might not exist
+- Read a file or multiple files from specified path(s)
+- Support both single string path and list of paths as input
+- Support template-based path resolution for all paths
+- Store all file contents in the context under a single specified key
+- Provide flexible content merging options for multi-file reads
+- Support optional file handling for cases when files might not exist
 - Include appropriate logging and error messages
 - Follow minimal design with clear error handling
 
 ## Implementation Considerations
 
-- Use template rendering to support dynamic paths
+- Use template rendering to support dynamic paths for both single paths and lists of paths
 - Handle missing files explicitly with meaningful error messages
 - Use consistent UTF-8 encoding for text files
 - Implement optional flag to continue execution if files are missing
+- For multiple files, provide a way to merge contents (default: concatenate with newlines between filenames + content)
+- Provide a clear content structure when reading multiple files (dictionary with filenames as keys)
 - Keep the implementation simple and focused on a single responsibility
+- For backwards compatibility, preserve behavior of single file reads
+
+## Logging
+
+- Debug: Log each file path attempting to be read prior to reading (in case of failure)
+- Info: Log the successful reading of each file (including path) and the final storage in the context (including key)
 
 ## Component Dependencies
 
-The ReadFileStep component depends on:
+### Internal Components
 
-- **Steps Base** - Extends BaseStep with a specific config type
-- **Context** - Stores file contents in the context
-- **Utils** - Uses render_template for path resolution
+- **Steps Base** - (Required) Extends BaseStep to implement the step interface
+- **Context** - (Required) Stores file contents in the context under specified key
+- **Utils** - (Required) Uses render_template for dynamic path resolution
+
+### External Libraries
+
+None
+
+### Configuration Dependencies
+
+None
 
 ## Error Handling
 
-- Raise FileNotFoundError with clear message when files don't exist
-- Support optional flag to continue execution with empty content
+- Raise FileNotFoundError with clear message when required files don't exist
+- Support optional flag to continue execution with empty content for missing files
+- Handle different error cases for single file vs. multiple files
 - Log appropriate warnings and information during execution
+- When reading multiple files where some are optional, continue with the files that exist
+
+## Output Files
+
+- `steps/read_files.py`
 
 ## Future Considerations
 
 - Directory reading and file globbing
+- Advanced content merging options
+- Additional metadata capture (file stats, timestamps)
+- Content transformation options (pre-processing)
+
+## Dependency Integration Considerations
+
+None
+
 
 === File: recipes/recipe_executor/components/steps/registry/registry_create.json ===
 {
-"steps": [
-{
-"type": "execute_recipe",
-"recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/utils/build_component.json",
-"context_overrides": {
-"component_id": "registry",
-"component_path": "/steps",
-"existing_code": "{{existing_code}}"
+  "steps": [
+    {
+      "type": "execute_recipe",
+      "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/utils/build_component.json",
+      "context_overrides": {
+        "component_id": "registry",
+        "component_path": "/steps",
+        "existing_code": "{{existing_code}}"
+      }
+    }
+  ]
 }
-}
-]
-}
+
 
 === File: recipes/recipe_executor/components/steps/registry/registry_docs.md ===
-
 # Step Registry Component Usage
 
 ## Importing
@@ -3050,7 +3190,7 @@ STEP_REGISTRY: Dict[str, Type[BaseStep]] = {
     "execute_recipe": ExecuteRecipeStep,
     "generate": GenerateWithLLMStep,
     "parallel": ParallelStep,
-    "read_file": ReadFileStep,
+    "read_files": ReadFilesStep,
     "write_files": WriteFilesStep,
 }
 ```
@@ -3089,31 +3229,32 @@ def execute_step(step: Dict[str, Any], context: Context, logger: logging.Logger)
 
 ## Important Notes
 
-1. Step type names must be unique across the entire system
-2. Steps must be registered before the executor tries to use them
-3. Standard steps are automatically registered when the package is imported
-4. Custom steps need to be explicitly registered by the user
+- Step type names must be unique across the entire system
+- Steps must be registered before the executor tries to use them
+- Standard steps are automatically registered when the package is imported
+- Custom steps need to be explicitly registered by the user
+
 
 === File: recipes/recipe_executor/components/steps/registry/registry_edit.json ===
 {
-"steps": [
-{
-"type": "read_file",
-"path": "{% if existing_code_root %}{{existing_code_root}}/{% endif %}recipe_executor/steps/registry.py",
-"artifact": "existing_code"
-},
-{
-"type": "execute_recipe",
-"recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/registry/registry_create.json",
-"context_overrides": {
-"existing_code": "{{existing_code}}"
+  "steps": [
+    {
+      "type": "read_files",
+      "path": "{% if existing_code_root %}{{existing_code_root}}/{% endif %}recipe_executor/steps/registry.py",
+      "artifact": "existing_code"
+    },
+    {
+      "type": "execute_recipe",
+      "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/registry/registry_create.json",
+      "context_overrides": {
+        "existing_code": "{{existing_code}}"
+      }
+    }
+  ]
 }
-}
-]
-}
+
 
 === File: recipes/recipe_executor/components/steps/registry/registry_spec.md ===
-
 # Step Registry Component Specification
 
 ## Purpose
@@ -3134,7 +3275,29 @@ The Step Registry component provides a central mechanism for registering and loo
 - Keep the registry structure simple and stateless
 - Avoid unnecessary abstractions or wrapper functions
 
-## Additional Files
+## Logging
+
+- Debug: None
+- Info: None
+
+## Component Dependencies
+
+### Internal Components
+
+None
+
+### External Libraries
+
+None
+
+### Configuration Dependencies
+
+None
+
+## Output Files
+
+- `steps/registry.py`
+- `steps/__init__.py` (details below)
 
 Create the `__init__.py` file in the `steps` directory to ensure it is treated as a package. Steps are registered in the steps package `__init__.py`:
 
@@ -3144,7 +3307,7 @@ from recipe_executor.steps.registry import STEP_REGISTRY
 from recipe_executor.steps.execute_recipe import ExecuteRecipeStep
 from recipe_executor.steps.generate_llm import GenerateWithLLMStep
 from recipe_executor.steps.parallel import ParallelStep
-from recipe_executor.steps.read_file import ReadFileStep
+from recipe_executor.steps.read_files import ReadFilesStep
 from recipe_executor.steps.write_files import WriteFilesStep
 
 # Register steps by updating the registry
@@ -3152,58 +3315,55 @@ STEP_REGISTRY.update({
     "execute_recipe": ExecuteRecipeStep,
     "generate": GenerateWithLLMStep,
     "parallel": ParallelStep,
-    "read_file": ReadFileStep,
+    "read_files": ReadFilesStep,
     "write_files": WriteFilesStep,
 })
 ```
-
-## Component Dependencies
-
-The Step Registry component has no external dependencies on other Recipe Executor components.
 
 ## Future Considerations
 
 - Dynamic loading of external step implementations
 - Step metadata and documentation
 
+
 === File: recipes/recipe_executor/components/steps/write_files/write_files_create.json ===
 {
-"steps": [
-{
-"type": "read_file",
-"path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/base/base_docs.md",
-"artifact": "steps_base_docs"
-},
-{
-"type": "read_file",
-"path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/context/context_docs.md",
-"artifact": "context_docs"
-},
-{
-"type": "read_file",
-"path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/models/models_docs.md",
-"artifact": "models_docs"
-},
-{
-"type": "read_file",
-"path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/utils/utils_docs.md",
-"artifact": "utils_docs"
-},
-{
-"type": "execute_recipe",
-"recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/utils/build_component.json",
-"context_overrides": {
-"component_id": "write_files",
-"component_path": "/steps",
-"existing_code": "{{existing_code}}",
-"additional_content": "<STEPS_BASE_DOCS>\n{{steps_base_docs}}\n</STEPS_BASE_DOCS>\n<CONTEXT_DOCS>\n{{context_docs}}\n</CONTEXT_DOCS>\n<MODELS_DOCS>\n{{models_docs}}\n</MODELS_DOCS>\n<UTILS_DOCS>\n{{utils_docs}}\n</UTILS_DOCS>"
+  "steps": [
+    {
+      "type": "read_files",
+      "path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/base/base_docs.md",
+      "artifact": "steps_base_docs"
+    },
+    {
+      "type": "read_files",
+      "path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/context/context_docs.md",
+      "artifact": "context_docs"
+    },
+    {
+      "type": "read_files",
+      "path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/models/models_docs.md",
+      "artifact": "models_docs"
+    },
+    {
+      "type": "read_files",
+      "path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/utils/utils_docs.md",
+      "artifact": "utils_docs"
+    },
+    {
+      "type": "execute_recipe",
+      "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/utils/build_component.json",
+      "context_overrides": {
+        "component_id": "write_files",
+        "component_path": "/steps",
+        "existing_code": "{{existing_code}}",
+        "additional_content": "<STEPS_BASE_DOCS>\n{{steps_base_docs}}\n</STEPS_BASE_DOCS>\n<CONTEXT_DOCS>\n{{context_docs}}\n</CONTEXT_DOCS>\n<MODELS_DOCS>\n{{models_docs}}\n</MODELS_DOCS>\n<UTILS_DOCS>\n{{utils_docs}}\n</UTILS_DOCS>"
+      }
+    }
+  ]
 }
-}
-]
-}
+
 
 === File: recipes/recipe_executor/components/steps/write_files/write_files_docs.md ===
-
 # WriteFilesStep Component Usage
 
 ## Importing
@@ -3261,7 +3421,7 @@ The WriteFilesStep can be used in recipes like this:
 
 The WriteFilesStep can work with two types of artifacts in the context:
 
-### 1. FileGenerationResult
+### FileGenerationResult
 
 ```python
 from recipe_executor.models import FileGenerationResult, FileSpec
@@ -3279,7 +3439,7 @@ result = FileGenerationResult(
 context["generated_code"] = result
 ```
 
-### 2. List of FileSpec objects
+### List of FileSpec objects
 
 ```python
 from recipe_executor.models import FileSpec
@@ -3319,129 +3479,67 @@ FileSpec(
 )
 ```
 
-## Implementation Details
-
-The WriteFilesStep works by:
-
-1. Retrieving the artifact from the context
-2. Validating it's a FileGenerationResult or list of FileSpec objects
-3. Rendering the root path using template rendering
-4. For each file:
-   - Rendering the file path
-   - Creating the necessary directories
-   - Writing the file content
-
-```python
-def execute(self, context: Context) -> None:
-    # Get data from context
-    data = context.get(self.config.artifact)
-
-    if data is None:
-        raise ValueError(f"No artifact found at key: {self.config.artifact}")
-
-    # Determine file list
-    if isinstance(data, FileGenerationResult):
-        files = data.files
-    elif isinstance(data, list) and all(isinstance(f, FileSpec) for f in data):
-        files = data
-    else:
-        raise TypeError("Expected FileGenerationResult or list of FileSpec objects")
-
-    # Render output root
-    output_root = render_template(self.config.root, context)
-
-    # Write each file
-    for file in files:
-        rel_path = render_template(file.path, context)
-        full_path = os.path.join(output_root, rel_path)
-
-        # Create directories
-        os.makedirs(os.path.dirname(full_path), exist_ok=True)
-
-        # Write file
-        with open(full_path, "w", encoding="utf-8") as f:
-            f.write(file.content)
-
-        self.logger.info(f"Wrote file: {full_path}")
-```
-
-## Error Handling
-
-The WriteFilesStep can raise several types of errors:
-
-```python
-try:
-    write_step.execute(context)
-except ValueError as e:
-    # Missing or invalid artifact
-    print(f"Value error: {e}")
-except TypeError as e:
-    # Unexpected artifact type
-    print(f"Type error: {e}")
-except IOError as e:
-    # File writing errors
-    print(f"I/O error: {e}")
-```
-
 ## Common Use Cases
 
-1. **Writing Generated Code**:
+**Writing Generated Code**:
 
-   ```json
-   {
-     "type": "write_files",
-     "artifact": "generated_code",
-     "root": "output/src"
-   }
-   ```
+```json
+{
+  "type": "write_files",
+  "artifact": "generated_code",
+  "root": "output/src"
+}
+```
 
-2. **Project-Specific Output**:
+**Project-Specific Output**:
 
-   ```json
-   {
-     "type": "write_files",
-     "artifact": "project_files",
-     "root": "output/{{project_name}}"
-   }
-   ```
+```json
+{
+  "type": "write_files",
+  "artifact": "project_files",
+  "root": "output/{{project_name}}"
+}
+```
 
-3. **Component Generation**:
-   ```json
-   {
-     "type": "write_files",
-     "artifact": "component_result",
-     "root": "output/components"
-   }
-   ```
+**Component Generation**:
+
+```json
+{
+  "type": "write_files",
+  "artifact": "component_result",
+  "root": "output/components"
+}
+```
 
 ## Important Notes
 
-1. Directories are created automatically if they don't exist
-2. Files are overwritten without confirmation if they already exist
-3. All paths are rendered using template variables from the context
-4. File content is written using UTF-8 encoding
-5. Both FileGenerationResult and List[FileSpec] formats are supported
+- Directories are created automatically if they don't exist
+- Files are overwritten without confirmation if they already exist
+- All paths are rendered using template variables from the context
+- File content is written using UTF-8 encoding
+- Both FileGenerationResult and List[FileSpec] formats are supported
+
 
 === File: recipes/recipe_executor/components/steps/write_files/write_files_edit.json ===
 {
-"steps": [
-{
-"type": "read_file",
-"path": "{% if existing_code_root %}{{existing_code_root}}/{% endif %}recipe_executor/steps/write_files.py",
-"artifact": "existing_code"
-},
-{
-"type": "execute_recipe",
-"recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/write_files/write_files_create.json",
-"context_overrides": {
-"existing_code": "{{existing_code}}"
+  "steps": [
+    {
+      "type": "read_files",
+      "path": "{% if existing_code_root %}{{existing_code_root}}/{% endif %}recipe_executor/steps/write_files.py",
+      "artifact": "existing_code"
+    },
+    {
+      "type": "execute_recipe",
+      "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/write_files/write_files_create.json",
+      "context_overrides": {
+        "existing_code": "{{existing_code}}"
+      }
+    }
+  ]
 }
-}
-]
-}
+
 
 === File: recipes/recipe_executor/components/steps/write_files/write_files_spec.md ===
-
 # WriteFilesStep Component Specification
 
 ## Purpose
@@ -3465,14 +3563,27 @@ The WriteFilesStep component writes generated files to disk based on content fro
 - Keep the implementation simple and focused on a single responsibility
 - Log details about files written for troubleshooting
 
+## Logging
+
+- Debug: Log the file path and content being written before writing (in case of failure)
+- Info: Log the successful writing of the file (including path) and its content size
+
 ## Component Dependencies
 
-The WriteFilesStep component depends on:
+### Internal Components
 
-- **Steps Base** - Extends BaseStep with a specific config type
-- **Context** - Retrieves file content from the context
-- **Models** - Uses FileGenerationResult and FileSpec models
-- **Utils** - Uses render_template for path resolution
+- **Steps Base** - (Required) Extends BaseStep to implement the step interface
+- **Context** - (Required) Retrieves file content from the context
+- **Models** - (Required) Uses FileGenerationResult and FileSpec models for content structure
+- **Utils** - (Required) Uses render_template for dynamic path resolution
+
+### External Libraries
+
+None
+
+### Configuration Dependencies
+
+None
 
 ## Error Handling
 
@@ -3481,33 +3592,38 @@ The WriteFilesStep component depends on:
 - Handle file writing errors with clear messages
 - Log successes and failures appropriately
 
+## Output Files
+
+- `steps/write_files.py`
+
 ## Future Considerations
 
 - Dry-run mode that logs without writing
 
+
 === File: recipes/recipe_executor/components/utils/utils_create.json ===
 {
-"steps": [
-{
-"type": "read_file",
-"path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/context/context_docs.md",
-"artifact": "context_docs"
-},
-{
-"type": "execute_recipe",
-"recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/utils/build_component.json",
-"context_overrides": {
-"component_id": "utils",
-"component_path": "/",
-"existing_code": "{{existing_code}}",
-"additional_content": "<CONTEXT_DOCS>\n{{context_docs}}\n</CONTEXT_DOCS>"
+  "steps": [
+    {
+      "type": "read_files",
+      "path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/context/context_docs.md",
+      "artifact": "context_docs"
+    },
+    {
+      "type": "execute_recipe",
+      "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/utils/build_component.json",
+      "context_overrides": {
+        "component_id": "utils",
+        "component_path": "/",
+        "existing_code": "{{existing_code}}",
+        "additional_content": "<CONTEXT_DOCS>\n{{context_docs}}\n</CONTEXT_DOCS>"
+      }
+    }
+  ]
 }
-}
-]
-}
+
 
 === File: recipes/recipe_executor/components/utils/utils_docs.md ===
-
 # Utils Component Usage
 
 ## Importing
@@ -3617,7 +3733,7 @@ except ValueError as e:
 The primary use of template rendering is in step execution:
 
 ```python
-# Example from ReadFileStep.execute()
+# Example from ReadFilesStep.execute()
 def execute(self, context: Context) -> None:
     # Render the path using the current context
     path = render_template(self.config.path, context)
@@ -3639,7 +3755,7 @@ Templates are typically used in recipe step configurations:
 {
   "steps": [
     {
-      "type": "read_file",
+      "type": "read_files",
       "path": "specs/{{component_id}}_spec.md",
       "artifact": "component_spec"
     },
@@ -3660,26 +3776,27 @@ Templates are typically used in recipe step configurations:
 3. The Context's `as_dict()` method is used to access all artifacts
 4. Empty or missing variables will be replaced with an empty string
 
+
 === File: recipes/recipe_executor/components/utils/utils_edit.json ===
 {
-"steps": [
-{
-"type": "read_file",
-"path": "{% if existing_code_root %}{{existing_code_root}}/{% endif %}recipe_executor/utils.py",
-"artifact": "existing_code"
-},
-{
-"type": "execute_recipe",
-"recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/utils/utils_create.json",
-"context_overrides": {
-"existing_code": "{{existing_code}}"
+  "steps": [
+    {
+      "type": "read_files",
+      "path": "{% if existing_code_root %}{{existing_code_root}}/{% endif %}recipe_executor/utils.py",
+      "artifact": "existing_code"
+    },
+    {
+      "type": "execute_recipe",
+      "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/utils/utils_create.json",
+      "context_overrides": {
+        "existing_code": "{{existing_code}}"
+      }
+    }
+  ]
 }
-}
-]
-}
+
 
 === File: recipes/recipe_executor/components/utils/utils_spec.md ===
-
 # Utils Component Specification
 
 ## Purpose
@@ -3701,11 +3818,25 @@ The Utils component provides utility functions for the Recipe Executor system, p
 - Handle rendering errors gracefully with clear error messages
 - Keep the implementation stateless and focused
 
+## Logging
+
+- Debug: Log the template being rendered and the context keys used
+- Info: None
+
 ## Component Dependencies
 
-The Utils component depends on:
+### Internal Components
 
-- **Context** - Uses the Context class for accessing artifacts during template rendering
+- **Context** - (Required) Uses the Context class for accessing artifacts during template rendering
+
+### External Libraries
+
+- **Liquid** - (Required) Uses the Liquid templating engine for template rendering (`python-liquid`)
+- **json** - (Required) Uses json module for handling dictionary conversions
+
+### Configuration Dependencies
+
+None
 
 ## Error Handling
 
@@ -3713,137 +3844,146 @@ The Utils component depends on:
 - Provide specific error messages that indicate the source of template failures
 - Propagate rendering errors with useful context
 
+## Output Files
+
+- `utils.py`
+
 ## Future Considerations
 
 - Support for custom template filters or tags
 - Support for template partials or includes
 - Template validation before rendering
 
+
 === File: recipes/recipe_executor/create.json ===
 {
-"steps": [
-{
-"type": "parallel",
-"substeps": [
-{
-"type": "execute_recipe",
-"recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/context/context_create.json"
-},
-{
-"type": "execute_recipe",
-"recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/logger/logger_create.json"
-},
-{
-"type": "execute_recipe",
-"recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/models/models_create.json"
-},
-{
-"type": "execute_recipe",
-"recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/utils/utils_create.json"
-},
-{
-"type": "execute_recipe",
-"recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/llm/llm_create.json"
-},
-{
-"type": "execute_recipe",
-"recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/llm_utils/azure_openai/azure_openai_create.json"
-},
-{
-"type": "execute_recipe",
-"recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/executor/executor_create.json"
-},
-{
-"type": "execute_recipe",
-"recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/main/main_create.json"
+  "steps": [
+    {
+      "type": "parallel",
+      "substeps": [
+        {
+          "type": "execute_recipe",
+          "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/context/context_create.json"
+        },
+        {
+          "type": "execute_recipe",
+          "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/logger/logger_create.json"
+        },
+        {
+          "type": "execute_recipe",
+          "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/models/models_create.json"
+        },
+        {
+          "type": "execute_recipe",
+          "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/utils/utils_create.json"
+        },
+        {
+          "type": "execute_recipe",
+          "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/llm/llm_create.json"
+        },
+        {
+          "type": "execute_recipe",
+          "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/llm_utils/azure_openai/azure_openai_create.json"
+        },
+        {
+          "type": "execute_recipe",
+          "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/executor/executor_create.json"
+        },
+        {
+          "type": "execute_recipe",
+          "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/main/main_create.json"
+        }
+      ],
+      "max_concurrency": 0,
+      "delay": 0
+    },
+    {
+      "type": "execute_recipe",
+      "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/create.json"
+    }
+  ]
 }
-],
-"max_concurrency": 0,
-"delay": 0
-},
-{
-"type": "execute_recipe",
-"recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/create.json"
-}
-]
-}
+
 
 === File: recipes/recipe_executor/edit.json ===
 {
-"steps": [
-{
-"type": "parallel",
-"substeps": [
-{
-"type": "execute_recipe",
-"recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/context/context_edit.json"
-},
-{
-"type": "execute_recipe",
-"recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/logger/logger_edit.json"
-},
-{
-"type": "execute_recipe",
-"recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/models/models_edit.json"
-},
-{
-"type": "execute_recipe",
-"recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/utils/utils_edit.json"
-},
-{
-"type": "execute_recipe",
-"recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/llm/llm_edit.json"
-},
-{
-"type": "execute_recipe",
-"recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/llm_utils/azure_openai/azure_openai_edit.json"
-},
-{
-"type": "execute_recipe",
-"recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/executor/executor_edit.json"
-},
-{
-"type": "execute_recipe",
-"recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/main/main_edit.json"
+  "steps": [
+    {
+      "type": "parallel",
+      "substeps": [
+        {
+          "type": "execute_recipe",
+          "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/context/context_edit.json"
+        },
+        {
+          "type": "execute_recipe",
+          "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/logger/logger_edit.json"
+        },
+        {
+          "type": "execute_recipe",
+          "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/models/models_edit.json"
+        },
+        {
+          "type": "execute_recipe",
+          "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/utils/utils_edit.json"
+        },
+        {
+          "type": "execute_recipe",
+          "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/llm/llm_edit.json"
+        },
+        {
+          "type": "execute_recipe",
+          "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/llm_utils/azure_openai/azure_openai_edit.json"
+        },
+        {
+          "type": "execute_recipe",
+          "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/executor/executor_edit.json"
+        },
+        {
+          "type": "execute_recipe",
+          "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/main/main_edit.json"
+        }
+      ],
+      "max_concurrency": 0,
+      "delay": 0
+    },
+    {
+      "type": "execute_recipe",
+      "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/edit.json"
+    }
+  ]
 }
-],
-"max_concurrency": 0,
-"delay": 0
-},
-{
-"type": "execute_recipe",
-"recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/edit.json"
-}
-]
-}
+
 
 === File: recipes/recipe_executor/utils/build_component.json ===
 {
-"steps": [
-{
-"type": "read_file",
-"path": "{{recipe_root|default:'recipes'}}/recipe_executor/components{{component_path}}{% if component_path != '/' %}/{% endif %}{{component_id}}/{{component_id}}_spec.md",
-"artifact": "spec"
-},
-{
-"type": "read_file",
-"path": "{{recipe_root|default:'recipes'}}/recipe_executor/components{{component_path}}{% if component_path != '/' %}/{% endif %}{{component_id}}/{{component_id}}_docs.md",
-"artifact": "usage_docs",
-"optional": true
-},
-{
-"type": "execute_recipe",
-"recipe_path": "{{recipe_root|default:'recipes'}}/codebase_generator/generate_code.json",
-"context_overrides": {
-"model": "{{model|default:'openai:o3-mini'}}",
-"output_root": "{{output_root|default:'output'}}",
-"output_path": "recipe_executor{{component_path}}",
-"language": "{{language|default:'python'}}",
-"spec": "{{spec}}",
-"usage_docs": "{{usage_docs}}",
-"existing_code": "{{existing_code}}",
-"additional_content": "{{additional_content}}"
+  "steps": [
+    {
+      "type": "read_files",
+      "path": "{{recipe_root|default:'recipes'}}/recipe_executor/components{{component_path}}{% if component_path != '/' %}/{% endif %}{{component_id}}/{{component_id}}_spec.md",
+      "artifact": "spec"
+    },
+    {
+      "type": "read_files",
+      "path": "{{recipe_root|default:'recipes'}}/recipe_executor/components{{component_path}}{% if component_path != '/' %}/{% endif %}{{component_id}}/{{component_id}}_docs.md",
+      "artifact": "usage_docs",
+      "optional": true
+    },
+    {
+      "type": "execute_recipe",
+      "recipe_path": "{{recipe_root|default:'recipes'}}/codebase_generator/generate_code.json",
+      "context_overrides": {
+        "model": "{{model|default:'openai:o3-mini'}}",
+        "output_root": "{{output_root|default:'output'}}",
+        "output_path": "recipe_executor{{component_path}}",
+        "language": "{{language|default:'python'}}",
+        "spec": "{{spec}}",
+        "usage_docs": "{{usage_docs}}",
+        "existing_code": "{{existing_code}}",
+        "additional_content": "{{additional_content}}"
+      }
+    }
+  ]
 }
-}
-]
-}
+
+
