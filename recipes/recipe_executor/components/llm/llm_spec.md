@@ -102,8 +102,8 @@ openai_model = get_model("openai:o3-mini")
 # Uses OpenAIModel('o3-mini')
 
 # Get an Anthropic model
-anthropic_model = get_model("anthropic:claude-3.7-sonnet-latest")
-# Uses AnthropicModel('claude-3.7-sonnet-latest')
+anthropic_model = get_model("anthropic:claude-3-7-sonnet-latest")
+# Uses AnthropicModel('claude-3-7-sonnet-latest')
 
 # Get a Gemini model
 gemini_model = get_model("gemini:gemini-pro")

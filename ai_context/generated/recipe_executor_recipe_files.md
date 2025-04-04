@@ -592,7 +592,7 @@ Usage example:
 default_agent = get_agent()
 
 # Get agent with specific model
-custom_agent = get_agent(model_id="anthropic:claude-3.7-sonnet-latest")
+custom_agent = get_agent(model_id="anthropic:claude-3-7-sonnet-latest")
 results = custom_agent.run_async("Generate a Python utility module for handling dates.")
 # Access FileGenerationResult
 file_generation_result = results.data
@@ -614,7 +614,7 @@ azure:model_name:deployment_name
 ### Supported providers:
 
 - **openai**: OpenAI models (e.g., `gpt-4o`, `o3-mini`)
-- **anthropic**: Anthropic models (e.g., `claude-3.7-sonnet-latest`)
+- **anthropic**: Anthropic models (e.g., `claude-3-7-sonnet-latest`)
 - **gemini**: Gemini models (e.g., `gemini-pro`)
 - **azure**: Azure OpenAI models (e.g., `azure:gpt-4o`, `azure:o3-mini`)
 - **azure**: Azure OpenAI models with custom deployment name (e.g., `azure:gpt-4o:my_deployment_name`)
@@ -783,8 +783,8 @@ openai_model = get_model("openai:o3-mini")
 # Uses OpenAIModel('o3-mini')
 
 # Get an Anthropic model
-anthropic_model = get_model("anthropic:claude-3.7-sonnet-latest")
-# Uses AnthropicModel('claude-3.7-sonnet-latest')
+anthropic_model = get_model("anthropic:claude-3-7-sonnet-latest")
+# Uses AnthropicModel('claude-3-7-sonnet-latest')
 
 # Get a Gemini model
 gemini_model = get_model("gemini:gemini-pro")
