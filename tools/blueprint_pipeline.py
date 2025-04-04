@@ -230,6 +230,13 @@ def execute_step(
         )
         return True, action_state
 
+    # Log context keys for debugging when verbose is True
+    if verbose:
+        print(f"Context keys for {step_name}: {', '.join(context.keys())}")
+        for key in ["candidate_spec_path", "clarification_questions_path", "files", "context_files"]:
+            if key in context:
+                print(f"  {key}: {context[key]}")
+
     # For normal executable steps
     success = run_recipe(recipe_path, context, verbose)
 
@@ -266,6 +273,11 @@ def main():
     # Create output directories
     for subdir in ["analysis", "components", "evaluation", "clarification", "human_review", "blueprints", "code"]:
         os.makedirs(f"{args.output_dir}/{subdir}", exist_ok=True)
+
+    # Create additional directories needed for the target project
+    os.makedirs(f"{args.output_dir}/blueprints/{args.target_project}/components", exist_ok=True)
+    os.makedirs(f"{args.output_dir}/blueprints/{args.target_project}/reports", exist_ok=True)
+    os.makedirs(f"{args.output_dir}/code/{args.target_project}", exist_ok=True)
 
     # Track completion status for components
     component_status = {}  # component_id -> "complete" or "needs_review"
@@ -501,6 +513,7 @@ def main():
                 "clarification_questions_path": questions_file,
                 "context_files": files_param,
                 "output_root": f"{args.output_dir}/clarification",
+                "component_id": component_id  # Explicitly pass component_id to ensure proper file naming
             }
             # Add model if present in base context
             if "model" in base_context:
@@ -755,6 +768,10 @@ def main():
     # Blueprint generation loop
     for component_id, spec_path in completed_specs:
         print(f"Generating blueprint for {component_id}")
+        # Create directories if they don't exist
+        blueprint_dir = f"{args.output_dir}/blueprints/{args.target_project}/components/{component_id}"
+        os.makedirs(blueprint_dir, exist_ok=True)
+
         # Create a combined files parameter for build_blueprint
         files_param = args.project_spec
         if args.context_files:
@@ -767,6 +784,7 @@ def main():
             "target_project": args.target_project,
             "output_root": f"{args.output_dir}/blueprints",
             "files": files_param,  # Add combined files parameter
+            "project_recipe_path": f"{args.output_dir}/blueprints"  # Ensure recipe path is set correctly
         }
         # Add model if present in base context
         if "model" in base_context:
@@ -819,9 +837,15 @@ def main():
         if args.context_files:
             files_param = f"{files_param},{args.context_files}"
 
+        # Create directory for generated code
+        code_dir = f"{args.output_dir}/code/{args.target_project}"
+        os.makedirs(code_dir, exist_ok=True)
+
         context = {
             "output_root": f"{args.output_dir}/code",
             "files": files_param,  # Add combined files parameter
+            "target_project": args.target_project,
+            "project_recipe_path": f"{args.output_dir}/blueprints"  # Path to find spec and doc files
         }
         # Add model if present in base context
         if "model" in base_context:
