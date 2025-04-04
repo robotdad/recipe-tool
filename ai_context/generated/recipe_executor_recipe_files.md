@@ -1955,7 +1955,7 @@ None
         },
         {
           "type": "execute_recipe",
-          "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/read_file/read_file_create.json"
+          "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/read_files/read_files_create.json"
         },
         {
           "type": "execute_recipe",
@@ -1997,7 +1997,7 @@ None
         },
         {
           "type": "execute_recipe",
-          "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/read_file/read_file_edit.json"
+          "recipe_path": "{{recipe_root|default:'recipes'}}/recipe_executor/components/steps/read_files/read_files_edit.json"
         },
         {
           "type": "execute_recipe",
@@ -2853,7 +2853,7 @@ class ReadFilesConfig(StepConfig):
     Configuration for ReadFilesStep.
 
     Fields:
-        path (Union[str, List[str]]): Path or list of paths to the file(s) to read (may be templated).
+        path (Union[str, List[str]]): Path, comma-separated string, or list of paths to the file(s) to read (may be templated).
         artifact (str): Name to store the file contents in context.
         optional (bool): Whether to continue if a file is not found.
         merge_mode (str): How to handle multiple files' content. Options:
@@ -2897,6 +2897,20 @@ The ReadFilesStep can be used to read a single file just like the original read_
 ```
 
 ### Reading Multiple Files
+
+You can read multiple files by providing a comma-separated string:
+
+```json
+{
+  "steps": [
+    {
+      "type": "read_files",
+      "path": "specs/component_spec.md,specs/component_docs.md",
+      "artifact": "component_specs"
+    }
+  ]
+}
+```
 
 You can read multiple files by providing a list of paths:
 
@@ -3087,7 +3101,8 @@ The ReadFilesStep component reads one or more files from the filesystem and stor
 ## Core Requirements
 
 - Read a file or multiple files from specified path(s)
-- Support both single string path and list of paths as input
+- Support both single string path, a comma-separate list of paths as a string, and list of paths strings as input
+- If a string is provided, check for the presence of commas to determine if it should be treated as a list, then split accordingly
 - Support template-based path resolution for all paths
 - Store all file contents in the context under a single specified key
 - Provide flexible content merging options for multi-file reads
@@ -3097,7 +3112,8 @@ The ReadFilesStep component reads one or more files from the filesystem and stor
 
 ## Implementation Considerations
 
-- Use template rendering to support dynamic paths for both single paths and lists of paths
+- Render template strings for path parameter before evaluting type of input
+- Use template rendering to support dynamic paths for both single paths, comma-separated paths in in single string and lists of paths
 - Handle missing files explicitly with meaningful error messages
 - Use consistent UTF-8 encoding for text files
 - Implement optional flag to continue execution if files are missing

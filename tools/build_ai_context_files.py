@@ -32,7 +32,7 @@ except ImportError:
     sys.exit(1)
 
 
-def ensure_directory_exists(file_path):
+def ensure_directory_exists(file_path) -> None:
     """Create directory for file if it doesn't exist."""
     directory = os.path.dirname(file_path)
     if directory and not os.path.exists(directory):
@@ -40,35 +40,42 @@ def ensure_directory_exists(file_path):
         print(f"Created directory: {directory}")
 
 
-def build_context_files():
+def build_context_files() -> None:
     # Define the tasks to run
     tasks = [
         # Task 1: Collect files from recipe_executor
         {
             "patterns": ["recipe_executor"],
             "output": f"{OUTPUT_DIR}/recipe_executor_code_files.md",
-            "exclude": collect_files.DEFAULT_EXCLUDE + [OUTPUT_DIR],
+            "exclude": collect_files.DEFAULT_EXCLUDE,
             "include": ["README.md", "pyproject.toml", ".env.example"],
         },
         # Task 2: Collect files recipes/blueprint_generator
         {
             "patterns": ["recipes/blueprint_generator"],
             "output": f"{OUTPUT_DIR}/blueprint_generator_recipe_files.md",
-            "exclude": collect_files.DEFAULT_EXCLUDE + [OUTPUT_DIR],
+            "exclude": collect_files.DEFAULT_EXCLUDE,
             "include": [],
         },
         # Task 3: Collect files from recipes/codebase_generator
         {
             "patterns": ["recipes/codebase_generator"],
             "output": f"{OUTPUT_DIR}/codebase_generator_recipe_files.md",
-            "exclude": collect_files.DEFAULT_EXCLUDE + [OUTPUT_DIR],
+            "exclude": collect_files.DEFAULT_EXCLUDE,
             "include": [],
         },
         # Task 4: Collect files from recipes/recipe_executor with exclusion
         {
             "patterns": ["recipes/recipe_executor"],
             "output": f"{OUTPUT_DIR}/recipe_executor_recipe_files.md",
-            "exclude": collect_files.DEFAULT_EXCLUDE + ["PYDANTIC_AI_DOCS.md", OUTPUT_DIR],
+            "exclude": collect_files.DEFAULT_EXCLUDE,
+            "include": [],
+        },
+        # Task 5: Collect files from recipes/utilities
+        {
+            "patterns": ["recipes/utilities"],
+            "output": f"{OUTPUT_DIR}/utilities_recipe_files.md",
+            "exclude": collect_files.DEFAULT_EXCLUDE,
             "include": [],
         },
     ]
