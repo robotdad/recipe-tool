@@ -186,12 +186,83 @@ def process_component_split(
     return flow_mode, last_action
 
 
+def analyze_component_dependencies(output_dir: str) -> Dict[str, List[str]]:
+    """
+    Analyze all components to identify dependencies between them.
+
+    Args:
+        output_dir: Output directory containing component specifications
+
+    Returns:
+        Dict[str, List[str]]: Mapping of component_id -> list of component IDs it depends on
+    """
+    dependency_map = {}
+    component_specs = glob.glob(f"{output_dir}/components/*_candidate_spec.md")
+
+    for spec_path in component_specs:
+        component_id = os.path.basename(spec_path).replace("_candidate_spec.md", "")
+
+        # Check if a revised spec exists
+        revised_spec = f"{output_dir}/clarification/{component_id}_candidate_spec_revised.md"
+        if os.path.exists(revised_spec):
+            spec_to_analyze = revised_spec
+        else:
+            spec_to_analyze = spec_path
+
+        # Extract dependencies from the spec
+        dependencies = []
+        try:
+            with open(spec_to_analyze, 'r', encoding='utf-8') as f:
+                spec_content = f.read()
+
+            # Look for dependency sections
+            sections = [
+                "## Component Dependencies",
+                "### Internal Components",
+                "## Dependencies",
+                "## Internal Dependencies"
+            ]
+
+            for section in sections:
+                if section in spec_content:
+                    # Get the content from the section to the next section or end of file
+                    start_idx = spec_content.find(section)
+                    next_section_idx = spec_content.find("##", start_idx + len(section))
+                    if next_section_idx == -1:
+                        section_content = spec_content[start_idx:]
+                    else:
+                        section_content = spec_content[start_idx:next_section_idx]
+
+                    # Look for component IDs in bullet points
+                    import re
+                    # Pattern to match: - **component_name** or - component_name
+                    component_patterns = [
+                        r'\*\*([a-z][a-z0-9_]*)\*\*',  # Match **component_id**
+                        r'- ([a-z][a-z0-9_]*)[^a-z0-9_]'  # Match - component_id
+                    ]
+
+                    for pattern in component_patterns:
+                        matches = re.findall(pattern, section_content)
+                        for match in matches:
+                            # Verify this looks like a component ID (not other emphasized text)
+                            if match and match.islower() and '_' in match:
+                                dependencies.append(match)
+
+        except Exception as e:
+            safe_print(f"Error analyzing dependencies in {spec_to_analyze}: {e}")
+
+        # Store the dependencies
+        dependency_map[component_id] = list(set(dependencies))  # Remove duplicates
+
+    return dependency_map
+
+
 def determine_components_to_process(
     output_dir: str,
     component_status: Dict[str, str],
     iteration_count: int,
     component_filter: Optional[str] = None,
-) -> Tuple[List[Tuple[str, str]], Dict[str, str]]:
+) -> Tuple[List[Tuple[str, str]], Dict[str, str], Dict[str, List[str]]]:
     """
     Determine which components to process in the current iteration.
 
@@ -202,12 +273,17 @@ def determine_components_to_process(
         component_filter: Optional component filter.
 
     Returns:
-        Tuple[List[Tuple[str, str]], Dict[str, str]]:
+        Tuple[List[Tuple[str, str]], Dict[str, str], Dict[str, List[str]]]:
             - List of (component_id, spec_path) tuples to process.
             - Updated component status dictionary.
+            - Dependency map of component_id -> list of dependencies
     """
     # Get all component specs to process in this iteration
     component_specs = []
+
+    # Analyze dependencies between components
+    dependency_map = analyze_component_dependencies(output_dir)
+    safe_print(f"Analyzed dependencies between {len(dependency_map)} components")
 
     # If first iteration, get from components directory
     if iteration_count == 1:
@@ -250,7 +326,7 @@ def determine_components_to_process(
 
         component_specs = filtered_specs
 
-    return component_specs, component_status
+    return component_specs, component_status, dependency_map
 
 
 def process_component(
@@ -404,6 +480,7 @@ def process_components_in_parallel(
     verbose: bool = False,
     flow_mode: FlowControl = FlowControl.STEP_BY_STEP,
     max_workers: int = 4,
+    dependency_map: Optional[Dict[str, List[str]]] = None,
 ) -> Tuple[Dict[str, str], List[Tuple[str, str, str]], FlowControl, ActionState]:
     """
     Process multiple components in parallel based on the flow mode.
@@ -416,6 +493,7 @@ def process_components_in_parallel(
         verbose: Whether to show detailed output.
         flow_mode: Current flow control mode.
         max_workers: Maximum number of parallel workers.
+        dependency_map: Map of component dependencies.
 
     Returns:
         Tuple[Dict[str, str], List[Tuple[str, str, str]], FlowControl, ActionState]:
@@ -431,10 +509,18 @@ def process_components_in_parallel(
     # If we're in step-by-step mode, don't parallelize
     if flow_mode == FlowControl.STEP_BY_STEP or flow_mode == FlowControl.RESUME:
         for component_id, spec_path in component_specs:
+            # Enrich context with dependency information if available
+            context_with_deps = base_context.copy()
+            if dependency_map and component_id in dependency_map:
+                deps = dependency_map[component_id]
+                if deps and verbose:
+                    safe_print(f"Component {component_id} depends on: {', '.join(deps)}")
+                context_with_deps["key_dependencies"] = ",".join(deps)
+
             status, reason, final_spec = process_component(
                 component_id,
                 spec_path,
-                base_context,
+                context_with_deps,  # Use enriched context
                 output_dir,
                 verbose,
                 resume_mode
@@ -462,18 +548,28 @@ def process_components_in_parallel(
     else:
         # Use parallel processing for auto mode or UNTIL_COMPLETE mode
         with concurrent.futures.ThreadPoolExecutor(max_workers=min(max_workers, len(component_specs))) as executor:
-            # Submit all component processing tasks
-            future_to_component = {
-                executor.submit(
+            # Submit all component processing tasks with enriched context for dependencies
+            future_to_component = {}
+            for component_id, spec_path in component_specs:
+                # Create a copy of the context with dependency information
+                context_with_deps = base_context.copy()
+                if dependency_map and component_id in dependency_map:
+                    deps = dependency_map[component_id]
+                    if deps and verbose:
+                        safe_print(f"Component {component_id} depends on: {', '.join(deps)}")
+                    context_with_deps["key_dependencies"] = ",".join(deps)
+
+                # Submit the task with enriched context
+                future = executor.submit(
                     process_component,
                     component_id,
                     spec_path,
-                    base_context,
+                    context_with_deps,  # Use enriched context
                     output_dir,
                     verbose,
                     False  # Don't use resume_mode for parallel processing
-                ): (component_id, spec_path) for component_id, spec_path in component_specs
-            }
+                )
+                future_to_component[future] = (component_id, spec_path)
 
             # Process results as they complete
             for future in concurrent.futures.as_completed(future_to_component):

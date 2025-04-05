@@ -7,7 +7,7 @@ from component specifications.
 """
 import concurrent.futures
 import os
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from blueprint_pipeline.executor import run_recipe
 from blueprint_pipeline.flow_control import ActionState, FlowControl, pause_and_check
@@ -24,7 +24,7 @@ def generate_blueprint(
     resume_mode: bool = False,
 ) -> Tuple[bool, str]:
     """
-    Generate blueprint for a single component.
+    Generate blueprint for a single component with enhanced dependency handling.
     This function can be run in parallel for multiple components.
 
     Args:
@@ -54,6 +54,23 @@ def generate_blueprint(
         if base_context.get("context_files"):
             files_param = f"{files_param},{base_context['context_files']}"
 
+        # Scan the component specification for dependencies
+        dependencies = extract_dependencies_from_spec(spec_path)
+        if dependencies and verbose:
+            safe_print(f"Identified dependencies for {component_id}: {', '.join(dependencies)}")
+
+        # Create related_docs parameter for dependencies
+        related_docs = []
+        if dependencies:
+            for dep in dependencies:
+                dep_docs_path = f"{output_dir}/blueprints/{target_project}/components/{dep}/{dep}_docs.md"
+                # Only include dependencies that have documentation files
+                if os.path.exists(dep_docs_path):
+                    related_docs.append(dep_docs_path)
+                elif verbose:
+                    safe_print(f"Warning: Dependency '{dep}' documentation not found at {dep_docs_path}")
+
+        # Add related_docs to context if any were found
         context = {
             "candidate_spec_path": spec_path,
             "component_id": component_id,
@@ -63,6 +80,12 @@ def generate_blueprint(
             "files": files_param,
             "project_recipe_path": f"{output_dir}/blueprints"
         }
+
+        if related_docs:
+            context["related_docs"] = ",".join(related_docs)
+            if verbose:
+                safe_print(f"Including related docs: {context['related_docs']}")
+
         if "model" in base_context:
             context["model"] = base_context["model"]
 
@@ -81,6 +104,63 @@ def generate_blueprint(
             return False, ""
 
         return True, create_recipe_path
+
+
+def extract_dependencies_from_spec(spec_path: str) -> List[str]:
+    """
+    Extract component dependencies from a specification file.
+
+    Args:
+        spec_path: Path to the component specification file
+
+    Returns:
+        List[str]: List of component IDs that this component depends on
+    """
+    dependencies = []
+
+    try:
+        with open(spec_path, 'r', encoding='utf-8') as f:
+            spec_content = f.read()
+
+        # Look for dependency sections
+        sections = [
+            "## Component Dependencies",
+            "### Internal Components",
+            "## Dependencies",
+            "## Internal Dependencies"
+        ]
+
+        for section in sections:
+            if section in spec_content:
+                # Get the content from the section to the next section or end of file
+                start_idx = spec_content.find(section)
+                next_section_idx = spec_content.find("##", start_idx + len(section))
+                if next_section_idx == -1:
+                    section_content = spec_content[start_idx:]
+                else:
+                    section_content = spec_content[start_idx:next_section_idx]
+
+                # Look for component IDs in bullet points
+                import re
+                # Pattern to match: - **component_name** or - component_name
+                component_patterns = [
+                    r'\*\*([a-z][a-z0-9_]*)\*\*',  # Match **component_id**
+                    r'- ([a-z][a-z0-9_]*)[^a-z0-9_]'  # Match - component_id
+                ]
+
+                for pattern in component_patterns:
+                    matches = re.findall(pattern, section_content)
+                    for match in matches:
+                        # Verify this looks like a component ID (not other emphasized text)
+                        if match and match.islower() and '_' in match:
+                            dependencies.append(match)
+
+    except Exception as e:
+        safe_print(f"Error extracting dependencies from {spec_path}: {e}")
+
+    # Remove duplicates while preserving order
+    seen = set()
+    return [dep for dep in dependencies if not (dep in seen or seen.add(dep))]
 
 
 def generate_code(
@@ -145,7 +225,7 @@ def generate_code(
 def generate_blueprint_and_code(
     component_id: str,
     spec_path: str,
-    base_context: Dict[str, str],
+    base_context: Dict[str, str],  # Now may contain dependency info
     output_dir: str,
     target_project: str,
     verbose: bool = False,
@@ -158,7 +238,7 @@ def generate_blueprint_and_code(
     Args:
         component_id: ID of the component to process
         spec_path: Path to the component specification file
-        base_context: Base context dictionary
+        base_context: Base context dictionary (potentially with dependency info)
         output_dir: Output directory
         target_project: Target project name
         verbose: Whether to show detailed output
@@ -168,10 +248,11 @@ def generate_blueprint_and_code(
         bool: Success status
     """
     # Step 1: Generate Blueprint
+    # We pass the dependency-enhanced context directly to generate_blueprint
     blueprint_success, create_recipe_path = generate_blueprint(
         component_id,
         spec_path,
-        base_context,
+        base_context,  # Pass context with dependency information
         output_dir,
         target_project,
         verbose,
@@ -195,6 +276,7 @@ def generate_blueprint_and_code(
 
 def generate_blueprints_and_code_in_parallel(
     completed_specs: List[Tuple[str, str]],
+    dependency_map: Optional[Dict[str, List[str]]],
     base_context: Dict[str, str],
     output_dir: str,
     target_project: str,
@@ -209,6 +291,7 @@ def generate_blueprints_and_code_in_parallel(
 
     Args:
         completed_specs: List of (component_id, spec_path) tuples to process.
+        dependency_map: Map of component dependencies (component_id -> list of dependencies).
         base_context: Base context dictionary.
         output_dir: Output directory.
         target_project: Target project name.
@@ -226,10 +309,33 @@ def generate_blueprints_and_code_in_parallel(
     # If we're in step-by-step mode, don't parallelize
     if flow_mode == FlowControl.STEP_BY_STEP:
         for component_id, spec_path in completed_specs:
+            # Add dependency information if available
+            context_with_deps = base_context.copy()
+            if dependency_map and component_id in dependency_map:
+                deps = dependency_map[component_id]
+                if deps and verbose:
+                    safe_print(f"Component {component_id} depends on: {', '.join(deps)}")
+                # Include dependency info in context
+                context_with_deps["key_dependencies"] = ",".join(deps)
+
+                # Create related_docs string for dependencies with documentation
+                related_docs = []
+                for dep in deps:
+                    dep_docs_path = f"{output_dir}/blueprints/{target_project}/components/{dep}/{dep}_docs.md"
+                    if os.path.exists(dep_docs_path):
+                        related_docs.append(dep_docs_path)
+                    elif verbose:
+                        safe_print(f"Warning: Dependency '{dep}' documentation not found at {dep_docs_path}")
+
+                if related_docs:
+                    context_with_deps["related_docs"] = ",".join(related_docs)
+                    if verbose:
+                        safe_print(f"Including related docs: {context_with_deps['related_docs']}")
+
             success = generate_blueprint_and_code(
                 component_id,
                 spec_path,
-                base_context,
+                context_with_deps,  # Use enhanced context with dependencies
                 output_dir,
                 target_project,
                 verbose,
@@ -262,19 +368,44 @@ def generate_blueprints_and_code_in_parallel(
         blueprint_results = {}  # component_id -> (success, create_recipe_path)
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=min(max_workers, len(completed_specs))) as executor:
-            # Submit all blueprint generation tasks
-            future_to_component = {
-                executor.submit(
+            # Submit all blueprint generation tasks with dependency enriched contexts
+            future_to_component = {}
+            for component_id, spec_path in completed_specs:
+                # Create enhanced context with dependencies
+                context_with_deps = base_context.copy()
+                if dependency_map and component_id in dependency_map:
+                    deps = dependency_map[component_id]
+                    if deps and verbose:
+                        safe_print(f"Component {component_id} depends on: {', '.join(deps)}")
+                    # Include dependency info in context
+                    context_with_deps["key_dependencies"] = ",".join(deps)
+
+                    # Create related_docs string for dependencies with documentation
+                    related_docs = []
+                    for dep in deps:
+                        dep_docs_path = f"{output_dir}/blueprints/{target_project}/components/{dep}/{dep}_docs.md"
+                        if os.path.exists(dep_docs_path):
+                            related_docs.append(dep_docs_path)
+                        elif verbose:
+                            safe_print(f"Warning: Dependency '{dep}' documentation not found at {dep_docs_path}")
+
+                    if related_docs:
+                        context_with_deps["related_docs"] = ",".join(related_docs)
+                        if verbose:
+                            safe_print(f"Including related docs: {context_with_deps['related_docs']}")
+
+                # Submit task with enhanced context
+                future = executor.submit(
                     generate_blueprint,
                     component_id,
                     spec_path,
-                    base_context,
+                    context_with_deps,  # Use enhanced context with dependencies
                     output_dir,
                     target_project,
                     verbose,
                     resume_mode
-                ): component_id for component_id, spec_path in completed_specs
-            }
+                )
+                future_to_component[future] = component_id
 
             # Process results as they complete
             for future in concurrent.futures.as_completed(future_to_component):

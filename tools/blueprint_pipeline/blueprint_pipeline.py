@@ -27,6 +27,7 @@ from blueprint_pipeline.flow_control import (
 )
 from blueprint_pipeline.utils import safe_print, find_latest_spec
 from blueprint_pipeline.component_processor import (
+    analyze_component_dependencies,
     process_project_analysis,
     process_component_split,
     process_components_in_parallel,
@@ -64,6 +65,7 @@ def main():
 
     # Track completion status for components
     component_status = {}  # component_id -> "complete" or "needs_review"
+    dependency_map = {}    # component_id -> list of component IDs it depends on
 
     iteration_count = 0
     all_complete = False
@@ -86,6 +88,17 @@ def main():
                             comp_id, status = line.strip().split(":", 1)
                             component_status[comp_id] = status.strip()
                 safe_print(f"Loaded status for {len(component_status)} components")
+
+            # Load dependency map if available
+            if os.path.exists(f"{args.output_dir}/dependency_map.txt"):
+                with open(f"{args.output_dir}/dependency_map.txt", "r") as f:
+                    for line in f:
+                        if ":" in line:
+                            comp_id, deps_str = line.strip().split(":", 1)
+                            deps = [d.strip() for d in deps_str.strip().split(",") if d.strip()]
+                            if deps:
+                                dependency_map[comp_id] = deps
+                safe_print(f"Loaded dependencies for {len(dependency_map)} components")
 
     while not all_complete and iteration_count < args.max_iterations:
         iteration_count += 1
@@ -123,10 +136,17 @@ def main():
             if flow_mode == FlowControl.RETRY:
                 continue
 
-        # Determine which components to process in this iteration
-        component_specs, component_status = determine_components_to_process(
-            args.output_dir, component_status, iteration_count, args.component_filter
-        )
+        # Determine which components to process in this iteration and analyze dependencies
+        component_specs, component_status, dependency_map = determine_components_to_process(
+             args.output_dir, component_status, iteration_count, args.component_filter
+         )
+
+        # Log dependency information if verbose
+        if args.verbose and dependency_map:
+            safe_print("\n=== Component Dependencies ===")
+            for comp_id, deps in dependency_map.items():
+                if deps:
+                    safe_print(f"{comp_id} depends on: {', '.join(deps)}")
 
         if not component_specs:
             if iteration_count == 1:
@@ -147,13 +167,20 @@ def main():
             args.output_dir,
             args.verbose,
             flow_mode,
-            args.max_workers
+            args.max_workers,
+            dependency_map
         )
 
         # Save component status for possible future resume
         with open(f"{args.output_dir}/component_status.txt", "w") as f:
             for comp_id, status in component_status.items():
                 f.write(f"{comp_id}: {status}\n")
+
+        # Save dependency map for possible future resume
+        with open(f"{args.output_dir}/dependency_map.txt", "w") as f:
+            for comp_id, deps in dependency_map.items():
+                if deps:
+                    f.write(f"{comp_id}: {', '.join(deps)}\n")
 
         # Save iteration summary
         with open(f"{args.output_dir}/iteration_{iteration_count}_summary.txt", "w") as f:
@@ -245,9 +272,14 @@ def main():
             if spec_path:
                 completed_specs.append((component_id, spec_path))
 
+    # If no dependency map was created, do a final analysis before code generation
+    if not dependency_map:
+        dependency_map = analyze_component_dependencies(args.output_dir)
+
     # Generate blueprints and code in parallel
     successful_components, failed_components = generate_blueprints_and_code_in_parallel(
         completed_specs,
+        dependency_map,
         base_context,
         args.output_dir,
         args.target_project,
