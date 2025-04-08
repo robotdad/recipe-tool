@@ -40,7 +40,8 @@
   "ruff.nativeServer": "on",
   "search.exclude": {
     "**/.venv": true,
-    "**/.data": true
+    "**/.data": true,
+    "**/ai_context": true
   },
   // For use with optional extension: "streetsidesoftware.code-spell-checker"
   "cSpell.ignorePaths": [
@@ -55,7 +56,8 @@
     "uv.lock",
     "output",
     "logs",
-    "*.md"
+    "*.md",
+    "ai_context"
   ],
   "cSpell.words": [
     "codegen",
