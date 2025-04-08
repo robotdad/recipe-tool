@@ -2,8 +2,8 @@ repo_root = $(shell git rev-parse --show-toplevel)
 include $(repo_root)/tools/makefiles/python.mk
 
 # Build AI context files for the recipe executor
-.PHONY: recipe-executor-context
-recipe-executor-context:
+.PHONY: ai-context-files
+ai-context-files:
 	@echo "Building AI context files for recipe executor development..."
 	@python $(repo_root)/tools/build_ai_context_files.py
 
