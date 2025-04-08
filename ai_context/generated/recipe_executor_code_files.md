@@ -161,7 +161,6 @@ dependencies = [
     "dotenv>=0.9.9",
     "pydantic-ai>=0.0.46",
     "pydantic-settings>=2.8.1",
-    "pytest>=8.3.5",
     "python-dotenv>=1.1.0",
     "python-liquid>=2.0.1",
 ]
@@ -187,6 +186,17 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["recipe_executor"]
+
+
+=== File: recipe_executor/__init__.py ===
+from executor import Executor
+
+from recipe_executor.context import Context
+
+__all__ = [
+    "Executor",
+    "Context",
+]
 
 
 === File: recipe_executor/context.py ===

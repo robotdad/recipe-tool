@@ -66,6 +66,7 @@ The Main component serves as the command-line entry point for the Recipe Executo
 ## Output Files
 
 - `main.py`
+- `__init__.py` - exposing Executor and Context classes
 
 ## Future Considerations
 

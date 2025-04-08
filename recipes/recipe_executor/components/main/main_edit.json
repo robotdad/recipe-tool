@@ -2,7 +2,7 @@
   "steps": [
     {
       "type": "read_files",
-      "path": "{% if existing_code_root %}{{existing_code_root}}/{% endif %}recipe_executor/main.py",
+      "path": "{% if existing_code_root %}{{existing_code_root}}/{% endif %}recipe_executor/main.py,{% if existing_code_root %}{{existing_code_root}}/{% endif %}recipe_executor/__init__.py",
       "artifact": "existing_code"
     },
     {

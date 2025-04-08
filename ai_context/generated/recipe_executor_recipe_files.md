@@ -1316,7 +1316,7 @@ logger.error(f"An error occurred during recipe execution: {str(e)}", exc_info=Tr
   "steps": [
     {
       "type": "read_files",
-      "path": "{% if existing_code_root %}{{existing_code_root}}/{% endif %}recipe_executor/main.py",
+      "path": "{% if existing_code_root %}{{existing_code_root}}/{% endif %}recipe_executor/main.py,{% if existing_code_root %}{{existing_code_root}}/{% endif %}recipe_executor/__init__.py",
       "artifact": "existing_code"
     },
     {
@@ -1399,6 +1399,7 @@ The Main component serves as the command-line entry point for the Recipe Executo
 ## Output Files
 
 - `main.py`
+- `__init__.py` - exposing Executor and Context classes
 
 ## Future Considerations
 

@@ -10,3 +10,4 @@ When contributing to the Python codebase, please follow these guidelines to ensu
 - Assume that all dependencies mentioned in the component spec or docs are installed, do not write guards for them.
 - Do not create main functions for components that do not have a main function listed in the spec.
 - Use full names for variables, classes, and functions. For example, use `get_workspace` instead of `gw`.
+- For `__init__.py` files, use `__all__` to define the public API of the module.
