@@ -32,6 +32,6 @@ The project is organized into several key directories, each serving a specific p
 
 - `recipes/recipe_executor`: Contains the recipes used to generate the code and files in the `recipe_executor` directory. These recipes are designed to be modular and reusable, allowing for easy customization and extension. The recipes are organized into subdirectories based on their functionality. This is the minimal set of recipes to be able to generate the tool itself.
 
-- `recipes/codebase_generator`: Contains the recipes used by the `recipes_extractor` tool to handle it's codebase generation needs. It is separated out from the `recipe_executor` recipes to allow for easier reuse in other projects. It will be extended over time to include more of the codebase generation functionality such as assistance in evaluating and testing the generated code, etc.
+- `recipes/recipe_executor/utils`: Contains the recipes used by the `recipes_extractor` tool to handle it's codebase generation needs. It will be extended over time to include more of the codebase generation functionality such as assistance in evaluating and testing the generated code, etc.
 
-- `recipes/utilities`: Contains utility recipes that are not directly related to the core functionality of the Recipe Executor but are handy to leverage while working on the project. These recipes can be used for various tasks, such as generating files, etc.
+- `recipes/recipe_creator`: Contains the recipes used to generate new recipes based on a recipe idea.

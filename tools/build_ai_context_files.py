@@ -50,10 +50,17 @@ def build_context_files() -> None:
             "exclude": collect_files.DEFAULT_EXCLUDE,
             "include": ["README.md", "pyproject.toml", ".env.example"],
         },
-        # Collect files from recipes/recipe_executor with exclusion
+        # Collect files from recipes/recipe_executor
         {
             "patterns": ["recipes/recipe_executor"],
             "output": f"{OUTPUT_DIR}/recipe_executor_recipe_files.md",
+            "exclude": collect_files.DEFAULT_EXCLUDE,
+            "include": [],
+        },
+        # Collect files from recipes/recipe_creator
+        {
+            "patterns": ["recipes/recipe_creator"],
+            "output": f"{OUTPUT_DIR}/recipe_creator_recipe_files.md",
             "exclude": collect_files.DEFAULT_EXCLUDE,
             "include": [],
         },

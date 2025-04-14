@@ -28,6 +28,7 @@ package = true
 
 [project.scripts]
 recipe-executor = "recipe_executor.main:main"
+recipe-tool = "recipe_tool:main"
 
 [build-system]
 requires = ["hatchling"]

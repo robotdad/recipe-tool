@@ -99,16 +99,16 @@ source venv/bin/activate  # Linux/macOS
 Execute a recipe using the command line interface:
 
 ```bash
-python -m recipe_executor.main path/to/your/recipe.json
+recipe-executor path/to/your/recipe.json
 ```
 
 With context variables:
 
 ```bash
-python -m recipe_executor.main path/to/recipe.json --context key=value --context another=value
+recipe-executor path/to/recipe.json --context key=value --context another=value
 ```
 
-### Creating Your First Recipe
+### Creating Your First Recipe JSON File
 
 1. Create a JSON file with a `.json` extension
 2. Define the recipe structure with steps

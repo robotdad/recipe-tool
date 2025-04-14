@@ -21,19 +21,33 @@ AZURE_USE_MANAGED_IDENTITY=false
 
 
 === File: README.md ===
-# Recipe Executor
+# Recipe Tools
 
-A tool for executing recipe-like natural language instructions to generate and manipulate code and other files.
+A tool for executing recipe-like natural language instructions to create complex workflows. This project includes a recipe executor and a recipe creator, both of which can be used to automate tasks and generate new recipes.
 
 ## Overview
 
-The Recipe Executor is a flexible orchestration system that executes "recipes" - JSON-based definitions of sequential steps to perform tasks such as file reading, LLM-based content generation, and file writing. This project allows you to define complex workflows through simple recipe files.
+This project is designed to help you automate tasks and generate new recipes using a flexible orchestration system. It consists of two main components: the Recipe Executor and the Recipe Creator.
+
+### Recipe Executor
+
+The Recipe Executor is a tool for executing recipes defined in JSON format. It can perform various tasks, including file reading/writing, LLM generation, and sub-recipe execution. The executor uses a context system to manage shared state and data between steps.
+
+### Recipe Creator
+
+The Recipe Creator is a tool for generating new recipes based on a recipe idea. It uses the Recipe Executor to create JSON recipe files that can be executed later. The creator can also take additional files as input to provide context for the recipe generation.
 
 ## Key Components
 
+- **Recipe Executor**: Executes recipes defined in JSON format.
+- **Recipe Creator**: Generates new recipes based on a recipe idea.
 - **Recipe Format**: JSON-based recipe definitions with steps
+- **Context Management**: Manages shared state and data between steps in a recipe.
 - **Step Types**: Various operations including file reading/writing, LLM generation, and sub-recipe execution
-- **Context System**: Shared state for passing data between steps
+  - **LLM Integration**: Supports various LLMs for generating content and executing tasks.
+  - **File Management**: Reads and writes files as part of the recipe execution process.
+  - **Sub-Recipe Execution**: Allows for executing other recipes as part of a larger recipe.
+- **Logging**: Provides logging for debugging and tracking recipe execution.
 - **Template Rendering**: Liquid templates for dynamic content generation
 
 ## Setup and Installation
@@ -45,6 +59,22 @@ Recommended installers:
 - Linux: apt or your distribution's package manager
 - macOS: [brew](https://brew.sh/)
 - Windows: [winget](https://learn.microsoft.com/en-us/windows/package-manager/winget/)
+
+#### Azure CLI for Azure OpenAI using Managed Identity
+
+If you plan on using Azure OpenAI with Managed Identity, you need to install the Azure CLI. Follow the instructions for your platform:
+
+- **Windows**: [Install the Azure CLI on Windows](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli-windows)
+- **Linux**: [Install the Azure CLI on Linux](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli-linux)
+- **macOS**: [Install the Azure CLI on macOS](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli-macos)
+
+Execute the following command to log in:
+
+```bash
+az login
+```
+
+This command will open a browser window for you to log in. If you are using Managed Identity, ensure that your Azure CLI is configured to use the correct identity.
 
 #### Development tools
 
@@ -101,34 +131,56 @@ Windows:
 The project includes several useful make commands:
 
 - **`make`**: Sets up the virtual environment and installs all dependencies
-- **`make recipe-executor-context`**: Builds AI context files for recipe executor development
+- **`make ai-context-files`**: Builds AI context files for recipe executor development
 - **`make recipe-executor-create`**: Generates recipe executor code from scratch using the recipe itself
 - **`make recipe-executor-edit`**: Revises existing recipe executor code using recipes
 
-## Running Recipes
+## Running Recipes via Command Line
 
 Execute a recipe using the command line interface:
 
 ```bash
-python recipe_executor/main.py path/to/your/recipe.json
+recipe-tool --execute path/to/your/recipe.json
 ```
 
 You can also pass context variables:
 
 ```bash
-python recipe_executor/main.py path/to/your/recipe.json --context key=value
+recipe-tool --execute path/to/your/recipe.json context_key=value context_key2=value2
+```
+
+Example:
+
+```bash
+recipe-executor recipes/example_simple/test_recipe.json model=azure/o3-mini
+```
+
+## Creating New Recipes from a Recipe Idea
+
+Create a new recipe using the command line interface:
+
+```bash
+recipe-tool --create path/to/your/recipe_idea.txt
+```
+
+This will generate a new recipe file based on the provided idea.
+You can also pass additional files for context:
+
+```bash
+recipe-tool --create path/to/your/recipe_idea.txt files=path/to/other_file.txt,path/to/another_file.txt
 ```
 
 ## Project Structure
 
 The project contains:
 
+- **`recipe_tool.py`**: The main entry point for the command line interface for both recipe execution and creation
 - **`recipe_executor/`**: Core implementation with modules for execution, context management, and steps
 - **`recipes/`**: Recipe definition files that can be executed
 
 ## Building from Recipes
 
-One of the most interesting aspects of this project is that it can generate its own code using recipes:
+One of the more interesting aspects of this project is that it can _generate its own code using recipes_:
 
 1. To generate the code from scratch:
 
@@ -179,6 +231,7 @@ package = true
 
 [project.scripts]
 recipe-executor = "recipe_executor.main:main"
+recipe-tool = "recipe_tool:main"
 
 [build-system]
 requires = ["hatchling"]
@@ -333,12 +386,12 @@ class Context(ContextProtocol):
 
 
 === File: recipe_executor/executor.py ===
-import os
 import json
 import logging
-from typing import Any, Dict, Union, Optional
+import os
+from typing import Any, Dict, Optional, Union
 
-from recipe_executor.protocols import ExecutorProtocol, ContextProtocol
+from recipe_executor.protocols import ContextProtocol, ExecutorProtocol
 from recipe_executor.steps.registry import STEP_REGISTRY
 
 
@@ -349,20 +402,20 @@ class Executor(ExecutorProtocol):
     using a shared context. Any errors during execution are raised as ValueError with context about which step failed.
     """
 
-    async def execute(self, recipe: Union[str, Dict[str, Any]], context: ContextProtocol, 
-                      logger: Optional[logging.Logger] = None) -> None:
-        
+    async def execute(
+        self, recipe: Union[str, Dict[str, Any]], context: ContextProtocol, logger: Optional[logging.Logger] = None
+    ) -> None:
         # Setup logger if not provided
         if logger is None:
             logger = logging.getLogger(__name__)
             if not logger.handlers:
                 handler = logging.StreamHandler()
-                handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+                handler.setFormatter(logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s"))
                 logger.addHandler(handler)
             logger.setLevel(logging.INFO)
 
         logger.debug("Starting recipe execution.")
-        
+
         # Load or parse recipe into a dictionary form
         recipe_dict: Dict[str, Any]
 
@@ -375,7 +428,7 @@ class Executor(ExecutorProtocol):
         elif isinstance(recipe, str):
             if os.path.exists(recipe):
                 try:
-                    with open(recipe, 'r', encoding='utf-8') as file:
+                    with open(recipe, "r", encoding="utf-8") as file:
                         recipe_dict = json.load(file)
                     logger.debug(f"Loaded recipe from file path: {recipe}")
                 except Exception as e:
@@ -395,35 +448,35 @@ class Executor(ExecutorProtocol):
         if not isinstance(recipe_dict, dict):
             logger.error("The loaded recipe is not a dictionary.")
             raise ValueError("The recipe must be a dictionary.")
-        
+
         # Validate that there is a 'steps' key mapping to a list
         steps = recipe_dict.get("steps")
         if not isinstance(steps, list):
             logger.error("Recipe must contain a 'steps' key mapping to a list.")
             raise ValueError("Recipe must contain a 'steps' key mapping to a list.")
-        
+
         logger.debug(f"Recipe loaded with {len(steps)} steps.")
 
         # Sequentially execute each step
         for index, step in enumerate(steps):
             logger.debug(f"Processing step {index}: {step}")
-            
+
             # Validate that each step is a dictionary and contains a 'type' key
             if not isinstance(step, dict):
                 logger.error(f"Step at index {index} is not a dictionary.")
                 raise ValueError(f"Each step must be a dictionary. Invalid step at index {index}.")
-            
+
             step_type = step.get("type")
             if not step_type:
                 logger.error(f"Step at index {index} missing 'type' key.")
                 raise ValueError(f"Each step must have a 'type' key. Missing in step at index {index}.")
-            
+
             # Retrieve the step class from STEP_REGISTRY
             step_class = STEP_REGISTRY.get(step_type)
             if step_class is None:
                 logger.error(f"Unknown step type '{step_type}' at index {index}.")
                 raise ValueError(f"Unknown step type '{step_type}' at index {index}.")
-            
+
             try:
                 logger.debug(f"Instantiating step {index} of type '{step_type}'.")
                 step_instance = step_class(step, logger)
@@ -433,7 +486,7 @@ class Executor(ExecutorProtocol):
             except Exception as e:
                 logger.error(f"Step {index} (type: '{step_type}') failed. Error: {e}")
                 raise ValueError(f"Step {index} (type: '{step_type}') failed to execute: {e}") from e
-        
+
         logger.debug("All steps executed successfully.")
 
 
@@ -696,7 +749,6 @@ async def call_llm(
 import logging
 import os
 import sys
-from typing import Optional
 
 
 def init_logger(log_dir: str = "logs") -> logging.Logger:
@@ -735,7 +787,7 @@ def init_logger(log_dir: str = "logs") -> logging.Logger:
 
     # File handler for DEBUG level (all messages)
     try:
-        debug_handler = logging.FileHandler(os.path.join(log_dir, "debug.log"), mode='w')
+        debug_handler = logging.FileHandler(os.path.join(log_dir, "debug.log"), mode="w")
         debug_handler.setLevel(logging.DEBUG)
         debug_handler.setFormatter(log_format)
         logger.addHandler(debug_handler)
@@ -746,7 +798,7 @@ def init_logger(log_dir: str = "logs") -> logging.Logger:
 
     # File handler for INFO level and above
     try:
-        info_handler = logging.FileHandler(os.path.join(log_dir, "info.log"), mode='w')
+        info_handler = logging.FileHandler(os.path.join(log_dir, "info.log"), mode="w")
         info_handler.setLevel(logging.INFO)
         info_handler.setFormatter(log_format)
         logger.addHandler(info_handler)
@@ -757,7 +809,7 @@ def init_logger(log_dir: str = "logs") -> logging.Logger:
 
     # File handler for ERROR level and above
     try:
-        error_handler = logging.FileHandler(os.path.join(log_dir, "error.log"), mode='w')
+        error_handler = logging.FileHandler(os.path.join(log_dir, "error.log"), mode="w")
         error_handler.setLevel(logging.ERROR)
         error_handler.setFormatter(log_format)
         logger.addHandler(error_handler)
@@ -787,18 +839,18 @@ import traceback
 
 from dotenv import load_dotenv
 
-from recipe_executor.logger import init_logger
 from recipe_executor.context import Context
 from recipe_executor.executor import Executor
+from recipe_executor.logger import init_logger
 
 
 def parse_context(context_args: list[str]) -> dict[str, str]:
     """Parse a list of context key=value strings into a dictionary."""
     context_data: dict[str, str] = {}
     for item in context_args:
-        if '=' not in item:
+        if "=" not in item:
             raise ValueError(f"Invalid context format: '{item}'. Expected format is key=value.")
-        key, value = item.split('=', 1)
+        key, value = item.split("=", 1)
         context_data[key] = value
     return context_data
 
@@ -834,7 +886,7 @@ async def main_async() -> None:
     logger.debug(f"Initial context data: {context_data}")
 
     # Create Context and Executor instances
-    context = Context(artifacts=context_data)  
+    context = Context(artifacts=context_data)
     executor = Executor()
 
     start_time = time.time()
@@ -859,12 +911,13 @@ def main() -> None:
         sys.exit(1)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
 
 
 === File: recipe_executor/models.py ===
-from typing import List, Dict, Optional
+from typing import Dict, List, Optional
+
 from pydantic import BaseModel
 
 
@@ -915,37 +968,31 @@ class Recipe(BaseModel):
 
 
 === File: recipe_executor/protocols.py ===
-from typing import Protocol, runtime_checkable, Any, Optional, Iterator, Dict, Union
 import logging
+from typing import Any, Dict, Iterator, Optional, Protocol, Union, runtime_checkable
 
 
 @runtime_checkable
 class ContextProtocol(Protocol):
     """Interface for context objects holding shared state with dictionary-like access."""
 
-    def __getitem__(self, key: str) -> Any:
-        ...
+    def __getitem__(self, key: str) -> Any: ...
 
-    def __setitem__(self, key: str, value: Any) -> None:
-        ...
+    def __setitem__(self, key: str, value: Any) -> None: ...
 
-    def __delitem__(self, key: str) -> None:
-        ...
+    def __delitem__(self, key: str) -> None: ...
 
-    def __iter__(self) -> Iterator[str]:
-        ...
+    def __iter__(self) -> Iterator[str]: ...
 
-    def __len__(self) -> int:
-        ...
+    def __len__(self) -> int: ...
 
-    def get(self, key: str, default: Any = None) -> Any:
-        ...
+    def get(self, key: str, default: Any = None) -> Any: ...
 
     def as_dict(self) -> Dict[str, Any]:
         """Return a copy of the internal state as a dictionary."""
         ...
 
-    def clone(self) -> 'ContextProtocol':
+    def clone(self) -> "ContextProtocol":
         """Return a deep copy of the context."""
         ...
 
@@ -964,10 +1011,7 @@ class ExecutorProtocol(Protocol):
     """Interface for recipe executors that run recipes using a given context and optional logger."""
 
     async def execute(
-        self,
-        recipe: Union[str, Dict[str, Any]],
-        context: ContextProtocol,
-        logger: Optional[logging.Logger] = None
+        self, recipe: Union[str, Dict[str, Any]], context: ContextProtocol, logger: Optional[logging.Logger] = None
     ) -> None:
         """Execute a recipe represented as a file path, JSON string, or dictionary using the context.
 
@@ -978,12 +1022,11 @@ class ExecutorProtocol(Protocol):
 
 
 === File: recipe_executor/steps/__init__.py ===
-from recipe_executor.steps.registry import STEP_REGISTRY
-
 from recipe_executor.steps.execute_recipe import ExecuteRecipeStep
 from recipe_executor.steps.generate_llm import GenerateWithLLMStep
 from recipe_executor.steps.parallel import ParallelStep
 from recipe_executor.steps.read_files import ReadFilesStep
+from recipe_executor.steps.registry import STEP_REGISTRY
 from recipe_executor.steps.write_files import WriteFilesStep
 
 # Register steps in the global registry
@@ -1022,11 +1065,12 @@ class StepConfig(BaseModel):
 
     This class is intentionally left minimal and should be extended by concrete step configurations.
     """
+
     pass
 
 
 # Create a type variable that must be a subclass of StepConfig
-ConfigType = TypeVar('ConfigType', bound=StepConfig)
+ConfigType = TypeVar("ConfigType", bound=StepConfig)
 
 
 class BaseStep(ABC, Generic[ConfigType]):
@@ -1037,6 +1081,7 @@ class BaseStep(ABC, Generic[ConfigType]):
         config (ConfigType): The configuration instance for the step.
         logger (logging.Logger): Logger to record operations, defaults to a module logger named 'RecipeExecutor'.
     """
+
     def __init__(self, config: ConfigType, logger: Optional[logging.Logger] = None) -> None:
         self.config: ConfigType = config
         self.logger: logging.Logger = logger or logging.getLogger("RecipeExecutor")
@@ -1293,7 +1338,7 @@ class ParallelStep(BaseStep[ParallelConfig]):
         # Wait for all substeps to complete with fail-fast behavior
         try:
             # Wait until all tasks complete or one fails
-            results = await asyncio.gather(*tasks)
+            await asyncio.gather(*tasks)
             self.logger.info(f"ParallelStep completed all {len(tasks)} substeps successfully")
         except Exception as e:
             self.logger.error("ParallelStep encountered an error; cancelling remaining substeps")
@@ -1308,8 +1353,7 @@ class ParallelStep(BaseStep[ParallelConfig]):
 
 === File: recipe_executor/steps/read_files.py ===
 import os
-import logging
-from typing import Any, List, Union, Optional
+from typing import Dict, List, Union
 
 from recipe_executor.protocols import ContextProtocol
 from recipe_executor.steps.base import BaseStep, StepConfig
@@ -1336,111 +1380,110 @@ class ReadFilesConfig(StepConfig):
 
 
 class ReadFilesStep(BaseStep[ReadFilesConfig]):
-    """
-    ReadFilesStep reads one or more files from the filesystem, processes templated paths, and stores their content
-    in the execution context under the specified artifact key. It supports single or multiple file reads and
-    flexible content merging options.
-    """
-    
-    def __init__(self, config: Any, logger: Optional[logging.Logger] = None) -> None:
-        # Ensure config is a ReadFilesConfig object, not a raw dict
-        if not isinstance(config, ReadFilesConfig):
-            config = ReadFilesConfig(**config)
-        super().__init__(config, logger)
-    
+    def __init__(self, config: dict, logger=None):
+        super().__init__(ReadFilesConfig(**config), logger)
+
     async def execute(self, context: ContextProtocol) -> None:
-        # Resolve the raw paths from configuration
-        raw_paths: Union[str, List[str]] = self.config.path
-        file_paths: List[str] = []
+        """
+        Execute the read files step.
+        Reads one or multiple files, resolves templated paths, and stores the contents in the context.
+        """
+        # Resolve path configuration from the config
+        raw_paths = self.config.path
+        resolved_paths: List[str] = []
 
-        if isinstance(raw_paths, list):
-            file_paths = raw_paths
-        elif isinstance(raw_paths, str):
-            if "," in raw_paths:
-                file_paths = [p.strip() for p in raw_paths.split(",") if p.strip()]
+        # Determine if raw_paths is a single string or list
+        if isinstance(raw_paths, str):
+            # Render the template first
+            rendered = render_template(raw_paths, context)
+            # Check if comma-separated for multiple
+            if "," in rendered:
+                # Split and strip whitespace
+                resolved_paths = [p.strip() for p in rendered.split(",") if p.strip()]
             else:
-                file_paths = [raw_paths.strip()]
+                resolved_paths = [rendered.strip()]
+        elif isinstance(raw_paths, list):
+            for path in raw_paths:
+                # Each path may be templated
+                rendered = render_template(path, context).strip()
+                if rendered:
+                    resolved_paths.append(rendered)
         else:
-            raise ValueError(f"Unsupported type for path: {type(raw_paths)}")
+            raise ValueError(f"Invalid type for path: {type(raw_paths)}. Must be str or List[str].")
 
-        # Render template for each path
-        rendered_paths: List[str] = []
-        for path in file_paths:
-            try:
-                rendered = render_template(path, context)
-                rendered_paths.append(rendered)
-                self.logger.debug(f"Rendered path: '{path}' to '{rendered}'")
-            except Exception as e:
-                self.logger.error(f"Error rendering template for path '{path}': {e}")
-                raise
+        self.logger.debug(f"Resolved file paths: {resolved_paths}")
 
-        # Initialize storage based on merge_mode
-        merge_mode = self.config.merge_mode.lower()
-        # For single file, even with concat mode, we return a string for backward compatibility
-        is_single = len(rendered_paths) == 1
+        file_contents: Dict[str, str] = {}
+        concat_contents: List[str] = []
 
-        # Initialize both storage variables to avoid "possibly unbound" errors
-        aggregated_result: dict = {}
-        aggregated_result_list: List[str] = []
-        final_content: Any = None
-
-        # Validate merge_mode
-        if merge_mode not in ["dict", "concat"]:
-            raise ValueError(f"Unsupported merge_mode: {self.config.merge_mode}")
-
-        # Iterate over each rendered file path and read the contents
-        for rendered_path in rendered_paths:
-            self.logger.debug(f"Attempting to read file: {rendered_path}")
-            if not os.path.exists(rendered_path):
-                msg = f"File not found: {rendered_path}"
+        # Read each file
+        for path in resolved_paths:
+            self.logger.debug(f"Attempting to read file: {path}")
+            if not os.path.exists(path):
+                msg = f"File not found: {path}"
                 if self.config.optional:
-                    self.logger.warning(msg + " (optional file, continuing)")
-                    if merge_mode == "dict":
-                        # Use empty string for missing optional file
-                        key = os.path.basename(rendered_path)
-                        aggregated_result[key] = ""
-                    elif merge_mode == "concat":
-                        # For single file, assign empty string; for multiple files, skip missing file
-                        if is_single:
-                            aggregated_result_list.append("")
-                        else:
-                            self.logger.debug(f"Skipping missing optional file: {rendered_path}")
+                    self.logger.warning(msg + " (optional, continuing with empty content)")
+                    if self.config.merge_mode == "dict":
+                        # Use base name as key
+                        file_contents[os.path.basename(path)] = ""
+                    # For concat mode, skip adding missing file
                     continue
                 else:
                     self.logger.error(msg)
                     raise FileNotFoundError(msg)
 
             try:
-                with open(rendered_path, "r", encoding="utf-8") as file:
-                    content = file.read()
-                self.logger.info(f"Successfully read file: {rendered_path}")
+                with open(path, "r", encoding="utf-8") as f:
+                    content = f.read()
+                self.logger.info(f"Successfully read file: {path}")
             except Exception as e:
-                self.logger.error(f"Error reading file {rendered_path}: {e}")
-                raise
-
-            if merge_mode == "dict":
-                key = os.path.basename(rendered_path)
-                aggregated_result[key] = content
-            elif merge_mode == "concat":
-                # For multiple files, include a header with the filename
-                if is_single:
-                    aggregated_result_list.append(content)
+                msg = f"Error reading file {path}: {str(e)}"
+                self.logger.error(msg)
+                if self.config.optional:
+                    self.logger.warning(f"Continuing execution as file is optional: {path}")
+                    content = ""
                 else:
-                    header = f"File: {os.path.basename(rendered_path)}"
-                    aggregated_result_list.append(f"{header}\n{content}")
+                    raise RuntimeError(msg) from e
 
-        # Finalize artifact based on merge_mode
-        if merge_mode == "dict":
-            final_content: Any = aggregated_result
-        elif merge_mode == "concat":
-            if is_single:
-                final_content = aggregated_result_list[0] if aggregated_result_list else ""
+            if self.config.merge_mode == "dict":
+                # Use the base filename as key
+                file_contents[os.path.basename(path)] = content
             else:
-                final_content = "\n\n".join(aggregated_result_list)
+                # For concat, include a header with the filename
+                header = f"----- {os.path.basename(path)} -----"
+                concat_contents.append(header)
+                concat_contents.append(content)
 
-        # Store the result in context under the specified artifact key
-        context[self.config.artifact] = final_content
-        self.logger.info(f"Stored file content under context key '{self.config.artifact}'")
+        # Determine output based on number of files and merge mode
+        result = ""
+        if len(resolved_paths) == 1:
+            # For backwards compatibility, if single file, store its contents directly
+            if self.config.merge_mode == "dict":
+                # Even if a single file but merge_mode dict is desired
+                key = os.path.basename(resolved_paths[0])
+                result = {key: file_contents.get(key, "")}
+            else:
+                # For concat mode, if a single file, directly use its content (or empty string if missing)
+                # If the file was optional and missing, content might not be in our list
+                if concat_contents:
+                    # Remove the header if present
+                    # The expected pattern: header then content
+                    if len(concat_contents) >= 2:
+                        result = concat_contents[1]
+                    else:
+                        result = ""
+                else:
+                    result = ""
+        else:
+            # Multiple files
+            if self.config.merge_mode == "dict":
+                result = file_contents
+            else:
+                result = "\n".join(concat_contents)
+
+        # Store the result in the context under the specified artifact key
+        context[self.config.artifact] = result
+        self.logger.info(f"Stored file contents under context key '{self.config.artifact}'")
 
 
 === File: recipe_executor/steps/registry.py ===
@@ -1454,11 +1497,11 @@ STEP_REGISTRY: Dict[str, Type[BaseStep]] = {}
 
 === File: recipe_executor/steps/write_files.py ===
 import os
-from typing import List, Union
+from typing import List
 
-from recipe_executor.models import FileGenerationResult, FileSpec
-from recipe_executor.steps.base import BaseStep, StepConfig
+from recipe_executor.models import FileSpec
 from recipe_executor.protocols import ContextProtocol
+from recipe_executor.steps.base import BaseStep, StepConfig
 from recipe_executor.utils import render_template
 
 
@@ -1470,6 +1513,7 @@ class WriteFilesConfig(StepConfig):
         artifact: Name of the context key holding a FileGenerationResult or List[FileSpec].
         root: Optional base path to prepend to all output file paths.
     """
+
     artifact: str
     root: str = "."
 
@@ -1489,7 +1533,7 @@ class WriteFilesStep(BaseStep[WriteFilesConfig]):
         files_list: List[FileSpec] = []
 
         # Determine if artifact_value is FileGenerationResult or a list of FileSpec
-        if hasattr(artifact_value, 'files'):
+        if hasattr(artifact_value, "files"):
             # Assume artifact_value is FileGenerationResult
             files_list = artifact_value.files
         elif isinstance(artifact_value, list):
@@ -1509,7 +1553,7 @@ class WriteFilesStep(BaseStep[WriteFilesConfig]):
             rendered_file_path = render_template(file_spec.path, context)
             # Combine the rendered root and file path
             full_path = os.path.join(rendered_root, rendered_file_path)
-            
+
             # Ensure the parent directories exist
             directory = os.path.dirname(full_path)
             try:
@@ -1520,9 +1564,9 @@ class WriteFilesStep(BaseStep[WriteFilesConfig]):
 
             # Log debug information with file path and content length
             self.logger.debug(f"Preparing to write file: {full_path}\nContent:\n{file_spec.content}")
-            
+
             try:
-                with open(full_path, 'w', encoding='utf-8') as file_handle:
+                with open(full_path, "w", encoding="utf-8") as file_handle:
                     file_handle.write(file_spec.content)
                 self.logger.info(f"Successfully wrote file: {full_path} (size: {len(file_spec.content)} bytes)")
             except Exception as e:
