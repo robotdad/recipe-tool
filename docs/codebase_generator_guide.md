@@ -52,11 +52,11 @@ The core recipe for generating code is defined in `recipes/codebase_generator/ge
       "type": "generate",
       "prompt": "You are an expert developer...",
       "model": "{{model|default:'openai/o3-mini'}}",
-      "artifact": "generated_code"
+      "artifact": "generated_files"
     },
     {
       "type": "write_files",
-      "artifact": "generated_code",
+      "artifact": "generated_files",
       "root": "{{output_root|default:'output'}}"
     }
   ]

@@ -9,11 +9,11 @@
       "type": "generate",
       "prompt": "Using the following specification, generate a Python script:\n\n${spec_text}",
       "model": "{{model|default:'openai/o3-mini'}}",
-      "artifact": "generated_code"
+      "artifact": "generated_files"
     },
     {
       "type": "write_files",
-      "artifact": "generated_code",
+      "artifact": "generated_files",
       "root": "output"
     }
   ]

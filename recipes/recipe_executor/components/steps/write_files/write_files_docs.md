@@ -43,7 +43,7 @@ The WriteFilesStep can be used in recipes like this:
   "steps": [
     {
       "type": "write_files",
-      "artifact": "generated_code",
+      "artifact": "generated_files",
       "root": "output/project"
     }
   ]
@@ -69,7 +69,7 @@ result = FileGenerationResult(
 )
 
 # Store in context
-context["generated_code"] = result
+context["generated_files"] = result
 ```
 
 ### List of FileSpec objects
@@ -96,7 +96,7 @@ The root path and individual file paths can include template variables:
   "steps": [
     {
       "type": "write_files",
-      "artifact": "generated_code",
+      "artifact": "generated_files",
       "root": "output/{{project_name}}"
     }
   ]
@@ -119,7 +119,7 @@ FileSpec(
 ```json
 {
   "type": "write_files",
-  "artifact": "generated_code",
+  "artifact": "generated_files",
   "root": "output/src"
 }
 ```
