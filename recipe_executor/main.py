@@ -1,112 +1,81 @@
 import argparse
+import asyncio
 import sys
 import time
 import traceback
-from typing import Dict, Optional
 
 from dotenv import load_dotenv
 
-from recipe_executor.context import Context
-from executor import Executor
 from recipe_executor.logger import init_logger
+from recipe_executor.context import Context
+from recipe_executor.executor import Executor
 
 
-def parse_context(context_list: Optional[list]) -> Dict[str, str]:
-    """
-    Parse a list of key=value pairs into a dictionary.
-
-    Args:
-        context_list: List of strings in the format key=value.
-
-    Returns:
-        Dictionary with keys and values as strings.
-
-    Raises:
-        ValueError: If any of the context items is not in key=value format.
-    """
-    context_dict: Dict[str, str] = {}
-    if not context_list:
-        return context_dict
-
-    for item in context_list:
+def parse_context(context_args: list[str]) -> dict[str, str]:
+    """Parse a list of context key=value strings into a dictionary."""
+    context_data: dict[str, str] = {}
+    for item in context_args:
         if '=' not in item:
-            raise ValueError(f"Invalid context format: '{item}'. Expected key=value.")
+            raise ValueError(f"Invalid context format: '{item}'. Expected format is key=value.")
         key, value = item.split('=', 1)
-        if not key:
-            raise ValueError(f"Context key cannot be empty in pair: '{item}'.")
-        context_dict[key] = value
-    return context_dict
+        context_data[key] = value
+    return context_data
 
 
-def main() -> None:
-    # Load environment variables as early as possible
+async def main_async() -> None:
+    # Load environment variables from .env file
     load_dotenv()
 
-    # Setup argument parser
+    # Setup argument parsing
     parser = argparse.ArgumentParser(description="Recipe Executor Tool")
-    parser.add_argument(
-        "recipe_path",
-        type=str,
-        help="Path to the recipe file to execute"
-    )
-    parser.add_argument(
-        "--log-dir",
-        type=str,
-        default="logs",
-        help="Directory for log files (default: logs)"
-    )
-    parser.add_argument(
-        "--context",
-        action="append",
-        help="Context values as key=value pairs (can be used multiple times)"
-    )
+    parser.add_argument("recipe_path", help="Path to the recipe file to execute")
+    parser.add_argument("--log-dir", default="logs", help="Directory for log files (default: logs)")
+    parser.add_argument("--context", action="append", default=[], help="Context key=value pairs. Can be repeated.")
 
     args = parser.parse_args()
 
-    start_time = time.time()
-
-    # Parse context values from command-line
+    # Parse context values
     try:
-        context_artifacts = parse_context(args.context)
-    except ValueError as e:
-        sys.stderr.write(f"Context Error: {str(e)}\n")
+        context_data = parse_context(args.context)
+    except ValueError as ve:
+        sys.stderr.write(f"Context Error: {ve}\n")
         sys.exit(1)
 
     # Initialize logger
     try:
         logger = init_logger(log_dir=args.log_dir)
     except Exception as e:
-        sys.stderr.write(f"Logger initialization failed: {str(e)}\n")
+        sys.stderr.write(f"Logger initialization failed: {e}\n")
         sys.exit(1)
 
-    logger.debug(f"Starting main function with arguments: {args}")
-    logger.debug(f"Context artifacts: {context_artifacts}")
+    logger.info("Starting Recipe Executor Tool")
+    logger.debug(f"Parsed arguments: {args}")
+    logger.debug(f"Initial context data: {context_data}")
 
-    # Create the execution context
-    context = Context(artifacts=context_artifacts)
-
-    # Initialize Executor
+    # Create Context and Executor instances
+    context = Context(artifacts=context_data)  
     executor = Executor()
 
+    start_time = time.time()
     try:
-        logger.info("Starting Recipe Executor Tool")
         logger.info(f"Executing recipe: {args.recipe_path}")
-
-        executor.execute(args.recipe_path, context, logger=logger)
-
-        elapsed_time = time.time() - start_time
-        logger.info(f"Recipe executed successfully in {elapsed_time:.2f} seconds")
-
+        # Await the execution of the recipe
+        await executor.execute(args.recipe_path, context, logger=logger)
+        elapsed = time.time() - start_time
+        logger.info(f"Recipe executed successfully in {elapsed:.2f} seconds")
     except Exception as e:
-        error_message = f"An error occurred during recipe execution: {str(e)}"
+        error_message = f"An error occurred during recipe execution: {e}"
         logger.error(error_message, exc_info=True)
-        sys.stderr.write(error_message + "\n")
-        sys.stderr.write(traceback.format_exc() + "\n")
+        sys.stderr.write(f"{error_message}\n{traceback.format_exc()}\n")
         sys.exit(1)
 
-    finally:
-        elapsed_time = time.time() - start_time
-        logger.info(f"Total execution time: {elapsed_time:.2f} seconds")
+
+def main() -> None:
+    try:
+        asyncio.run(main_async())
+    except KeyboardInterrupt:
+        sys.stderr.write("Execution interrupted by user.\n")
+        sys.exit(1)
 
 
 if __name__ == '__main__':

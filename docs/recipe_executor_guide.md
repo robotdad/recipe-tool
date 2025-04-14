@@ -23,7 +23,7 @@ Recipes are JSON files with a structured format that define a series of steps to
     {
       "type": "generate",
       "prompt": "Generate content based on: {{specs}}",
-      "model": "{{model|default:'openai:o3-mini'}}",
+      "model": "{{model|default:'openai/o3-mini'}}",
       "artifact": "generation_result"
     },
     {
@@ -54,6 +54,7 @@ recipe_executor/
 ├── logger.py          # Logging system
 ├── main.py            # CLI entry point
 ├── models.py          # Data models for steps and results
+├── protocols.py       # Protocols for interface definitions
 ├── steps/             # Step implementations
 │   ├── base.py        # Base class for all steps
 │   ├── execute_recipe.py  # Step for running sub-recipes
@@ -121,7 +122,7 @@ Example recipe (`hello_world.json`):
     {
       "type": "generate",
       "prompt": "Write a hello world program in Python",
-      "model": "openai:o3-mini",
+      "model": "openai/o3-mini",
       "artifact": "hello_world"
     },
     {
@@ -218,7 +219,7 @@ Configure the model in the `generate` step:
 {
   "type": "generate",
   "prompt": "Generate content about: {{topic}}",
-  "model": "{{provider|default:'openai'}}:{{model_name|default:'o3-mini'}}",
+  "model": "{{provider/default:'openai'}}:{{model_name|default:'o3-mini'}}",
   "artifact": "generated_content"
 }
 ```
@@ -238,7 +239,7 @@ Configure the model in the `generate` step:
     {
       "type": "generate",
       "prompt": "Transform this CSV data into JSON: {{raw_data}}",
-      "model": "openai:o3-mini",
+      "model": "openai/o3-mini",
       "artifact": "transformed_data"
     },
     {

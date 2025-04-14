@@ -1,22 +1,18 @@
 import logging
-from typing import Any, Dict
 
-from liquid import Template
+import liquid
 
-from recipe_executor.context import Context
-
-# Configure module-level logger
-logger = logging.getLogger(__name__)
+from recipe_executor.protocols import ContextProtocol
 
 
-def render_template(text: str, context: Context) -> str:
+def render_template(text: str, context: ContextProtocol) -> str:
     """
     Render the given text as a Liquid template using the provided context.
     All values in the context are converted to strings before rendering.
 
     Args:
         text (str): The template text to render.
-        context (Context): The context for rendering the template.
+        context (ContextProtocol): The context providing values for rendering the template.
 
     Returns:
         str: The rendered text.
@@ -24,23 +20,28 @@ def render_template(text: str, context: Context) -> str:
     Raises:
         ValueError: If there is an error during template rendering.
     """
-    logger.debug(f"Rendering template: {text}")
-    
+    logger = logging.getLogger(__name__)
+
+    # Convert all context values to strings to prevent type errors
     try:
-        # Retrieve context artifacts and log the keys for debugging
-        context_dict: Dict[str, Any] = context.as_dict()
-        debug_context_keys = list(context_dict.keys())
-        logger.debug(f"Context keys: {debug_context_keys}")
+        context_dict = context.as_dict()
+    except Exception as conv_error:
+        error_message = f"Failed to extract context data: {conv_error}"
+        logger.error(error_message)
+        raise ValueError(error_message) from conv_error
 
-        # Convert all context values to strings to avoid type errors
-        safe_context = {key: str(value) for key, value in context_dict.items()}
+    template_context = {key: str(value) for key, value in context_dict.items()}
 
-        # Create the Liquid template and render it using the safe context
-        template_obj = Template(text)
-        result = template_obj.render(safe_context)
+    # Log the template text and the context keys being used
+    logger.debug("Rendering template: %s", text)
+    logger.debug("Context keys: %s", list(template_context.keys()))
 
-        return result
+    try:
+        # Create a Liquid template, then render with the provided context
+        tpl = liquid.Template(text)
+        rendered_text = tpl.render(**template_context)
+        return rendered_text
     except Exception as e:
-        error_message = f"Error rendering template: {e}"
+        error_message = f"Error rendering template. Template: {text}. Error: {str(e)}"
         logger.error(error_message)
         raise ValueError(error_message) from e

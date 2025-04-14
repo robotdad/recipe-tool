@@ -17,7 +17,7 @@ class GenerateLLMConfig(StepConfig):
 
     Fields:
         prompt: The prompt to send to the LLM (templated beforehand).
-        model: The model identifier to use (provider:model_name format).
+        model: The model identifier to use (provider/model_name format).
         artifact: The name under which to store the LLM response in context.
     """
 
@@ -47,7 +47,7 @@ The GenerateWithLLMStep can be used in recipes like this:
     {
       "type": "generate",
       "prompt": "Generate Python code for a utility that: {{requirements}}",
-      "model": "{{model|default:'openai:o3-mini'}}",
+      "model": "{{model|default:'openai/o3-mini'}}",
       "artifact": "generation_result"
     }
   ]
@@ -69,7 +69,7 @@ The prompt can include template variables from the context:
     {
       "type": "generate",
       "prompt": "You are an expert Python developer. Based on the following specification, generate code for a component:\n\n{{spec}}",
-      "model": "{{model|default:'openai:o3-mini'}}",
+      "model": "{{model|default:'openai/o3-mini'}}",
       "artifact": "codegen_result"
     }
   ]
@@ -86,7 +86,7 @@ The model identifier can also use template variables:
     {
       "type": "generate",
       "prompt": "Generate code based on: {{spec}}",
-      "model": "{{model_provider|default:'openai'}}:{{model_name|default:'o3-mini'}}",
+      "model": "{{model_provider/default:'openai'}}:{{model_name|default:'o3-mini'}}",
       "artifact": "codegen_result"
     }
   ]
@@ -103,7 +103,7 @@ The artifact key can be templated to create dynamic storage locations:
     {
       "type": "generate",
       "prompt": "Generate code for: {{component_name}}",
-      "model": "{{model|default:'openai:o3-mini'}}",
+      "model": "{{model|default:'openai/o3-mini'}}",
       "artifact": "{{component_name}}_result"
     }
   ]
@@ -112,7 +112,7 @@ The artifact key can be templated to create dynamic storage locations:
 
 ## LLM Response Format
 
-The response from call_llm is a FileGenerationResult object:
+The response from `call_llm` is a FileGenerationResult object structure. For example:
 
 ```python
 # FileGenerationResult structure
@@ -125,45 +125,12 @@ result = FileGenerationResult(
 )
 ```
 
-## Common Use Cases
-
-**Code Generation**:
-
-```json
-{
-  "type": "generate",
-  "prompt": "Generate Python code for: {{specification}}",
-  "model": "{{model|default:'openai:o3-mini'}}",
-  "artifact": "code_result"
-}
-```
-
-**Content Creation**:
-
-```json
-{
-  "type": "generate",
-  "prompt": "Write a blog post about: {{topic}}",
-  "model": "anthropic:claude-3-haiku",
-  "artifact": "blog_post"
-}
-```
-
-**Analysis and Transformation**:
-
-```json
-{
-  "type": "generate",
-  "prompt": "Analyze this code and suggest improvements:\n\n{{code}}",
-  "model": "{{model|default:'openai:o3-mini'}}",
-  "artifact": "code_analysis"
-}
-```
+This result contains a list of generated files (each as a FileSpec with a path and content) and an overall commentary.
 
 ## Important Notes
 
 - The artifact key can be dynamic using template variables
-- The prompt is rendered using the current context before sending to the LLM
-- The model identifier follows the format "provider:model_name"
-- The LLM response is a FileGenerationResult object with files and commentary
+- The prompt is rendered using the current context (ContextProtocol) before sending to the LLM
+- The model identifier follows the format `"provider/model_name"`
+- The LLM response is returned as a FileGenerationResult object (with `files` and `commentary` fields)
 - LLM calls may incur costs with the respective provider

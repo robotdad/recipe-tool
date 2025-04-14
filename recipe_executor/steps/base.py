@@ -3,44 +3,46 @@ from abc import ABC, abstractmethod
 from typing import Generic, Optional, TypeVar
 
 from pydantic import BaseModel
-from recipe_executor.context import Context  # Assumed to exist in the project
+
+# Import the ContextProtocol from the protocols component
+from recipe_executor.protocols import ContextProtocol
 
 
 class StepConfig(BaseModel):
-    """Base class for all step configurations. Extend this class in each step's configuration."""
+    """
+    Base configuration model for step implementations.
+
+    This class is intentionally left minimal and should be extended by concrete step configurations.
+    """
     pass
 
 
-# Type variable for configuration types bound to StepConfig
+# Create a type variable that must be a subclass of StepConfig
 ConfigType = TypeVar('ConfigType', bound=StepConfig)
 
 
 class BaseStep(ABC, Generic[ConfigType]):
     """
-    Base class for all step implementations in the Recipe Executor system.
-    Subclasses must implement the `execute` method.
+    Abstract base class for all steps in the Recipe Executor system.
 
-    Each step is initialized with a configuration object and an optional logger.
-
-    Args:
-        config (ConfigType): Configuration for the step, validated using Pydantic.
-        logger (Optional[logging.Logger]): Logger instance; defaults to the 'RecipeExecutor' logger.
+    Attributes:
+        config (ConfigType): The configuration instance for the step.
+        logger (logging.Logger): Logger to record operations, defaults to a module logger named 'RecipeExecutor'.
     """
-
     def __init__(self, config: ConfigType, logger: Optional[logging.Logger] = None) -> None:
         self.config: ConfigType = config
-        self.logger = logger or logging.getLogger("RecipeExecutor")
-        self.logger.debug(f"Initialized {self.__class__.__name__} with config: {self.config}")
+        self.logger: logging.Logger = logger or logging.getLogger("RecipeExecutor")
+        self.logger.debug(f"{self.__class__.__name__} initialized with config: {self.config}")
 
     @abstractmethod
-    def execute(self, context: Context) -> None:
+    async def execute(self, context: ContextProtocol) -> None:
         """
-        Execute the step using the provided context.
+        Execute the step with the provided context.
 
         Args:
-            context (Context): Shared context for data exchange between steps.
+            context (ContextProtocol): Execution context conforming to the ContextProtocol interface.
 
         Raises:
-            NotImplementedError: Must be implemented in subclasses.
+            NotImplementedError: If a subclass does not implement the execute method.
         """
-        raise NotImplementedError("Each step must implement the `execute()` method.")
+        raise NotImplementedError("Subclasses must implement the execute method.")
