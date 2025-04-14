@@ -6,18 +6,18 @@ import traceback
 
 from dotenv import load_dotenv
 
-from recipe_executor.logger import init_logger
 from recipe_executor.context import Context
 from recipe_executor.executor import Executor
+from recipe_executor.logger import init_logger
 
 
 def parse_context(context_args: list[str]) -> dict[str, str]:
     """Parse a list of context key=value strings into a dictionary."""
     context_data: dict[str, str] = {}
     for item in context_args:
-        if '=' not in item:
+        if "=" not in item:
             raise ValueError(f"Invalid context format: '{item}'. Expected format is key=value.")
-        key, value = item.split('=', 1)
+        key, value = item.split("=", 1)
         context_data[key] = value
     return context_data
 
@@ -53,7 +53,7 @@ async def main_async() -> None:
     logger.debug(f"Initial context data: {context_data}")
 
     # Create Context and Executor instances
-    context = Context(artifacts=context_data)  
+    context = Context(artifacts=context_data)
     executor = Executor()
 
     start_time = time.time()
@@ -78,5 +78,5 @@ def main() -> None:
         sys.exit(1)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

@@ -1,7 +1,6 @@
 import logging
 import os
 import sys
-from typing import Optional
 
 
 def init_logger(log_dir: str = "logs") -> logging.Logger:
@@ -40,7 +39,7 @@ def init_logger(log_dir: str = "logs") -> logging.Logger:
 
     # File handler for DEBUG level (all messages)
     try:
-        debug_handler = logging.FileHandler(os.path.join(log_dir, "debug.log"), mode='w')
+        debug_handler = logging.FileHandler(os.path.join(log_dir, "debug.log"), mode="w")
         debug_handler.setLevel(logging.DEBUG)
         debug_handler.setFormatter(log_format)
         logger.addHandler(debug_handler)
@@ -51,7 +50,7 @@ def init_logger(log_dir: str = "logs") -> logging.Logger:
 
     # File handler for INFO level and above
     try:
-        info_handler = logging.FileHandler(os.path.join(log_dir, "info.log"), mode='w')
+        info_handler = logging.FileHandler(os.path.join(log_dir, "info.log"), mode="w")
         info_handler.setLevel(logging.INFO)
         info_handler.setFormatter(log_format)
         logger.addHandler(info_handler)
@@ -62,7 +61,7 @@ def init_logger(log_dir: str = "logs") -> logging.Logger:
 
     # File handler for ERROR level and above
     try:
-        error_handler = logging.FileHandler(os.path.join(log_dir, "error.log"), mode='w')
+        error_handler = logging.FileHandler(os.path.join(log_dir, "error.log"), mode="w")
         error_handler.setLevel(logging.ERROR)
         error_handler.setFormatter(log_format)
         logger.addHandler(error_handler)

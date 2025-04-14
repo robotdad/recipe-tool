@@ -14,11 +14,12 @@ class StepConfig(BaseModel):
 
     This class is intentionally left minimal and should be extended by concrete step configurations.
     """
+
     pass
 
 
 # Create a type variable that must be a subclass of StepConfig
-ConfigType = TypeVar('ConfigType', bound=StepConfig)
+ConfigType = TypeVar("ConfigType", bound=StepConfig)
 
 
 class BaseStep(ABC, Generic[ConfigType]):
@@ -29,6 +30,7 @@ class BaseStep(ABC, Generic[ConfigType]):
         config (ConfigType): The configuration instance for the step.
         logger (logging.Logger): Logger to record operations, defaults to a module logger named 'RecipeExecutor'.
     """
+
     def __init__(self, config: ConfigType, logger: Optional[logging.Logger] = None) -> None:
         self.config: ConfigType = config
         self.logger: logging.Logger = logger or logging.getLogger("RecipeExecutor")

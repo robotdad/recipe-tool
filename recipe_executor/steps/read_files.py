@@ -1,6 +1,6 @@
-import os
 import logging
-from typing import Any, List, Union, Optional
+import os
+from typing import Any, List, Optional, Union
 
 from recipe_executor.protocols import ContextProtocol
 from recipe_executor.steps.base import BaseStep, StepConfig
@@ -32,13 +32,13 @@ class ReadFilesStep(BaseStep[ReadFilesConfig]):
     in the execution context under the specified artifact key. It supports single or multiple file reads and
     flexible content merging options.
     """
-    
+
     def __init__(self, config: Any, logger: Optional[logging.Logger] = None) -> None:
         # Ensure config is a ReadFilesConfig object, not a raw dict
         if not isinstance(config, ReadFilesConfig):
             config = ReadFilesConfig(**config)
         super().__init__(config, logger)
-    
+
     async def execute(self, context: ContextProtocol) -> None:
         # Resolve the raw paths from configuration
         raw_paths: Union[str, List[str]] = self.config.path

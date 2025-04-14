@@ -1,9 +1,9 @@
 import os
-from typing import List, Union
+from typing import List
 
-from recipe_executor.models import FileGenerationResult, FileSpec
-from recipe_executor.steps.base import BaseStep, StepConfig
+from recipe_executor.models import FileSpec
 from recipe_executor.protocols import ContextProtocol
+from recipe_executor.steps.base import BaseStep, StepConfig
 from recipe_executor.utils import render_template
 
 
@@ -15,6 +15,7 @@ class WriteFilesConfig(StepConfig):
         artifact: Name of the context key holding a FileGenerationResult or List[FileSpec].
         root: Optional base path to prepend to all output file paths.
     """
+
     artifact: str
     root: str = "."
 
@@ -34,7 +35,7 @@ class WriteFilesStep(BaseStep[WriteFilesConfig]):
         files_list: List[FileSpec] = []
 
         # Determine if artifact_value is FileGenerationResult or a list of FileSpec
-        if hasattr(artifact_value, 'files'):
+        if hasattr(artifact_value, "files"):
             # Assume artifact_value is FileGenerationResult
             files_list = artifact_value.files
         elif isinstance(artifact_value, list):
@@ -54,7 +55,7 @@ class WriteFilesStep(BaseStep[WriteFilesConfig]):
             rendered_file_path = render_template(file_spec.path, context)
             # Combine the rendered root and file path
             full_path = os.path.join(rendered_root, rendered_file_path)
-            
+
             # Ensure the parent directories exist
             directory = os.path.dirname(full_path)
             try:
@@ -65,9 +66,9 @@ class WriteFilesStep(BaseStep[WriteFilesConfig]):
 
             # Log debug information with file path and content length
             self.logger.debug(f"Preparing to write file: {full_path}\nContent:\n{file_spec.content}")
-            
+
             try:
-                with open(full_path, 'w', encoding='utf-8') as file_handle:
+                with open(full_path, "w", encoding="utf-8") as file_handle:
                     file_handle.write(file_spec.content)
                 self.logger.info(f"Successfully wrote file: {full_path} (size: {len(file_spec.content)} bytes)")
             except Exception as e:

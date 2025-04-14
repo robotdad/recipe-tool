@@ -90,7 +90,7 @@ class ParallelStep(BaseStep[ParallelConfig]):
         # Wait for all substeps to complete with fail-fast behavior
         try:
             # Wait until all tasks complete or one fails
-            results = await asyncio.gather(*tasks)
+            await asyncio.gather(*tasks)
             self.logger.info(f"ParallelStep completed all {len(tasks)} substeps successfully")
         except Exception as e:
             self.logger.error("ParallelStep encountered an error; cancelling remaining substeps")
