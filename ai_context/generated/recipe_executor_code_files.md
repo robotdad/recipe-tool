@@ -115,11 +115,11 @@ Windows:
 4. Activate the virtual environment:
    - **Linux/macOS**:
      ```bash
-     source venv/bin/activate
+     source .venv/bin/activate
      ```
    - **Windows**:
      ```bash
-     .\venv\Scripts\activate
+     .\.venv\Scripts\activate
      ```
 5. Test the installation by running the example recipe:
    ```bash
@@ -152,7 +152,7 @@ recipe-tool --execute path/to/your/recipe.json context_key=value context_key2=va
 Example:
 
 ```bash
-recipe-executor recipes/example_simple/test_recipe.json model=azure/o3-mini
+recipe-tool --execute recipes/example_simple/test_recipe.json model=azure/o3-mini
 ```
 
 ## Creating New Recipes from a Recipe Idea
@@ -168,6 +168,15 @@ You can also pass additional files for context:
 
 ```bash
 recipe-tool --create path/to/your/recipe_idea.txt files=path/to/other_file.txt,path/to/another_file.txt
+```
+
+Example:
+
+```bash
+recipe-tool --create recipes/recipe_creator/prompts/sample_recipe_idea.md
+
+# Test it out
+recipe-tool --execute output/analyze_codebase.json input=ai_context/generated/recipe_executor_code_files.md,ai_context/generated/recipe_executor_recipe_files.md
 ```
 
 ## Project Structure
