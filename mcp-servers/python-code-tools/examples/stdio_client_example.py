@@ -26,7 +26,7 @@ async def main():
     server = MCPServerStdio("python", args=["-m", "python_code_tools", "stdio"])
 
     # Create an agent with the MCP server
-    agent = Agent("claude-3-5-sonnet-latest", mcp_servers=[server])
+    agent = Agent("claude-3-7-sonnet-latest", mcp_servers=[server])
 
     # Use the MCP server in a conversation
     async with agent.run_mcp_servers():
