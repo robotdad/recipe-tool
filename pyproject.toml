@@ -30,7 +30,7 @@ dev = [
 package = true
 
 [tool.uv.sources]
-python-code-tools = { path = "../mcp-servers/python-code-tools", editable = true }
+python-code-tools = { path = "mcp-servers/python-code-tools", editable = true }
 
 [project.scripts]
 recipe-executor = "recipe_executor.main:main"

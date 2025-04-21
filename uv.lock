@@ -906,6 +906,28 @@ wheels = [
 ]
 
 [[package]]
+name = "python-code-tools"
+version = "0.1.0"
+source = { editable = "mcp-servers/python-code-tools" }
+dependencies = [
+    { name = "mcp" },
+    { name = "pydantic" },
+    { name = "ruff" },
+    { name = "tomli" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "black", marker = "extra == 'dev'", specifier = ">=23.0.0" },
+    { name = "mcp", specifier = ">=1.6.0" },
+    { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.0.0" },
+    { name = "pydantic", specifier = ">=2.7.2,<3.0.0" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0.0" },
+    { name = "ruff", specifier = ">=0.1.0" },
+    { name = "tomli", specifier = ">=2.2.1" },
+]
+
+[[package]]
 name = "python-dateutil"
 version = "2.9.0.post0"
 source = { registry = "https://pypi.org/simple" }
@@ -971,6 +993,7 @@ dev = [
     { name = "pytest" },
     { name = "pytest-cov" },
     { name = "pytest-mock" },
+    { name = "python-code-tools" },
     { name = "ruff" },
 ]
 
@@ -992,6 +1015,7 @@ dev = [
     { name = "pytest", specifier = ">=8.3.5" },
     { name = "pytest-cov", specifier = ">=6.1.1" },
     { name = "pytest-mock", specifier = ">=3.14.0" },
+    { name = "python-code-tools", editable = "mcp-servers/python-code-tools" },
     { name = "ruff", specifier = ">=0.11.2" },
 ]
 
