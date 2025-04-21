@@ -1,12 +1,22 @@
 {
   "steps": [
     {
+      "type": "read_files",
+      "config": {
+        "path": "{{recipe_root|default:'recipes/recipe_executor'}}/components/models/models_docs.md",
+        "contents_key": "models_docs"
+      }
+    },
+    {
       "type": "execute_recipe",
-      "recipe_path": "{{recipe_root|default:'recipes/recipe_executor'}}/utils/build_component.json",
-      "context_overrides": {
-        "component_id": "protocols",
-        "component_path": "/",
-        "existing_code": "{{existing_code}}"
+      "config": {
+        "recipe_path": "{{recipe_root|default:'recipes/recipe_executor'}}/utils/build_component.json",
+        "context_overrides": {
+          "component_id": "protocols",
+          "component_path": "/",
+          "existing_code": "{{existing_code}}",
+          "additional_content": "<MODELS_DOCS>\n{{models_docs}}\n</MODELS_DOCS>"
+        }
       }
     }
   ]

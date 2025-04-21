@@ -18,7 +18,9 @@ from recipe_executor.steps.base import BaseStep
 # Structure of STEP_REGISTRY
 STEP_REGISTRY: Dict[str, Type[BaseStep]] = {
     "execute_recipe": ExecuteRecipeStep,
-    "generate": GenerateWithLLMStep,
+    "llm_generate": LLMGenerateStep,
+    "loop": LoopStep,
+    "mcp": MCPStep,
     "parallel": ParallelStep,
     "read_files": ReadFilesStep,
     "write_files": WriteFilesStep,
@@ -42,18 +44,16 @@ The executor uses the registry to look up step classes by type:
 
 ```python
 # Example of registry usage in executor
-from typing import Dict, Any
-import logging
-from recipe_executor.context import Context
 from recipe_executor.steps.registry import STEP_REGISTRY
 
-async def execute_step(step: Dict[str, Any], context: Context, logger: logging.Logger) -> None:
+... code ...
     step_type = step["type"]
     if step_type not in STEP_REGISTRY:
         raise ValueError(f"Unknown step type '{step_type}'")
 
     step_class = STEP_REGISTRY[step_type]
-    step_instance = step_class(step, logger)
+    step_config = step.get("config", {})
+    step_instance = step_class(logger, step_config)
     await step_instance.execute(context)
 ```
 

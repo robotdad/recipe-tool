@@ -13,6 +13,9 @@ python -m recipe_executor.main recipes/my_recipe.json --log-dir custom_logs
 
 # With context values:
 python -m recipe_executor.main recipes/my_recipe.json --context key1=value1 --context key2=value2
+
+# With static configuration:
+python -m recipe_executor.main recipes/my_recipe.json --config api_key=XYZ --config timeout=30
 ```
 
 ## Command-Line Arguments
@@ -21,7 +24,8 @@ The Main component supports these command-line arguments:
 
 1. **`recipe_path`** (positional, required): Path to the recipe file to execute.
 2. **`--log-dir`** (optional): Directory for log files (default: `"logs"`). If the directory does not exist, it will be created.
-3. **`--context`** (optional, repeatable): Context values as `key=value` pairs. You can specify this option multiple times to provide multiple context entries.
+3. **`--context`** (optional, repeatable): Context artifact values as `key=value` pairs. You can specify this option multiple times.
+4. **`--config`** (optional, repeatable): Static configuration values as `key=value` pairs, populated into context config. Useful for settings like MCP servers or API credentials.
 
 ## Context Parsing
 
@@ -66,8 +70,8 @@ The stack trace for exceptions is output to stderr (via `traceback.format_exc()`
 
 ## Important Notes
 
-1. The main entry point is designed to be simple and minimal. It delegates the heavy lifting to the `Context` and `Executor` components.
-2. All steps in the executed recipe share the same context instance, which is created by Main from the provided context arguments. This context implements the `ContextProtocol` interface (see Protocols documentation), though in usage you typically interact with it via the `Context` class.
-3. The Main component itself doesn't enforce any type of step ordering beyond what the recipe dictates; it simply invokes the Executor and waits for it to process the steps sequentially.
-4. Environment variables (for example, API keys for LLM steps) can be set in a `.env` file. Main will load this file at startup via `load_dotenv()`, making those values available to components that need them.
-5. Logging is configured at runtime when Main calls `init_logger`. The logs (including debug information and errors) are saved in the directory specified by `--log-dir`. Each run may append to these logs, so it's advisable to monitor or clean the log directory if running many recipes.
+- The main entry point is designed to be simple and minimal. It delegates the heavy lifting to the `Context` and `Executor` components.
+- All steps in the executed recipe share the same context instance, which is created by Main from the provided context arguments.
+- The Main component itself doesn't enforce any type of step ordering beyond what the recipe dictates; it simply invokes the Executor and waits for it to process the steps sequentially.
+- Environment variables (for example, API keys for LLM steps) can be set in a `.env` file. Main will load this file at startup via `load_dotenv()`, making those values available to components that need them.
+- Logging is configured at runtime when Main calls `init_logger`. The logs (including debug information and errors) are saved in the directory specified by `--log-dir`. Each run may append to these logs, so it's advisable to monitor or clean the log directory if running many recipes.

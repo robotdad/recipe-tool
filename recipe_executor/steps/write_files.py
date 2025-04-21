@@ -1,5 +1,6 @@
+import logging
 import os
-from typing import List
+from typing import Any, Dict, List
 
 from recipe_executor.models import FileSpec
 from recipe_executor.protocols import ContextProtocol
@@ -12,65 +13,82 @@ class WriteFilesConfig(StepConfig):
     Config for WriteFilesStep.
 
     Fields:
-        artifact: Name of the context key holding a FileGenerationResult or List[FileSpec].
+        files_key: Name of the context key holding a List[FileSpec] or FileSpec.
         root: Optional base path to prepend to all output file paths.
     """
 
-    artifact: str
+    files_key: str
     root: str = "."
 
 
 class WriteFilesStep(BaseStep[WriteFilesConfig]):
-    def __init__(self, config: dict, logger=None) -> None:
-        super().__init__(WriteFilesConfig(**config), logger)
+    def __init__(self, logger: logging.Logger, config: Dict[str, Any]) -> None:
+        super().__init__(logger, WriteFilesConfig(**config))
 
     async def execute(self, context: ContextProtocol) -> None:
-        # Retrieve the artifact from the context
-        artifact_key = self.config.artifact
-        artifact_value = context.get(artifact_key)
-        if artifact_value is None:
-            self.logger.error(f"Artifact '{artifact_key}' not found in context")
-            raise KeyError(f"Artifact '{artifact_key}' not found in context")
+        files_key: str = self.config.files_key
+        root_template: str = self.config.root
 
-        files_list: List[FileSpec] = []
+        # Ensure the artifact exists in context
+        if files_key not in context:
+            error_message = f"WriteFilesStep: Context missing required artifact '{files_key}'"
+            self.logger.error(error_message)
+            raise KeyError(error_message)
 
-        # Determine if artifact_value is FileGenerationResult or a list of FileSpec
-        if hasattr(artifact_value, "files"):
-            # Assume artifact_value is FileGenerationResult
-            files_list = artifact_value.files
-        elif isinstance(artifact_value, list):
-            # Validate each element in the list is a FileSpec
-            files_list = artifact_value
+        artifact: Any = context[files_key]
+
+        # Handle FileSpec or List[FileSpec]
+        file_specs: List[FileSpec] = []
+        if isinstance(artifact, FileSpec):
+            file_specs = [artifact]
+        elif isinstance(artifact, list):
+            for item in artifact:
+                if not isinstance(item, FileSpec):
+                    error_message = (
+                        f"WriteFilesStep: Expected FileSpec or list of FileSpec for '{files_key}', "
+                        f"but found list item of type {type(item)}"
+                    )
+                    self.logger.error(error_message)
+                    raise TypeError(error_message)
+            file_specs = artifact
         else:
-            message = "Artifact does not hold a valid FileGenerationResult or list of FileSpec objects."
-            self.logger.error(message)
-            raise ValueError(message)
+            error_message = (
+                f"WriteFilesStep: Context value for '{files_key}' must be FileSpec or list of FileSpec, "
+                f"not {type(artifact)}"
+            )
+            self.logger.error(error_message)
+            raise TypeError(error_message)
 
-        # Render the root path using the context, supports template variables
-        rendered_root = render_template(self.config.root, context)
+        rendered_root: str = render_template(root_template, context)
 
-        # Write each file
-        for file_spec in files_list:
-            # Render the dynamic file path
-            rendered_file_path = render_template(file_spec.path, context)
-            # Combine the rendered root and file path
-            full_path = os.path.join(rendered_root, rendered_file_path)
+        for file_spec in file_specs:
+            # Template render the file path (may use template variables)
+            rendered_path: str = render_template(file_spec.path, context)
+            full_path: str = os.path.normpath(os.path.join(rendered_root, rendered_path))
 
-            # Ensure the parent directories exist
-            directory = os.path.dirname(full_path)
+            # Prepare directory
+            parent_dir: str = os.path.dirname(full_path)
+            if parent_dir and not os.path.exists(parent_dir):
+                try:
+                    os.makedirs(parent_dir, exist_ok=True)
+                    self.logger.debug(f"Created directories for '{parent_dir}'")
+                except Exception as exc:
+                    error_message = f"WriteFilesStep: Failed to create directories for '{parent_dir}': {exc}"
+                    self.logger.error(error_message)
+                    raise
+
+            # Debug log path and content
+            self.logger.debug(
+                f"WriteFilesStep: Preparing to write file: {full_path}\nContent (first 500 chars):\n{file_spec.content[:500]}"
+            )
+
+            # Write file
             try:
-                os.makedirs(directory, exist_ok=True)
-            except Exception as e:
-                self.logger.error(f"Failed to create directories for path {directory}: {str(e)}")
-                raise
-
-            # Log debug information with file path and content length
-            self.logger.debug(f"Preparing to write file: {full_path}\nContent:\n{file_spec.content}")
-
-            try:
-                with open(full_path, "w", encoding="utf-8") as file_handle:
-                    file_handle.write(file_spec.content)
-                self.logger.info(f"Successfully wrote file: {full_path} (size: {len(file_spec.content)} bytes)")
-            except Exception as e:
-                self.logger.error(f"Failed writing file {full_path}: {str(e)}")
+                with open(full_path, "w", encoding="utf-8") as file_obj:
+                    file_obj.write(file_spec.content)
+                file_size: int = len(file_spec.content.encode("utf-8"))
+                self.logger.info(f"WriteFilesStep: Wrote '{full_path}' [{file_size} bytes]")
+            except Exception as exc:
+                error_message = f"WriteFilesStep: Failed to write file '{full_path}': {exc}"
+                self.logger.error(error_message)
                 raise

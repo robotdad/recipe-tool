@@ -16,10 +16,10 @@ class WriteFilesConfig(StepConfig):
     Config for WriteFilesStep.
 
     Fields:
-        artifact: Name of the context key holding a FileGenerationResult or List[FileSpec].
+        files_key: Name of the context key holding a List[FileSpec].
         root: Optional base path to prepend to all output file paths.
     """
-    artifact: str
+    files_key: str
     root: str = "."
 ```
 
@@ -43,8 +43,10 @@ The WriteFilesStep can be used in recipes like this:
   "steps": [
     {
       "type": "write_files",
-      "artifact": "generated_files",
-      "root": "output/project"
+      "config": {
+        "root": "output/project",
+        "files_key": "generated_files"
+      }
     }
   ]
 }
@@ -54,22 +56,14 @@ The WriteFilesStep can be used in recipes like this:
 
 The WriteFilesStep can work with two types of artifacts in the context:
 
-### FileGenerationResult
+### Single FileSpec object
 
 ```python
-from recipe_executor.models import FileGenerationResult, FileSpec
-
-# Example of generating a FileGenerationResult
-result = FileGenerationResult(
-    files=[
-        FileSpec(path="src/main.py", content="print('Hello, world!')"),
-        FileSpec(path="src/utils.py", content="def add(a, b):\n    return a + b")
-    ],
-    commentary="Generated a simple Python project"
-)
-
+from recipe_executor.models import FileSpec
+# Example of generating a FileSpec object
+file = FileSpec(path="src/main.py", content="print('Hello, world!')")
 # Store in context
-context["generated_files"] = result
+context["generated_file"] = file
 ```
 
 ### List of FileSpec objects
@@ -96,8 +90,10 @@ The root path and individual file paths can include template variables:
   "steps": [
     {
       "type": "write_files",
-      "artifact": "generated_files",
-      "root": "output/{{project_name}}"
+      "config": {
+        "files_key": "generated_files",
+        "root": "output/{{project_name}}"
+      }
     }
   ]
 }
@@ -119,8 +115,10 @@ FileSpec(
 ```json
 {
   "type": "write_files",
-  "artifact": "generated_files",
-  "root": "output/src"
+  "config": {
+    "root": "output/src",
+    "files_key": "generated_files"
+  }
 }
 ```
 
@@ -129,8 +127,10 @@ FileSpec(
 ```json
 {
   "type": "write_files",
-  "artifact": "project_files",
-  "root": "output/{{project_name}}"
+  "config": {
+    "root": "output/{{project_name}}",
+    "files_key": "project_files"
+  }
 }
 ```
 
@@ -139,8 +139,10 @@ FileSpec(
 ```json
 {
   "type": "write_files",
-  "artifact": "component_result",
-  "root": "output/components"
+  "config": {
+    "root": "output/components",
+    "files_key": "component_result"
+  }
 }
 ```
 
@@ -150,4 +152,4 @@ FileSpec(
 - Files are overwritten without confirmation if they already exist
 - All paths are rendered using template variables from the context (ContextProtocol)
 - File content is written using UTF-8 encoding
-- Both FileGenerationResult and List[FileSpec] input formats are supported
+- Both FileSpec and List[FileSpec] input formats are supported

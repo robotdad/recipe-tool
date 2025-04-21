@@ -21,20 +21,17 @@ The Utils component provides general utility functions for recipes, primarily fo
 
 ## Logging
 
-- Debug: Log the template text being rendered and the context keys used
-- Info: None
+- None
 
 ## Component Dependencies
 
 ### Internal Components
 
-- **Protocols** – (Required) Uses ContextProtocol definition for context data access
-- **Context** – (Required) Uses a context implementing ContextProtocol for accessing artifacts during template rendering
+- **Protocols**: Uses ContextProtocol definition for context data access
 
 ### External Libraries
 
-- **Liquid** – (Required) Uses the Liquid templating engine for rendering (`python-liquid`)
-- **json** – (Required) Uses the built-in json module for handling dictionary-to-string conversions (when needed)
+- **python-liquid**: Uses the Liquid templating engine for rendering
 
 ### Configuration Dependencies
 
@@ -43,15 +40,10 @@ None
 ## Error Handling
 
 - Wrap template rendering in try/except blocks
-- Provide specific error messages indicating the source of template failures
-- Propagate rendering errors with useful context information
+- Raise ValueError with a clear message if rendering fails
+- Use `liquid.exceptions.LiquidError` for Liquid-specific errors, otherwise just raise a generic ValueError
+- Ensure that the error message includes the template and context for easier debugging
 
 ## Output Files
 
 - `utils.py`
-
-## Future Considerations
-
-- Support custom template filters or tags
-- Support template partials or includes
-- Template validation or linting before rendering

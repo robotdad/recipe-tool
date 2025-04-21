@@ -1,6 +1,7 @@
-import logging
+from typing import Any
 
-import liquid
+from liquid import Template
+from liquid.exceptions import LiquidError
 
 from recipe_executor.protocols import ContextProtocol
 
@@ -20,28 +21,14 @@ def render_template(text: str, context: ContextProtocol) -> str:
     Raises:
         ValueError: If there is an error during template rendering.
     """
-    logger = logging.getLogger(__name__)
-
-    # Convert all context values to strings to prevent type errors
+    data: dict[str, Any] = context.dict()
+    string_context: dict[str, str] = {k: str(v) if v is not None else "" for k, v in data.items()}
     try:
-        context_dict = context.as_dict()
-    except Exception as conv_error:
-        error_message = f"Failed to extract context data: {conv_error}"
-        logger.error(error_message)
-        raise ValueError(error_message) from conv_error
-
-    template_context = {key: str(value) for key, value in context_dict.items()}
-
-    # Log the template text and the context keys being used
-    logger.debug("Rendering template: %s", text)
-    logger.debug("Context keys: %s", list(template_context.keys()))
-
-    try:
-        # Create a Liquid template, then render with the provided context
-        tpl = liquid.Template(text)
-        rendered_text = tpl.render(**template_context)
-        return rendered_text
-    except Exception as e:
-        error_message = f"Error rendering template. Template: {text}. Error: {str(e)}"
-        logger.error(error_message)
-        raise ValueError(error_message) from e
+        template = Template(text)
+        return template.render(**string_context)
+    except LiquidError as exc:
+        raise ValueError(
+            f"Liquid template rendering error: {exc}\nTemplate: {text}\nContext: {string_context}"
+        ) from exc
+    except Exception as exc:
+        raise ValueError(f"Template rendering error: {exc}\nTemplate: {text}\nContext: {string_context}") from exc

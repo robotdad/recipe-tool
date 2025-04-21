@@ -1,16 +1,36 @@
+"""
+Protocols Component
+-------------------
+
+Defines protocols (interface contracts) for core components of the Recipe Executor system. These
+enable loose coupling and prevent circular import dependencies. For usage and rationale, see
+`protocols_docs.md`.
+"""
+
 import logging
-from typing import Any, Dict, Iterator, Optional, Protocol, Union, runtime_checkable
+from pathlib import Path
+from typing import (
+    Any,
+    Dict,
+    Iterator,
+    Protocol,
+    Union,
+    runtime_checkable,
+)
+
+# Import only for type hints; concrete import in function signatures avoids cyclical dependencies.
+from recipe_executor.models import Recipe
 
 
 @runtime_checkable
 class ContextProtocol(Protocol):
-    """Interface for context objects holding shared state with dictionary-like access."""
-
     def __getitem__(self, key: str) -> Any: ...
 
     def __setitem__(self, key: str, value: Any) -> None: ...
 
     def __delitem__(self, key: str) -> None: ...
+
+    def __contains__(self, key: str) -> bool: ...
 
     def __iter__(self) -> Iterator[str]: ...
 
@@ -18,34 +38,32 @@ class ContextProtocol(Protocol):
 
     def get(self, key: str, default: Any = None) -> Any: ...
 
-    def as_dict(self) -> Dict[str, Any]:
-        """Return a copy of the internal state as a dictionary."""
-        ...
+    def clone(self) -> "ContextProtocol": ...
 
-    def clone(self) -> "ContextProtocol":
-        """Return a deep copy of the context."""
-        ...
+    def dict(self) -> Dict[str, Any]: ...
+
+    def json(self) -> str: ...
+
+    def keys(self) -> Iterator[str]: ...
+
+    def get_config(self) -> Dict[str, Any]: ...
+
+    def set_config(self, config: Dict[str, Any]) -> None: ...
 
 
 @runtime_checkable
 class StepProtocol(Protocol):
-    """Interface for executable steps in the recipe."""
+    def __init__(self, logger: logging.Logger, config: Dict[str, Any]) -> None: ...
 
-    async def execute(self, context: ContextProtocol) -> None:
-        """Execute the step using the provided context."""
-        ...
+    async def execute(self, context: ContextProtocol) -> None: ...
 
 
 @runtime_checkable
 class ExecutorProtocol(Protocol):
-    """Interface for recipe executors that run recipes using a given context and optional logger."""
+    def __init__(self, logger: logging.Logger) -> None: ...
 
     async def execute(
-        self, recipe: Union[str, Dict[str, Any]], context: ContextProtocol, logger: Optional[logging.Logger] = None
-    ) -> None:
-        """Execute a recipe represented as a file path, JSON string, or dictionary using the context.
-
-        Raises:
-            Exception: When execution fails.
-        """
-        ...
+        self,
+        recipe: Union[str, Path, Recipe],
+        context: ContextProtocol,
+    ) -> None: ...

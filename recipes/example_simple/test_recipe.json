@@ -2,19 +2,26 @@
   "steps": [
     {
       "type": "read_files",
-      "path": "recipes/example_simple/specs/sample_spec.txt",
-      "artifact": "spec_text"
+      "config": {
+        "path": "recipes/example_simple/specs/sample_spec.txt",
+        "contents_key": "spec_text"
+      }
     },
     {
-      "type": "generate",
-      "prompt": "Using the following specification, generate a Python script:\n\n${spec_text}",
-      "model": "{{model|default:'openai/o3-mini'}}",
-      "artifact": "generated_files"
+      "type": "llm_generate",
+      "config": {
+        "prompt": "Using the following specification, generate a Python script:\n\n{{spec_text}}",
+        "model": "{{model|default:'openai/o3-mini'}}",
+        "output_format": "files",
+        "output_key": "generated_files"
+      }
     },
     {
       "type": "write_files",
-      "artifact": "generated_files",
-      "root": "output"
+      "config": {
+        "files_key": "generated_files",
+        "root": "output"
+      }
     }
   ]
 }

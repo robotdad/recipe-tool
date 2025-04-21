@@ -1,113 +1,118 @@
 import logging
 import os
-from typing import Optional
+import time
+from typing import List, Optional, Type, Union
 
+from pydantic import BaseModel
 from pydantic_ai import Agent
 from pydantic_ai.models.anthropic import AnthropicModel
-from pydantic_ai.models.gemini import GeminiModel
-
-# Import model classes from pydantic_ai
 from pydantic_ai.models.openai import OpenAIModel
+from pydantic_ai.providers.openai import OpenAIProvider
 
-from recipe_executor.models import FileGenerationResult
+from recipe_executor.llm_utils.azure_openai import get_azure_openai_model
+from recipe_executor.llm_utils.mcp import MCPServer
 
 
-def get_model(model_id: Optional[str] = None):
+def get_model(model_id: str, logger: logging.Logger) -> Union[OpenAIModel, AnthropicModel]:
     """
-    Initialize and return an LLM model instance based on a standardized model identifier.
-    Expected formats:
-      - provider/model_name
-      - provider/model_name/deployment_name  (for Azure OpenAI)
-    Supported providers:
-      - openai
-      - azure (for Azure OpenAI models)
-      - anthropic
-      - ollama
-      - gemini
-
-    Args:
-        model_id (Optional[str]): Model identifier. If None, defaults to environment variable DEFAULT_MODEL or 'openai/gpt-4o'.
-
-    Returns:
-        An instance of the corresponding model class from pydantic_ai.
-
-    Raises:
-        ValueError: If the model_id is invalid or if the provider is unsupported.
+    Initialize an LLM model based on a standardized model_id string.
+    Expected format: 'provider/model_name' or 'provider/model_name/deployment_name'.
     """
-    if not model_id:
-        model_id = os.getenv("DEFAULT_MODEL", "openai/gpt-4o")
-    parts = model_id.split("/")
-    if len(parts) < 2:
+    if not isinstance(model_id, str):
         raise ValueError(
-            "Invalid model id. Expected format 'provider/model_name' or 'provider/model_name/deployment_name'."
+            "model_id must be a string of format 'provider/model_name' or 'provider/model_name/deployment_name'"
         )
-    provider = parts[0].lower()
-    model_name = parts[1]
+    segments = model_id.split("/")
+    if len(segments) < 2:
+        raise ValueError(
+            f"Invalid model_id: '{model_id}'. Expected format 'provider/model_name' or 'provider/model_name/deployment_name'."
+        )
+
+    provider: str = segments[0].lower()
+    model_name: str = segments[1]
+    deployment_name: Optional[str] = segments[2] if len(segments) > 2 else None
 
     if provider == "openai":
-        return OpenAIModel(model_name)
-    elif provider == "azure":
-        # For Azure, if a third part is provided, it's the deployment name; otherwise, default to model_name
-        from recipe_executor.llm_utils.azure_openai import get_azure_openai_model
+        return OpenAIModel(model_name=model_name)
+    if provider == "azure":
+        return get_azure_openai_model(logger=logger, model_name=model_name, deployment_name=deployment_name)
+    if provider == "anthropic":
+        return AnthropicModel(model_name=model_name)
+    if provider == "ollama":
+        ollama_base_url: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+        provider_obj: OpenAIProvider = OpenAIProvider(base_url=f"{ollama_base_url}/v1")
+        return OpenAIModel(model_name=model_name, provider=provider_obj)
 
-        deployment_name = parts[2] if len(parts) >= 3 else model_name
-        return get_azure_openai_model(model_name, deployment_name)
-    elif provider == "anthropic":
-        return AnthropicModel(model_name)
-    elif provider == "ollama":
-        # Ollama uses OpenAIModel with a custom provider; the endpoint is taken from OLLAMA_ENDPOINT env.
-        from pydantic_ai.providers.openai import OpenAIProvider
-
-        ollama_endpoint = os.getenv("OLLAMA_ENDPOINT", "http://localhost:11434")
-        return OpenAIModel(model_name, provider=OpenAIProvider(base_url=f"{ollama_endpoint}/v1"))
-    elif provider == "gemini":
-        return GeminiModel(model_name)
-    else:
-        raise ValueError(f"Unsupported provider: {provider}")
+    raise ValueError(f"Unsupported provider: '{provider}'. Must be one of 'openai', 'azure', 'anthropic', 'ollama'.")
 
 
-async def call_llm(
-    prompt: str, model: Optional[str] = None, logger: Optional[logging.Logger] = None
-) -> FileGenerationResult:
-    """
-    Call the LLM with the given prompt and return a structured FileGenerationResult.
+class LLM:
+    def __init__(
+        self,
+        logger: logging.Logger,
+        model: str = "openai/gpt-4o",
+        mcp_servers: Optional[List[MCPServer]] = None,
+    ):
+        """
+        Initialize the LLM component.
+        Args:
+            logger (logging.Logger): Logger for logging messages.
+            model (str): Model identifier.
+            mcp_servers (Optional[List[MCPServer]]): MCP servers list.
+        """
+        self.logger: logging.Logger = logger
+        self.model: str = model
+        self.mcp_servers: List[MCPServer] = mcp_servers or []
 
-    Args:
-        prompt (str): The prompt to send to the LLM.
-        model (Optional[str]): Model identifier in the format 'provider/model_name' or 'provider/model_name/deployment_name'. If None, defaults to 'openai/gpt-4o'.
-        logger (Optional[logging.Logger]): Logger instance. Defaults to a logger named 'RecipeExecutor'.
-
-    Returns:
-        FileGenerationResult: The structured result from the LLM containing generated files and optional commentary.
-
-    Raises:
-        Exception: Propagates any exceptions that occur during the LLM call.
-    """
-    if logger is None:
-        logger = logging.getLogger("RecipeExecutor")
-
-    try:
-        model_instance = get_model(model)
-    except Exception as e:
-        logger.error(f"Error initializing model: {e}")
-        raise
-
-    # Log info about model usage
-    provider_name = model.split("/")[0] if model else "openai"
-    model_name = model.split("/")[1] if model else "gpt-4o"
-    logger.info(f"Calling LLM with provider='{provider_name}', model_name='{model_name}'")
-
-    # Log debug payload
-    logger.debug(f"LLM Request Payload: {prompt}")
-
-    # Initialize the Agent with the model instance and specify the structured output type
-    agent = Agent(model_instance, result_type=FileGenerationResult)
-
-    # Make the asynchronous call
-    result = await agent.run(prompt)
-
-    # Log response and usage
-    logger.debug(f"LLM Response Payload: {result.data}")
-    logger.info(f"LLM call completed. Usage details: {result.usage()}")
-
-    return result.data
+    async def generate(
+        self,
+        prompt: str,
+        model: Optional[str] = None,
+        output_type: Type[Union[str, BaseModel]] = str,
+        mcp_servers: Optional[List[MCPServer]] = None,
+    ) -> Union[str, BaseModel]:
+        """
+        Generate an output from the LLM based on the provided prompt.
+        """
+        actual_model_id: str = model if model is not None else self.model
+        mcp_servers_to_use: List[MCPServer] = mcp_servers if mcp_servers is not None else self.mcp_servers
+        # Info log: provider and model name
+        provider = actual_model_id.split("/")[0] if "/" in actual_model_id else actual_model_id
+        self.logger.info(f"LLM call with provider='{provider}' model='{actual_model_id}'")
+        try:
+            model_obj = get_model(actual_model_id, self.logger)
+            agent: Agent[None, Union[str, BaseModel]] = Agent(
+                model=model_obj,
+                mcp_servers=mcp_servers_to_use,
+                output_type=output_type,
+            )
+            self.logger.debug({
+                "prompt": prompt,
+                "model": actual_model_id,
+                "output_type": output_type.__name__ if hasattr(output_type, "__name__") else str(output_type),
+                "mcp_servers": [str(s) for s in mcp_servers_to_use],
+            })
+            start_time = time.monotonic()
+            async with agent.run_mcp_servers():
+                result = await agent.run(prompt)
+            elapsed = time.monotonic() - start_time
+            tokens_info = {}
+            try:
+                usage = result.usage()
+                tokens_info = {
+                    "requests": getattr(usage, "requests", None),
+                    "request_tokens": getattr(usage, "request_tokens", None),
+                    "response_tokens": getattr(usage, "response_tokens", None),
+                    "total_tokens": getattr(usage, "total_tokens", None),
+                }
+            except Exception:
+                pass
+            self.logger.info({
+                "elapsed_seconds": elapsed,
+                **tokens_info,
+            })
+            self.logger.debug({"output": repr(result.output)})
+            return result.output
+        except Exception as exc:
+            self.logger.error(f"LLM call failed: {exc}", exc_info=True)
+            raise

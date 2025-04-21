@@ -1,0 +1,28 @@
+{
+  "steps": [
+    {
+      "type": "read_files",
+      "config": {
+        "path": "{{project_idea}}",
+        "contents_key": "project_idea_content",
+        "optional": false
+      }
+    },
+    {
+      "type": "read_files",
+      "config": {
+        "path": "{{context_files}}",
+        "contents_key": "context_files_content",
+        "optional": true
+      }
+    },
+    {
+      "type": "read_files",
+      "config": {
+        "path": "{{reference_files}}",
+        "contents_key": "reference_files_content",
+        "optional": true
+      }
+    }
+  ]
+}

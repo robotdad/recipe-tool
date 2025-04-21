@@ -8,7 +8,7 @@ sequenceDiagram
     participant RE as Recipe Executor
     participant Ctx as Context
     participant RFS as ReadFileStep
-    participant GLL as GenerateWithLLMStep
+    participant GLL as LLMGenerateStep
     participant WFS as WriteFilesStep
     participant LLM as LLM Service
 
@@ -18,7 +18,7 @@ sequenceDiagram
     RFS->>Ctx: Store file content
     RE->>GLL: Execute Generate Code Step
     GLL->>LLM: Call LLM with rendered prompt/model
-    LLM-->>GLL: Return FileGenerationResult
+    LLM-->>GLL: Return list of generated files
     GLL->>Ctx: Store generated code
     RE->>WFS: Execute Write File Step
     WFS->>Filesystem: Write output files

@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict
 
 from recipe_executor.protocols import ContextProtocol
 from recipe_executor.steps.base import BaseStep, StepConfig
@@ -20,51 +20,42 @@ class ExecuteRecipeConfig(StepConfig):
 
 
 class ExecuteRecipeStep(BaseStep[ExecuteRecipeConfig]):
-    def __init__(
-        self, config: Union[Dict[str, Any], ExecuteRecipeConfig], logger: Optional[logging.Logger] = None
-    ) -> None:
-        # Ensure config is an ExecuteRecipeConfig object, not a raw dict
-        if not isinstance(config, ExecuteRecipeConfig):
-            config = ExecuteRecipeConfig(**config)
-        super().__init__(config, logger)
+    def __init__(self, logger: logging.Logger, config: Dict[str, Any]) -> None:
+        super().__init__(logger, ExecuteRecipeConfig(**config))
 
     async def execute(self, context: ContextProtocol) -> None:
-        """
-        Execute a sub-recipe by rendering its path and applying any context overrides.
-
-        Args:
-            context (ContextProtocol): The shared execution context.
-
-        Raises:
-            ValueError: If the sub-recipe file does not exist.
-            RuntimeError: If an error occurs during sub-recipe execution.
-        """
-        # Import Executor within execute to avoid circular dependencies
+        # Import Executor here to avoid circular dependencies
         from recipe_executor.executor import Executor
 
-        # Render the sub-recipe path template using the current context
-        rendered_recipe_path = render_template(self.config.recipe_path, context)
-
-        # Apply context overrides with template rendering
-        for key, value in self.config.context_overrides.items():
-            rendered_value = render_template(value, context)
-            context[key] = rendered_value
-
-        # Validate that the sub-recipe file exists
-        if not os.path.isfile(rendered_recipe_path):
-            error_message = f"Sub-recipe file not found: {rendered_recipe_path}"
-            self.logger.error(error_message)
-            raise ValueError(error_message)
-
-        self.logger.info(f"Starting sub-recipe execution: {rendered_recipe_path}")
-
+        # 1. Render recipe_path as template
         try:
-            executor = Executor()
-            # The executor uses the same context which may be updated by the sub-recipe
-            await executor.execute(rendered_recipe_path, context)
-        except Exception as exc:
-            error_message = f"Error executing sub-recipe '{rendered_recipe_path}': {str(exc)}"
-            self.logger.error(error_message)
-            raise RuntimeError(error_message) from exc
+            rendered_recipe_path: str = render_template(self.config.recipe_path, context)
+        except Exception as e:
+            raise ValueError(f"Failed to render recipe_path template '{self.config.recipe_path}': {e}")
 
-        self.logger.info(f"Completed sub-recipe execution: {rendered_recipe_path}")
+        # 2. Render context_overrides as templates
+        rendered_context_overrides: Dict[str, str] = {}
+        for key, raw_value in self.config.context_overrides.items():
+            try:
+                rendered_context_overrides[key] = render_template(raw_value, context)
+            except Exception as e:
+                raise ValueError(f"Failed to render context_overrides['{key}'] template '{raw_value}': {e}")
+
+        # 3. Check if the recipe file exists
+        if not os.path.exists(rendered_recipe_path):
+            raise FileNotFoundError(f"Sub-recipe file does not exist: {rendered_recipe_path}")
+
+        # 4. Apply context overrides
+        for key, override_value in rendered_context_overrides.items():
+            context[key] = override_value
+
+        self.logger.info(f"Starting execution of sub-recipe: {rendered_recipe_path}")
+
+        # 5. Execute the sub-recipe with the shared context
+        executor = Executor(self.logger)
+        try:
+            result = await executor.execute(rendered_recipe_path, context)
+        except Exception as e:
+            raise RuntimeError(f"Error during execution of sub-recipe '{rendered_recipe_path}': {e}") from e
+
+        self.logger.info(f"Finished execution of sub-recipe: {rendered_recipe_path}")
