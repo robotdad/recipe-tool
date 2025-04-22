@@ -15,13 +15,6 @@
       }
     },
     {
-      "type": "read_files",
-      "config": {
-        "path": "{{recipe_root|default:'recipes/recipe_executor'}}/components/utils/utils_docs.md",
-        "contents_key": "utils_docs"
-      }
-    },
-    {
       "type": "execute_recipe",
       "config": {
         "recipe_path": "{{recipe_root|default:'recipes/recipe_executor'}}/utils/build_component.json",
@@ -29,7 +22,7 @@
           "component_id": "parallel",
           "component_path": "/steps",
           "existing_code": "{{existing_code}}",
-          "additional_content": "<PROTOCOLS_DOCS>\n{{protocols_docs}}\n</PROTOCOLS_DOCS>\n<BASE_DOCS>\n{{base_docs}}\n</BASE_DOCS>\n<STEPS_DOCS>\n{{steps_docs}}\n</STEPS_DOCS>\n<UTILS_DOCS>\n{{utils_docs}}\n</UTILS_DOCS>\n"
+          "additional_content": "<PROTOCOLS_DOCS>\n{{protocols_docs}}\n</PROTOCOLS_DOCS>\n<BASE_DOCS>\n{{base_docs}}\n</BASE_DOCS>\n<STEPS_DOCS>\n{{steps_docs}}\n</STEPS_DOCS>"
         }
       }
     }

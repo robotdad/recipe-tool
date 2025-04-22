@@ -57,9 +57,7 @@
       "config": {
         "prompt": "You are given three JSON arrays representing file specifications from previous steps:\n\nChat Client Files: {{chat_client_file}}\n\nChat Server Files: {{chat_server_file}}\n\nLinting Result Files: {{linting_result}}\n\nCombine these arrays into a single JSON array of file specifications without modifying the content of the files. Return the result as a JSON array.",
         "model": "openai/gpt-4o",
-        "mcp_servers": [
-          { "command": "python-code-tools", "args": ["stdio"] }
-        ],
+        "mcp_servers": [{ "command": "python-code-tools", "args": ["stdio"] }],
         "output_format": "files",
         "output_key": "final_files"
       }

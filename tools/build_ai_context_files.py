@@ -78,6 +78,13 @@ def build_context_files() -> None:
             "exclude": collect_files.DEFAULT_EXCLUDE,
             "include": [],
         },
+        # Collect files from recipes/examples_*
+        {
+            "patterns": ["recipes/example_*"],
+            "output": f"{OUTPUT_DIR}/recipe_examples_files.md",
+            "exclude": collect_files.DEFAULT_EXCLUDE,
+            "include": [],
+        },
     ]
 
     # Execute each task

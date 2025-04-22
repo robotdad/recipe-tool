@@ -3898,13 +3898,6 @@ None
       }
     },
     {
-      "type": "read_files",
-      "config": {
-        "path": "{{recipe_root|default:'recipes/recipe_executor'}}/components/utils/utils_docs.md",
-        "contents_key": "utils_docs"
-      }
-    },
-    {
       "type": "execute_recipe",
       "config": {
         "recipe_path": "{{recipe_root|default:'recipes/recipe_executor'}}/utils/build_component.json",
@@ -3912,7 +3905,7 @@ None
           "component_id": "parallel",
           "component_path": "/steps",
           "existing_code": "{{existing_code}}",
-          "additional_content": "<PROTOCOLS_DOCS>\n{{protocols_docs}}\n</PROTOCOLS_DOCS>\n<BASE_DOCS>\n{{base_docs}}\n</BASE_DOCS>\n<STEPS_DOCS>\n{{steps_docs}}\n</STEPS_DOCS>\n<UTILS_DOCS>\n{{utils_docs}}\n</UTILS_DOCS>\n"
+          "additional_content": "<PROTOCOLS_DOCS>\n{{protocols_docs}}\n</PROTOCOLS_DOCS>\n<BASE_DOCS>\n{{base_docs}}\n</BASE_DOCS>\n<STEPS_DOCS>\n{{steps_docs}}\n</STEPS_DOCS>"
         }
       }
     }
@@ -4079,7 +4072,6 @@ The ParallelStep component enables the Recipe Executor to run multiple sub-recip
 - **Protocols**: Uses ContextProtocol for context management, ExecutorProtocol for parallel execution, and StepProtocol for the step interface
 - **Step Base**: Adheres to the step execution interface via StepProtocol
 - **Step Registry**: Uses the step registry to instantiate the `execute_recipe` step for each sub-step
-- **Utils**: Uses template rendering for sub-step configurations
 
 ### External Libraries
 

@@ -215,6 +215,7 @@ name = "recipe-executor"
 version = "0.1.0"
 description = "A tool for executing natural language recipe-like instructions"
 authors = [{ name = "Brian Krabach" }]
+license = "MIT"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
@@ -223,6 +224,7 @@ dependencies = [
     "jsonschema>=4.23.0",
     "pydantic-ai-slim[anthropic,openai,mcp]>=0.1.3",
     "pydantic-settings>=2.8.1",
+    "python-code-tools>=0.1.0",
     "python-dotenv>=1.1.0",
     "python-liquid>=2.0.1",
 ]
@@ -235,26 +237,25 @@ dev = [
     "pytest-cov>=6.1.1",
     "pytest-mock>=3.14.0",
     "ruff>=0.11.2",
-    "python-code-tools>=0.1.0",
 ]
-
-[tool.uv]
-package = true
-
-[tool.uv.sources]
-python-code-tools = { path = "../mcp-servers/python-code-tools", editable = true }
 
 [project.scripts]
 recipe-executor = "recipe_executor.main:main"
 recipe-tool = "recipe_tool:main"
 python-code-tools = "python_code_tools.cli:main"
 
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+[tool.uv]
+package = true
+
+[tool.uv.sources]
+python-code-tools = { path = "mcp-servers/python-code-tools", editable = true }
 
 [tool.hatch.build.targets.wheel]
 packages = ["recipe_executor"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 
 === File: recipe_executor/__init__.py ===
@@ -1548,16 +1549,23 @@ import asyncio
 import logging
 from typing import Any, Dict, List, Optional
 
-from recipe_executor.protocols import ContextProtocol, StepProtocol
+from recipe_executor.protocols import ContextProtocol
 from recipe_executor.steps.base import BaseStep, StepConfig
 from recipe_executor.steps.registry import STEP_REGISTRY
-from recipe_executor.utils import render_template
 
 
 class ParallelConfig(StepConfig):
+    """Config for ParallelStep.
+
+    Fields:
+        substeps: List of sub-step definitions, each with 'type' and 'config'.
+        max_concurrency: Maximum concurrent substeps. 0 means no limit.
+        delay: Delay in seconds between launching substeps.
+    """
+
     substeps: List[Dict[str, Any]]
     max_concurrency: int = 0
-    delay: float = 0
+    delay: float = 0.0
 
 
 class ParallelStep(BaseStep[ParallelConfig]):
@@ -1565,107 +1573,97 @@ class ParallelStep(BaseStep[ParallelConfig]):
         super().__init__(logger, ParallelConfig(**config))
 
     async def execute(self, context: ContextProtocol) -> None:
-        substep_defs: List[Dict[str, Any]] = self.config.substeps
-        max_concurrency: int = self.config.max_concurrency
-        delay: float = self.config.delay
+        total = len(self.config.substeps)
+        self.logger.info("Starting parallel execution: %d substeps", total)
 
-        if not substep_defs:
-            self.logger.info("No substeps specified; skipping parallel block.")
+        semaphore: Optional[asyncio.Semaphore]
+        if self.config.max_concurrency and self.config.max_concurrency > 0:
+            semaphore = asyncio.Semaphore(self.config.max_concurrency)
+        else:
+            semaphore = None
+
+        error_occurred = False
+        first_exception: Optional[BaseException] = None
+
+        async def run_substep(idx: int, substep_def: Dict[str, Any]) -> None:
+            nonlocal error_occurred, first_exception
+            if error_occurred:
+                return
+
+            if semaphore:
+                await semaphore.acquire()
+
+            try:
+                # Clone context for isolation
+                sub_context = context.clone()
+
+                raw_step_type = substep_def.get("type")
+                if not isinstance(raw_step_type, str):
+                    raise ValueError(f"Invalid substep type: {raw_step_type}")
+                step_type = raw_step_type
+                step_conf = substep_def.get("config", {})
+                step_cls = STEP_REGISTRY.get(step_type)
+                if step_cls is None:
+                    raise ValueError(f"Unknown substep type: {step_type}")
+
+                sub_logger = self.logger.getChild(f"{step_type}[{idx}]")
+                self.logger.debug("Launching substep %d of type %s", idx, step_type)
+                step_instance = step_cls(sub_logger, step_conf)
+
+                # Execute the substep (async or sync)
+                await step_instance.execute(sub_context)
+
+                self.logger.debug("Completed substep %d", idx)
+
+            except Exception as exc:
+                self.logger.error("Substep %d failed: %s", idx, str(exc), exc_info=True)
+                if not error_occurred:
+                    error_occurred = True
+                    first_exception = exc
+                raise
+
+            finally:
+                if semaphore:
+                    semaphore.release()
+
+        # Schedule tasks with optional delay
+        tasks: List[asyncio.Task] = []
+        for idx, sub_def in enumerate(self.config.substeps):
+            if error_occurred:
+                break
+            task = asyncio.create_task(run_substep(idx, sub_def))
+            tasks.append(task)
+            if self.config.delay and idx < total - 1:
+                await asyncio.sleep(self.config.delay)
+
+        if not tasks:
+            self.logger.info("No substeps to run.")
             return
 
-        # Concurrency control
-        semaphore: Optional[asyncio.Semaphore] = None
-        if max_concurrency > 0:
-            semaphore = asyncio.Semaphore(max_concurrency)
+        # Wait for tasks, fail-fast on first exception
+        done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_EXCEPTION)
 
-        tasks: List[asyncio.Task] = []
+        # Check for exceptions in done
+        for t in done:
+            if t.cancelled():
+                continue
+            if t.exception():
+                error_occurred = True
+                if first_exception is None:
+                    first_exception = t.exception()
 
-        # Store for cancellation support
-        start_exception: Optional[BaseException] = None
-        finished_count = 0
-        step_count = len(substep_defs)
+        # Cancel any pending tasks
+        if pending:
+            for t in pending:
+                t.cancel()
+            # Allow cancelled tasks to finish
+            await asyncio.gather(*pending, return_exceptions=True)
 
-        async def run_substep(i: int, step_def: Dict[str, Any]) -> None:
-            nonlocal finished_count, start_exception
-            step_type: str = step_def["type"]
-            step_config = step_def.get("config", {})
+        if error_occurred and first_exception:
+            # Propagate first exception
+            raise first_exception
 
-            # Render config templates using context
-            rendered_config: Dict[str, Any] = {}
-            for k, v in step_config.items():
-                if isinstance(v, str):
-                    rendered_config[k] = render_template(v, context)
-                else:
-                    rendered_config[k] = v
-
-            # Clone context
-            sub_context = context.clone()
-            # Re-marshal config as per step expectations
-            self.logger.debug(
-                f"Launching substep {i + 1}/{step_count} of type '{step_type}' with config: {rendered_config}"
-            )
-            try:
-                step_class = STEP_REGISTRY[step_type]
-                step: StepProtocol = step_class(self.logger, rendered_config)
-                if asyncio.iscoroutinefunction(step.execute):
-                    await step.execute(sub_context)
-                else:
-                    await asyncio.get_running_loop().run_in_executor(None, step.execute, sub_context)
-                self.logger.debug(f"Completed substep {i + 1}/{step_count} of type '{step_type}'")
-            except Exception as ex:
-                self.logger.error(f"Substep {i + 1}/{step_count} failed: {ex}", exc_info=True)
-                start_exception = ex
-                raise
-            finally:
-                finished_count += 1
-
-        async def task_runner():
-            # Fail-fast logic: launch in order, with concurrency control, and delay
-            try:
-                for i, step_def in enumerate(substep_defs):
-                    if start_exception is not None:
-                        self.logger.debug(
-                            f"Fail-fast abort: skipping launch of substep {i + 1}/{step_count} after error."
-                        )
-                        break
-                    if semaphore is not None:
-                        await semaphore.acquire()
-                    # Staggered launch for delay
-                    if i > 0 and delay > 0:
-                        await asyncio.sleep(delay)
-
-                    async def step_task(idx=i, sdef=step_def):
-                        try:
-                            await run_substep(idx, sdef)
-                        finally:
-                            if semaphore is not None:
-                                semaphore.release()
-
-                    task = asyncio.create_task(step_task())
-                    tasks.append(task)
-                # Wait for all launched tasks to finish
-                if tasks:
-                    await asyncio.wait(tasks, return_when=asyncio.ALL_COMPLETED)
-            finally:
-                # Cancel others if failed
-                if start_exception is not None:
-                    for t in tasks:
-                        if not t.done():
-                            t.cancel()
-                    await asyncio.gather(*tasks, return_exceptions=True)
-
-        self.logger.info(
-            f"Starting parallel block: {step_count} substeps, max_concurrency={max_concurrency}, delay={delay}"
-        )
-        try:
-            await task_runner()
-        except Exception as exc:
-            error_msg = f"Parallel block failed after {finished_count} completed steps: {exc}"
-            self.logger.error(error_msg, exc_info=True)
-            raise RuntimeError(error_msg) from exc
-        success_count = sum(1 for t in tasks if t.done() and not t.cancelled() and t.exception() is None)
-        fail_count = sum(1 for t in tasks if t.done() and t.exception() is not None)
-        self.logger.info(f"Parallel block complete: {success_count} succeeded, {fail_count} failed, total={step_count}")
+        self.logger.info("Parallel execution complete: %d/%d substeps succeeded", total, total)
 
 
 === File: recipe_executor/steps/read_files.py ===

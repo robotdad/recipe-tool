@@ -254,7 +254,7 @@ async def main():
     server = MCPServerStdio("python", args=["-m", "python_code_tools", "stdio"])
 
     # Create an agent with the MCP server
-    agent = Agent("claude-3-5-sonnet-latest", mcp_servers=[server])
+    agent = Agent("claude-3-7-sonnet-latest", mcp_servers=[server])
 
     # Use the MCP server in a conversation
     async with agent.run_mcp_servers():
@@ -335,7 +335,7 @@ async def main():
     server = MCPServerStdio("python", args=["-m", "python_code_tools", "stdio"])
 
     # Create an agent with the MCP server
-    agent = Agent("claude-3-5-sonnet-latest", mcp_servers=[server])
+    agent = Agent("claude-3-7-sonnet-latest", mcp_servers=[server])
 
     # Use the MCP server in a conversation
     async with agent.run_mcp_servers():
@@ -718,7 +718,7 @@ async def main():
     server = MCPServerStdio("python", args=["-m", "python_code_tools", "stdio"])
 
     # Create an agent with the MCP server
-    agent = Agent("claude-3-5-sonnet-latest", mcp_servers=[server])
+    agent = Agent("claude-3-7-sonnet-latest", mcp_servers=[server])
 
     # Use the MCP server in a conversation
     async with agent.run_mcp_servers():
@@ -785,7 +785,7 @@ async def main():
     server = MCPServerStdio("python", args=["-m", "python_code_tools", "stdio"])
 
     # Create an agent with the MCP server
-    agent = Agent("claude-3-5-sonnet-latest", mcp_servers=[server])
+    agent = Agent("claude-3-7-sonnet-latest", mcp_servers=[server])
 
     # Use the MCP server in a conversation
     async with agent.run_mcp_servers():
@@ -821,18 +821,14 @@ if __name__ == "__main__":
 
 
 === File: mcp-servers/python-code-tools/pyproject.toml ===
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
 [project]
 name = "python-code-tools"
 version = "0.1.0"
 description = "MCP server providing Python code quality tools"
+authors = [{ name = "Brian Krabach" }]
+license = "MIT"
 readme = "README.md"
-requires-python = ">=3.10"
-license = { text = "MIT" }
-authors = [{ name = "Your Name", email = "your.email@example.com" }]
+requires-python = ">=3.11"
 dependencies = [
     "pydantic>=2.7.2,<3.0.0",
     "mcp>=1.6.0",
@@ -840,7 +836,7 @@ dependencies = [
     "tomli>=2.2.1",
 ]
 
-[project.optional-dependencies]
+[dependency-groups]
 dev = ["pytest>=7.0.0", "black>=23.0.0", "mypy>=1.0.0"]
 
 [project.scripts]
@@ -857,6 +853,10 @@ target-version = "py310"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "W"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 
 === File: mcp-servers/python-code-tools/pyrightconfig.json ===
