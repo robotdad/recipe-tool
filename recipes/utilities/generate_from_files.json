@@ -4,7 +4,7 @@
       "type": "read_files",
       "config": {
         "path": "{{ files }}",
-        "contents_key": "combined_input",
+        "content_key": "combined_input",
         "merge_mode": "concat"
       }
     },

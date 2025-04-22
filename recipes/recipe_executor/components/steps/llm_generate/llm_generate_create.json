@@ -4,35 +4,35 @@
       "type": "read_files",
       "config": {
         "path": "{{recipe_root|default:'recipes/recipe_executor'}}/components/steps/base/base_docs.md",
-        "contents_key": "steps_base_docs"
+        "content_key": "steps_base_docs"
       }
     },
     {
       "type": "read_files",
       "config": {
         "path": "{{recipe_root|default:'recipes/recipe_executor'}}/components/context/context_docs.md",
-        "contents_key": "context_docs"
+        "content_key": "context_docs"
       }
     },
     {
       "type": "read_files",
       "config": {
         "path": "{{recipe_root|default:'recipes/recipe_executor'}}/components/llm_utils/llm/llm_docs.md",
-        "contents_key": "llm_docs"
+        "content_key": "llm_docs"
       }
     },
     {
       "type": "read_files",
       "config": {
         "path": "{{recipe_root|default:'recipes/recipe_executor'}}/components/llm_utils/mcp/mcp_docs.md",
-        "contents_key": "mcp_docs"
+        "content_key": "mcp_docs"
       }
     },
     {
       "type": "read_files",
       "config": {
         "path": "{{recipe_root|default:'recipes/recipe_executor'}}/components/utils/utils_docs.md",
-        "contents_key": "utils_docs"
+        "content_key": "utils_docs"
       }
     },
     {

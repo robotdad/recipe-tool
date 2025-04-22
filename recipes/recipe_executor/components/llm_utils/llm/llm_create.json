@@ -4,28 +4,28 @@
       "type": "read_files",
       "config": {
         "path": "{{recipe_root|default:'recipes/recipe_executor'}}/components/logger/logger_docs.md",
-        "contents_key": "logger_docs"
+        "content_key": "logger_docs"
       }
     },
     {
       "type": "read_files",
       "config": {
         "path": "{{recipe_root|default:'recipes/recipe_executor'}}/components/llm_utils/azure_openai/azure_openai_docs.md",
-        "contents_key": "azure_openai_docs"
+        "content_key": "azure_openai_docs"
       }
     },
     {
       "type": "read_files",
       "config": {
         "path": "{{recipe_root|default:'recipes/recipe_executor'}}/components/llm_utils/mcp/mcp_docs.md",
-        "contents_key": "mcp_docs"
+        "content_key": "mcp_docs"
       }
     },
     {
       "type": "read_files",
       "config": {
         "path": "ai_context/git_collector/PYDANTIC_AI_DOCS.md",
-        "contents_key": "pydantic_ai_docs"
+        "content_key": "pydantic_ai_docs"
       }
     },
     {

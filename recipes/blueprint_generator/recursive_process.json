@@ -6,7 +6,7 @@
         "prompt": "Convert depth {{depth}} to an integer, add 1, and return the result as a string.",
         "model": "{{model|default:'openai/gpt-4.1'}}",
         "output_format": "files",
-        "contents_key": "next_depth"
+        "content_key": "next_depth"
       }
     },
     {
@@ -19,7 +19,7 @@
       "type": "read_files",
       "config": {
         "path": "{{output_dir}}/analysis/component_lists.json",
-        "contents_key": "component_lists"
+        "content_key": "component_lists"
       }
     },
     {
@@ -28,7 +28,7 @@
         "prompt": "Check if any components need further splitting in {{component_lists}}. Output only 'true' or 'false'.",
         "model": "{{model|default:'openai/gpt-4.1'}}",
         "output_format": "files",
-        "contents_key": "need_further_splitting"
+        "content_key": "need_further_splitting"
       }
     },
     {

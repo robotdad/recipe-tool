@@ -11,7 +11,7 @@ def transform_and_flatten(node: dict) -> bool:
     """
     - generate→llm_generate
     - rename artifact based on type:
-        read_files    → contents_key
+        read_files    → content_key
         generate*     → output_key
         write_files   → files_key
     - move ALL other keys (except 'type' & existing 'config') into node['config']
@@ -27,7 +27,7 @@ def transform_and_flatten(node: dict) -> bool:
 
     # 2) rename the singular "artifact" based on type
     if t == "read_files" and "artifact" in node:
-        node["contents_key"] = node.pop("artifact")
+        node["content_key"] = node.pop("artifact")
         changed = True
     if t in ("generate", "llm_generate") and "artifact" in node:
         node["output_key"] = node.pop("artifact")

@@ -69,13 +69,13 @@ The prompt can include template variables from the context:
       "type": "read_files",
       "config": {
         "path": "specs/component_spec.md",
-        "content_key": "component_spec_contents"
+        "content_key": "component_spec_content"
       }
     },
     {
       "type": "llm_generate",
       "config": {
-        "prompt": "Based on the following specification, generate python code for a component:\n\n{{component_spec_contents}}",
+        "prompt": "Based on the following specification, generate python code for a component:\n\n{{component_spec_content}}",
         "model": "{{model|default:'openai/o3-mini'}}",
         "output_format": "files",
         "output_key": "component_code_files"

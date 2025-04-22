@@ -149,7 +149,7 @@ Within each iteration, you can reference:
         "type": "read_files",
         "config": {
           "path": "{{file.path}}",
-          "contents_key": "file_content"
+          "content_key": "file_content"
         }
       },
       {

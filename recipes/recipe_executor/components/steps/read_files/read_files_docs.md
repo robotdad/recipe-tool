@@ -17,14 +17,14 @@ class ReadFilesConfig(StepConfig):
 
     Fields:
         path (Union[str, List[str]]): Path, comma-separated string, or list of paths to the file(s) to read (may be templated).
-        contents_key (str): Name to store the file contents in context.
+        content_key (str): Name to store the file content in context.
         optional (bool): Whether to continue if a file is not found.
         merge_mode (str): How to handle multiple files' content. Options:
-            - "concat" (default): Concatenate all files with newlines between filenames + contents
-            - "dict": Store a dictionary with filenames as keys and contents as values
+            - "concat" (default): Concatenate all files with newlines between filenames + content
+            - "dict": Store a dictionary with filenames as keys and content as values
     """
     path: Union[str, List[str]]
-    contents_key: str
+    content_key: str
     optional: bool = False
     merge_mode: str = "concat"
 ```
@@ -53,7 +53,7 @@ The ReadFilesStep can be used to read a single file (just like the original `rea
       "type": "read_files",
       "config": {
         "path": "specs/component_spec.md",
-        "contents_key": "component_spec"
+        "content_key": "component_spec"
       }
     }
   ]
@@ -71,7 +71,7 @@ You can read multiple files by providing a comma-separated string of paths:
       "type": "read_files",
       "config": {
         "path": "specs/component_spec.md,specs/component_docs.md",
-        "contents_key": "component_specs"
+        "content_key": "component_specs"
       }
     }
   ]
@@ -87,7 +87,7 @@ You can also read multiple files by providing a list of path strings:
       "type": "read_files",
       "config": {
         "path": ["specs/component_spec.md", "specs/component_docs.md"],
-        "contents_key": "component_specs",
+        "content_key": "component_specs",
         "merge_mode": "concat"
       }
     }
@@ -106,7 +106,7 @@ You can store multiple files as a dictionary with filenames as keys:
       "type": "read_files",
       "config": {
         "path": ["specs/component_spec.md", "specs/component_docs.md"],
-        "contents_key": "component_specs",
+        "content_key": "component_specs",
         "merge_mode": "dict"
       }
     }
@@ -125,7 +125,7 @@ The `path` parameter can include template variables from the context:
       "type": "read_files",
       "config": {
         "path": "specs/{{component_id}}_spec.md",
-        "contents_key": "component_spec"
+        "content_key": "component_spec"
       }
     }
   ]
@@ -144,7 +144,7 @@ Template variables can also be used within list paths:
           "specs/{{component_id}}_spec.md",
           "specs/{{component_id}}_docs.md"
         ],
-        "contents_key": "component_files"
+        "content_key": "component_files"
       }
     }
   ]
@@ -162,7 +162,7 @@ You can specify that files are optional. If an optional file doesn't exist, exec
       "type": "read_files",
       "config": {
         "path": ["specs/required_file.md", "specs/optional_file.md"],
-        "contents_key": "component_files",
+        "content_key": "component_files",
         "optional": true
       }
     }
@@ -188,7 +188,7 @@ If an optional file is not found:
       "specs/{{component_id}}_spec.md",
       "specs/{{component_id}}_docs.md"
     ],
-    "contents_key": "component_files",
+    "content_key": "component_files",
     "merge_mode": "concat"
   }
 }
@@ -205,7 +205,7 @@ If an optional file is not found:
       "templates/email_header.txt",
       "templates/email_footer.txt"
     ],
-    "contents_key": "email_templates",
+    "content_key": "email_templates",
     "optional": true,
     "merge_mode": "dict"
   }
@@ -222,7 +222,7 @@ If an optional file is not found:
       "docs/{{project}}/{{component}}/README.md",
       "docs/{{project}}/{{component}}/USAGE.md"
     ],
-    "contents_key": "documentation",
+    "content_key": "documentation",
     "merge_mode": "dict"
   }
 }
@@ -245,7 +245,7 @@ Then in the recipe you can use that context value:
       "type": "read_files",
       "config": {
         "path": "{{files_to_read.split(',')|default:'specs/default.md'}}",
-        "contents_key": "input_files"
+        "content_key": "input_files"
       }
     }
   ]

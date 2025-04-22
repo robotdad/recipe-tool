@@ -104,7 +104,7 @@ Sub-recipes can be composed to create more complex workflows:
       "type": "read_files",
       "config": {
         "path": "specs/project_spec.md",
-        "contents_key": "project_spec"
+        "content_key": "project_spec"
       }
     },
     {

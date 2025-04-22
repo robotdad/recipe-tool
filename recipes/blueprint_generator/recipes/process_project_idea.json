@@ -4,7 +4,7 @@
       "type": "read_files",
       "config": {
         "path": "{{project_idea}}",
-        "contents_key": "project_idea_content"
+        "content_key": "project_idea_content"
       }
     },
     {

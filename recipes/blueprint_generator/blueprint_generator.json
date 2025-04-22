@@ -4,7 +4,7 @@
       "type": "read_files",
       "config": {
         "path": "{{project_spec_path}}",
-        "contents_key": "project_spec"
+        "content_key": "project_spec"
       }
     },
     {
@@ -17,7 +17,7 @@
       "type": "read_files",
       "config": {
         "path": "{{output_dir}}/analysis/analysis_result.json",
-        "contents_key": "analysis_result"
+        "content_key": "analysis_result"
       }
     },
     {

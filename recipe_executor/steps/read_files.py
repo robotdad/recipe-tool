@@ -13,15 +13,15 @@ class ReadFilesConfig(StepConfig):
 
     Fields:
         path (Union[str, List[str]]): Path, comma-separated string, or list of paths to the file(s) to read (may be templated).
-        contents_key (str): Name to store the file contents in context.
+        content_key (str): Name to store the file content in context.
         optional (bool): Whether to continue if a file is not found.
         merge_mode (str): How to handle multiple files' content. Options:
-            - "concat" (default): Concatenate all files with newlines between filenames + contents
-            - "dict": Store a dictionary with filenames as keys and contents as values
+            - "concat" (default): Concatenate all files with newlines between filenames + content
+            - "dict": Store a dictionary with filenames as keys and content as values
     """
 
     path: Union[str, List[str]]
-    contents_key: str
+    content_key: str
     optional: bool = False
     merge_mode: str = "concat"
 
@@ -35,17 +35,17 @@ class ReadFilesStep(BaseStep[ReadFilesConfig]):
         paths: List[str] = self._parse_paths(rendered_path)
 
         if not paths:
-            self.logger.info(f"No files to read for key '{self.config.contents_key}' (path: {self.config.path})")
+            self.logger.info(f"No files to read for key '{self.config.content_key}' (path: {self.config.path})")
             if self.config.merge_mode == "dict":
-                context[self.config.contents_key] = {}
+                context[self.config.content_key] = {}
             else:
-                context[self.config.contents_key] = ""
+                context[self.config.content_key] = ""
             return
 
         self.logger.debug(f"Resolved paths for reading: {paths}")
 
-        contents_list: List[str] = []
-        contents_dict: Dict[str, str] = {}
+        content_list: List[str] = []
+        content_dict: Dict[str, str] = {}
         missing_files: List[str] = []
 
         for path in paths:
@@ -65,9 +65,9 @@ class ReadFilesStep(BaseStep[ReadFilesConfig]):
                     content: str = file.read()
                 self.logger.info(f"Read file successfully: {path_stripped}")
                 if self.config.merge_mode == "dict":
-                    contents_dict[path_stripped] = content
+                    content_dict[path_stripped] = content
                 else:
-                    contents_list.append(content)
+                    content_list.append(content)
             except Exception as exc:
                 error_msg: str = f"Failed to read file {path_stripped}: {str(exc)}"
                 if self.config.optional:
@@ -80,17 +80,17 @@ class ReadFilesStep(BaseStep[ReadFilesConfig]):
 
         result: Union[str, Dict[str, str]]
         if self.config.merge_mode == "dict":
-            result = contents_dict
+            result = content_dict
         else:
-            result = "\n".join(contents_list)
+            result = "\n".join(content_list)
 
         # Backwards compatibility: optional + single file
-        if len(paths) == 1 and self.config.merge_mode != "dict" and self.config.optional and not contents_list:
+        if len(paths) == 1 and self.config.merge_mode != "dict" and self.config.optional and not content_list:
             result = ""
 
-        context[self.config.contents_key] = result
+        context[self.config.content_key] = result
         self.logger.info(
-            f"Stored contents under key '{self.config.contents_key}' (mode: {self.config.merge_mode}, files read: {len(contents_list)})"
+            f"Stored content under key '{self.config.content_key}' (mode: {self.config.merge_mode}, files read: {len(content_list)})"
         )
 
     def _render_paths(self, path: Union[str, List[str]], context: ContextProtocol) -> Union[str, List[str]]:

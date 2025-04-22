@@ -4,21 +4,21 @@
       "type": "read_files",
       "config": {
         "path": "{{input}}",
-        "contents_key": "input_file"
+        "content_key": "input_file"
       }
     },
     {
       "type": "read_files",
       "config": {
         "path": "ai_context/MODULAR_DESIGN_PHILOSOPHY.md,ai_context/IMPLEMENTATION_PHILOSOPHY.md",
-        "contents_key": "guidance_files"
+        "content_key": "guidance_files"
       }
     },
     {
       "type": "read_files",
       "config": {
         "path": "{{files|default:''}}",
-        "contents_key": "additional_files",
+        "content_key": "additional_files",
         "optional": true
       }
     },
@@ -26,7 +26,7 @@
       "type": "read_files",
       "config": {
         "path": "{{output_root|default:'output'}}/{{target_file|default:'project_component_breakdown_analysis.md'}}",
-        "contents_key": "existing_analysis",
+        "content_key": "existing_analysis",
         "optional": true
       }
     },

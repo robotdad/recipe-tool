@@ -3,7 +3,7 @@
 Collect Files Utility
 
 Recursively scans the specified file/directory patterns and outputs a single Markdown
-document containing each file's relative path and its contents.
+document containing each file's relative path and its content.
 
 Usage examples:
   # Collect all Python files in the current directory:
@@ -281,7 +281,7 @@ def format_output(
 def main() -> None:
     """Main function"""
     parser = argparse.ArgumentParser(
-        description="Recursively collect files matching the given patterns and output a document with file names and contents."
+        description="Recursively collect files matching the given patterns and output a document with file names and content."
     )
     parser.add_argument("patterns", nargs="+", help="File and/or directory patterns to collect (e.g. *.py or output)")
     parser.add_argument(

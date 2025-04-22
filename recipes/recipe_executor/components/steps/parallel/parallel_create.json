@@ -4,14 +4,14 @@
       "type": "read_files",
       "config": {
         "path": "{{recipe_root|default:'recipes/recipe_executor'}}/components/protocols/protocols_docs.md",
-        "contents_key": "protocols_docs"
+        "content_key": "protocols_docs"
       }
     },
     {
       "type": "read_files",
       "config": {
         "path": "{{recipe_root|default:'recipes/recipe_executor'}}/components/steps/base/base_docs.md",
-        "contents_key": "base_docs"
+        "content_key": "base_docs"
       }
     },
     {

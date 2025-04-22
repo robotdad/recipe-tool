@@ -4,7 +4,7 @@
       "type": "read_files",
       "config": {
         "path": "{{output_dir}}/analysis/component_lists.json",
-        "contents_key": "component_lists"
+        "content_key": "component_lists"
       }
     },
     {
@@ -13,7 +13,7 @@
         "prompt": "Extract just the components_to_split array from:\n\n{{component_lists}}",
         "model": "{{model|default:'openai/gpt-4.1'}}",
         "output_format": "files",
-        "contents_key": "components_to_split"
+        "content_key": "components_to_split"
       }
     },
     {

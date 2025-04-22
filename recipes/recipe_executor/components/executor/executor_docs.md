@@ -24,7 +24,7 @@ executor: ExecutorProtocol = Executor(logger)
 executor.execute("path/to/recipe.json", context)
 
 # Execute a recipe from a JSON string
-json_string = '{"steps": [{"type": "read_files", "path": "example.txt", "contents_key": "file_content"}]}'
+json_string = '{"steps": [{"type": "read_files", "path": "example.txt", "content_key": "file_content"}]}'
 executor.execute(json_string, context)
 
 # Execute a recipe from a JSON object (dict)

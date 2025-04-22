@@ -4,14 +4,14 @@
       "type": "read_files",
       "config": {
         "path": "{{idea}}",
-        "contents_key": "idea_content"
+        "content_key": "idea_content"
       }
     },
     {
       "type": "read_files",
       "config": {
         "path": "{{files}}",
-        "contents_key": "additional_files_content",
+        "content_key": "additional_files_content",
         "optional": true
       }
     },
@@ -19,7 +19,7 @@
       "type": "read_files",
       "config": {
         "path": "{{reference_content}}",
-        "contents_key": "reference_content_text",
+        "content_key": "reference_content_text",
         "optional": true
       }
     },

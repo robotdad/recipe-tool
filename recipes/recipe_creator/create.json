@@ -4,14 +4,14 @@
       "type": "read_files",
       "config": {
         "path": "{{input}}",
-        "contents_key": "recipe_idea"
+        "content_key": "recipe_idea"
       }
     },
     {
       "type": "read_files",
       "config": {
         "path": "ai_context/generated/recipe_executor_code_files.md,ai_context/generated/recipe_executor_recipe_files.md",
-        "contents_key": "context_files",
+        "content_key": "context_files",
         "merge_mode": "concat"
       }
     },
@@ -19,7 +19,7 @@
       "type": "read_files",
       "config": {
         "path": "{{files}}",
-        "contents_key": "additional_files",
+        "content_key": "additional_files",
         "optional": true,
         "merge_mode": "concat"
       }

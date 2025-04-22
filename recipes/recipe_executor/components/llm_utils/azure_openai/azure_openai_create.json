@@ -4,21 +4,21 @@
       "type": "read_files",
       "config": {
         "path": "{{recipe_root|default:'recipes/recipe_executor'}}/components/logger/logger_docs.md",
-        "contents_key": "logger_docs"
+        "content_key": "logger_docs"
       }
     },
     {
       "type": "read_files",
       "config": {
         "path": "ai_context/AZURE_IDENTITY_CLIENT_DOCS.md",
-        "contents_key": "azure_identity_client_docs"
+        "content_key": "azure_identity_client_docs"
       }
     },
     {
       "type": "read_files",
       "config": {
         "path": "ai_context/git_collector/PYDANTIC_AI_DOCS.md",
-        "contents_key": "pydantic_ai_docs"
+        "content_key": "pydantic_ai_docs"
       }
     },
     {

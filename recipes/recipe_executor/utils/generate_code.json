@@ -4,14 +4,14 @@
       "type": "read_files",
       "config": {
         "path": "ai_context/IMPLEMENTATION_PHILOSOPHY.md",
-        "contents_key": "implementation_philosophy"
+        "content_key": "implementation_philosophy"
       }
     },
     {
       "type": "read_files",
       "config": {
         "path": "{{recipe_root|default:'recipes/recipe_executor'}}/ai_context/DEV_GUIDE_FOR_PYTHON.md",
-        "contents_key": "dev_guide",
+        "content_key": "dev_guide",
         "optional": true
       }
     },

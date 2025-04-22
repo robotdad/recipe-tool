@@ -4,14 +4,14 @@
       "type": "read_files",
       "config": {
         "path": "{{input}}",
-        "contents_key": "input_file"
+        "content_key": "input_file"
       }
     },
     {
       "type": "read_files",
       "config": {
         "path": "{{analysis_source}}",
-        "contents_key": "analysis_source"
+        "content_key": "analysis_source"
       }
     },
     {
@@ -21,14 +21,14 @@
           "ai_context/MODULAR_DESIGN_PHILOSOPHY.md",
           "ai_context/IMPLEMENTATION_PHILOSOPHY.md"
         ],
-        "contents_key": "guidance_files"
+        "content_key": "guidance_files"
       }
     },
     {
       "type": "read_files",
       "config": {
         "path": "{{files}}",
-        "contents_key": "additional_files",
+        "content_key": "additional_files",
         "optional": true
       }
     },

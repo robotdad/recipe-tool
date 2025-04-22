@@ -8,6 +8,6 @@ Input context variables:
 - The model to use for generating the content: `model` context variable, optional.
 - The root directory for saving the generated content: `output_root` context variable, optional.
 
-Read in the contents of the files above and then:
+Read in the content of the files above and then:
 
 Generate some new content based the combined context of the idea + any additional files and then, if provided, tartget the style of the reference content. The generated content should be saved in a file named `<content_title>.md` in the specified output directory.
