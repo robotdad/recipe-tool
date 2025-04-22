@@ -1,3 +1,7 @@
+# AI Context Files
+Date: 4/22/2025, 2:28:14 PM
+Files: 10
+
 === File: recipes/example_complex/README.md ===
 # Complex Code Generation Recipe
 
@@ -15,7 +19,7 @@ This recipe demonstrates a multi-step workflow that:
     {
       "type": "read_files",
       "config": {
-        "path": "ai_context/PYDANTIC_AI_DOCS.md",
+        "path": "ai_context/git_collector/PYDANTIC_AI_DOCS.md",
         "contents_key": "pydantic_ai_docs"
       }
     },
@@ -88,7 +92,7 @@ This recipe demonstrates a multi-step workflow that:
 === File: recipes/example_complex/prompts/complex_example_idea.md ===
 Create a recipe file named `complex_example.json` that generates a recipe file based on the following scenario:
 
-Let's write some code that uses the PydanticAI library (docs for it are located in `ai_context/PYDANTIC_AI_DOCS.md`, have the recipe read the contents of this file in) to create simple chat client that uses an LLM. Have it create multiple files and use the parallel step to genearte them in parallel.
+Let's write some code that uses the PydanticAI library (docs for it are located in `ai_context/git_collector/PYDANTIC_AI_DOCS.md`, have the recipe read the contents of this file in) to create simple chat client that uses an LLM. Have it create multiple files and use the parallel step to genearte them in parallel.
 
 But let's also test the use of MCP servers within the LLM generate steps. Configure the LLM step to use our python code tools MCP server (details below). Then let's ask the LLM to generate some code to use it's linting tool and returning a report from that along with the code files. However, intentionally include some errors in the code in **one** of the modules. Finally write the final code to individual files in `output/complex_example`.
 
@@ -157,6 +161,93 @@ Input context variables:
 Read in the contents of the files above and then:
 
 Generate some new content based the combined context of the idea + any additional files and then, if provided, tartget the style of the reference content. The generated content should be saved in a file named `<content_title>.md` in the specified output directory.
+
+
+=== File: recipes/example_mcp_step/mcp_step_example.json ===
+{
+  "steps": [
+    {
+      "type": "read_files",
+      "config": {
+        "path": "{{input}}",
+        "contents_key": "code",
+        "optional": false,
+        "merge_mode": "concat"
+      }
+    },
+    {
+      "type": "mcp",
+      "config": {
+        "server": {
+          "command": "python-code-tools",
+          "args": ["stdio"]
+        },
+        "tool_name": "lint_code",
+        "arguments": {
+          "code": "{{code}}",
+          "fix": true,
+          "config": "{}"
+        },
+        "result_key": "code_analysis"
+      }
+    },
+    {
+      "type": "llm_generate",
+      "config": {
+        "prompt": "Generate a comprehensive report based on the following code analysis results:\n{{ code }}\n{{ code_analysis }}\n\nSave to: {{ input | split: '.' | first }}_code_analysis.md",
+        "model": "openai/gpt-4o",
+        "output_format": "files",
+        "output_key": "generated_report"
+      }
+    },
+    {
+      "type": "write_files",
+      "config": {
+        "files_key": "generated_report",
+        "root": "output"
+      }
+    }
+  ]
+}
+
+
+=== File: recipes/example_mcp_step/prompt/mcp_step_idea.md ===
+Create a recipe named `mcp_step_example.json` that demonstrates the use of the MCP step in a recipe. The recipe should:
+
+- Read in a code file from a path provided via the `input` context variable.
+- Pass the code file to the MCP step for processing using a specific tool call:
+
+  - MCP Server:
+
+    - Command: `python-code-tools`
+    - Args: `stdio`
+
+  - Tool Call:
+
+    ```python
+    async def lint_code(code: str, fix: bool = True, config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """Lint Python code and optionally fix issues.
+
+        Args:
+            code: The Python code to lint
+            fix: Whether to automatically fix issues when possible
+            config: Optional configuration settings for the linter
+
+        Returns:
+            A dictionary containing the fixed code, issues found, and fix counts
+    ```
+
+- Pass the results of the tool call to an LLM step to generate a report and output as type `files`:
+
+```prompt
+Generate a comprehensive report based on the following code analysis results:
+{{ code }}
+{{ code_analysis }}
+
+Save to: [{{ input }} file name w/o extension] + `_code_analysis.md`.
+```
+
+- Write the file to the `output` directory.
 
 
 === File: recipes/example_simple/README.md ===

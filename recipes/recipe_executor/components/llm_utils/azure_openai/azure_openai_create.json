@@ -17,7 +17,7 @@
     {
       "type": "read_files",
       "config": {
-        "path": "ai_context/PYDANTIC_AI_DOCS.md",
+        "path": "ai_context/git_collector/PYDANTIC_AI_DOCS.md",
         "contents_key": "pydantic_ai_docs"
       }
     },

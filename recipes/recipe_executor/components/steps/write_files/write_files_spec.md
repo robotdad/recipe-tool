@@ -8,8 +8,10 @@ The WriteFilesStep component writes generated files to disk based on content fro
 
 - Write one or more files to disk from the context
 - Support both single FileSpec and list of FileSpec formats as input
+- Optional use of `files_key` to specify the context key for file content or `files` for direct input
+- While `FileSpec` is preferred, the component should also support a list of dictionaries with `path` and `content` keys and then write the files to disk, preserving the original structure of `content`
 - Create directories as needed for file paths
-- Apply template rendering to file paths
+- Apply template rendering to all file paths and keys
 - Provide appropriate logging for file operations
 - Follow a minimal design with clear error handling
 
@@ -32,7 +34,6 @@ The WriteFilesStep component writes generated files to disk based on content fro
 
 - **Protocols** – (Required) Uses ContextProtocol for reading artifact data and StepProtocol for step interface compliance
 - **Step Interface** – (Required) Follows the step interface via StepProtocol
-- **Context** – (Required) Retrieves file content from a context implementing ContextProtocol
 - **Models** – (Required) Uses FileSpec models for content structure
 - **Utils** – (Required) Uses render_template for dynamic path resolution
 

@@ -1,3 +1,7 @@
+# AI Context Files
+Date: 4/22/2025, 2:12:23 PM
+Files: 87
+
 === File: recipes/recipe_executor/ai_context/DEV_GUIDE_FOR_PYTHON.md ===
 # Dev Guide for Python
 
@@ -491,7 +495,7 @@ The Executor component is responsible for executing recipes defined in JSON form
     {
       "type": "read_files",
       "config": {
-        "path": "ai_context/PYDANTIC_AI_DOCS.md",
+        "path": "ai_context/git_collector/PYDANTIC_AI_DOCS.md",
         "contents_key": "pydantic_ai_docs"
       }
     },
@@ -800,7 +804,7 @@ openai_model = OpenAIModel(
     {
       "type": "read_files",
       "config": {
-        "path": "ai_context/PYDANTIC_AI_DOCS.md",
+        "path": "ai_context/git_collector/PYDANTIC_AI_DOCS.md",
         "contents_key": "pydantic_ai_docs"
       }
     },
@@ -1161,7 +1165,7 @@ return OpenAIModel(
     {
       "type": "read_files",
       "config": {
-        "path": "ai_context/PYDANTIC_AI_DOCS.md",
+        "path": "ai_context/git_collector/PYDANTIC_AI_DOCS.md",
         "contents_key": "pydantic_ai_docs"
       }
     },
@@ -1779,7 +1783,7 @@ class FileSpec(BaseModel):
     """
 
     path: str
-    content: str
+    content: Union[str, Dict[str, Any], List[Dict[str, Any]]]
 ```
 
 Usage example:
@@ -2925,8 +2929,8 @@ class LLMGenerateConfig(StepConfig):
 
     prompt: str
     model: str = "openai/gpt-4o"
-    mcp_servers: Optional[List[Dict[str, Any]]] = None
-    output_format: "text" | "files" | jsonschema.Schema = "text"
+    mcp_servers: Optional[List[Dict[str, Any]]]
+    output_format: "text" | "files" | jsonschema.Schema
     output_key: str = "llm_output"
 ```
 
@@ -2976,6 +2980,14 @@ The prompt can include template variables from the context:
         "model": "{{model|default:'openai/o3-mini'}}",
         "output_format": "files",
         "output_key": "component_code_files"
+      }
+    },
+    {
+      "type": "write_files",
+      "config": {
+        # Prefer using "files_key" over "files" when using LLMGenerateStep with "files" output format
+        "files_key": "component_code_files",
+        "root": "./output"
       }
     }
   ]
@@ -3675,20 +3687,6 @@ None
     {
       "type": "read_files",
       "config": {
-        "path": "{{recipe_root|default:'recipes/recipe_executor'}}/components/context/context_docs.md",
-        "contents_key": "context_docs"
-      }
-    },
-    {
-      "type": "read_files",
-      "config": {
-        "path": "{{recipe_root|default:'recipes/recipe_executor'}}/components/llm_utils/mcp/mcp_docs.md",
-        "contents_key": "llm_utils_mcp_docs"
-      }
-    },
-    {
-      "type": "read_files",
-      "config": {
         "path": "{{recipe_root|default:'recipes/recipe_executor'}}/components/utils/utils_docs.md",
         "contents_key": "utils_docs"
       }
@@ -3696,15 +3694,8 @@ None
     {
       "type": "read_files",
       "config": {
-        "path": "ai_context/AZURE_IDENTITY_CLIENT_DOCS.md",
-        "contents_key": "azure_identity_client_docs"
-      }
-    },
-    {
-      "type": "read_files",
-      "config": {
-        "path": "ai_context/PYDANTIC_AI_DOCS.md",
-        "contents_key": "pydantic_ai_docs"
+        "path": "ai_context/git_collector/MCP_PYTHON_SDK_DOCS.md",
+        "contents_key": "mcp_python_sdk_docs"
       }
     },
     {
@@ -3715,7 +3706,7 @@ None
           "component_id": "mcp",
           "component_path": "/steps",
           "existing_code": "{{existing_code}}",
-          "additional_content": "<STEPS_BASE_DOCS>\n{{steps_base_docs}}\n</STEPS_BASE_DOCS>\n<CONTEXT_DOCS>\n{{context_docs}}\n</CONTEXT_DOCS>\n<LLM_UTILS_MCP_DOCS>\n{{llm_utils_mcp_docs}}\n</LLM_UTILS_MCP_DOCS>\n<UTILS_DOCS>\n{{utils_docs}}\n</UTILS_DOCS>\n<AZURE_IDENTITY_CLIENT_DOCS>\n{{azure_identity_client_docs}}\n</AZURE_IDENTITY_CLIENT_DOCS>\n<PYDANTIC_AI_DOCS>\n{{pydantic_ai_docs}}\n</PYDANTIC_AI_DOCS>"
+          "additional_content": "<STEPS_BASE_DOCS>\n{{steps_base_docs}}\n</STEPS_BASE_DOCS>\n<UTILS_DOCS>\n{{utils_docs}}\n</UTILS_DOCS>\n<MCP_PYTHON_SDK_DOCS>\n{{mcp_python_sdk_docs}}\n</MCP_PYTHON_SDK_DOCS>"
         }
       }
     }
@@ -3745,13 +3736,27 @@ class McpConfig(StepConfig):
         server: Configuration for the MCP server.
         tool_name: Name of the tool to invoke.
         arguments: Arguments to pass to the tool as a dictionary.
-        output_key: Context key under which to store the tool output.
+        result_key: Context key under which to store the tool result as a dictionary.
     """
     server: Dict[str, Any]
     tool_name: str
     arguments: Dict[str, Any]
-    output_key: str = "tool_result"
+    result_key: str = "tool_result"
 ```
+
+The `server` field is a dictionary containing the server configuration, which can include:
+
+For HTTP servers:
+
+- `url`: str - the URL of the MCP server.
+- `headers`: Optional[Dict[str, Any]] -headers to include in the request.
+
+For stdio servers:
+
+- `command`: str - the command to run the MCP server.
+- `args`: List[str] - arguments to pass to the command.
+- `env`: Optional[Dict[str, str]] - environment variables to set for the command.
+- `working_dir`: The working directory for the command.
 
 ## Basic Usage in Recipes
 
@@ -3765,11 +3770,13 @@ The `McpStep` is available via the `mcp` step type in recipes:
       "config": {
         "server": {
           "url": "http://localhost:5000",
-          "api_key": "your_api_key"
+          "headers": {
+            "api_key": "your_api_key"
+          }
         },
         "tool_name": "get_stock",
         "arguments": { "item_id": "{{item_id}}" },
-        "output_key": "stock_info"
+        "result_key": "stock_info"
       }
     }
   ]
@@ -3782,6 +3789,9 @@ After execution, the context contains:
 {
   "stock_info": {
     "item_id": 123,
+    "name": "Widget",
+    "price": 19.99,
+    "in_stock": true,
     "quantity": 42
   }
 }
@@ -3821,31 +3831,30 @@ All string configuration fields support templating using context variables.
 
 ## Purpose
 
-The McpStep component allows recipes to invoke tools on remote MCP servers. It creates a simple MCP client, connects to the given server endpoint, calls the specified tool with provided arguments, and stores the result in the execution context.
+The McpStep component allows recipes to invoke tools on remote MCP servers and store the result in the execution context.
 
 ## Core Requirements
 
-- Accept configuration for:
-  - `endpoint`: MCP server URL (templated).
-  - `service_name`: Name of the service on the MCP server.
-  - `tool_name`: Name of the tool to invoke.
-  - `arguments`: Dictionary of arguments to pass to the tool.
-  - `result_key`: Context key under which to store the result.
+- Accept configuration for the MCP server, tool name, arguments, and result key.
 - Use a minimal MCP client implementation:
-  - Connect to the server if not already connected.
+  - Connect to the MCP server using the provided configuration.
   - Call the specified tool with the provided arguments.
-- Store the tool call result in the context under `result_key`.
 - Handle errors:
   - Raise a `ValueError` with a clear message if the call fails.
 - Remain stateless across invocations.
 
 ## Implementation Considerations
 
-- Use `render_template` to resolve templated configuration values before use.
 - Retrieve configuration values via the step config object.
-- Instantiate or reuse an `McpClient` using `endpoint` and `service_name`.
-- Call `client.call_tool(tool_name, arguments)` to invoke the tool.
+- Use `render_template` to resolve templated configuration values before use.
+- Use `sse_client` or `stdio_client` to create `ClientSession` instance.
+  - For `stdio_client`:
+    - Use `StdioServerParameters` for `server` config parameter.
+    - Use `cwd` as the working directory for the command.
+- Intialize session and execute session.call_tool with the tool name and arguments.
 - Wrap exceptions from the client in `ValueError` including the tool name and service.
+- Convert the `CallToolResult` to `Dict[str, Any]`.
+- Store converted tool result dictionary in context under `result_key`.
 - Overwrite existing context values if `result_key` already exists.
 
 ## Logging
@@ -3858,13 +3867,11 @@ The McpStep component allows recipes to invoke tools on remote MCP servers. It c
 ### Internal Components
 
 - **Protocols**: Uses `ContextProtocol` for context interactions and `StepProtocol` for the step interface.
-- **Context**: Reads from and writes to the execution context.
-- **MCP**: Uses `McpClient` and `create_mcp_agent` for server communication.
 - **Utils**: Uses `render_template` for resolving templated parameters.
 
 ### External Libraries
 
-- **copy**, **typing** (Python stdlib)
+- **mcp**: Provides `sse_client`, `stdio_client`, `CallToolResult` `StdioServerParameters` and `ClientSession` for MCP server interactions.
 
 ### Configuration Dependencies
 
@@ -4686,13 +4693,6 @@ STEP_REGISTRY.update({
     {
       "type": "read_files",
       "config": {
-        "path": "{{recipe_root|default:'recipes/recipe_executor'}}/components/context/context_docs.md",
-        "contents_key": "context_docs"
-      }
-    },
-    {
-      "type": "read_files",
-      "config": {
         "path": "{{recipe_root|default:'recipes/recipe_executor'}}/components/models/models_docs.md",
         "contents_key": "models_docs"
       }
@@ -4739,10 +4739,12 @@ class WriteFilesConfig(StepConfig):
     Config for WriteFilesStep.
 
     Fields:
-        files_key: Name of the context key holding a List[FileSpec].
+        files_key: Optional name of the context key holding a List[FileSpec].
+        files: Optional list of dictionaries with 'path' and 'content' keys.
         root: Optional base path to prepend to all output file paths.
     """
-    files_key: str
+    files_key: Optional[str]
+    files: Optional[List[Dict[str, Any]]]
     root: str = "."
 ```
 
@@ -4759,7 +4761,39 @@ STEP_REGISTRY["write_files"] = WriteFilesStep
 
 ## Basic Usage in Recipes
 
+Either `files_key` or `files` is required in the configuration. If both are provided, `files` takes precedence.
+
+The `files_key` is the context key where the generated files are stored. The `files` parameter can be used to directly provide a list of dictionaries with `path` and `content` keys. Alternatively, the path and content can be specfied using `path_key` and `content_key` respectively to reference values in the context.
+
 The WriteFilesStep can be used in recipes like this:
+
+Files Key Example:
+
+```json
+{
+  "steps": [
+    {
+      "type": "llm_generate",
+      "config": {
+        "prompt": "Generate a Python script that prints 'Hello, world!'",
+        "model": "openai/o3-mini",
+        "output_format": "files",
+        "output_key": "generated_files"
+      }
+    },
+    {
+      "type": "write_files",
+      "config": {
+        # Preferred way to receive "files" from other steps that create FileSpec objects
+        "files_key": "generated_files",
+        "root": "output/src"
+      }
+    }
+  ]
+}
+```
+
+Files Example:
 
 ```json
 {
@@ -4767,8 +4801,18 @@ The WriteFilesStep can be used in recipes like this:
     {
       "type": "write_files",
       "config": {
-        "root": "output/project",
-        "files_key": "generated_files"
+        "files": [
+          { "path": "src/main.py", "content": "print('Hello, world!')" },
+          {
+            "path": "src/{{component_name}}_utils.py",
+            "content_key": "generated_code"
+          },
+          {
+            "path_key": "generated_config_path",
+            "content_key": "generated_config_data"
+          }
+        ],
+        "root": "output/src"
       }
     }
   ]
@@ -4912,8 +4956,10 @@ The WriteFilesStep component writes generated files to disk based on content fro
 
 - Write one or more files to disk from the context
 - Support both single FileSpec and list of FileSpec formats as input
+- Optional use of `files_key` to specify the context key for file content or `files` for direct input
+- While `FileSpec` is preferred, the component should also support a list of dictionaries with `path` and `content` keys and then write the files to disk, preserving the original structure of `content`
 - Create directories as needed for file paths
-- Apply template rendering to file paths
+- Apply template rendering to all file paths and keys
 - Provide appropriate logging for file operations
 - Follow a minimal design with clear error handling
 
@@ -4936,7 +4982,6 @@ The WriteFilesStep component writes generated files to disk based on content fro
 
 - **Protocols** – (Required) Uses ContextProtocol for reading artifact data and StepProtocol for step interface compliance
 - **Step Interface** – (Required) Follows the step interface via StepProtocol
-- **Context** – (Required) Retrieves file content from a context implementing ContextProtocol
 - **Models** – (Required) Uses FileSpec models for content structure
 - **Utils** – (Required) Uses render_template for dynamic path resolution
 

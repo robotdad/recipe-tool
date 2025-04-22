@@ -16,10 +16,12 @@ class WriteFilesConfig(StepConfig):
     Config for WriteFilesStep.
 
     Fields:
-        files_key: Name of the context key holding a List[FileSpec].
+        files_key: Optional name of the context key holding a List[FileSpec].
+        files: Optional list of dictionaries with 'path' and 'content' keys.
         root: Optional base path to prepend to all output file paths.
     """
-    files_key: str
+    files_key: Optional[str]
+    files: Optional[List[Dict[str, Any]]]
     root: str = "."
 ```
 
@@ -36,7 +38,39 @@ STEP_REGISTRY["write_files"] = WriteFilesStep
 
 ## Basic Usage in Recipes
 
+Either `files_key` or `files` is required in the configuration. If both are provided, `files` takes precedence.
+
+The `files_key` is the context key where the generated files are stored. The `files` parameter can be used to directly provide a list of dictionaries with `path` and `content` keys. Alternatively, the path and content can be specfied using `path_key` and `content_key` respectively to reference values in the context.
+
 The WriteFilesStep can be used in recipes like this:
+
+Files Key Example:
+
+```json
+{
+  "steps": [
+    {
+      "type": "llm_generate",
+      "config": {
+        "prompt": "Generate a Python script that prints 'Hello, world!'",
+        "model": "openai/o3-mini",
+        "output_format": "files",
+        "output_key": "generated_files"
+      }
+    },
+    {
+      "type": "write_files",
+      "config": {
+        # Preferred way to receive "files" from other steps that create FileSpec objects
+        "files_key": "generated_files",
+        "root": "output/src"
+      }
+    }
+  ]
+}
+```
+
+Files Example:
 
 ```json
 {
@@ -44,8 +78,18 @@ The WriteFilesStep can be used in recipes like this:
     {
       "type": "write_files",
       "config": {
-        "root": "output/project",
-        "files_key": "generated_files"
+        "files": [
+          { "path": "src/main.py", "content": "print('Hello, world!')" },
+          {
+            "path": "src/{{component_name}}_utils.py",
+            "content_key": "generated_code"
+          },
+          {
+            "path_key": "generated_config_path",
+            "content_key": "generated_config_data"
+          }
+        ],
+        "root": "output/src"
       }
     }
   ]

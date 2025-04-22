@@ -26,7 +26,7 @@ class FileSpec(BaseModel):
     """
 
     path: str
-    content: str
+    content: Union[str, Dict[str, Any], List[Dict[str, Any]]]
 ```
 
 Usage example:

@@ -28,8 +28,8 @@ class LLMGenerateConfig(StepConfig):
 
     prompt: str
     model: str = "openai/gpt-4o"
-    mcp_servers: Optional[List[Dict[str, Any]]] = None
-    output_format: "text" | "files" | jsonschema.Schema = "text"
+    mcp_servers: Optional[List[Dict[str, Any]]]
+    output_format: "text" | "files" | jsonschema.Schema
     output_key: str = "llm_output"
 ```
 
@@ -79,6 +79,14 @@ The prompt can include template variables from the context:
         "model": "{{model|default:'openai/o3-mini'}}",
         "output_format": "files",
         "output_key": "component_code_files"
+      }
+    },
+    {
+      "type": "write_files",
+      "config": {
+        # Prefer using "files_key" over "files" when using LLMGenerateStep with "files" output format
+        "files_key": "component_code_files",
+        "root": "./output"
       }
     }
   ]

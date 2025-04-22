@@ -2,31 +2,30 @@
 
 ## Purpose
 
-The McpStep component allows recipes to invoke tools on remote MCP servers. It creates a simple MCP client, connects to the given server endpoint, calls the specified tool with provided arguments, and stores the result in the execution context.
+The McpStep component allows recipes to invoke tools on remote MCP servers and store the result in the execution context.
 
 ## Core Requirements
 
-- Accept configuration for:
-  - `endpoint`: MCP server URL (templated).
-  - `service_name`: Name of the service on the MCP server.
-  - `tool_name`: Name of the tool to invoke.
-  - `arguments`: Dictionary of arguments to pass to the tool.
-  - `result_key`: Context key under which to store the result.
+- Accept configuration for the MCP server, tool name, arguments, and result key.
 - Use a minimal MCP client implementation:
-  - Connect to the server if not already connected.
+  - Connect to the MCP server using the provided configuration.
   - Call the specified tool with the provided arguments.
-- Store the tool call result in the context under `result_key`.
 - Handle errors:
   - Raise a `ValueError` with a clear message if the call fails.
 - Remain stateless across invocations.
 
 ## Implementation Considerations
 
-- Use `render_template` to resolve templated configuration values before use.
 - Retrieve configuration values via the step config object.
-- Instantiate or reuse an `McpClient` using `endpoint` and `service_name`.
-- Call `client.call_tool(tool_name, arguments)` to invoke the tool.
+- Use `render_template` to resolve templated configuration values before use.
+- Use `sse_client` or `stdio_client` to create `ClientSession` instance.
+  - For `stdio_client`:
+    - Use `StdioServerParameters` for `server` config parameter.
+    - Use `cwd` as the working directory for the command.
+- Intialize session and execute session.call_tool with the tool name and arguments.
 - Wrap exceptions from the client in `ValueError` including the tool name and service.
+- Convert the `CallToolResult` to `Dict[str, Any]`.
+- Store converted tool result dictionary in context under `result_key`.
 - Overwrite existing context values if `result_key` already exists.
 
 ## Logging
@@ -39,13 +38,11 @@ The McpStep component allows recipes to invoke tools on remote MCP servers. It c
 ### Internal Components
 
 - **Protocols**: Uses `ContextProtocol` for context interactions and `StepProtocol` for the step interface.
-- **Context**: Reads from and writes to the execution context.
-- **MCP**: Uses `McpClient` and `create_mcp_agent` for server communication.
 - **Utils**: Uses `render_template` for resolving templated parameters.
 
 ### External Libraries
 
-- **copy**, **typing** (Python stdlib)
+- **mcp**: Provides `sse_client`, `stdio_client`, `CallToolResult` `StdioServerParameters` and `ClientSession` for MCP server interactions.
 
 ### Configuration Dependencies
 

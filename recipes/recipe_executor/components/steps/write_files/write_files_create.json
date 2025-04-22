@@ -10,13 +10,6 @@
     {
       "type": "read_files",
       "config": {
-        "path": "{{recipe_root|default:'recipes/recipe_executor'}}/components/context/context_docs.md",
-        "contents_key": "context_docs"
-      }
-    },
-    {
-      "type": "read_files",
-      "config": {
         "path": "{{recipe_root|default:'recipes/recipe_executor'}}/components/models/models_docs.md",
         "contents_key": "models_docs"
       }

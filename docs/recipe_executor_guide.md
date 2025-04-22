@@ -245,7 +245,7 @@ Configure the model in the `generate` step:
   "config": {
     "prompt": "Generate content about: {{topic}}",
     "model": "{{provider/default:'openai'}}:{{model_name|default:'o3-mini'}}",
-    "output_format": "text",
+    "output_format": "files",
     "output_key": "generated_content"
   }
 }

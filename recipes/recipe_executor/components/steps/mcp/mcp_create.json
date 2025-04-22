@@ -10,20 +10,6 @@
     {
       "type": "read_files",
       "config": {
-        "path": "{{recipe_root|default:'recipes/recipe_executor'}}/components/context/context_docs.md",
-        "contents_key": "context_docs"
-      }
-    },
-    {
-      "type": "read_files",
-      "config": {
-        "path": "{{recipe_root|default:'recipes/recipe_executor'}}/components/llm_utils/mcp/mcp_docs.md",
-        "contents_key": "llm_utils_mcp_docs"
-      }
-    },
-    {
-      "type": "read_files",
-      "config": {
         "path": "{{recipe_root|default:'recipes/recipe_executor'}}/components/utils/utils_docs.md",
         "contents_key": "utils_docs"
       }
@@ -31,15 +17,8 @@
     {
       "type": "read_files",
       "config": {
-        "path": "ai_context/AZURE_IDENTITY_CLIENT_DOCS.md",
-        "contents_key": "azure_identity_client_docs"
-      }
-    },
-    {
-      "type": "read_files",
-      "config": {
-        "path": "ai_context/PYDANTIC_AI_DOCS.md",
-        "contents_key": "pydantic_ai_docs"
+        "path": "ai_context/git_collector/MCP_PYTHON_SDK_DOCS.md",
+        "contents_key": "mcp_python_sdk_docs"
       }
     },
     {
@@ -50,7 +29,7 @@
           "component_id": "mcp",
           "component_path": "/steps",
           "existing_code": "{{existing_code}}",
-          "additional_content": "<STEPS_BASE_DOCS>\n{{steps_base_docs}}\n</STEPS_BASE_DOCS>\n<CONTEXT_DOCS>\n{{context_docs}}\n</CONTEXT_DOCS>\n<LLM_UTILS_MCP_DOCS>\n{{llm_utils_mcp_docs}}\n</LLM_UTILS_MCP_DOCS>\n<UTILS_DOCS>\n{{utils_docs}}\n</UTILS_DOCS>\n<AZURE_IDENTITY_CLIENT_DOCS>\n{{azure_identity_client_docs}}\n</AZURE_IDENTITY_CLIENT_DOCS>\n<PYDANTIC_AI_DOCS>\n{{pydantic_ai_docs}}\n</PYDANTIC_AI_DOCS>"
+          "additional_content": "<STEPS_BASE_DOCS>\n{{steps_base_docs}}\n</STEPS_BASE_DOCS>\n<UTILS_DOCS>\n{{utils_docs}}\n</UTILS_DOCS>\n<MCP_PYTHON_SDK_DOCS>\n{{mcp_python_sdk_docs}}\n</MCP_PYTHON_SDK_DOCS>"
         }
       }
     }

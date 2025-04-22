@@ -1,3 +1,7 @@
+# AI Context Files
+Date: 4/22/2025, 1:55:48 PM
+Files: 24
+
 === File: .env.example ===
 # Optional for the project
 #LOG_LEVEL=DEBUG
@@ -931,19 +935,14 @@ async def main_async() -> None:
 
 
 === File: recipe_executor/models.py ===
-"""
-Models for the Recipe Executor system.
-
-Defines Pydantic models representing files and recipe steps.
-"""
-
-from typing import Dict, List
+from typing import Any, Dict, List, Union
 
 from pydantic import BaseModel
 
 
 class FileSpec(BaseModel):
-    """Represents a single file to be generated.
+    """
+    Represents a single file to be generated.
 
     Attributes:
         path: Relative path where the file should be written.
@@ -951,11 +950,12 @@ class FileSpec(BaseModel):
     """
 
     path: str
-    content: str
+    content: Union[str, Dict[str, Any], List[Dict[str, Any]]]
 
 
 class RecipeStep(BaseModel):
-    """A single step in a recipe.
+    """
+    A single step in a recipe.
 
     Attributes:
         type: The type of the recipe step.
@@ -963,11 +963,12 @@ class RecipeStep(BaseModel):
     """
 
     type: str
-    config: Dict
+    config: Dict[str, Any]
 
 
 class Recipe(BaseModel):
-    """A complete recipe with multiple steps.
+    """
+    A complete recipe with multiple steps.
 
     Attributes:
         steps (List[RecipeStep]): A list containing the steps of the recipe.
@@ -1472,11 +1473,13 @@ class LoopStep(BaseStep[LoopStepConfig]):
 import logging
 from typing import Any, Dict, Optional
 
-from recipe_executor.context import ContextProtocol
-from recipe_executor.llm_utils.mcp import get_mcp_server
-from recipe_executor.protocols import StepProtocol
+from pydantic import Field
+
+from recipe_executor.protocols import ContextProtocol
 from recipe_executor.steps.base import BaseStep, StepConfig
 from recipe_executor.utils import render_template
+
+# Import inside methods to avoid circular deps and unnecessary imports if not invoked
 
 
 class McpConfig(StepConfig):
@@ -1486,62 +1489,102 @@ class McpConfig(StepConfig):
     Fields:
         server: Configuration for the MCP server.
         tool_name: Name of the tool to invoke.
-        arguments: Arguments to pass to the tool.
-        output_key: Context key under which to store the tool output.
-        timeout: Optional timeout in seconds for the call.
+        arguments: Arguments to pass to the tool as a dictionary.
+        result_key: Context key to store the tool result.
     """
 
     server: Dict[str, Any]
     tool_name: str
-    arguments: Dict[str, Any] = {}
-    output_key: str = "tool_result"
-    timeout: Optional[int] = None
+    arguments: Dict[str, Any]
+    result_key: str = Field(default="tool_result")
 
 
-class McpStep(BaseStep[McpConfig], StepProtocol):
-    """
-    Step for invoking a tool on a remote MCP server and storing the result in the context.
-    """
-
+class McpStep(BaseStep[McpConfig]):
     def __init__(self, logger: logging.Logger, config: Dict[str, Any]) -> None:
         super().__init__(logger, McpConfig(**config))
 
     async def execute(self, context: ContextProtocol) -> None:
-        # Render configuration values using context (Liquid templates supported)
-        server_conf: Dict[str, Any] = {
-            k: render_template(str(v), context) if isinstance(v, str) else v for k, v in self.config.server.items()
-        }
-        tool_name: str = render_template(self.config.tool_name, context)
-        output_key: str = render_template(self.config.output_key, context)
-
-        # Render arguments (template only string values)
-        arguments: Dict[str, Any] = {}
-        for k, v in self.config.arguments.items():
+        # Render all templated string fields in config
+        rendered_server: Dict[str, Any] = {}
+        for k, v in self.config.server.items():
             if isinstance(v, str):
-                arguments[k] = render_template(v, context)
+                rendered_server[k] = render_template(v, context)
             else:
-                arguments[k] = v
+                rendered_server[k] = v
+        tool_name: str = render_template(self.config.tool_name, context)
+        result_key: str = render_template(self.config.result_key, context) if self.config.result_key else "tool_result"
+        # Arguments: also resolve any string values as templates
+        rendered_arguments: Dict[str, Any] = {}
+        args = self.config.arguments or {}
+        for k, v in args.items():
+            if isinstance(v, str):
+                rendered_arguments[k] = render_template(v, context)
+            else:
+                rendered_arguments[k] = v
 
-        # Construct MCP client
-        self.logger.debug(f"Connecting to MCP server at '{server_conf.get('url')}' for tool '{tool_name}'")
-
+        # Select connection type
+        sse_client = None
+        stdio_client = None
+        ClientSession = None
+        StdioServerParameters = None
         try:
-            client = get_mcp_server(self.logger, server_conf)
-        except Exception as exc:
-            raise ValueError(f"Failed to create MCP client: {exc}") from exc
+            from mcp import ClientSession, StdioServerParameters
+            from mcp.client.sse import sse_client
+            from mcp.client.stdio import stdio_client
+        except ImportError as exc:
+            raise ValueError("mcp package is required for McpStep but not installed.") from exc
 
-        # Call tool
+        # Connect and call tool
+        session = None
+        tool_result: Optional[Any] = None
         try:
-            self.logger.debug(f"Calling MCP tool '{tool_name}' with arguments: {arguments}")
-            result: Any = await client.call_tool(tool_name, arguments)
+            # Decide client type based on config
+            if "url" in rendered_server and rendered_server["url"]:
+                url = rendered_server["url"]
+                headers = rendered_server.get("headers")
+                self.logger.debug(f"Connecting to MCP server via SSE at {url} (tool={tool_name})")
+                async with sse_client(url, headers=headers) as (read, write):
+                    async with ClientSession(read, write) as session:
+                        await session.initialize()
+                        self.logger.debug(f"Calling tool '{tool_name}' with arguments: {rendered_arguments}")
+                        tool_result = await session.call_tool(tool_name, arguments=rendered_arguments)
+            elif "command" in rendered_server and rendered_server["command"]:
+                command = rendered_server["command"]
+                args_list = rendered_server.get("args", [])
+                env = rendered_server.get("env")
+                working_dir = rendered_server.get("working_dir")
+                server_params = StdioServerParameters(
+                    command=command,
+                    args=args_list,
+                    env=env,
+                    cwd=working_dir,
+                )
+                self.logger.debug(
+                    f"Connecting to MCP stdio server: {command} {args_list} (cwd={working_dir}, tool={tool_name})"
+                )
+                async with stdio_client(server_params) as (read, write):
+                    async with ClientSession(read, write) as session:
+                        await session.initialize()
+                        self.logger.debug(f"Calling tool '{tool_name}' with arguments: {rendered_arguments}")
+                        tool_result = await session.call_tool(tool_name, arguments=rendered_arguments)
+            else:
+                raise ValueError("Invalid MCP server configuration: must provide either 'url' or 'command'.")
         except Exception as exc:
-            raise ValueError(
-                f"Error calling tool '{tool_name}' on MCP server '{server_conf.get('url') or server_conf}': {exc}"
-            ) from exc
+            # Wrap in ValueError with details as spec requires
+            server_info = rendered_server.get("url") or rendered_server.get("command") or str(rendered_server)
+            raise ValueError(f"Failed to call MCP tool '{tool_name}' on service '{server_info}': {exc}") from exc
 
-        # Store result in context
-        context[output_key] = result
-        self.logger.debug(f"MCP result stored under key '{output_key}' in context.")
+        # Convert the result to dict if possible
+        # If not already a dict, try to use .dict() if available, otherwise as-is
+        result_dict: Dict[str, Any]
+        if isinstance(tool_result, dict):
+            result_dict = tool_result
+        elif hasattr(tool_result, "dict"):
+            result_dict = tool_result.dict()  # type: ignore
+        else:
+            result_dict = {"result": tool_result}
+
+        context[result_key] = result_dict
 
 
 === File: recipe_executor/steps/parallel.py ===
@@ -1799,10 +1842,9 @@ STEP_REGISTRY: Dict[str, Type[BaseStep]] = {}
 === File: recipe_executor/steps/write_files.py ===
 import logging
 import os
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from recipe_executor.models import FileSpec
-from recipe_executor.protocols import ContextProtocol
 from recipe_executor.steps.base import BaseStep, StepConfig
 from recipe_executor.utils import render_template
 
@@ -1812,11 +1854,13 @@ class WriteFilesConfig(StepConfig):
     Config for WriteFilesStep.
 
     Fields:
-        files_key: Name of the context key holding a List[FileSpec] or FileSpec.
+        files_key: Optional name of the context key holding a List[FileSpec].
+        files: Optional list of dictionaries with 'path' and 'content' keys.
         root: Optional base path to prepend to all output file paths.
     """
 
-    files_key: str
+    files_key: Optional[str] = None
+    files: Optional[List[Dict[str, Any]]] = None
     root: str = "."
 
 
@@ -1824,73 +1868,109 @@ class WriteFilesStep(BaseStep[WriteFilesConfig]):
     def __init__(self, logger: logging.Logger, config: Dict[str, Any]) -> None:
         super().__init__(logger, WriteFilesConfig(**config))
 
-    async def execute(self, context: ContextProtocol) -> None:
-        files_key: str = self.config.files_key
-        root_template: str = self.config.root
-
-        # Ensure the artifact exists in context
-        if files_key not in context:
-            error_message = f"WriteFilesStep: Context missing required artifact '{files_key}'"
-            self.logger.error(error_message)
-            raise KeyError(error_message)
-
-        artifact: Any = context[files_key]
-
-        # Handle FileSpec or List[FileSpec]
-        file_specs: List[FileSpec] = []
-        if isinstance(artifact, FileSpec):
-            file_specs = [artifact]
-        elif isinstance(artifact, list):
-            for item in artifact:
-                if not isinstance(item, FileSpec):
-                    error_message = (
-                        f"WriteFilesStep: Expected FileSpec or list of FileSpec for '{files_key}', "
-                        f"but found list item of type {type(item)}"
-                    )
-                    self.logger.error(error_message)
-                    raise TypeError(error_message)
-            file_specs = artifact
+    async def execute(self, context) -> None:
+        files_to_write: List[FileSpec] = []
+        # Prefer files in config, fallback to files_key in context
+        if self.config.files is not None:
+            files_to_write = self._resolve_files_from_config(self.config.files, context)
+        elif self.config.files_key is not None:
+            if self.config.files_key not in context:
+                msg = f"WriteFilesStep: Key '{self.config.files_key}' not found in context."
+                self.logger.error(msg)
+                raise ValueError(msg)
+            artifact = context[self.config.files_key]
+            files_to_write = self._normalize_files_from_context(artifact)
         else:
-            error_message = (
-                f"WriteFilesStep: Context value for '{files_key}' must be FileSpec or list of FileSpec, "
-                f"not {type(artifact)}"
-            )
-            self.logger.error(error_message)
-            raise TypeError(error_message)
+            msg = "WriteFilesStep: Either 'files' or 'files_key' must be provided in config."
+            self.logger.error(msg)
+            raise ValueError(msg)
 
-        rendered_root: str = render_template(root_template, context)
+        if not files_to_write:
+            msg = "WriteFilesStep: No files to write."
+            self.logger.warning(msg)
+            return
 
-        for file_spec in file_specs:
-            # Template render the file path (may use template variables)
-            rendered_path: str = render_template(file_spec.path, context)
-            full_path: str = os.path.normpath(os.path.join(rendered_root, rendered_path))
-
-            # Prepare directory
-            parent_dir: str = os.path.dirname(full_path)
-            if parent_dir and not os.path.exists(parent_dir):
-                try:
-                    os.makedirs(parent_dir, exist_ok=True)
-                    self.logger.debug(f"Created directories for '{parent_dir}'")
-                except Exception as exc:
-                    error_message = f"WriteFilesStep: Failed to create directories for '{parent_dir}': {exc}"
-                    self.logger.error(error_message)
-                    raise
-
-            # Debug log path and content
-            self.logger.debug(
-                f"WriteFilesStep: Preparing to write file: {full_path}\nContent (first 500 chars):\n{file_spec.content[:500]}"
-            )
-
-            # Write file
+        for file_spec in files_to_write:
             try:
-                with open(full_path, "w", encoding="utf-8") as file_obj:
-                    file_obj.write(file_spec.content)
-                file_size: int = len(file_spec.content.encode("utf-8"))
-                self.logger.info(f"WriteFilesStep: Wrote '{full_path}' [{file_size} bytes]")
-            except Exception as exc:
-                error_message = f"WriteFilesStep: Failed to write file '{full_path}': {exc}"
-                self.logger.error(error_message)
+                # Render root and path using templates
+                rendered_root = render_template(self.config.root, context) if self.config.root else "."
+                rendered_path = render_template(file_spec.path, context)
+                output_path = os.path.normpath(os.path.join(rendered_root, rendered_path))
+                os.makedirs(os.path.dirname(output_path), exist_ok=True)
+                # Log file info (debug) before writing
+                self.logger.debug(f"WriteFilesStep: Preparing to write file: {output_path}")
+                self.logger.debug(f"WriteFilesStep: File content for {output_path}: {repr(file_spec.content)}")
+                # Write content as utf-8 (or dump content as-is if not string)
+                with open(output_path, "w", encoding="utf-8") as f:
+                    if isinstance(file_spec.content, str):
+                        f.write(file_spec.content)
+                    else:
+                        import json
+
+                        f.write(json.dumps(file_spec.content, indent=2))
+
+                size = len(file_spec.content) if isinstance(file_spec.content, str) else len(str(file_spec.content))
+                self.logger.info(f"WriteFilesStep: Wrote file '{output_path}' ({size} bytes)")
+            except Exception as ex:
+                self.logger.error(f"WriteFilesStep: Failed to write file '{file_spec.path}': {str(ex)}")
                 raise
+
+    def _resolve_files_from_config(self, files_config: List[Dict[str, Any]], context) -> List[FileSpec]:
+        files: List[FileSpec] = []
+        for idx, file_dict in enumerate(files_config):
+            # Determine the path
+            path: Optional[str] = None
+            if "path" in file_dict:
+                path = file_dict["path"]
+                if path is None:
+                    raise ValueError(f"WriteFilesStep: 'path' cannot be None (file index {idx})")
+                path = render_template(path, context)
+            elif "path_key" in file_dict:
+                key = file_dict["path_key"]
+                if key not in context:
+                    raise ValueError(f"WriteFilesStep: path_key '{key}' not in context (file index {idx})")
+                path = str(context[key])
+                path = render_template(path, context)
+            else:
+                raise ValueError(f"WriteFilesStep: File at index {idx} missing 'path' or 'path_key'.")
+            # Determine the content
+            content: Any = None
+            if "content" in file_dict:
+                content = file_dict["content"]
+            elif "content_key" in file_dict:
+                key = file_dict["content_key"]
+                if key not in context:
+                    raise ValueError(f"WriteFilesStep: content_key '{key}' not in context (file index {idx})")
+                content = context[key]
+            else:
+                raise ValueError(f"WriteFilesStep: File at index {idx} missing 'content' or 'content_key'.")
+            files.append(FileSpec(path=path, content=content))
+        return files
+
+    def _normalize_files_from_context(self, artifact: Any) -> List[FileSpec]:
+        if isinstance(artifact, FileSpec):
+            return [artifact]
+        elif isinstance(artifact, list):
+            files: List[FileSpec] = []
+            for idx, item in enumerate(artifact):
+                if isinstance(item, FileSpec):
+                    files.append(item)
+                elif isinstance(item, dict):
+                    try:
+                        files.append(FileSpec.model_validate(item))
+                    except Exception as ex:
+                        raise ValueError(f"WriteFilesStep: Invalid file dict at index {idx}: {ex}")
+                else:
+                    raise ValueError(f"WriteFilesStep: Invalid file type at index {idx}")
+            return files
+        elif isinstance(artifact, dict):
+            # Try to coerce to FileSpec
+            try:
+                return [FileSpec.model_validate(artifact)]
+            except Exception as ex:
+                raise ValueError(f"WriteFilesStep: Invalid file dict in context: {ex}")
+        else:
+            raise ValueError("WriteFilesStep: Provided artifact is not a FileSpec, list, or dict.")
 
 
 === File: recipe_executor/utils.py ===

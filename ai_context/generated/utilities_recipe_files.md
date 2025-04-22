@@ -1,3 +1,7 @@
+# AI Context Files
+Date: 4/22/2025, 10:49:12 AM
+Files: 1
+
 === File: recipes/utilities/generate_from_files.json ===
 {
   "steps": [

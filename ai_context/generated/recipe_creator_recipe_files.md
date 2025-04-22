@@ -1,3 +1,7 @@
+# AI Context Files
+Date: 4/22/2025, 10:49:12 AM
+Files: 4
+
 === File: recipes/recipe_creator/create.json ===
 {
   "steps": [
