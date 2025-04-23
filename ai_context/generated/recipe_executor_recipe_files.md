@@ -1,5 +1,5 @@
 # AI Context Files
-Date: 4/23/2025, 3:51:20 PM
+Date: 4/23/2025, 4:27:07 PM
 Files: 91
 
 === File: recipes/recipe_executor/ai_context/DEV_GUIDE_FOR_PYTHON.md ===
@@ -3387,7 +3387,8 @@ class LoopStepConfig(StepConfig):
     Configuration for LoopStep.
 
     Fields:
-        items: Key in the context containing the collection to iterate over.
+        items: Key in the context containing the collection to iterate over. Supports template variable syntax
+               with dot notation for accessing nested data structures (e.g., "data.items", "response.results").
         item_key: Key to use when storing the current item in each iteration's context.
         substeps: List of sub-step configurations to execute for each item.
         result_key: Key to store the collection of results in the context.
@@ -3455,11 +3456,29 @@ The LoopStep allows you to run multiple steps for each item in a collection. Sub
 
 For each iteration:
 
-1. The LoopStep clones the parent context to create an isolated execution environment
-2. It places the current item in the cloned context using the `item_key`
-3. It executes all specified steps using the cloned context
-4. After execution, it extracts the result from the context (using the same `item_key`)
-5. The result is added to a collection that will be stored in the parent context under `result_key`
+1. The LoopStep renders the `items` path using template rendering to resolve nested paths (e.g., "data.items" becomes the actual array from context["data"]["items"])
+2. The LoopStep clones the parent context to create an isolated execution environment
+3. It places the current item in the cloned context using the `item_key`
+4. It executes all specified steps using the cloned context
+5. After execution, it extracts the result from the context (using the same `item_key`)
+6. The result is added to a collection that will be stored in the parent context under `result_key`
+
+## Accessing Nested Data
+
+The `items` parameter can reference nested data in the context using dot notation. This is processed using template rendering, similar to other Recipe Executor components:
+
+```json
+{
+  "type": "loop",
+  "config": {
+    "items": "data.users.list",
+    "item_key": "user",
+    "substeps": [...]
+  }
+}
+```
+
+This example would iterate over the array found at `context["data"]["users"]["list"]`.
 
 ## Template Variables
 
@@ -3624,6 +3643,7 @@ The LoopStep component enables recipes to iterate over a collection of items, ex
 ## Core Requirements
 
 - Process each item in a collection using a specified set of steps
+- Support template rendering for the `items` path to access nested data structures via dot notation (e.g., "results.data.items")
 - Isolate processing of each item to prevent cross-contamination
 - Store the results of processing each item in a designated collection
 - Support conditional execution based on item properties
@@ -3633,6 +3653,7 @@ The LoopStep component enables recipes to iterate over a collection of items, ex
 
 ## Implementation Considerations
 
+- Use template rendering to resolve the `items` path before accessing data, enabling support for nested paths
 - Clone the context for each item to maintain isolation between iterations
 - Use a unique context key for each processed item to prevent collisions
 - Execute the specified steps for each item using the current executor
@@ -3652,7 +3673,7 @@ The LoopStep component enables recipes to iterate over a collection of items, ex
 - **Step Registry** – (Required) Uses the step registry to instantiate the `execute_recipe` step for each sub-step
 - **Context** – (Required) Shares data via a context object implementing the ContextProtocol between the main recipe and sub-recipes
 - **Executor** – (Required) Uses an executor implementing ExecutorProtocol to run the sub-recipe
-- **Utils/Templates** – (Optional) Uses template rendering for sub-step configurationsn
+- **Utils/Templates** – (Required) Uses template rendering for the `items` path and sub-step configurations
 
 ### External Libraries
 
