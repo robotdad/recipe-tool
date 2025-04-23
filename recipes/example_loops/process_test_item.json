@@ -1,0 +1,13 @@
+{
+  "steps": [
+    {
+      "type": "llm_generate",
+      "config": {
+        "prompt": "Transform the following item based on its type:\n- If string: Convert to uppercase\n- If number: Multiply by 2\n- If object: Add a 'processed: true' property\n\nItem: {{current_item}}\n\nOutput the transformed item.",
+        "model": "openai/o3-mini",
+        "output_format": "text",
+        "output_key": "transformed_item"
+      }
+    }
+  ]
+}

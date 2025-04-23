@@ -3,7 +3,7 @@
 When contributing to the Python codebase, please follow these guidelines to ensure consistency and maintainability.
 
 - Place import statements at the top of the file.
-- All optional parameters should use `Optional` from the `typing` module.
+- All optional parameters should use `Optional` from the `typing` module and default to `None` unless otherwise specified.
 - Set types for all variables, including `self` variables in classes.
 - Use `List`, `Dict`, and other type hints from the `typing` module for type annotations, include the type of the list or dictionary.
 - Assume that all dependencies mentioned in the component spec or docs are installed, do not write guards for them.

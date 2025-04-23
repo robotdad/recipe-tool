@@ -15,7 +15,7 @@ The Executor component is responsible for executing recipes defined in JSON form
 - Iterate through the list of steps and execute them sequentially:
   - For each step, retrieve the step class from the Step Registry using the step's `"type"`.
   - Instantiate the step with its configuration.
-  - Call the step's `execute(context)` method, passing in the shared context object.
+  - Call and await the step's `execute(context)` method, passing in the shared context object.
 - Handle errors gracefully:
   - If a step raises an exception, stop execution and wrap the exception in a clear message indicating which step failed.
   - Propagate errors up to the caller (Main or a supervising component) with context so that it can be logged or handled.

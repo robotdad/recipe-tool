@@ -1,8 +1,8 @@
-# McpStep Component Specification
+# MCPStep Component Specification
 
 ## Purpose
 
-The McpStep component allows recipes to invoke tools on remote MCP servers and store the result in the execution context.
+The MCPStep component allows recipes to invoke tools on remote MCP servers and store the result in the execution context.
 
 ## Core Requirements
 
@@ -24,7 +24,7 @@ The McpStep component allows recipes to invoke tools on remote MCP servers and s
     - Use `cwd` as the working directory for the command.
 - Intialize session and execute session.call_tool with the tool name and arguments.
 - Wrap exceptions from the client in `ValueError` including the tool name and service.
-- Convert the `CallToolResult` to `Dict[str, Any]`.
+- Convert the `mcp.types.CallToolResult` to `Dict[str, Any]`.
 - Store converted tool result dictionary in context under `result_key`.
 - Overwrite existing context values if `result_key` already exists.
 
@@ -38,7 +38,7 @@ The McpStep component allows recipes to invoke tools on remote MCP servers and s
 ### Internal Components
 
 - **Protocols**: Uses `ContextProtocol` for context interactions and `StepProtocol` for the step interface.
-- **Utils**: Uses `render_template` for resolving templated parameters.
+- **Utils/Templates**: Uses `render_template` for resolving templated parameters.
 
 ### External Libraries
 

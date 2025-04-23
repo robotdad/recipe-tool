@@ -1,7 +1,10 @@
-# Git Collector Data
-URL: https://github.com/modelcontextprotocol/modelcontextprotocol/tree/main/docs
-Date: 4/22/2025, 10:35:54 AM
-Files: 10
+# modelcontextprotocol/modelcontextprotocol/docs
+
+[git-collector-data]
+
+**URL:** https://github.com/modelcontextprotocol/modelcontextprotocol/tree/main/docs  
+**Date:** 4/23/2025, 11:19:36 AM  
+**Files:** 10  
 
 === File: docs/docs/concepts/architecture.mdx ===
 ---

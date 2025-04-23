@@ -30,12 +30,12 @@ The LoopStep component enables recipes to iterate over a collection of items, ex
 
 ### Internal Components
 
-- **Protocols** – (Required) Uses ContextProtocol for context management, ExecutorProtocol for parallel execution, and StepProtocol for the step interface
+- **Protocols** – (Required) Leverages ContextProtocol for context sharing, ExecutorProtocol for execution, and StepProtocol for the step interface contract
 - **Step Base** – (Required) Adheres to the step execution interface via StepProtocol
 - **Step Registry** – (Required) Uses the step registry to instantiate the `execute_recipe` step for each sub-step
-- **Context** – (Required) Utilizes a ContextProtocol implementation (e.g. using Context.clone()) to create isolated contexts for each sub-step
-- **Executor** – (Required) Uses an Executor implementing ExecutorProtocol to run each sub-recipe in a separate thread
-- **Utils** – (Optional) Uses template rendering for sub-step configurationsn
+- **Context** – (Required) Shares data via a context object implementing the ContextProtocol between the main recipe and sub-recipes
+- **Executor** – (Required) Uses an executor implementing ExecutorProtocol to run the sub-recipe
+- **Utils/Templates** – (Optional) Uses template rendering for sub-step configurationsn
 
 ### External Libraries
 

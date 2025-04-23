@@ -1,19 +1,19 @@
-# McpStep Component Usage
+# MCPStep Component Usage
 
 ## Importing
 
 ```python
-from recipe_executor.steps.mcp import McpStep, McpConfig
+from recipe_executor.steps.mcp import MCPStep, MCPConfig
 ```
 
 ## Configuration
 
-The McpStep is configured with a `McpConfig`:
+The MCPStep is configured with a `MCPConfig`:
 
 ```python
-class McpConfig(StepConfig):
+class MCPConfig(StepConfig):
     """
-    Configuration for McpStep.
+    Configuration for MCPStep.
 
     Fields:
         server: Configuration for the MCP server.
@@ -43,7 +43,7 @@ For stdio servers:
 
 ## Basic Usage in Recipes
 
-The `McpStep` is available via the `mcp` step type in recipes:
+The `MCPStep` is available via the `mcp` step type in recipes:
 
 ```json
 {

@@ -1,0 +1,48 @@
+{
+  "steps": [
+    {
+      "type": "read_files",
+      "config": {
+        "path": "test_output/initial_collection.json",
+        "contents_key": "collection_data"
+      }
+    },
+    {
+      "type": "llm_generate",
+      "config": {
+        "prompt": "Extract just the test_items array from this data and add one invalid item that will cause an error during processing:\n\n{{collection_data}}\n\nOutput the modified array.",
+        "model": "openai/o3-mini",
+        "output_format": "text",
+        "output_key": "test_items_with_error"
+      }
+    },
+    {
+      "type": "loop",
+      "config": {
+        "items": "test_items_with_error",
+        "item_key": "current_item",
+        "substeps": [
+          {
+            "type": "execute_recipe",
+            "config": {
+              "recipe_path": "process_test_item.json"
+            }
+          }
+        ],
+        "result_key": "processed_items",
+        "fail_fast": false
+      }
+    },
+    {
+      "type": "write_files",
+      "config": {
+        "files": [
+          {
+            "path": "test_output/error_handling_results.md",
+            "content": "# Loop Error Handling Test Results\n\n## Input Items (including error item)\n```json\n{{test_items_with_error}}\n```\n\n## Processed Items (should continue despite errors)\n```json\n{{processed_items}}\n```\n\n## Errors (if any)\n```json\n{{__errors|default:'No errors captured'}}\n```"
+          }
+        ]
+      }
+    }
+  ]
+}

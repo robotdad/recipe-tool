@@ -1,115 +1,124 @@
+"""
+MCPStep component for invoking tools on remote MCP servers and storing results in context.
+"""
+
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
-from pydantic import Field
+from mcp import ClientSession, StdioServerParameters
+from mcp.client.sse import sse_client
+from mcp.client.stdio import stdio_client
+from mcp.types import CallToolResult
 
-from recipe_executor.protocols import ContextProtocol
-from recipe_executor.steps.base import BaseStep, StepConfig
-from recipe_executor.utils import render_template
-
-# Import inside methods to avoid circular deps and unnecessary imports if not invoked
+from recipe_executor.steps.base import BaseStep, ContextProtocol, StepConfig
+from recipe_executor.utils.templates import render_template
 
 
-class McpConfig(StepConfig):
+class MCPConfig(StepConfig):
     """
-    Configuration for McpStep.
+    Configuration for MCPStep.
 
     Fields:
         server: Configuration for the MCP server.
         tool_name: Name of the tool to invoke.
         arguments: Arguments to pass to the tool as a dictionary.
-        result_key: Context key to store the tool result.
+        result_key: Context key under which to store the tool result as a dictionary.
     """
 
     server: Dict[str, Any]
     tool_name: str
     arguments: Dict[str, Any]
-    result_key: str = Field(default="tool_result")
+    result_key: str = "tool_result"
 
 
-class McpStep(BaseStep[McpConfig]):
+class MCPStep(BaseStep[MCPConfig]):
+    """
+    Step that connects to an MCP server, invokes a tool, and stores the result in the context.
+    """
+
     def __init__(self, logger: logging.Logger, config: Dict[str, Any]) -> None:
-        super().__init__(logger, McpConfig(**config))
+        super().__init__(logger, MCPConfig(**config))
 
     async def execute(self, context: ContextProtocol) -> None:
-        # Render all templated string fields in config
-        rendered_server: Dict[str, Any] = {}
-        for k, v in self.config.server.items():
-            if isinstance(v, str):
-                rendered_server[k] = render_template(v, context)
-            else:
-                rendered_server[k] = v
+        # Render tool name and arguments
         tool_name: str = render_template(self.config.tool_name, context)
-        result_key: str = render_template(self.config.result_key, context) if self.config.result_key else "tool_result"
-        # Arguments: also resolve any string values as templates
-        rendered_arguments: Dict[str, Any] = {}
-        args = self.config.arguments or {}
-        for k, v in args.items():
-            if isinstance(v, str):
-                rendered_arguments[k] = render_template(v, context)
+        raw_args: Dict[str, Any] = self.config.arguments or {}
+        arguments: Dict[str, Any] = {}
+        for key, value in raw_args.items():
+            if isinstance(value, str):
+                arguments[key] = render_template(value, context)
             else:
-                rendered_arguments[k] = v
+                arguments[key] = value
 
-        # Select connection type
-        sse_client = None
-        stdio_client = None
-        ClientSession = None
-        StdioServerParameters = None
-        try:
-            from mcp import ClientSession, StdioServerParameters
-            from mcp.client.sse import sse_client
-            from mcp.client.stdio import stdio_client
-        except ImportError as exc:
-            raise ValueError("mcp package is required for McpStep but not installed.") from exc
+        # Prepare server connection parameters
+        server_conf = self.config.server
+        client_cm: Any
+        service_desc: str
 
-        # Connect and call tool
-        session = None
-        tool_result: Optional[Any] = None
-        try:
-            # Decide client type based on config
-            if "url" in rendered_server and rendered_server["url"]:
-                url = rendered_server["url"]
-                headers = rendered_server.get("headers")
-                self.logger.debug(f"Connecting to MCP server via SSE at {url} (tool={tool_name})")
-                async with sse_client(url, headers=headers) as (read, write):
-                    async with ClientSession(read, write) as session:
-                        await session.initialize()
-                        self.logger.debug(f"Calling tool '{tool_name}' with arguments: {rendered_arguments}")
-                        tool_result = await session.call_tool(tool_name, arguments=rendered_arguments)
-            elif "command" in rendered_server and rendered_server["command"]:
-                command = rendered_server["command"]
-                args_list = rendered_server.get("args", [])
-                env = rendered_server.get("env")
-                working_dir = rendered_server.get("working_dir")
-                server_params = StdioServerParameters(
-                    command=command,
-                    args=args_list,
-                    env=env,
-                    cwd=working_dir,
-                )
-                self.logger.debug(
-                    f"Connecting to MCP stdio server: {command} {args_list} (cwd={working_dir}, tool={tool_name})"
-                )
-                async with stdio_client(server_params) as (read, write):
-                    async with ClientSession(read, write) as session:
-                        await session.initialize()
-                        self.logger.debug(f"Calling tool '{tool_name}' with arguments: {rendered_arguments}")
-                        tool_result = await session.call_tool(tool_name, arguments=rendered_arguments)
-            else:
-                raise ValueError("Invalid MCP server configuration: must provide either 'url' or 'command'.")
-        except Exception as exc:
-            # Wrap in ValueError with details as spec requires
-            server_info = rendered_server.get("url") or rendered_server.get("command") or str(rendered_server)
-            raise ValueError(f"Failed to call MCP tool '{tool_name}' on service '{server_info}': {exc}") from exc
-
-        # Convert the result to dict if possible
-        # If not already a dict, try to use .dict() if available, otherwise as-is
-        result_dict: Dict[str, Any]
-        if isinstance(tool_result, dict):
-            result_dict = tool_result
-        elif hasattr(tool_result, "dict"):
-            result_dict = tool_result.dict()  # type: ignore
+        # Decide on transport: stdio or SSE (HTTP)
+        if "command" in server_conf:
+            # stdio transport
+            cmd: str = render_template(server_conf.get("command", ""), context)
+            args_list: List[str] = []
+            for arg in server_conf.get("args", []):
+                if isinstance(arg, str):
+                    args_list.append(render_template(arg, context))
+                else:
+                    args_list.append(arg)
+            env_conf: Optional[Dict[str, str]] = None
+            if server_conf.get("env") is not None:
+                env_conf = {}
+                for k, v in server_conf.get("env", {}).items():
+                    env_conf[k] = render_template(v, context) if isinstance(v, str) else str(v)
+            cwd: Optional[str] = None
+            if server_conf.get("working_dir") is not None:
+                cwd = render_template(server_conf.get("working_dir", "."), context)
+            server_params = StdioServerParameters(
+                command=cmd,
+                args=args_list,
+                env=env_conf,
+                cwd=cwd,
+            )
+            client_cm = stdio_client(server_params)
+            service_desc = f"stdio command '{cmd}'"
         else:
-            result_dict = {"result": tool_result}
+            # SSE/HTTP transport
+            url: str = render_template(server_conf.get("url", ""), context)
+            headers_conf: Optional[Dict[str, Any]] = None
+            if server_conf.get("headers") is not None:
+                headers_conf = {}
+                for k, v in server_conf.get("headers", {}).items():
+                    headers_conf[k] = render_template(v, context) if isinstance(v, str) else v
+            client_cm = sse_client(url, headers=headers_conf)
+            service_desc = f"SSE server '{url}'"
 
-        context[result_key] = result_dict
+        # Connect and invoke the tool
+        self.logger.debug(f"Connecting to MCP server: {service_desc}")
+        try:
+            async with client_cm as (read_stream, write_stream):
+                async with ClientSession(read_stream, write_stream) as session:
+                    # Initialize the MCP client session
+                    await session.initialize()
+                    self.logger.debug(f"Invoking tool '{tool_name}' with arguments {arguments}")
+                    try:
+                        result: CallToolResult = await session.call_tool(
+                            name=tool_name,
+                            arguments=arguments,
+                        )
+                    except Exception as e:
+                        raise ValueError(f"Tool invocation failed for '{tool_name}' on {service_desc}: {e}") from e
+        except ValueError:
+            # propagate our ValueError for tool invocation
+            raise
+        except Exception as e:
+            raise ValueError(f"Failed to call tool '{tool_name}' on {service_desc}: {e}") from e
+
+        # Convert result to a dictionary
+        try:
+            result_dict: Dict[str, Any] = result.__dict__
+        except Exception:
+            # fallback for non-dataclass-like objects
+            result_dict = {k: getattr(result, k) for k in dir(result) if not k.startswith("_")}
+
+        # Store result in context
+        context[self.config.result_key] = result_dict

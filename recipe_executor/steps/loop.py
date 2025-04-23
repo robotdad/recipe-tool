@@ -1,10 +1,9 @@
-import asyncio
 import logging
-from typing import Any, Dict, List, Optional, Tuple, Union
+import traceback
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
-from recipe_executor.protocols import ContextProtocol, ExecutorProtocol, StepProtocol
+from recipe_executor.protocols import ContextProtocol, StepProtocol
 from recipe_executor.steps.base import BaseStep, StepConfig
-from recipe_executor.steps.registry import STEP_REGISTRY
 
 
 class LoopStepConfig(StepConfig):
@@ -18,7 +17,6 @@ class LoopStepConfig(StepConfig):
         result_key: Key to store the collection of results in the context.
         fail_fast: Whether to stop processing on the first error (default: True).
     """
-
     items: str
     item_key: str
     substeps: List[Dict[str, Any]]
@@ -27,113 +25,101 @@ class LoopStepConfig(StepConfig):
 
 
 class LoopStep(BaseStep[LoopStepConfig]):
+    """LoopStep: iterate over a collection and run substeps for each item."""
+
     def __init__(self, logger: logging.Logger, config: Dict[str, Any]) -> None:
         super().__init__(logger, LoopStepConfig(**config))
 
     async def execute(self, context: ContextProtocol) -> None:
-        # Validate required fields exist in context
-        items_key: str = self.config.items
-        item_key: str = self.config.item_key
-        substeps: List[Dict[str, Any]] = self.config.substeps
-        result_key: str = self.config.result_key
-        fail_fast: bool = self.config.fail_fast
+        # Retrieve the items collection
+        raw = context.get(self.config.items)
+        if raw is None:
+            raise ValueError(f"LoopStep: context missing items key '{self.config.items}'")
 
-        if items_key not in context:
-            self.logger.error(f"[LoopStep] Items key '{items_key}' not found in context.")
-            raise ValueError(f"Items key '{items_key}' not found in context.")
-
-        if not isinstance(substeps, list) or not substeps:
-            self.logger.error("[LoopStep] Substeps must be a non-empty list.")
-            raise ValueError("LoopStep requires at least one substep.")
-
-        # Obtain the executor from the context
-        executor: Optional[ExecutorProtocol] = context.get("__executor__", None)
-        if executor is None:
-            self.logger.error("[LoopStep] No executor found in context (missing '__executor__' key).")
-            raise ValueError("LoopStep: No executor found in context (missing '__executor__' key).")
-
-        # Support both arrays and objects
-        raw_collection: Any = context[items_key]
-        if isinstance(raw_collection, dict):
-            collection = list(raw_collection.items())  # List[Tuple[str, Any]]
-            is_dict = True
-        elif isinstance(raw_collection, (list, tuple)):
-            collection = list(enumerate(raw_collection))  # List[Tuple[int, Any]]
-            is_dict = False
+        # Determine iteration mode
+        is_mapping = isinstance(raw, dict)
+        if is_mapping:
+            iterable = list(raw.items())  # type: ignore
+            total = len(iterable)
+        elif isinstance(raw, (list, tuple)):
+            iterable = list(enumerate(raw))
+            total = len(iterable)
         else:
-            self.logger.error(
-                f"[LoopStep] The collection under key '{items_key}' "
-                f"must be a list, tuple, or dict (got {type(raw_collection).__name__})."
-            )
             raise ValueError(
-                f"LoopStep: Items must be list/tuple/dict (got {type(raw_collection).__name__}) at key: {items_key}"
+                f"LoopStep: items under '{self.config.items}' is not iterable (got {type(raw)})"
             )
 
-        total_count: int = len(collection)
-        self.logger.info(f"[LoopStep] Looping over {total_count} items from '{items_key}' to produce '{result_key}'.")
-        if total_count == 0:
-            self.logger.info(f"[LoopStep] Collection is empty. Storing empty results at '{result_key}'.")
-            context[result_key] = []
-            return
+        self.logger.info(
+            f"LoopStep: processing {total} items from key '{self.config.items}'"
+        )
 
-        results: List[Any] = []
+        results_list: List[Any] = []
+        results_map: Dict[Any, Any] = {}
         errors: List[Dict[str, Any]] = []
 
-        async def process_item(item_info: Tuple[Union[int, str], Any]) -> Optional[Any]:
-            key_or_index, item_value = item_info
-            item_context: ContextProtocol = context.clone()
-            item_context[item_key] = item_value
-            if is_dict:
-                item_context["__key"] = key_or_index
+        from recipe_executor.steps.registry import STEP_REGISTRY
+
+        for idx, val in iterable:
+            self.logger.debug(f"LoopStep: start item '{idx}'")
+            # Clone context for isolation
+            ctx_clone = context.clone()
+            # Inject current item and index/key
+            ctx_clone[self.config.item_key] = val
+            if is_mapping:
+                ctx_clone["__key"] = idx
             else:
-                item_context["__index"] = key_or_index
-            item_id = f"{key_or_index}"
-            self.logger.debug(f"[LoopStep] Starting processing item {item_id} ...")
+                ctx_clone["__index"] = idx
 
             try:
-                for substep_cfg in substeps:
-                    step_type = substep_cfg.get("type")
-                    if not step_type or step_type not in STEP_REGISTRY:
-                        raise ValueError(f"Unknown or missing step type '{step_type}' in LoopStep substeps.")
-                    step_cls = STEP_REGISTRY[step_type]
-                    step_instance: StepProtocol = step_cls(self.logger, substep_cfg.get("config", {}))
-                    if asyncio.iscoroutinefunction(step_instance.execute):
-                        await step_instance.execute(item_context)
-                    else:
-                        # supporting legacy/non-async steps if any
-                        await asyncio.get_event_loop().run_in_executor(None, step_instance.execute, item_context)
-                    self.logger.debug(f"[LoopStep] Ran substep '{step_type}' for item {item_id}.")
-
-                # Collect the processed result from item_context[item_key] (by default)
-                result = item_context.get(item_key, None)
-                self.logger.debug(f"[LoopStep] Finished processing item {item_id}.")
-                return result
+                # Execute substeps sequentially
+                for step_conf in self.config.substeps:
+                    stype = step_conf.get("type")
+                    if not stype:
+                        raise ValueError("LoopStep: substep missing 'type'")
+                    StepCls = STEP_REGISTRY.get(stype)
+                    if StepCls is None:
+                        raise ValueError(f"LoopStep: unknown substep type '{stype}'")
+                    config_dict = step_conf.get("config", {}) or {}
+                    step: StepProtocol = StepCls(self.logger, config_dict)
+                    # substeps may be async
+                    result = step.execute(ctx_clone)
+                    if hasattr(result, "__await__"):
+                        await result  # type: ignore
+                # Extract processed item result
+                item_result = ctx_clone.get(self.config.item_key)
+                # Collect result
+                if is_mapping:
+                    results_map[idx] = item_result
+                else:
+                    results_list.append(item_result)
+                self.logger.debug(f"LoopStep: finished item '{idx}'")
             except Exception as e:
-                self.logger.error(f"[LoopStep] Error processing item {item_id}: {str(e)}", exc_info=True)
-                errors.append({
-                    "key": key_or_index if is_dict else None,
-                    "index": key_or_index if not is_dict else None,
-                    "error": str(e),
-                })
-                if fail_fast:
+                tb = traceback.format_exc()
+                self.logger.error(
+                    f"LoopStep: error on item '{idx}': {e}\n{tb}"
+                )
+                if self.config.fail_fast:
                     raise
-                return None
+                errors.append({
+                    "item_key": idx,
+                    "error": str(e),
+                    "traceback": tb,
+                })
+                # continue to next item
 
-        # Process all items sequentially (async for future scalability)
-        for idx, item_info in enumerate(collection):
-            try:
-                result = await process_item(item_info)
-                # Only add successful results
-                if result is not None or not fail_fast:
-                    results.append(result)
-            except Exception:
-                # On fail_fast, error already logged and exceptions bubble up
-                break
+        # Assemble final result
+        if is_mapping:
+            final: Union[Dict[Any, Any], Any] = results_map
+            if errors:
+                final["__errors"] = errors  # type: ignore
+        else:
+            if errors:
+                final = {"results": results_list, "__errors": errors}
+            else:
+                final = results_list
 
-        # Store the final results
-        context[result_key] = results
-        if errors:
-            context["__errors"] = errors
-        self.logger.info(f"[LoopStep] Stored results for {len(results)} items at '{result_key}'.")
-        if errors:
-            self.logger.error(f"[LoopStep] Encountered errors for {len(errors)} item(s): {errors}")
+        # Store in parent context
+        context[self.config.result_key] = final
+        self.logger.info(
+            f"LoopStep: stored results under '{self.config.result_key}'"
+        )

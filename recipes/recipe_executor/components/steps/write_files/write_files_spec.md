@@ -32,10 +32,10 @@ The WriteFilesStep component writes generated files to disk based on content fro
 
 ### Internal Components
 
-- **Protocols** – (Required) Uses ContextProtocol for reading artifact data and StepProtocol for step interface compliance
 - **Step Interface** – (Required) Follows the step interface via StepProtocol
 - **Models** – (Required) Uses FileSpec models for content structure
-- **Utils** – (Required) Uses render_template for dynamic path resolution
+- **Context** – (Required) Reads file content from a context that implements ContextProtocol (artifacts stored under a specified key)
+- **Utils/Templates** – (Required) Uses render_template for dynamic path resolution
 
 ### External Libraries
 

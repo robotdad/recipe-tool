@@ -24,8 +24,8 @@
     {
       "type": "read_files",
       "config": {
-        "path": "{{recipe_root|default:'recipes/recipe_executor'}}/components/utils/utils_docs.md",
-        "content_key": "utils_docs"
+        "path": "{{recipe_root|default:'recipes/recipe_executor'}}/components/utils/templates/templates_docs.md",
+        "content_key": "templates_docs"
       }
     },
     {
@@ -36,7 +36,7 @@
           "component_id": "execute_recipe",
           "component_path": "/steps",
           "existing_code": "{{existing_code}}",
-          "additional_content": "<STEPS_BASE_DOCS>\n{{steps_base_docs}}\n</STEPS_BASE_DOCS>\n<CONTEXT_DOCS>\n{{context_docs}}\n</CONTEXT_DOCS>\n<EXECUTOR_DOCS>\n{{executor_docs}}\n</EXECUTOR_DOCS>\n<UTILS_DOCS>\n{{utils_docs}}\n</UTILS_DOCS>"
+          "additional_content": "<STEPS_BASE_DOCS>\n{{steps_base_docs}}\n</STEPS_BASE_DOCS>\n<CONTEXT_DOCS>\n{{context_docs}}\n</CONTEXT_DOCS>\n<EXECUTOR_DOCS>\n{{executor_docs}}\n</EXECUTOR_DOCS>\n<TEMPLATES_DOCS>\n{{templates_docs}}\n</TEMPLATES_DOCS>"
         }
       }
     }

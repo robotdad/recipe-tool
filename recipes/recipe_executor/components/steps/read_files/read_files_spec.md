@@ -37,10 +37,9 @@ The ReadFilesStep component reads one or more files from the filesystem and stor
 
 ### Internal Components
 
-- **Protocols** – (Required) Uses ContextProtocol for context interactions and StepProtocol for step interface implementation
 - **Step Interface** – (Required) Implements the step interface via StepProtocol
 - **Context** – (Required) Stores file content using a context that implements ContextProtocol (artifacts stored under a specified key)
-- **Utils** – (Required) Uses render_template for dynamic path resolution
+- **Utils/Templates** – (Required) Uses render_template for dynamic path resolution
 
 ### External Libraries
 

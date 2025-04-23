@@ -1,7 +1,10 @@
-# Git Collector Data
-URL: https://github.com/modelcontextprotocol/typescript-sdk
-Date: 4/22/2025, 10:35:54 AM
-Files: 1
+# modelcontextprotocol/typescript-sdk
+
+[git-collector-data]
+
+**URL:** https://github.com/modelcontextprotocol/typescript-sdk  
+**Date:** 4/23/2025, 11:21:47 AM  
+**Files:** 1  
 
 === File: README.md ===
 # MCP TypeScript SDK ![NPM Version](https://img.shields.io/npm/v/%40modelcontextprotocol%2Fsdk) ![MIT licensed](https://img.shields.io/npm/l/%40modelcontextprotocol%2Fsdk)

@@ -1,7 +1,10 @@
-# Git Collector Data
-URL: https://github.com/modelcontextprotocol/python-sdk
-Date: 4/22/2025, 10:35:54 AM
-Files: 1
+# modelcontextprotocol/python-sdk
+
+[git-collector-data]
+
+**URL:** https://github.com/modelcontextprotocol/python-sdk  
+**Date:** 4/23/2025, 11:21:13 AM  
+**Files:** 1  
 
 === File: README.md ===
 # MCP Python SDK

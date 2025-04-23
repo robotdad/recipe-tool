@@ -47,7 +47,7 @@ Recipes are JSON files with a structured format that define a series of steps to
 1. **Context**: Shared state container for passing data between steps
 2. **Executor**: Central orchestration mechanism that loads and runs recipes
 3. **Steps**: Individual operations that make up a recipe (read_files, generate, write_files, etc.)
-4. **Templates**: Dynamic content generation using Liquid templates for variable substitution
+4. **Utils/Templates**: Dynamic content generation using Liquid templates for variable substitution
 
 ## Architecture
 

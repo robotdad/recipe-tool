@@ -25,12 +25,6 @@
           {
             "type": "execute_recipe",
             "config": {
-              "recipe_path": "{{recipe_root|default:'recipes/recipe_executor'}}/components/utils/utils_edit.json"
-            }
-          },
-          {
-            "type": "execute_recipe",
-            "config": {
               "recipe_path": "{{recipe_root|default:'recipes/recipe_executor'}}/components/executor/executor_edit.json"
             }
           },
@@ -61,6 +55,12 @@
       "type": "execute_recipe",
       "config": {
         "recipe_path": "{{recipe_root|default:'recipes/recipe_executor'}}/components/llm_utils/edit.json"
+      }
+    },
+    {
+      "type": "execute_recipe",
+      "config": {
+        "recipe_path": "{{recipe_root|default:'recipes/recipe_executor'}}/components/utils/edit.json"
       }
     }
   ]

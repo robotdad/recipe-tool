@@ -1,85 +1,95 @@
-import copy
+"""
+Minimal MCP utility for creating MCPServer instances from configurations.
+"""
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional, Union
 
 from pydantic_ai.mcp import MCPServer, MCPServerHTTP, MCPServerStdio
 
-# Example secrets to mask in logs
-SENSITIVE_KEYS = {"authorization", "api_key", "token", "secret", "password", "access_token", "refresh_token"}
 
+# Keys considered sensitive for masking
+_SENSITIVE_KEYS = ("key", "secret", "token", "password")
 
-def _mask_sensitive(obj: Any) -> Any:
+def _mask_value(value: Any, key: Optional[str] = None) -> Any:
     """
-    Recursively mask sensitive values in a dictionary (or lists of dictionaries) for logging.
-    Returns a new object with sensitive values replaced.
+    Mask sensitive values in a configuration dictionary.
     """
-    if isinstance(obj, dict):
-        masked = {}
-        for key, value in obj.items():
-            if isinstance(key, str) and key.lower() in SENSITIVE_KEYS:
-                masked[key] = "***"
-            else:
-                masked[key] = _mask_sensitive(value)
-        return masked
-    elif isinstance(obj, list):
-        return [_mask_sensitive(item) for item in obj]
-    else:
-        return obj
+    # If the key indicates sensitive data, replace value
+    if key and any(sensitive in key.lower() for sensitive in _SENSITIVE_KEYS):
+        return "***"
+    # If dict, apply recursively
+    if isinstance(value, dict):
+        return {k: _mask_value(v, k) for k, v in value.items()}
+    # Otherwise, return as is
+    return value
 
 
 def get_mcp_server(
     logger: logging.Logger,
-    config: Dict[str, Any],
+    config: Dict[str, Any]
 ) -> MCPServer:
     """
-    Create an MCP server client based on the provided configuration.
+    Create an MCPServer instance based on the provided configuration.
 
     Args:
         logger: Logger for logging messages.
         config: Configuration for the MCP server.
 
     Returns:
-        A configured PydanticAI MCP server client.
+        A configured PydanticAI MCPServer instance.
 
     Raises:
-        ValueError: If the configuration is invalid or missing required information.
+        ValueError: If configuration is invalid.
+        RuntimeError: If instantiation of the server fails.
     """
-    if not isinstance(config, dict):
-        raise ValueError("config must be a dict")
+    # Mask and log configuration for debugging
+    try:
+        masked = _mask_value(config)  # type: ignore
+        logger.debug("MCP configuration: %s", masked)
+    except Exception:
+        logger.debug("MCP configuration contains non-serializable values")
 
-    # Make a shallow copy for debugging/masking
-    config_masked: Dict[str, Any] = _mask_sensitive(copy.deepcopy(config))
-    logger.debug(f"get_mcp_server called with config: {config_masked}")
-
-    # Determine whether to use HTTP or stdio transport (mutually exclusive)
+    # Determine server type
     if "url" in config:
-        url: str = config.get("url", "")
-        if not isinstance(url, str) or not url:
-            raise ValueError("'url' must be a non-empty string for MCPServerHTTP.")
-        headers: Optional[Dict[str, str]] = config.get("headers")
-        if headers is not None and not isinstance(headers, dict):
-            raise ValueError("'headers' must be a dictionary if provided.")
-        # Mask headers for info log
-        info_headers = _mask_sensitive(headers) if headers else None
-        logger.info(f"Initializing MCPServerHTTP with url={url!r}, headers={info_headers!r}")
+        # HTTP transport
+        url = config.get("url")
+        if not isinstance(url, str):
+            raise ValueError("MCP HTTP configuration requires a string 'url'")
+        headers = config.get("headers")
+        if headers is not None:
+            if not isinstance(headers, dict) or not all(
+                isinstance(k, str) and isinstance(v, str)
+                for k, v in headers.items()
+            ):
+                raise ValueError("MCP HTTP 'headers' must be a dict of string keys and values")
+        logger.info("Configuring MCPServerHTTP for URL: %s", url)
         try:
-            return MCPServerHTTP(url=url, headers=headers)
-        except Exception as e:
-            raise RuntimeError(f"Failed to initialize MCPServerHTTP: {e}")
-    elif "command" in config:
+            # Only pass headers if provided
+            if headers is not None:
+                return MCPServerHTTP(url=url, headers=headers)
+            return MCPServerHTTP(url=url)
+        except Exception as error:
+            msg = f"Failed to create HTTP MCP server for {url}: {error}"
+            logger.error(msg)
+            raise RuntimeError(msg) from error
+
+    # Stdio transport
+    if "command" in config:
         command = config.get("command")
-        if not isinstance(command, str) or not command:
-            raise ValueError("'command' must be a non-empty string for MCPServerStdio.")
+        if not isinstance(command, str):
+            raise ValueError("MCP stdio configuration requires a string 'command'")
         args = config.get("args")
-        if args is not None and not (isinstance(args, list) and all(isinstance(a, str) for a in args)):
-            raise ValueError("'args' must be a list of strings if provided.")
-        cwd = config.get("cwd")
-        if cwd is not None and not isinstance(cwd, str):
-            raise ValueError("'cwd' must be a string if provided.")
-        logger.info(f"Initializing MCPServerStdio with command={command!r}, args={args!r}, cwd={cwd!r}")
+        if not isinstance(args, list) or not all(isinstance(a, str) for a in args):
+            raise ValueError("MCP stdio 'args' must be a list of strings")
+        logger.info("Configuring MCPServerStdio with command: %s args: %s", command, args)
         try:
-            return MCPServerStdio(command, args=args or [], cwd=cwd)
-        except Exception as e:
-            raise RuntimeError(f"Failed to initialize MCPServerStdio: {e}")
-    else:
-        raise ValueError("Invalid MCP server config: must contain either 'url' for HTTP or 'command' for stdio.")
+            return MCPServerStdio(command, args=args)
+        except Exception as error:
+            msg = f"Failed to create stdio MCP server for command {command}: {error}"
+            logger.error(msg)
+            raise RuntimeError(msg) from error
+
+    # Unrecognized configuration
+    raise ValueError(
+        "Invalid MCP server configuration: provide either 'url' for HTTP or 'command' for stdio"
+    )

@@ -3,7 +3,7 @@ import asyncio
 import sys
 import time
 import traceback
-from typing import Any, Dict, List, Optional
+from typing import Dict, List
 
 from dotenv import load_dotenv
 
@@ -12,78 +12,114 @@ from recipe_executor.executor import Executor
 from recipe_executor.logger import init_logger
 
 
-def parse_key_value_pairs(pairs: List[str], arg_name: str) -> Dict[str, str]:
+def parse_kv_list(entries: List[str], arg_name: str) -> Dict[str, str]:
+    """
+    Parse a list of key=value strings into a dictionary.
+
+    Raises ValueError if any entry is not in key=value format.
+    """
     result: Dict[str, str] = {}
-    for pair in pairs:
-        if "=" not in pair:
-            raise ValueError(f"Invalid {arg_name} format '{pair}'. Expected format: key=value.")
-        key, value = pair.split("=", 1)
+    for entry in entries:
+        if "=" not in entry:
+            raise ValueError(f"Invalid {arg_name} format '{entry}', expected key=value")
+        key, value = entry.split("=", 1)
         if not key:
-            raise ValueError(f"Invalid {arg_name} format '{pair}'. Key cannot be empty.")
+            raise ValueError(f"Invalid {arg_name} format '{entry}', key is empty")
         result[key] = value
     return result
 
 
+async def run_execution(recipe_path: str, context: Context, logger) -> None:
+    """
+    Orchestrate the asynchronous execution of a recipe.
+    """
+    logger.info("Starting Recipe Executor Tool")
+    logger.info(f"Executing recipe: {recipe_path}")
+    start_time = time.time()
+    executor = Executor(logger)
+    await executor.execute(recipe_path, context)
+    end_time = time.time()
+    elapsed = end_time - start_time
+    logger.info(f"Recipe executed successfully in {elapsed:.2f} seconds")
+
+
 def main() -> None:
-    try:
-        asyncio.run(main_async())
-    except KeyboardInterrupt:
-        sys.stderr.write("\nExecution interrupted by user.\n")
-        sys.exit(1)
-
-
-async def main_async() -> None:
+    """
+    Main entry point for the Recipe Executor CLI.
+    """
+    # Load environment variables from .env, if present
     load_dotenv()
-    parser = argparse.ArgumentParser(description="Recipe Executor: command-line recipe runner.")
-    parser.add_argument("recipe_path", type=str, help="Path to the recipe file to execute.")
-    parser.add_argument("--log-dir", type=str, default="logs", help="Directory to write log files (default: 'logs').")
-    parser.add_argument(
-        "--context", action="append", default=[], help="Context artifact as key=value (can be repeated)."
+
+    parser = argparse.ArgumentParser(
+        description="Recipe Executor: run JSON/YAML recipes with context and configuration."
     )
     parser.add_argument(
-        "--config", action="append", default=[], help="Configuration value as key=value (can be repeated)."
+        "recipe_path",
+        help="Path to the recipe file to execute."
+    )
+    parser.add_argument(
+        "--log-dir",
+        dest="log_dir",
+        default="logs",
+        help="Directory to store log files (default: 'logs')."
+    )
+    parser.add_argument(
+        "--context",
+        dest="context",
+        action="append",
+        default=[],
+        metavar="KEY=VALUE",
+        help="Context artifact values (can be repeated)."
+    )
+    parser.add_argument(
+        "--config",
+        dest="config",
+        action="append",
+        default=[],
+        metavar="KEY=VALUE",
+        help="Static config values (can be repeated)."
     )
     args = parser.parse_args()
 
-    logger: Optional[Any] = None
-    exit_code: int = 0
+    # Initialize logger
     try:
         logger = init_logger(log_dir=args.log_dir)
-    except Exception as exc:
-        sys.stderr.write(f"Logger initialization failed: {str(exc)}\n")
+    except Exception as e:
+        sys.stderr.write(f"Logger Initialization Error: {e}\n")
         sys.exit(1)
 
-    logger.info("Starting Recipe Executor Tool")
-    start_time: float = time.time()
-
+    # Parse context and config key/value arguments
     try:
-        logger.debug(f"Parsed arguments: {args}")
-        try:
-            artifacts: Dict[str, str] = parse_key_value_pairs(args.context, "--context")
-            config: Dict[str, str] = parse_key_value_pairs(args.config, "--config")
-        except ValueError as value_error:
-            logger.error(f"Context Error: {str(value_error)}")
-            sys.stderr.write(f"Context Error: {str(value_error)}\n")
-            sys.exit(1)
+        context_dict = parse_kv_list(args.context, "context")
+        config_dict = parse_kv_list(args.config, "config")
+    except ValueError as e:
+        sys.stderr.write(f"Argument Error: {e}\n")
+        sys.exit(1)
 
-        logger.debug(f"Initial context artifacts: {artifacts}")
-        logger.debug(f"Initial config: {config}")
+    # Debug log of parsed arguments and initial state
+    logger.debug(
+        f"Parsed arguments: recipe={args.recipe_path}, log_dir={args.log_dir}, "
+        f"context={context_dict}, config={config_dict}"
+    )
 
-        context: Context = Context(artifacts=artifacts, config=config)
-        executor: Executor = Executor(logger)
+    # Create execution context
+    context = Context(artifacts=context_dict, config=config_dict)
 
-        logger.info(f"Executing recipe: {args.recipe_path}")
-        await executor.execute(args.recipe_path, context)
-
-        elapsed: float = time.time() - start_time
-        logger.info(f"Recipe executed successfully in {elapsed:.2f} seconds.")
-        print(f"Success: Recipe executed in {elapsed:.2f} seconds.")
-        exit_code = 0
-    except Exception as exc:
-        if logger is not None:
-            logger.error(f"An error occurred during recipe execution: {str(exc)}")
-            logger.error(traceback.format_exc())
-        sys.stderr.write(f"Execution failed: {str(exc)}\n")
+    # Run the asynchronous execution
+    try:
+        asyncio.run(run_execution(args.recipe_path, context, logger))
+    except Exception as e:
+        # Log and report any execution errors
+        logger.error(
+            f"An error occurred during recipe execution: {e}",
+            exc_info=True
+        )
         sys.stderr.write(traceback.format_exc())
-        exit_code = 1
-    sys.exit(exit_code)
+        sys.exit(1)
+
+    # Normal exit
+    sys.exit(0)
+
+
+if __name__ == "__main__":
+    main()

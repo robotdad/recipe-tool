@@ -1,62 +1,90 @@
-import copy
-import json as jsonlib
 from typing import Any, Dict, Iterator, Optional
+import copy
+import json
 
 from recipe_executor.protocols import ContextProtocol
 
+__all__ = ["Context"]
+
 
 class Context(ContextProtocol):
+    """
+    Context is a shared state container for the Recipe Executor system.
+    It provides a dictionary-like interface for runtime artifacts and
+    holds a separate configuration store.
+    """
+
     def __init__(
         self,
         artifacts: Optional[Dict[str, Any]] = None,
         config: Optional[Dict[str, Any]] = None,
     ) -> None:
+        # Deep copy initial data to avoid side effects from external modifications
         self._artifacts: Dict[str, Any] = copy.deepcopy(artifacts) if artifacts is not None else {}
         self._config: Dict[str, Any] = copy.deepcopy(config) if config is not None else {}
 
     def __getitem__(self, key: str) -> Any:
-        if key not in self._artifacts:
+        try:
+            return self._artifacts[key]
+        except KeyError:
             raise KeyError(f"Key '{key}' not found in Context.")
-        return self._artifacts[key]
 
     def __setitem__(self, key: str, value: Any) -> None:
         self._artifacts[key] = value
 
     def __delitem__(self, key: str) -> None:
-        if key not in self._artifacts:
-            raise KeyError(f"Key '{key}' not found in Context.")
+        # Let KeyError propagate naturally if key is missing
         del self._artifacts[key]
 
-    def __contains__(self, key: str) -> bool:
-        return key in self._artifacts
+    def __contains__(self, key: object) -> bool:
+        return isinstance(key, str) and key in self._artifacts
 
     def __iter__(self) -> Iterator[str]:
-        # Return iterator over a static list of keys to prevent issues on modification
+        # Return iterator over a snapshot of keys to avoid issues during mutation
         return iter(list(self._artifacts.keys()))
 
     def __len__(self) -> int:
         return len(self._artifacts)
 
+    def keys(self) -> Iterator[str]:
+        """
+        Return an iterator over the artifact keys.
+        """
+        return self.__iter__()
+
     def get(self, key: str, default: Any = None) -> Any:
+        """
+        Get the value for key if present, otherwise return default.
+        """
         return self._artifacts.get(key, default)
 
-    def clone(self) -> "Context":
-        return Context(
-            artifacts=copy.deepcopy(self._artifacts),
-            config=copy.deepcopy(self._config),
-        )
+    def clone(self) -> "ContextProtocol":
+        """
+        Create a deep copy of this Context, including artifacts and config.
+        """
+        # We deep copy internally via __init__
+        return Context(artifacts=self._artifacts, config=self._config)
 
     def dict(self) -> Dict[str, Any]:
+        """
+        Return a deep copy of the artifacts as a standard dict.
+        """
         return copy.deepcopy(self._artifacts)
 
     def json(self) -> str:
-        return jsonlib.dumps(self._artifacts)
-
-    def keys(self) -> Iterator[str]:
-        return iter(list(self._artifacts.keys()))
+        """
+        Return a JSON string representation of the artifacts.
+        """
+        return json.dumps(self.dict())
 
     def get_config(self) -> Dict[str, Any]:
-        return self._config
+        """
+        Return a deep copy of the configuration store.
+        """
+        return copy.deepcopy(self._config)
 
     def set_config(self, config: Dict[str, Any]) -> None:
-        self._config = config
+        """
+        Replace the configuration store with a deep copy of the provided dict.
+        """
+        self._config = copy.deepcopy(config)

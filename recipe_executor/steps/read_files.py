@@ -1,10 +1,12 @@
 import logging
-import os
+from pathlib import Path
 from typing import Any, Dict, List, Union
+
+from pydantic import validator
 
 from recipe_executor.protocols import ContextProtocol
 from recipe_executor.steps.base import BaseStep, StepConfig
-from recipe_executor.utils import render_template
+from recipe_executor.utils.templates import render_template
 
 
 class ReadFilesConfig(StepConfig):
@@ -16,7 +18,7 @@ class ReadFilesConfig(StepConfig):
         content_key (str): Name to store the file content in context.
         optional (bool): Whether to continue if a file is not found.
         merge_mode (str): How to handle multiple files' content. Options:
-            - "concat" (default): Concatenate all files with newlines between filenames + content
+            - "concat" (default): Concatenate all files with newlines between each file’s content
             - "dict": Store a dictionary with filenames as keys and content as values
     """
 
@@ -25,94 +27,87 @@ class ReadFilesConfig(StepConfig):
     optional: bool = False
     merge_mode: str = "concat"
 
+    @validator("merge_mode")
+    def _validate_merge_mode(cls, v: str) -> str:
+        if v not in ("concat", "dict"):
+            raise ValueError("merge_mode must be either 'concat' or 'dict'")
+        return v
+
 
 class ReadFilesStep(BaseStep[ReadFilesConfig]):
+    """
+    Step that reads one or more files from the filesystem, optionally merges their content,
+    and stores the result in the context under a specified key.
+    """
+
     def __init__(self, logger: logging.Logger, config: Dict[str, Any]) -> None:
         super().__init__(logger, ReadFilesConfig(**config))
 
     async def execute(self, context: ContextProtocol) -> None:
-        rendered_path: Union[str, List[str]] = self._render_paths(self.config.path, context)
-        paths: List[str] = self._parse_paths(rendered_path)
-
-        if not paths:
-            self.logger.info(f"No files to read for key '{self.config.content_key}' (path: {self.config.path})")
-            if self.config.merge_mode == "dict":
-                context[self.config.content_key] = {}
-            else:
-                context[self.config.content_key] = ""
-            return
-
-        self.logger.debug(f"Resolved paths for reading: {paths}")
-
-        content_list: List[str] = []
-        content_dict: Dict[str, str] = {}
-        missing_files: List[str] = []
-
-        for path in paths:
-            path_stripped: str = path.strip()
-            self.logger.debug(f"Attempting to read file: {path_stripped}")
-            if not os.path.isfile(path_stripped):
-                if self.config.optional:
-                    self.logger.warning(f"Optional file not found: {path_stripped} (step continues)")
-                    missing_files.append(path_stripped)
-                    continue
-                else:
-                    error_msg: str = f"File not found: {path_stripped} (required by read_files step)"
-                    self.logger.error(error_msg)
-                    raise FileNotFoundError(error_msg)
-            try:
-                with open(path_stripped, encoding="utf-8") as file:
-                    content: str = file.read()
-                self.logger.info(f"Read file successfully: {path_stripped}")
-                if self.config.merge_mode == "dict":
-                    content_dict[path_stripped] = content
-                else:
-                    content_list.append(content)
-            except Exception as exc:
-                error_msg: str = f"Failed to read file {path_stripped}: {str(exc)}"
-                if self.config.optional:
-                    self.logger.warning(error_msg)
-                    missing_files.append(path_stripped)
-                    continue
-                else:
-                    self.logger.error(error_msg)
-                    raise
-
-        result: Union[str, Dict[str, str]]
-        if self.config.merge_mode == "dict":
-            result = content_dict
-        else:
-            result = "\n".join(content_list)
-
-        # Backwards compatibility: optional + single file
-        if len(paths) == 1 and self.config.merge_mode != "dict" and self.config.optional and not content_list:
-            result = ""
-
-        context[self.config.content_key] = result
-        self.logger.info(
-            f"Stored content under key '{self.config.content_key}' (mode: {self.config.merge_mode}, files read: {len(content_list)})"
-        )
-
-    def _render_paths(self, path: Union[str, List[str]], context: ContextProtocol) -> Union[str, List[str]]:
-        if isinstance(path, str):
-            return render_template(path, context)
-        if isinstance(path, list):
-            return [render_template(single_path, context) for single_path in path]
-        return path
-
-    def _parse_paths(self, rendered_path: Union[str, List[str]]) -> List[str]:
+        # Resolve and normalize paths
+        raw_path = self.config.path
         paths: List[str] = []
-        if isinstance(rendered_path, str):
-            if "," in rendered_path:
-                parts: List[str] = [part.strip() for part in rendered_path.split(",") if part.strip()]
-                paths.extend(parts)
-            elif rendered_path.strip():
-                paths.append(rendered_path.strip())
-        elif isinstance(rendered_path, list):
-            for element in rendered_path:
-                if "," in element:
-                    parts: List[str] = [part.strip() for part in element.split(",") if part.strip()]
-                    paths.extend(parts)
-                elif element.strip():
-                    paths.append(element.strip())
-        return paths
+
+        if isinstance(raw_path, str):
+            # Render template on the whole string
+            rendered = render_template(raw_path, context)
+            # Split comma-separated
+            if "," in rendered:
+                parts = [p.strip() for p in rendered.split(",") if p.strip()]
+                paths = parts
+            else:
+                paths = [rendered]
+        elif isinstance(raw_path, list):
+            # Render each entry
+            for entry in raw_path:
+                if not isinstance(entry, str):
+                    raise ValueError(f"Invalid path entry type: {type(entry)}")
+                rendered = render_template(entry, context)
+                paths.append(rendered)
+        else:
+            raise ValueError(f"Invalid path parameter type: {type(raw_path)}")
+
+        contents: List[str] = []
+        content_dict: Dict[str, str] = {}
+
+        # Process each file
+        for path_str in paths:
+            path_obj = Path(path_str)
+            self.logger.debug(f"Attempting to read file: {path_str}")
+            if not path_obj.exists():
+                msg = f"File not found: {path_str}"
+                if self.config.optional:
+                    self.logger.warning(f"Optional file missing, skipping: {path_str}")
+                    # For single optional, store empty later; for multiple, skip
+                    continue
+                else:
+                    raise FileNotFoundError(msg)
+            # Read file
+            try:
+                content = path_obj.read_text(encoding="utf-8")
+                self.logger.info(f"Successfully read file: {path_str}")
+            except Exception as e:
+                raise RuntimeError(f"Error reading file '{path_str}': {e}")
+
+            if self.config.merge_mode == "concat":
+                contents.append(content)
+            else:  # dict mode
+                content_dict[path_str] = content
+
+        # Determine final content
+        if len(paths) == 1:
+            # Single file semantics
+            if contents:
+                result = contents[0]
+            else:
+                # File missing but optional
+                result = ""
+        else:
+            if self.config.merge_mode == "concat":
+                result = "\n".join(contents)
+            else:
+                result = content_dict
+
+        # Store in context
+        context[self.config.content_key] = result
+        self.logger.info(f"Stored file content under key '{self.config.content_key}'")

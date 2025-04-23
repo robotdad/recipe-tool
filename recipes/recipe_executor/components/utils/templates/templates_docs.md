@@ -1,14 +1,14 @@
-# Utils Component Usage
+# Template Utility Component Usage
 
 ## Importing
 
 ```python
-from recipe_executor.utils import render_template
+from recipe_executor.utils.templates import render_template
 ```
 
 ## Template Rendering
 
-The Utils component provides a `render_template` function that renders Liquid templates using values from a context object implementing the ContextProtocol:
+The Templates utility component provides a `render_template` function that renders Liquid templates using values from a context object implementing the ContextProtocol:
 
 ```python
 def render_template(text: str, context: ContextProtocol) -> str:
@@ -31,7 +31,7 @@ def render_template(text: str, context: ContextProtocol) -> str:
 Basic usage example:
 
 ```python
-from recipe_executor.utils import render_template
+from recipe_executor.utils.templates import render_template
 
 # Create a context with some values
 context = Context(artifacts={"name": "World", "count": 42})

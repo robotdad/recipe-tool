@@ -28,8 +28,8 @@ class LLMGenerateConfig(StepConfig):
 
     prompt: str
     model: str = "openai/gpt-4o"
-    mcp_servers: Optional[List[Dict[str, Any]]]
-    output_format: "text" | "files" | jsonschema.Schema
+    mcp_servers: Optional[List[Dict[str, Any]]] = None
+    output_format: "text" | "files" | Dict[str, Any]
     output_key: str = "llm_output"
 ```
 

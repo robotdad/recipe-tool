@@ -20,8 +20,8 @@ class WriteFilesConfig(StepConfig):
         files: Optional list of dictionaries with 'path' and 'content' keys.
         root: Optional base path to prepend to all output file paths.
     """
-    files_key: Optional[str]
-    files: Optional[List[Dict[str, Any]]]
+    files_key: Optional[str] = None
+    files: Optional[List[Dict[str, Any]]] = None
     root: str = "."
 ```
 

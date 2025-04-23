@@ -38,7 +38,7 @@ The ExecuteRecipeStep component enables recipes to execute other recipes as sub-
 - **Step Interface** – (Required) Implements the step execution interface (via the StepProtocol)
 - **Context** – (Required) Shares data via a context object implementing the ContextProtocol between the main recipe and sub-recipes
 - **Executor** – (Required) Uses an executor implementing ExecutorProtocol to run the sub-recipe
-- **Utils** – (Required) Uses render_template for dynamic content resolution in paths and context overrides
+- **Utils/Templates** – (Required) Uses render_template for dynamic content resolution in paths and context overrides
 
 ### External Libraries
 

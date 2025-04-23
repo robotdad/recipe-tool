@@ -1,22 +1,22 @@
+import os
 import json
 import logging
-import os
 from pathlib import Path
-from typing import Any, Dict, Union
+from typing import Union, Dict, Any
 
+from recipe_executor.protocols import ExecutorProtocol, ContextProtocol
 from recipe_executor.models import Recipe
-from recipe_executor.protocols import ContextProtocol, ExecutorProtocol
 from recipe_executor.steps.registry import STEP_REGISTRY
 
 
 class Executor(ExecutorProtocol):
     """
-    Stateless executor for loading, validating, and running recipe steps.
-    Implements ExecutorProtocol. Does NOT retain state between runs.
+    Concrete implementation of the ExecutorProtocol. Responsible for loading,
+    validating, and executing recipes step by step using a shared context.
     """
 
     def __init__(self, logger: logging.Logger) -> None:
-        self.logger: logging.Logger = logger
+        self.logger = logger
 
     async def execute(
         self,
@@ -24,66 +24,85 @@ class Executor(ExecutorProtocol):
         context: ContextProtocol,
     ) -> None:
         """
-        Load the recipe from any supported type, validate structure, and execute each step sequentially.
-        On error, raises ValueError with context about which step or input failed.
+        Load a recipe (from path, JSON string, dict, or Recipe model), validate it,
+        and run its steps sequentially using the provided context.
         """
-        recipe_obj: Recipe = self._load_recipe(recipe)
-        self.logger.debug(f"Loaded recipe ({len(recipe_obj.steps)} steps): {recipe_obj.model_dump()}")
-        for index, step in enumerate(recipe_obj.steps):
-            step_type: str = step.type
-            step_config: Dict[str, Any] = step.config or {}
-            self.logger.debug(f"Executing step {index}: type='{step_type}', config={step_config}")
-            step_class = STEP_REGISTRY.get(step_type)
-            if step_class is None:
-                raise ValueError(f"Unknown step type '{step_type}' at index {index}")
-            try:
-                step_instance = step_class(self.logger, step_config)
-                result = step_instance.execute(context)
-                if hasattr(result, "__await__"):
-                    await result
-            except Exception as exc:
-                raise ValueError(f"Step {index} ('{step_type}') failed: {exc}") from exc
-            self.logger.debug(f"Step {index} ('{step_type}') executed successfully.")
-        self.logger.debug("All recipe steps executed successfully.")
-
-    def _load_recipe(self, recipe: Union[str, Path, Dict[str, Any], Recipe]) -> Recipe:
-        # If already validated model
+        # Determine source and load into Recipe model
         if isinstance(recipe, Recipe):
-            self.logger.debug("Recipe input is already a Recipe model.")
-            return recipe
-        # Dict
-        if isinstance(recipe, dict):
-            self.logger.debug("Recipe input is a dict; validating against Recipe model.")
-            try:
-                return Recipe.model_validate(recipe)
-            except Exception as exc:
-                raise ValueError(f"Invalid recipe dictionary: {exc}") from exc
-        # If Path or string: determine whether file path or raw JSON
-        recipe_str: str
-        if isinstance(recipe, Path):
-            recipe_str = str(recipe)
+            self.logger.debug("Using provided Recipe model instance.")
+            recipe_model = recipe
         else:
-            recipe_str = recipe
-        if not isinstance(recipe_str, str):
-            raise TypeError(f"Recipe argument must be a str, Path, dict, or Recipe model, not {type(recipe)}")
-        if os.path.isfile(recipe_str):
-            self.logger.debug(f"Recipe input is a file path: {recipe_str}")
+            # Load from pathlib.Path
+            if isinstance(recipe, Path):
+                path_str = str(recipe)
+                if not recipe.exists():
+                    raise ValueError(f"Recipe file not found: {path_str}")
+                self.logger.debug(f"Loading recipe from file path: {path_str}")
+                try:
+                    content = recipe.read_text(encoding="utf-8")
+                except Exception as e:
+                    raise ValueError(f"Failed to read recipe file {path_str}: {e}") from e
+                try:
+                    recipe_model = Recipe.model_validate_json(content)
+                except Exception as e:
+                    raise ValueError(f"Failed to parse recipe JSON from file {path_str}: {e}") from e
+            # Load from string (file path or raw JSON)
+            elif isinstance(recipe, str):
+                if os.path.isfile(recipe):
+                    self.logger.debug(f"Loading recipe from file path: {recipe}")
+                    try:
+                        content = Path(recipe).read_text(encoding="utf-8")
+                    except Exception as e:
+                        raise ValueError(f"Failed to read recipe file {recipe}: {e}") from e
+                    try:
+                        recipe_model = Recipe.model_validate_json(content)
+                    except Exception as e:
+                        raise ValueError(f"Failed to parse recipe JSON from file {recipe}: {e}") from e
+                else:
+                    self.logger.debug("Loading recipe from JSON string.")
+                    try:
+                        recipe_model = Recipe.model_validate_json(recipe)
+                    except Exception as e:
+                        raise ValueError(f"Failed to parse recipe JSON string: {e}") from e
+            # Load from dict
+            elif isinstance(recipe, dict):
+                self.logger.debug("Loading recipe from dict.")
+                try:
+                    recipe_model = Recipe.model_validate(recipe)
+                except Exception as e:
+                    raise ValueError(f"Invalid recipe structure: {e}") from e
+            else:
+                raise TypeError(f"Unsupported recipe type: {type(recipe)}")
+
+        # Log recipe summary
+        try:
+            recipe_summary = recipe_model.model_dump()
+        except Exception:
+            recipe_summary = {}
+        step_count = len(recipe_model.steps)
+        self.logger.debug(f"Recipe loaded: {recipe_summary}. Steps count: {step_count}")
+
+        # Execute each step sequentially
+        for idx, step in enumerate(recipe_model.steps):
+            step_type = step.type
+            config = step.config or {}
+            self.logger.debug(f"Executing step {idx} of type '{step_type}' with config: {config}")
+
+            if step_type not in STEP_REGISTRY:
+                raise ValueError(f"Unknown step type '{step_type}' at index {idx}")
+
+            step_cls = STEP_REGISTRY[step_type]
+            step_instance = step_cls(self.logger, config)
+
             try:
-                with open(recipe_str, "r", encoding="utf-8") as file:
-                    loaded = json.load(file)
-            except Exception as exc:
-                raise ValueError(f"Error reading recipe file '{recipe_str}': {exc}") from exc
-            try:
-                return Recipe.model_validate(loaded)
-            except Exception as exc:
-                raise ValueError(f"Invalid recipe in file '{recipe_str}': {exc}") from exc
-        else:
-            self.logger.debug("Recipe input is a raw JSON string.")
-            try:
-                loaded = json.loads(recipe_str)
-            except Exception as exc:
-                raise ValueError(f"Error parsing recipe JSON string: {exc}") from exc
-            try:
-                return Recipe.model_validate(loaded)
-            except Exception as exc:
-                raise ValueError(f"Invalid recipe JSON string: {exc}") from exc
+                result = step_instance.execute(context)
+                # Support async or sync execute methods
+                if hasattr(result, "__await__"):
+                    await result  # type: ignore
+            except Exception as e:
+                msg = f"Error executing step {idx} ('{step_type}'): {e}"
+                raise ValueError(msg) from e
+
+            self.logger.debug(f"Step {idx} ('{step_type}') completed successfully.")
+
+        self.logger.debug("All recipe steps completed successfully.")
