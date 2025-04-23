@@ -3,29 +3,21 @@
     {
       "type": "read_files",
       "config": {
-        "path": "test_output/initial_collection.json",
-        "contents_key": "collection_data"
-      }
-    },
-    {
-      "type": "llm_generate",
-      "config": {
-        "prompt": "Extract just the test_items array from this data:\n\n{{collection_data}}\n\nOutput only the array, nothing else.",
-        "model": "openai/o3-mini",
-        "output_format": "text",
-        "output_key": "test_items"
+        "path": "recipes/example_loops/test_output/initial_collection.json",
+        "content_key": "collection_data",
+        "merge_mode": "dict"
       }
     },
     {
       "type": "loop",
       "config": {
-        "items": "test_items",
+        "items": "collection_data.test_items",
         "item_key": "current_item",
         "substeps": [
           {
             "type": "execute_recipe",
             "config": {
-              "recipe_path": "process_test_item.json"
+              "recipe_path": "recipes/example_loops/process_test_item.json"
             }
           }
         ],
@@ -35,7 +27,7 @@
     {
       "type": "llm_generate",
       "config": {
-        "prompt": "Verify that the loop processing worked correctly by analyzing these results:\n\nOriginal items: {{test_items}}\n\nProcessed items: {{processed_items}}\n\nProvide a detailed analysis of what changed for each item and whether the transformations were applied correctly.",
+        "prompt": "Verify that the loop processing worked correctly by analyzing these results:\n\nOriginal items: {{collection_data.test_items}}\n\nProcessed items: {{processed_items}}\n\nProvide a detailed analysis of what changed for each item and whether the transformations were applied correctly.",
         "model": "openai/o3-mini",
         "output_format": "text",
         "output_key": "verification_result"
@@ -46,8 +38,8 @@
       "config": {
         "files": [
           {
-            "path": "test_output/loop_test_results.md",
-            "content": "# Loop Component Test Results\n\n## Original Items\n```json\n{{test_items}}\n```\n\n## Processed Items\n```json\n{{processed_items}}\n```\n\n## Verification\n{{verification_result}}"
+            "path": "recipes/example_loops/test_output/loop_test_results.md",
+            "content": "# Loop Component Test Results\n\n## Original Items\n```json\n{{collection_data.test_items}}\n```\n\n## Processed Items\n```json\n{{processed_items}}\n```\n\n## Verification\n{{verification_result}}"
           }
         ]
       }

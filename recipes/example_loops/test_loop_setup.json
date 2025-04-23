@@ -9,9 +9,22 @@
           "type": "object",
           "properties": {
             "test_items": {
-              "type": "array"
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string"
+                  },
+                  "value": {
+                    "type": ["string", "number", "object"]
+                  }
+                },
+                "required": ["type", "value"]
+              }
             }
-          }
+          },
+          "required": ["test_items"]
         },
         "output_key": "collection_result"
       }
@@ -21,7 +34,7 @@
       "config": {
         "files": [
           {
-            "path": "test_output/initial_collection.json",
+            "path": "recipes/example_loops/test_output/initial_collection.json",
             "content_key": "collection_result"
           }
         ]

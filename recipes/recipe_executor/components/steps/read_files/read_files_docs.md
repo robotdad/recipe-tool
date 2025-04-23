@@ -255,6 +255,7 @@ Then in the recipe you can use that context value:
 ## Important Notes
 
 - The step uses UTF-8 encoding by default for all files
+- If the file is JSON, it will be parsed and stored as a dictionary
 - When a file is optional and missing, it is handled according to the specified `merge_mode`
 - Template variables in all paths are resolved before reading the files
 - When using `merge_mode: "dict"`, the keys in the output are the full paths of the files

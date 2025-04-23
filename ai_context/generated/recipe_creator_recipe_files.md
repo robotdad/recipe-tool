@@ -1,5 +1,5 @@
 # AI Context Files
-Date: 4/22/2025, 10:49:12 AM
+Date: 4/23/2025, 3:04:58 PM
 Files: 4
 
 === File: recipes/recipe_creator/create.json ===
@@ -9,14 +9,14 @@ Files: 4
       "type": "read_files",
       "config": {
         "path": "{{input}}",
-        "contents_key": "recipe_idea"
+        "content_key": "recipe_idea"
       }
     },
     {
       "type": "read_files",
       "config": {
         "path": "ai_context/generated/recipe_executor_code_files.md,ai_context/generated/recipe_executor_recipe_files.md",
-        "contents_key": "context_files",
+        "content_key": "context_files",
         "merge_mode": "concat"
       }
     },
@@ -24,7 +24,7 @@ Files: 4
       "type": "read_files",
       "config": {
         "path": "{{files}}",
-        "contents_key": "additional_files",
+        "content_key": "additional_files",
         "optional": true,
         "merge_mode": "concat"
       }

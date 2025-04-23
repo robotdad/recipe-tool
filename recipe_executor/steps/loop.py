@@ -1,9 +1,9 @@
 import logging
-import traceback
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Dict, Iterator, List, Tuple, Union
 
-from recipe_executor.protocols import ContextProtocol, StepProtocol
+from recipe_executor.protocols import ContextProtocol
 from recipe_executor.steps.base import BaseStep, StepConfig
+from recipe_executor.utils.templates import render_template
 
 
 class LoopStepConfig(StepConfig):
@@ -17,6 +17,7 @@ class LoopStepConfig(StepConfig):
         result_key: Key to store the collection of results in the context.
         fail_fast: Whether to stop processing on the first error (default: True).
     """
+
     items: str
     item_key: str
     substeps: List[Dict[str, Any]]
@@ -25,101 +26,101 @@ class LoopStepConfig(StepConfig):
 
 
 class LoopStep(BaseStep[LoopStepConfig]):
-    """LoopStep: iterate over a collection and run substeps for each item."""
-
     def __init__(self, logger: logging.Logger, config: Dict[str, Any]) -> None:
         super().__init__(logger, LoopStepConfig(**config))
 
     async def execute(self, context: ContextProtocol) -> None:
-        # Retrieve the items collection
-        raw = context.get(self.config.items)
-        if raw is None:
-            raise ValueError(f"LoopStep: context missing items key '{self.config.items}'")
+        # Resolve the items path via template
+        path_str = render_template(self.config.items, context)
+        if not path_str:
+            raise ValueError(f"LoopStep: items path resolved to empty string from '{self.config.items}'")
 
-        # Determine iteration mode
-        is_mapping = isinstance(raw, dict)
-        if is_mapping:
-            iterable = list(raw.items())  # type: ignore
-            total = len(iterable)
-        elif isinstance(raw, (list, tuple)):
-            iterable = list(enumerate(raw))
-            total = len(iterable)
+        # Traverse context snapshot to get the collection
+        data = context.dict()
+        current: Any = data
+        for part in path_str.split("."):
+            if not isinstance(current, dict) or part not in current:
+                raise KeyError(f"LoopStep: could not resolve part '{part}' in path '{path_str}'")
+            current = current[part]
+        items_obj = current
+
+        # Determine iteration type and prepare results container
+        if isinstance(items_obj, dict):
+            iter_items: Iterator[Tuple[Any, Any]] = iter(items_obj.items())
+            is_mapping = True
+            results: Dict[Any, Any] = {}
+            count = len(items_obj)
+        elif isinstance(items_obj, (list, tuple)):
+            iter_items = enumerate(items_obj)
+            is_mapping = False
+            results = []  # type: ignore
+            count = len(items_obj)
+        elif items_obj is None:
+            self.logger.info(f"LoopStep: no items found at '{path_str}', storing empty result")
+            empty: Union[List[Any], Dict[Any, Any]] = []
+            context[self.config.result_key] = empty
+            return
         else:
-            raise ValueError(
-                f"LoopStep: items under '{self.config.items}' is not iterable (got {type(raw)})"
-            )
+            # Single non-iterable item
+            iter_items = enumerate([items_obj])
+            is_mapping = False
+            results = []  # type: ignore
+            count = 1
 
-        self.logger.info(
-            f"LoopStep: processing {total} items from key '{self.config.items}'"
-        )
-
-        results_list: List[Any] = []
-        results_map: Dict[Any, Any] = {}
+        self.logger.info(f"LoopStep: processing {count} item(s) from '{path_str}'")
         errors: List[Dict[str, Any]] = []
 
-        from recipe_executor.steps.registry import STEP_REGISTRY
+        from recipe_executor.executor import Executor
 
-        for idx, val in iterable:
-            self.logger.debug(f"LoopStep: start item '{idx}'")
-            # Clone context for isolation
-            ctx_clone = context.clone()
+        # Iterate and execute substeps in isolated contexts
+        for key, item in iter_items:
+            label = key if is_mapping else f"index {key}"
+            self.logger.debug(f"LoopStep: start processing item {label}")
+            sub_ctx = context.clone()
             # Inject current item and index/key
-            ctx_clone[self.config.item_key] = val
+            sub_ctx[self.config.item_key] = item
             if is_mapping:
-                ctx_clone["__key"] = idx
+                sub_ctx["__key"] = key  # type: ignore
             else:
-                ctx_clone["__index"] = idx
+                sub_ctx["__index"] = key  # type: ignore
 
+            # Assemble a small recipe for the substeps
+            recipe = {"steps": self.config.substeps}
+
+            executor = Executor(self.logger)
             try:
-                # Execute substeps sequentially
-                for step_conf in self.config.substeps:
-                    stype = step_conf.get("type")
-                    if not stype:
-                        raise ValueError("LoopStep: substep missing 'type'")
-                    StepCls = STEP_REGISTRY.get(stype)
-                    if StepCls is None:
-                        raise ValueError(f"LoopStep: unknown substep type '{stype}'")
-                    config_dict = step_conf.get("config", {}) or {}
-                    step: StepProtocol = StepCls(self.logger, config_dict)
-                    # substeps may be async
-                    result = step.execute(ctx_clone)
-                    if hasattr(result, "__await__"):
-                        await result  # type: ignore
-                # Extract processed item result
-                item_result = ctx_clone.get(self.config.item_key)
-                # Collect result
-                if is_mapping:
-                    results_map[idx] = item_result
-                else:
-                    results_list.append(item_result)
-                self.logger.debug(f"LoopStep: finished item '{idx}'")
+                await executor.execute(recipe, sub_ctx)
             except Exception as e:
-                tb = traceback.format_exc()
-                self.logger.error(
-                    f"LoopStep: error on item '{idx}': {e}\n{tb}"
-                )
+                self.logger.error(f"LoopStep: error processing item {label}: {e}", exc_info=True)
+                err_info = {"key": key, "error": str(e)}
+                errors.append(err_info)
                 if self.config.fail_fast:
                     raise
-                errors.append({
-                    "item_key": idx,
-                    "error": str(e),
-                    "traceback": tb,
-                })
-                # continue to next item
+                # skip adding a result for failed item
+                continue
 
-        # Assemble final result
-        if is_mapping:
-            final: Union[Dict[Any, Any], Any] = results_map
-            if errors:
-                final["__errors"] = errors  # type: ignore
-        else:
-            if errors:
-                final = {"results": results_list, "__errors": errors}
+            # Collect the processed item (load from same item_key)
+            try:
+                result_item = sub_ctx[self.config.item_key]
+            except KeyError:
+                self.logger.error(f"LoopStep: missing '{self.config.item_key}' after processing item {label}")
+                if self.config.fail_fast:
+                    raise
+                continue
+
+            # Store into results
+            if is_mapping:
+                results[key] = result_item  # type: ignore
             else:
-                final = results_list
+                results.append(result_item)  # type: ignore
+            self.logger.debug(f"LoopStep: finished processing item {label}")
 
-        # Store in parent context
-        context[self.config.result_key] = final
+        # Store final results and any errors
+        context[self.config.result_key] = results  # type: ignore
+        if errors:
+            err_key = f"{self.config.result_key}__errors"
+            context[err_key] = errors  # type: ignore
+            self.logger.info(f"LoopStep: encountered {len(errors)} error(s); stored under '{err_key}'")
         self.logger.info(
-            f"LoopStep: stored results under '{self.config.result_key}'"
+            f"LoopStep: completed loop, stored {count - len(errors)} successful result(s) under '{self.config.result_key}'"
         )

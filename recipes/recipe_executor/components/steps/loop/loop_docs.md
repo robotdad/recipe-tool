@@ -20,7 +20,8 @@ class LoopStepConfig(StepConfig):
     Configuration for LoopStep.
 
     Fields:
-        items: Key in the context containing the collection to iterate over.
+        items: Key in the context containing the collection to iterate over. Supports template variable syntax
+               with dot notation for accessing nested data structures (e.g., "data.items", "response.results").
         item_key: Key to use when storing the current item in each iteration's context.
         substeps: List of sub-step configurations to execute for each item.
         result_key: Key to store the collection of results in the context.
@@ -88,11 +89,29 @@ The LoopStep allows you to run multiple steps for each item in a collection. Sub
 
 For each iteration:
 
-1. The LoopStep clones the parent context to create an isolated execution environment
-2. It places the current item in the cloned context using the `item_key`
-3. It executes all specified steps using the cloned context
-4. After execution, it extracts the result from the context (using the same `item_key`)
-5. The result is added to a collection that will be stored in the parent context under `result_key`
+1. The LoopStep renders the `items` path using template rendering to resolve nested paths (e.g., "data.items" becomes the actual array from context["data"]["items"])
+2. The LoopStep clones the parent context to create an isolated execution environment
+3. It places the current item in the cloned context using the `item_key`
+4. It executes all specified steps using the cloned context
+5. After execution, it extracts the result from the context (using the same `item_key`)
+6. The result is added to a collection that will be stored in the parent context under `result_key`
+
+## Accessing Nested Data
+
+The `items` parameter can reference nested data in the context using dot notation. This is processed using template rendering, similar to other Recipe Executor components:
+
+```json
+{
+  "type": "loop",
+  "config": {
+    "items": "data.users.list",
+    "item_key": "user",
+    "substeps": [...]
+  }
+}
+```
+
+This example would iterate over the array found at `context["data"]["users"]["list"]`.
 
 ## Template Variables
 

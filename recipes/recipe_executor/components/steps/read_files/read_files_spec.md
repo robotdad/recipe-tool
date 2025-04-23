@@ -11,6 +11,8 @@ The ReadFilesStep component reads one or more files from the filesystem and stor
 - If a single string is provided, detect commas to determine if it represents multiple paths and split accordingly
 - Support template-based path resolution for all paths
 - Store all file content in the context under a single specified key
+- Support reading files in text format with UTF-8 encoding
+- Where possible, deserialize the content to a Python object (e.g., JSON, YAML) if the file format allows
 - Provide flexible content merging options for multi-file reads
 - Support optional file handling for cases when files might not exist
 - Include appropriate logging and error messages
@@ -37,13 +39,13 @@ The ReadFilesStep component reads one or more files from the filesystem and stor
 
 ### Internal Components
 
-- **Step Interface** – (Required) Implements the step interface via StepProtocol
-- **Context** – (Required) Stores file content using a context that implements ContextProtocol (artifacts stored under a specified key)
-- **Utils/Templates** – (Required) Uses render_template for dynamic path resolution
+- **Step Interface**: Implements the step interface via StepProtocol
+- **Context**: Stores file content using a context that implements ContextProtocol (artifacts stored under a specified key)
+- **Utils/Templates**: Uses render_template for dynamic path resolution
 
 ### External Libraries
 
-None
+- **pyyaml**: For parsing YAML files if the content is in YAML format
 
 ### Configuration Dependencies
 

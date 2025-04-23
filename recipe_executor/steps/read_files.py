@@ -1,8 +1,9 @@
+import json
 import logging
-from pathlib import Path
+import os
 from typing import Any, Dict, List, Union
 
-from pydantic import validator
+import yaml
 
 from recipe_executor.protocols import ContextProtocol
 from recipe_executor.steps.base import BaseStep, StepConfig
@@ -18,7 +19,7 @@ class ReadFilesConfig(StepConfig):
         content_key (str): Name to store the file content in context.
         optional (bool): Whether to continue if a file is not found.
         merge_mode (str): How to handle multiple files' content. Options:
-            - "concat" (default): Concatenate all files with newlines between each file’s content
+            - "concat" (default): Concatenate all files with newlines between filenames + content
             - "dict": Store a dictionary with filenames as keys and content as values
     """
 
@@ -27,29 +28,22 @@ class ReadFilesConfig(StepConfig):
     optional: bool = False
     merge_mode: str = "concat"
 
-    @validator("merge_mode")
-    def _validate_merge_mode(cls, v: str) -> str:
-        if v not in ("concat", "dict"):
-            raise ValueError("merge_mode must be either 'concat' or 'dict'")
-        return v
-
 
 class ReadFilesStep(BaseStep[ReadFilesConfig]):
     """
-    Step that reads one or more files from the filesystem, optionally merges their content,
-    and stores the result in the context under a specified key.
+    Step that reads one or more files from disk and stores their content in the execution context.
     """
 
     def __init__(self, logger: logging.Logger, config: Dict[str, Any]) -> None:
         super().__init__(logger, ReadFilesConfig(**config))
 
     async def execute(self, context: ContextProtocol) -> None:
-        # Resolve and normalize paths
-        raw_path = self.config.path
+        cfg = self.config
+        raw_path = cfg.path
         paths: List[str] = []
 
+        # Resolve and normalize paths
         if isinstance(raw_path, str):
-            # Render template on the whole string
             rendered = render_template(raw_path, context)
             # Split comma-separated
             if "," in rendered:
@@ -58,56 +52,74 @@ class ReadFilesStep(BaseStep[ReadFilesConfig]):
             else:
                 paths = [rendered]
         elif isinstance(raw_path, list):
-            # Render each entry
-            for entry in raw_path:
-                if not isinstance(entry, str):
-                    raise ValueError(f"Invalid path entry type: {type(entry)}")
-                rendered = render_template(entry, context)
+            for p in raw_path:
+                if not isinstance(p, str):
+                    raise ValueError(f"Invalid path entry: {p!r}")
+                rendered = render_template(p, context)
                 paths.append(rendered)
         else:
-            raise ValueError(f"Invalid path parameter type: {type(raw_path)}")
+            raise ValueError(f"Invalid type for path: {type(raw_path)}")
 
-        contents: List[str] = []
-        content_dict: Dict[str, str] = {}
+        results: List[Any] = []
+        result_dict: Dict[str, Any] = {}
 
-        # Process each file
-        for path_str in paths:
-            path_obj = Path(path_str)
-            self.logger.debug(f"Attempting to read file: {path_str}")
-            if not path_obj.exists():
-                msg = f"File not found: {path_str}"
-                if self.config.optional:
-                    self.logger.warning(f"Optional file missing, skipping: {path_str}")
-                    # For single optional, store empty later; for multiple, skip
+        for path in paths:
+            self.logger.debug(f"Reading file at path: {path}")
+            if not os.path.exists(path):
+                msg = f"File not found: {path}"
+                if cfg.optional:
+                    self.logger.warning(f"Optional file missing, skipping: {path}")
                     continue
-                else:
-                    raise FileNotFoundError(msg)
-            # Read file
+                raise FileNotFoundError(msg)
+
+            # Read file content
+            with open(path, "r", encoding="utf-8") as f:
+                text = f.read()
+
+            # Attempt deserialization if applicable
+            ext = os.path.splitext(path)[1].lower()
+            content: Any
             try:
-                content = path_obj.read_text(encoding="utf-8")
-                self.logger.info(f"Successfully read file: {path_str}")
+                if ext == ".json":
+                    content = json.loads(text)
+                elif ext in (".yaml", ".yml"):
+                    content = yaml.safe_load(text)
+                else:
+                    content = text
             except Exception as e:
-                raise RuntimeError(f"Error reading file '{path_str}': {e}")
+                self.logger.warning(f"Failed to parse structured data from {path}: {e}")
+                content = text
 
-            if self.config.merge_mode == "concat":
-                contents.append(content)
-            else:  # dict mode
-                content_dict[path_str] = content
+            self.logger.info(f"Successfully read file: {path}")
+            results.append(content)
+            result_dict[path] = content
 
-        # Determine final content
-        if len(paths) == 1:
-            # Single file semantics
-            if contents:
-                result = contents[0]
+        # Merge results
+        final_content: Any
+        if not results:
+            # No files read
+            if len(paths) <= 1:
+                final_content = ""  # single missing
+            elif cfg.merge_mode == "dict":
+                final_content = {}
             else:
-                # File missing but optional
-                result = ""
+                final_content = ""
+        elif len(results) == 1:
+            # Single file
+            final_content = results[0]
         else:
-            if self.config.merge_mode == "concat":
-                result = "\n".join(contents)
+            # Multiple files
+            if cfg.merge_mode == "dict":
+                final_content = result_dict
             else:
-                result = content_dict
+                # concat mode
+                parts: List[str] = []
+                for p in paths:
+                    if p in result_dict:
+                        raw = result_dict[p]
+                        parts.append(f"{p}\n{raw}")
+                final_content = "\n".join(parts)
 
         # Store in context
-        context[self.config.content_key] = result
-        self.logger.info(f"Stored file content under key '{self.config.content_key}'")
+        context[cfg.content_key] = final_content
+        self.logger.info(f"Stored file content under key '{cfg.content_key}'")

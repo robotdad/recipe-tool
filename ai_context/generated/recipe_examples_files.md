@@ -1,6 +1,6 @@
 # AI Context Files
-Date: 4/22/2025, 2:28:14 PM
-Files: 10
+Date: 4/23/2025, 3:51:20 PM
+Files: 14
 
 === File: recipes/example_complex/README.md ===
 # Complex Code Generation Recipe
@@ -20,7 +20,7 @@ This recipe demonstrates a multi-step workflow that:
       "type": "read_files",
       "config": {
         "path": "ai_context/git_collector/PYDANTIC_AI_DOCS.md",
-        "contents_key": "pydantic_ai_docs"
+        "content_key": "pydantic_ai_docs"
       }
     },
     {
@@ -92,7 +92,7 @@ This recipe demonstrates a multi-step workflow that:
 === File: recipes/example_complex/prompts/complex_example_idea.md ===
 Create a recipe file named `complex_example.json` that generates a recipe file based on the following scenario:
 
-Let's write some code that uses the PydanticAI library (docs for it are located in `ai_context/git_collector/PYDANTIC_AI_DOCS.md`, have the recipe read the contents of this file in) to create simple chat client that uses an LLM. Have it create multiple files and use the parallel step to genearte them in parallel.
+Let's write some code that uses the PydanticAI library (docs for it are located in `ai_context/git_collector/PYDANTIC_AI_DOCS.md`, have the recipe read the content of this file in) to create simple chat client that uses an LLM. Have it create multiple files and use the parallel step to generate them in parallel.
 
 But let's also test the use of MCP servers within the LLM generate steps. Configure the LLM step to use our python code tools MCP server (details below). Then let's ask the LLM to generate some code to use it's linting tool and returning a report from that along with the code files. However, intentionally include some errors in the code in **one** of the modules. Finally write the final code to individual files in `output/complex_example`.
 
@@ -108,14 +108,14 @@ args: `stdio`
       "type": "read_files",
       "config": {
         "path": "{{idea}}",
-        "contents_key": "idea_content"
+        "content_key": "idea_content"
       }
     },
     {
       "type": "read_files",
       "config": {
         "path": "{{files}}",
-        "contents_key": "additional_files_content",
+        "content_key": "additional_files_content",
         "optional": true
       }
     },
@@ -123,7 +123,7 @@ args: `stdio`
       "type": "read_files",
       "config": {
         "path": "{{reference_content}}",
-        "contents_key": "reference_content_text",
+        "content_key": "reference_content_text",
         "optional": true
       }
     },
@@ -158,9 +158,190 @@ Input context variables:
 - The model to use for generating the content: `model` context variable, optional.
 - The root directory for saving the generated content: `output_root` context variable, optional.
 
-Read in the contents of the files above and then:
+Read in the content of the files above and then:
 
 Generate some new content based the combined context of the idea + any additional files and then, if provided, tartget the style of the reference content. The generated content should be saved in a file named `<content_title>.md` in the specified output directory.
+
+
+=== File: recipes/example_loops/process_test_item.json ===
+{
+  "steps": [
+    {
+      "type": "llm_generate",
+      "config": {
+        "prompt": "Transform the following item based on its type:\n- If type is 'string': Convert value to uppercase\n- If type is 'number': Multiply value by 2\n- If type is 'object': Add a 'processed: true' property to the value\n\nItem: {{current_item}}\n\nOutput the transformed item with the same structure (keeping the type field).",
+        "model": "openai/o3-mini",
+        "output_format": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string"
+            },
+            "value": {
+              "type": ["string", "number", "object"]
+            }
+          },
+          "required": ["type", "value"]
+        },
+        "output_key": "transformed_item"
+      }
+    }
+  ]
+}
+
+
+=== File: recipes/example_loops/test_loop.json ===
+{
+  "steps": [
+    {
+      "type": "read_files",
+      "config": {
+        "path": "test_output/initial_collection.json",
+        "content_key": "collection_data",
+        "merge_mode": "dict"
+      }
+    },
+    {
+      "type": "loop",
+      "config": {
+        "items": "collection_data.test_items",
+        "item_key": "current_item",
+        "substeps": [
+          {
+            "type": "execute_recipe",
+            "config": {
+              "recipe_path": "process_test_item.json"
+            }
+          }
+        ],
+        "result_key": "processed_items"
+      }
+    },
+    {
+      "type": "llm_generate",
+      "config": {
+        "prompt": "Verify that the loop processing worked correctly by analyzing these results:\n\nOriginal items: {{collection_data.test_items}}\n\nProcessed items: {{processed_items}}\n\nProvide a detailed analysis of what changed for each item and whether the transformations were applied correctly.",
+        "model": "openai/o3-mini",
+        "output_format": "text",
+        "output_key": "verification_result"
+      }
+    },
+    {
+      "type": "write_files",
+      "config": {
+        "files": [
+          {
+            "path": "test_output/loop_test_results.md",
+            "content": "# Loop Component Test Results\n\n## Original Items\n```json\n{{collection_data.test_items}}\n```\n\n## Processed Items\n```json\n{{processed_items}}\n```\n\n## Verification\n{{verification_result}}"
+          }
+        ]
+      }
+    }
+  ]
+}
+
+
+=== File: recipes/example_loops/test_loop_errors.json ===
+{
+  "steps": [
+    {
+      "type": "read_files",
+      "config": {
+        "path": "test_output/initial_collection.json",
+        "contents_key": "collection_data"
+      }
+    },
+    {
+      "type": "llm_generate",
+      "config": {
+        "prompt": "Take this collection of items and add one invalid item (with a non-existent type or malformed structure) that might cause an error during processing:\n\n{{collection_data.test_items}}\n\nReturn the modified array with the added error-causing item.",
+        "model": "openai/o3-mini",
+        "output_format": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "output_key": "test_items_with_error"
+      }
+    },
+    {
+      "type": "loop",
+      "config": {
+        "items": "test_items_with_error",
+        "item_key": "current_item",
+        "substeps": [
+          {
+            "type": "execute_recipe",
+            "config": {
+              "recipe_path": "process_test_item.json"
+            }
+          }
+        ],
+        "result_key": "processed_items",
+        "fail_fast": false
+      }
+    },
+    {
+      "type": "write_files",
+      "config": {
+        "files": [
+          {
+            "path": "test_output/error_handling_results.md",
+            "content": "# Loop Error Handling Test Results\n\n## Input Items (including error item)\n```json\n{{test_items_with_error}}\n```\n\n## Processed Items (should continue despite errors)\n```json\n{{processed_items}}\n```\n\n## Errors (if any)\n```json\n{{__errors|default:'No errors captured'}}\n```"
+          }
+        ]
+      }
+    }
+  ]
+}
+
+
+=== File: recipes/example_loops/test_loop_setup.json ===
+{
+  "steps": [
+    {
+      "type": "llm_generate",
+      "config": {
+        "prompt": "Create a test collection with different types of data. Output only a JSON array with 5 items: two strings, two numbers, and one object with properties.",
+        "model": "openai/o3-mini",
+        "output_format": {
+          "type": "object",
+          "properties": {
+            "test_items": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string"
+                  },
+                  "value": {
+                    "type": ["string", "number", "object"]
+                  }
+                },
+                "required": ["type", "value"]
+              }
+            }
+          },
+          "required": ["test_items"]
+        },
+        "output_key": "collection_result"
+      }
+    },
+    {
+      "type": "write_files",
+      "config": {
+        "files": [
+          {
+            "path": "test_output/initial_collection.json",
+            "content_key": "collection_result"
+          }
+        ]
+      }
+    }
+  ]
+}
 
 
 === File: recipes/example_mcp_step/mcp_step_example.json ===
@@ -170,7 +351,7 @@ Generate some new content based the combined context of the idea + any additiona
       "type": "read_files",
       "config": {
         "path": "{{input}}",
-        "contents_key": "code",
+        "content_key": "code",
         "optional": false,
         "merge_mode": "concat"
       }
@@ -267,7 +448,7 @@ Print "Hello, Test!" to the console.
       "type": "read_files",
       "config": {
         "path": "recipes/example_simple/specs/sample_spec.txt",
-        "contents_key": "spec_text"
+        "content_key": "spec_text"
       }
     },
     {

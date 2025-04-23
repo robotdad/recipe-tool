@@ -7,6 +7,7 @@ The LoopStep component enables recipes to iterate over a collection of items, ex
 ## Core Requirements
 
 - Process each item in a collection using a specified set of steps
+- Support template rendering for the `items` path to access nested data structures via dot notation (e.g., "results.data.items")
 - Isolate processing of each item to prevent cross-contamination
 - Store the results of processing each item in a designated collection
 - Support conditional execution based on item properties
@@ -16,6 +17,7 @@ The LoopStep component enables recipes to iterate over a collection of items, ex
 
 ## Implementation Considerations
 
+- Use template rendering to resolve the `items` path before accessing data, enabling support for nested paths
 - Clone the context for each item to maintain isolation between iterations
 - Use a unique context key for each processed item to prevent collisions
 - Execute the specified steps for each item using the current executor
@@ -35,7 +37,7 @@ The LoopStep component enables recipes to iterate over a collection of items, ex
 - **Step Registry** – (Required) Uses the step registry to instantiate the `execute_recipe` step for each sub-step
 - **Context** – (Required) Shares data via a context object implementing the ContextProtocol between the main recipe and sub-recipes
 - **Executor** – (Required) Uses an executor implementing ExecutorProtocol to run the sub-recipe
-- **Utils/Templates** – (Optional) Uses template rendering for sub-step configurationsn
+- **Utils/Templates** – (Required) Uses template rendering for the `items` path and sub-step configurations
 
 ### External Libraries
 

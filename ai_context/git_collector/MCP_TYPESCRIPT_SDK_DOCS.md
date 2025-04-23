@@ -3,7 +3,7 @@
 [git-collector-data]
 
 **URL:** https://github.com/modelcontextprotocol/typescript-sdk  
-**Date:** 4/23/2025, 11:21:47 AM  
+**Date:** 4/23/2025, 3:05:03 PM  
 **Files:** 1  
 
 === File: README.md ===
@@ -251,7 +251,6 @@ app.post('/mcp', async (req, res) => {
     transport = transports[sessionId];
   } else if (!sessionId && isInitializeRequest(req.body)) {
     // New initialization request
-    const eventStore = new InMemoryEventStore();
     transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: () => randomUUID(),
       onsessioninitialized: (sessionId) => {
@@ -824,7 +823,7 @@ app.post('/messages', async (req, res) => {
   const sessionId = req.query.sessionId as string;
   const transport = transports.sse[sessionId];
   if (transport) {
-    await transport.handlePostMessage(req, res);
+    await transport.handlePostMessage(req, res, req.body);
   } else {
     res.status(400).send('No transport found for sessionId');
   }

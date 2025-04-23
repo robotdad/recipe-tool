@@ -1,5 +1,5 @@
 # AI Context Files
-Date: 4/22/2025, 10:49:12 AM
+Date: 4/23/2025, 3:04:58 PM
 Files: 1
 
 === File: recipes/utilities/generate_from_files.json ===
@@ -9,7 +9,7 @@ Files: 1
       "type": "read_files",
       "config": {
         "path": "{{ files }}",
-        "contents_key": "combined_input",
+        "content_key": "combined_input",
         "merge_mode": "concat"
       }
     },
