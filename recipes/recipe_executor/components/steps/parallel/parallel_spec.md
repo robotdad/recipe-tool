@@ -37,16 +37,12 @@ The ParallelStep component enables the Recipe Executor to run multiple sub-recip
 
 ### External Libraries
 
-- **ThreadPoolExecutor**: Uses `concurrent.futures.ThreadPoolExecutor` for parallel execution
+- **asyncio**: Utilizes asyncio for asynchronous task management and parallel execution
 - **time**: Uses `time.sleep` to implement delays between sub-step launches
 
 ### Configuration Dependencies
 
 None
-
-## Output Files
-
-- `steps/parallel.py` (ParallelStep implementation)
 
 ## Logging
 
@@ -60,3 +56,7 @@ None
 - Include clear error context identifying which sub-step failed
 - Ensure proper thread pool shutdown to prevent orphaned threads
 - Propagate the original exception with contextual information about the failure
+
+## Output Files
+
+- `recipe_executor/steps/parallel.py` (ParallelStep implementation)

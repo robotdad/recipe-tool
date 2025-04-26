@@ -57,12 +57,15 @@
     "output",
     "logs",
     "*.md",
+    "*.excalidraw",
     "ai_context"
   ],
   "cSpell.words": [
     "codegen",
     "dotenv",
+    "endfor",
     "fastmcp",
+    "forloop",
     "generatecode",
     "levelname",
     "levelno",
@@ -71,6 +74,7 @@
     "PYDANTIC",
     "setrecursionlimit",
     "stype",
+    "subschema",
     "substep",
     "substeps",
     "toplevel"
