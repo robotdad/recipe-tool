@@ -1,8 +1,8 @@
 [project]
-name = "recipe-executor"
+name = "recipe-tool"
 version = "0.1.0"
 description = "A tool for executing natural language recipe-like instructions"
-authors = [{ name = "Brian Krabach" }]
+authors = [{ name = "MADE:Explorations Team" }]
 license = "MIT"
 readme = "README.md"
 requires-python = ">=3.11"
