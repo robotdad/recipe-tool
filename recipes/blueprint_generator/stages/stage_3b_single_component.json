@@ -31,7 +31,7 @@
                       "type": "llm_generate",
                       "config": {
                         "prompt": "Create a single component specification for this project since it doesn't need splitting.\n\nProject Specification:\n{{project_spec}}\n\nCreate a comprehensive component specification with a component_id of 'main_component'.",
-                        "model": "{{model|default:'openai/o3-mini'}}",
+                        "model": "{{model|default:'openai/o4-mini'}}",
                         "output_format": "files",
                         "output_key": "main_component_spec"
                       }
@@ -47,7 +47,7 @@
                       "type": "llm_generate",
                       "config": {
                         "prompt": "Create a list with just the main component for processing.\n\nOutput only this JSON array:\n[\n  {\n    \"component_id\": \"main_component\",\n    \"needs_analysis\": false\n  }\n]",
-                        "model": "{{model|default:'openai/o3-mini'}}",
+                        "model": "{{model|default:'openai/o4-mini'}}",
                         "output_format": [
                           {
                             "type": "object",

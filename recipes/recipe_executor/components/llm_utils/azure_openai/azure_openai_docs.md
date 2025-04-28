@@ -19,7 +19,7 @@ def get_azure_openai_model(
 
     Args:
         logger (logging.Logger): Logger for logging messages.
-        model_name (str): Model name, such as "gpt-4o" or "o3-mini".
+        model_name (str): Model name, such as "gpt-4o" or "o4-mini".
         deployment_name (Optional[str]): Deployment name for Azure OpenAI, defaults to model_name.
 
     Returns:
@@ -35,7 +35,7 @@ Usage example:
 ```python
 # Get an OpenAI model using Azure OpenAI
 openai_model = get_azure_openai_model(
-    model_name="o3-mini",
+    model_name="o4-mini",
     logger=logger
 )
 ```
@@ -44,7 +44,7 @@ openai_model = get_azure_openai_model(
 
 ```python
 openai_model = get_azure_openai_model(
-    model_name="o3-mini",
+    model_name="o4-mini",
     deployment_name="my_deployment_name",
     logger=logger
 )

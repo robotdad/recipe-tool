@@ -1,5 +1,5 @@
 # AI Context Files
-Date: 4/27/2025, 9:41:58 AM
+Date: 4/27/2025, 10:26:20 AM
 Files: 25
 
 === File: .env.example ===
@@ -28,6 +28,15 @@ AZURE_USE_MANAGED_IDENTITY=false
 # Recipe Tool
 
 A tool for executing recipe-like natural language instructions to create complex workflows. This project includes a recipe executor and a recipe creator, both of which can be used to automate tasks and generate new recipes.
+
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
+## Getting Started
+
+```bash
+git clone https://github.com/microsoft/recipe-tool.git
+cd recipe-tool
+```
 
 ## Overview
 
@@ -210,7 +219,7 @@ This demonstrates the power of the Recipe Executor for code generation and maint
 
 ## Contributing
 
-This project is currently **NOT** accepting contributions and suggestions, please see the [dev_guidance.md](docs/dev_guidance.md) for more information for more details and why we are taking this approach for now.
+This project is currently **NOT** accepting contributions and suggestions; please see the [dev_guidance.md](docs/dev_guidance.md) for more details.
 
 Most contributions require you to agree to a
 Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us
@@ -235,10 +244,10 @@ Any use of third-party trademarks or logos are subject to those third-party's po
 
 === File: pyproject.toml ===
 [project]
-name = "recipe-executor"
+name = "recipe-tool"
 version = "0.1.0"
 description = "A tool for executing natural language recipe-like instructions"
-authors = [{ name = "Brian Krabach" }]
+authors = [{ name = "MADE:Explorations Team" }]
 license = "MIT"
 readme = "README.md"
 requires-python = ">=3.11"

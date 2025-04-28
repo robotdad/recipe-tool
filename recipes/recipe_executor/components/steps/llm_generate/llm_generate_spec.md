@@ -18,6 +18,8 @@ The LLMGenerateStep component enables recipes to generate content using large la
 
 - Use `render_template` for templating prompts, model identifiers, mcp server configs, and output key
 - Convert any MCP Server configurations to `MCPServer` instances (via `get_mcp_server`) to pass as `mcp_servers` to the LLM component
+- Accept a string for `max_tokens` and convert it to an integer to pass to the LLM component
+- In order to support dyanmic output keys, set the result type to `Any` prior to determining the output format and then set the output key immediately after the LLM call
 - If `output_format` is an object (JSON schema) or list:
   - Use `json_object_to_pydantic_model` to create a dynamic Pydantic model from the JSON schema
   - Pass the dynamic model to the LLM call as the `output_type` parameter

@@ -21,7 +21,7 @@
               "type": "llm_generate",
               "config": {
                 "prompt": "Transform this raw idea into a structured project specification. Consider the guidance docs and reference materials.\n\nRaw Idea:\n{{raw_idea}}\n\nGuidance Documents:\n{{guidance_docs}}\n\nContext Files:\n{{context_files}}\n\nReference Docs:\n{{reference_docs}}\n\nCreate a comprehensive, structured specification that includes project overview, requirements, technical constraints, and implementation guidelines. The specification should be detailed enough to analyze for component splitting.\n\nName the output file 'initial_project_spec.md'.",
-                "model": "{{model|default:'openai/o3-mini'}}",
+                "model": "{{model|default:'openai/o4-mini'}}",
                 "output_format": "files",
                 "output_key": "initial_project_spec"
               }

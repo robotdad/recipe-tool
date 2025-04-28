@@ -26,7 +26,7 @@ Recipes are JSON files with a structured format that define a series of steps to
       "type": "llm_generate",
       "config": {
         "prompt": "Generate content based on: {{specs}}",
-        "model": "{{model|default:'openai/o3-mini'}}",
+        "model": "{{model|default:'openai/o4-mini'}}",
         "output_format": "files",
         "output_key": "generation_result"
       }
@@ -130,7 +130,7 @@ Example recipe (`hello_world.json`):
       "type": "llm_generate",
       "config": {
         "prompt": "Write a hello world program in Python",
-        "model": "openai/o3-mini",
+        "model": "openai/o4-mini",
         "output_format": "files",
         "output_key": "hello_world"
       }
@@ -244,7 +244,7 @@ Configure the model in the `generate` step:
   "type": "llm_generate",
   "config": {
     "prompt": "Generate content about: {{topic}}",
-    "model": "{{provider/default:'openai'}}:{{model_name|default:'o3-mini'}}",
+    "model": "{{provider/default:'openai'}}:{{model_name|default:'o4-mini'}}",
     "output_format": "files",
     "output_key": "generated_content"
   }
@@ -269,7 +269,7 @@ Configure the model in the `generate` step:
       "type": "llm_generate",
       "config": {
         "prompt": "Transform this CSV data into JSON: {{raw_data}}",
-        "model": "openai/o3-mini",
+        "model": "openai/o4-mini",
         "output_format": "files",
         "output_key": "transformed_data"
       }

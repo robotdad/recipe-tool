@@ -1,0 +1,82 @@
+{
+  "steps": [
+    {
+      "type": "llm_generate",
+      "config": {
+        "prompt": "You are an expert software architect tasked with evaluating the quality and completeness of implementation recipes generated from UML models. Review the following recipes and assess whether they accurately and completely implement the system described in the UML models and specifications.\n\nImplementation Recipes:\n```\n{{ implementation_recipes }}\n```\n\nUML Models:\n```\n{{ uml_models }}\n```\n\nOriginal Specifications:\n```\n{{ structured_specifications }}\n```\n\nEvaluate these recipes for:\n\n1. Completeness - Do they cover all components, interfaces, classes, and interactions from the UML models?\n2. Consistency - Are there conflicts or contradictions between different recipes?\n3. Feasibility - Are the recipes technically feasible to implement?\n4. Traceability - Can each recipe element be traced back to the UML models and specifications?\n5. Best Practices - Do they follow software engineering best practices?\n\nIdentify any issues that would require human review before proceeding to code generation.",
+        "model": "{{ model | default: 'openai/gpt-4o' }}",
+        "output_format": {
+          "type": "object",
+          "properties": {
+            "needs_review": { "type": "boolean" },
+            "completeness_score": { "type": "number" },
+            "consistency_score": { "type": "number" },
+            "feasibility_score": { "type": "number" },
+            "traceability_score": { "type": "number" },
+            "best_practices_score": { "type": "number" },
+            "overall_score": { "type": "number" },
+            "issues": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "recipe_name": { "type": "string" },
+                  "component_id": { "type": "string" },
+                  "issue_type": { "type": "string" },
+                  "description": { "type": "string" },
+                  "severity": {
+                    "type": "string",
+                    "enum": ["low", "medium", "high"]
+                  },
+                  "suggestion": { "type": "string" }
+                }
+              }
+            },
+            "missing_elements": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "element_type": { "type": "string" },
+                  "element_name": { "type": "string" },
+                  "from_uml": { "type": "string" },
+                  "suggested_recipe": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "output_key": "recipe_evaluation"
+      }
+    },
+    {
+      "type": "llm_generate",
+      "config": {
+        "prompt": "Based on the recipe evaluation results, create a list of detailed review items that a human reviewer should address. Format each item with specific questions or suggestions that will help improve the implementation recipes.\n\nRecipe Evaluation: \n```\n{{ recipe_evaluation }}\n```",
+        "model": "{{ model | default: 'openai/gpt-4o' }}",
+        "output_format": [
+          {
+            "type": "object",
+            "properties": {
+              "recipe_name": { "type": "string" },
+              "component_id": { "type": "string" },
+              "description": { "type": "string" },
+              "question": { "type": "string" },
+              "suggestion": { "type": "string" }
+            }
+          }
+        ],
+        "output_key": "recipe_review_details"
+      }
+    },
+    {
+      "type": "llm_generate",
+      "config": {
+        "prompt": "Format the review items into markdown format. For each item in the list, create a section with the format:\n\n## [Recipe Name] ([Component ID])\n\n[Description]\n\n**Question**: [Question]\n\n**Suggestion**: [Suggestion]\n\nReview Items: \n```\n{{ recipe_review_details }}\n```",
+        "model": "{{ model | default: 'openai/gpt-4o' }}",
+        "output_format": "text",
+        "output_key": "recipe_review_items"
+      }
+    }
+  ]
+}

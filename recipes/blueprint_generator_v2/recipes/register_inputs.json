@@ -1,0 +1,75 @@
+{
+  "steps": [
+    {
+      "type": "read_files",
+      "config": {
+        "path": "{{vision_doc_path}}",
+        "content_key": "vision_content",
+        "optional": false
+      }
+    },
+    {
+      "type": "read_files",
+      "config": {
+        "path": "{{requirements_doc_path}}",
+        "content_key": "requirements_content",
+        "optional": false
+      }
+    },
+    {
+      "type": "conditional",
+      "config": {
+        "condition": "{% if context_paths %}true{% else %}false{% endif %}",
+        "if_true": {
+          "steps": [
+            {
+              "type": "read_files",
+              "config": {
+                "path": "{{context_paths}}",
+                "content_key": "context_contents",
+                "merge_mode": "dict",
+                "optional": true
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "conditional",
+      "config": {
+        "condition": "{% if reference_paths %}true{% else %}false{% endif %}",
+        "if_true": {
+          "steps": [
+            {
+              "type": "read_files",
+              "config": {
+                "path": "{{reference_paths}}",
+                "content_key": "reference_contents",
+                "merge_mode": "dict",
+                "optional": true
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "read_files",
+      "config": {
+        "path": "ai_context/COMPONENT_DOCS_SPEC_GUIDE.md",
+        "content_key": "component_docs_spec_guide",
+        "optional": false
+      }
+    },
+    {
+      "type": "read_files",
+      "config": {
+        "path": "ai_context/IMPLEMENTATION_PHILOSOPHY.md,ai_context/MODULAR_DESIGN_PHILOSOPHY.md",
+        "content_key": "philosophy_guidance",
+        "merge_mode": "concat",
+        "optional": false
+      }
+    }
+  ]
+}

@@ -1,0 +1,58 @@
+{
+  "steps": [
+    {
+      "type": "llm_generate",
+      "config": {
+        "prompt": "Based on the following specifications assessment, create a list of detailed review items that a human reviewer should address. Format each item with specific questions or suggestions that will help improve the specifications.\n\nSpecifications Assessment: \n```\n{{ specifications_assessment }}\n```\n\nStructured Specifications: \n```\n{{ structured_specifications }}\n```",
+        "model": "{{ model | default: 'openai/gpt-4o' }}",
+        "output_format": [
+          {
+            "type": "object",
+            "properties": {
+              "component_id": { "type": "string" },
+              "item_type": {
+                "type": "string",
+                "enum": [
+                  "ambiguity",
+                  "contradiction",
+                  "missing_information",
+                  "interface",
+                  "responsibility",
+                  "data_model",
+                  "other"
+                ]
+              },
+              "description": { "type": "string" },
+              "question": { "type": "string" },
+              "suggestion": { "type": "string" }
+            }
+          }
+        ],
+        "output_key": "detailed_review_items"
+      }
+    },
+    {
+      "type": "llm_generate",
+      "config": {
+        "prompt": "Given the specifications assessment, determine if human review is needed before proceeding. Return a boolean value.\n\nSpecifications Assessment: \n```\n{{ specifications_assessment }}\n```",
+        "model": "{{ model | default: 'openai/gpt-4o' }}",
+        "output_format": {
+          "type": "object",
+          "properties": {
+            "specifications_need_review": { "type": "boolean" }
+          }
+        },
+        "output_key": "needs_review_result"
+      }
+    },
+    {
+      "type": "llm_generate",
+      "config": {
+        "prompt": "Format the review items into markdown format. For each item in the list, create a section with the format:\n\n## [Item Type] in [Component ID or 'System']\n\n[Description]\n\n**Question**: [Question]\n\n**Suggestion**: [Suggestion]\n\nReview Items: \n```\n{{ detailed_review_items }}\n```",
+        "model": "{{ model | default: 'openai/gpt-4o' }}",
+        "output_format": "text",
+        "output_key": "specifications_review_items"
+      }
+    }
+  ]
+}

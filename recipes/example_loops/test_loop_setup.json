@@ -4,7 +4,7 @@
       "type": "llm_generate",
       "config": {
         "prompt": "Create a test collection with different types of data. Output only a JSON array with 5 items: two strings, two numbers, and one object with properties.",
-        "model": "openai/o3-mini",
+        "model": "openai/o4-mini",
         "output_format": {
           "type": "object",
           "properties": {

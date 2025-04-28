@@ -28,7 +28,7 @@
       "type": "llm_generate",
       "config": {
         "prompt": "Verify that the loop processing worked correctly by analyzing these results:\n\nOriginal items: {{collection_data.test_items}}\n\nProcessed items: {{processed_items}}\n\nProvide a detailed analysis of what changed for each item and whether the transformations were applied correctly.",
-        "model": "openai/o3-mini",
+        "model": "openai/o4-mini",
         "output_format": "text",
         "output_key": "verification_result"
       }

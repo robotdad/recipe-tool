@@ -43,7 +43,7 @@
                     "type": "llm_generate",
                     "config": {
                       "prompt": "Analyze the component specification to identify dependencies.\n\nComponent Specification:\n{{component_spec}}\n\nIdentify all other components this component depends on.\n\nOutput a JSON object with structure:\n{\n  \"component_id\": \"{{component.component_id}}\",\n  \"dependencies\": [\"dependency1\", \"dependency2\", ...]\n}",
-                      "model": "{{model|default:'openai/o3-mini'}}",
+                      "model": "{{model|default:'openai/o4-mini'}}",
                       "output_format": {
                         "type": "object",
                         "properties": {
@@ -66,7 +66,7 @@
               "type": "llm_generate",
               "config": {
                 "prompt": "Determine the order in which components should be generated based on dependencies.\n\nComponent Dependencies:\n{{component_dependency_analysis}}\n\nCreate a dependency graph and perform a topological sort to determine the generation order. The order should ensure that a component is generated only after all its dependencies have been generated.\n\nOutput a JSON array with the component IDs in the order they should be generated.",
-                "model": "{{model|default:'openai/o3-mini'}}",
+                "model": "{{model|default:'openai/o4-mini'}}",
                 "output_format": [{ "type": "string" }],
                 "output_key": "component_generation_order"
               }
@@ -75,7 +75,7 @@
               "type": "llm_generate",
               "config": {
                 "prompt": "Organize the components by their generation order.\n\nComponents:\n{{final_component_list}}\n\nGeneration Order:\n{{component_generation_order}}\n\nCreate an array of components in the correct generation order. Each component should have at least a component_id and any other relevant properties from the original final_component_list.\n\nOutput a JSON array of component objects in generation order.",
-                "model": "{{model|default:'openai/o3-mini'}}",
+                "model": "{{model|default:'openai/o4-mini'}}",
                 "output_format": [
                   {
                     "type": "object",

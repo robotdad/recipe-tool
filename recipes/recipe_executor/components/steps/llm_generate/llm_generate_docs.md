@@ -18,6 +18,7 @@ class LLMGenerateConfig(StepConfig):
     Fields:
         prompt: The prompt to send to the LLM (templated beforehand).
         model: The model identifier to use (provider/model_name format).
+        max_tokens: The maximum number of tokens for the LLM response.
         mcp_servers: List of MCP servers for access to tools.
         output_format: The format of the LLM output (text, files, or JSON).
             - text: Plain text output.
@@ -29,6 +30,7 @@ class LLMGenerateConfig(StepConfig):
 
     prompt: str
     model: str = "openai/gpt-4o"
+    max_tokens: Optional[Union[str, int]] = None
     mcp_servers: Optional[List[Dict[str, Any]]] = None
     output_format: "text" | "files" | Dict[str, Any]
     output_key: str = "llm_output"
@@ -45,7 +47,7 @@ The LLMGenerateStep can be used in recipes via the `llm_generate` step type:
       "type": "llm_generate",
       "config": {
         "prompt": "What is the weather in Redmond, WA today?",
-        "model": "openai/o3-mini",
+        "model": "openai/o4-mini",
         "mcp_servers": [
           {
             "url": "http://localhost:3001/sse"
@@ -77,7 +79,7 @@ The prompt can include template variables from the context:
       "type": "llm_generate",
       "config": {
         "prompt": "Based on the following specification, generate python code for a component:\n\n{{component_spec_content}}",
-        "model": "{{model|default:'openai/o3-mini'}}",
+        "model": "{{model|default:'openai/o4-mini'}}",
         "output_format": "files",
         "output_key": "component_code_files"
       }
@@ -105,7 +107,7 @@ The output key can be templated to create dynamic storage locations:
       "type": "llm_generate",
       "config": {
         "prompt": "Generate a JSON object with user details.",
-        "model": "{{model|default:'openai/o3-mini'}}",
+        "model": "{{model|default:'openai/o4-mini'}}",
         "output_format": {
           "type": "object",
           "properties": {
@@ -200,7 +202,8 @@ Request:
   "type": "llm_generate",
   "config": {
     "prompt": "What is the capital of France?",
-    "model": "openai/o3-mini",
+    "model": "openai/gpt-4o",
+    "max_tokens": 100,
     "output_format": "text",
     "output_key": "capital_result"
   }
@@ -224,7 +227,7 @@ Request:
   "type": "llm_generate",
   "config": {
     "prompt": "Generate Python files for a simple calculator.",
-    "model": "openai/o3-mini",
+    "model": "openai/o4-mini",
     "output_format": "files",
     "output_key": "calculator_files"
   }
@@ -257,7 +260,7 @@ Request:
   "type": "llm_generate",
   "config": {
     "prompt": "Generate a JSON object with user details.",
-    "model": "openai/o3-mini",
+    "model": "openai/o4-mini",
     "output_format": {
       "type": "object",
       "properties": {
@@ -302,7 +305,7 @@ Request:
   "type": "llm_generate",
   "config": {
     "prompt": "Extract the list of users from this document: {{document_content}}.",
-    "model": "openai/o3-mini",
+    "model": "openai/o4-mini",
     "output_format": [
       {
         "type": "object",

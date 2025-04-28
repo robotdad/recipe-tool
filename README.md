@@ -1,9 +1,8 @@
 # Recipe Tool
 
 A tool for executing recipe-like natural language instructions to create complex workflows. This project includes a recipe executor and a recipe creator, both of which can be used to automate tasks and generate new recipes.
-[![PyPI version](https://img.shields.io/pypi/v/recipe-tool?logo=pypi)](https://pypi.org/project/recipe-tool)
+
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Python Versions](https://img.shields.io/pypi/pyversions/recipe-tool)](https://www.python.org)
 
 ## Getting Started
 
@@ -139,7 +138,7 @@ recipe-tool --execute path/to/your/recipe.json context_key=value context_key2=va
 Example:
 
 ```bash
-recipe-tool --execute recipes/example_simple/test_recipe.json model=azure/o3-mini
+recipe-tool --execute recipes/example_simple/test_recipe.json model=azure/o4-mini
 ```
 
 ## Creating New Recipes from a Recipe Idea
