@@ -1,0 +1,109 @@
+{
+  "steps": [
+    {
+      "type": "execute_recipe",
+      "config": {
+        "recipe_path": "{{ output_dir | default: 'output' }}/recipes/implementation/main.json",
+        "context_overrides": {
+          "uml_models": "{{ uml_models }}",
+          "structured_specifications": "{{ structured_specifications }}",
+          "implementation_recipes": "{{ implementation_recipes }}",
+          "output_dir": "{{ output_dir | default: 'output' }}/implementation"
+        }
+      }
+    },
+    {
+      "type": "llm_generate",
+      "config": {
+        "prompt": "You are an expert software quality assurance engineer tasked with evaluating the quality of generated code. Analyze the code that was generated from the implementation recipes and assess its quality, completeness, and adherence to the specifications and UML models.\n\nUML Models:\n```\n{{ uml_models }}\n```\n\nOriginal Specifications:\n```\n{{ structured_specifications }}\n```\n\nImplementation Recipes:\n```\n{{ implementation_recipes }}\n```\n\nEvaluate the generated code for:\n\n1. Completeness - Does it implement all components, interfaces, classes, and interactions from the UML models?\n2. Correctness - Is the code free of bugs and logical errors?\n3. Style - Does it follow coding best practices and style guidelines?\n4. Documentation - Is the code appropriately documented?\n5. Testability - Is the code designed for testability?\n\nIdentify any issues that would require human review or modification.",
+        "model": "{{ model | default: 'openai/gpt-4o' }}",
+        "output_format": {
+          "type": "object",
+          "properties": {
+            "needs_review": { "type": "boolean" },
+            "completeness_score": { "type": "number" },
+            "correctness_score": { "type": "number" },
+            "style_score": { "type": "number" },
+            "documentation_score": { "type": "number" },
+            "testability_score": { "type": "number" },
+            "overall_score": { "type": "number" },
+            "issues": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "file_path": { "type": "string" },
+                  "component_id": { "type": "string" },
+                  "issue_type": { "type": "string" },
+                  "description": { "type": "string" },
+                  "severity": {
+                    "type": "string",
+                    "enum": ["low", "medium", "high"]
+                  },
+                  "suggestion": { "type": "string" }
+                }
+              }
+            },
+            "missing_elements": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "element_type": { "type": "string" },
+                  "element_name": { "type": "string" },
+                  "from_uml": { "type": "string" },
+                  "suggested_implementation": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "output_key": "code_evaluation"
+      }
+    },
+    {
+      "type": "llm_generate",
+      "config": {
+        "prompt": "Based on the code evaluation results, create a list of detailed review items that a human reviewer should address. Format each item with specific questions or suggestions that will help improve the generated code.\n\nCode Evaluation: \n```\n{{ code_evaluation }}\n```",
+        "model": "{{ model | default: 'openai/gpt-4o' }}",
+        "output_format": [
+          {
+            "type": "object",
+            "properties": {
+              "file_path": { "type": "string" },
+              "component_id": { "type": "string" },
+              "description": { "type": "string" },
+              "question": { "type": "string" },
+              "suggestion": { "type": "string" }
+            }
+          }
+        ],
+        "output_key": "code_review_details"
+      }
+    },
+    {
+      "type": "llm_generate",
+      "config": {
+        "prompt": "Format the review items into markdown format. For each item in the list, create a section with the format:\n\n## [File Path] ([Component ID])\n\n[Description]\n\n**Question**: [Question]\n\n**Suggestion**: [Suggestion]\n\nReview Items: \n```\n{{ code_review_details }}\n```",
+        "model": "{{ model | default: 'openai/gpt-4o' }}",
+        "output_format": "text",
+        "output_key": "code_review_items"
+      }
+    },
+    {
+      "type": "llm_generate",
+      "config": {
+        "prompt": "Create a simple object to represent the generated code information, including components and implementation path.\n\nComponents: \n```\n{{ structured_specifications.components }}\n```\n\nImplementation Path: \n```\n{{ output_dir | default: 'output' }}/implementation\n```",
+        "model": "{{ model | default: 'openai/gpt-4o' }}",
+        "output_format": {
+          "type": "object",
+          "properties": {
+            "components": { "type": "array" },
+            "implementation_path": { "type": "string" }
+          }
+        },
+        "output_key": "generated_code"
+      }
+    }
+  ]
+}

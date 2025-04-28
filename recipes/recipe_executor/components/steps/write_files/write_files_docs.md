@@ -53,7 +53,7 @@ Files Key Example:
       "type": "llm_generate",
       "config": {
         "prompt": "Generate a Python script that prints 'Hello, world!'",
-        "model": "openai/o3-mini",
+        "model": "openai/o4-mini",
         "output_format": "files",
         "output_key": "generated_files"
       }
@@ -136,7 +136,7 @@ When the content to be written is a Python dictionary or list, WriteFilesStep au
       "type": "llm_generate",
       "config": {
         "prompt": "Generate configuration data for a project.",
-        "model": "openai/o3-mini",
+        "model": "openai/o4-mini",
         "output_format": {
           "type": "object",
           "properties": {

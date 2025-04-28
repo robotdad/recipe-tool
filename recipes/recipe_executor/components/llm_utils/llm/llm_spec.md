@@ -103,8 +103,8 @@ Usage example:
 
 ```python
 # Get an OpenAI model
-openai_model = get_model("openai/o3-mini")
-# Uses OpenAIModel('o3-mini')
+openai_model = get_model("openai/o4-mini")
+# Uses OpenAIModel('o4-mini')
 
 # Get an Anthropic model
 anthropic_model = get_model("anthropic/claude-3-7-sonnet-latest")

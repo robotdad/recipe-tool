@@ -48,7 +48,7 @@
                       "type": "llm_generate",
                       "config": {
                         "prompt": "Initialize processing variables.\n\nOutput only this JSON object:\n{\n  \"iteration\": 0,\n  \"max_iterations\": 3,\n  \"done_processing\": false\n}",
-                        "model": "{{model|default:'openai/o3-mini'}}",
+                        "model": "{{model|default:'openai/o4-mini'}}",
                         "output_format": {
                           "type": "object",
                           "properties": {
@@ -103,7 +103,7 @@
                       "type": "llm_generate",
                       "config": {
                         "prompt": "Initialize empty arrays for results.\n\nOutput only this JSON object:\n{\n  \"final_components\": [],\n  \"components_to_split\": [],\n  \"new_components\": []\n}",
-                        "model": "{{model|default:'openai/o3-mini'}}",
+                        "model": "{{model|default:'openai/o4-mini'}}",
                         "output_format": {
                           "type": "object",
                           "properties": {
@@ -188,7 +188,7 @@
                       "type": "llm_generate",
                       "config": {
                         "prompt": "Create a copy of the components to process.\n\nComponents:\n{{components_to_process}}\n\nOutput only this identical JSON array without any changes.",
-                        "model": "{{model|default:'openai/o3-mini'}}",
+                        "model": "{{model|default:'openai/o4-mini'}}",
                         "output_format": [
                           {
                             "type": "object",

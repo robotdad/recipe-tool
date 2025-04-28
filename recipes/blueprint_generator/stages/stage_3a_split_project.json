@@ -38,7 +38,7 @@
                             "type": "llm_generate",
                             "config": {
                               "prompt": "Create a detailed component specification for this component identified in the project analysis:\n\nProject Specification:\n{{project_spec}}\n\nComponent Name: {{current_component.component_name}}\nComponent ID: {{current_component.component_id}}\nDescription: {{current_component.description}}\n\nGenerate a comprehensive component specification that includes purpose, requirements, implementation considerations, dependencies, and other relevant details. The specification should follow the standard format with all necessary sections.\n\nDO NOT include any file path or filename in your response. Just return the content of the specification.",
-                              "model": "{{model|default:'openai/o3-mini'}}",
+                              "model": "{{model|default:'openai/o4-mini'}}",
                               "output_format": "text",
                               "output_key": "component_spec_content"
                             }
@@ -67,7 +67,7 @@
               "type": "llm_generate",
               "config": {
                 "prompt": "Based on the component specifications that were generated, create a list of components for further processing.\n\nComponents from Analysis:\n{{analysis_result.recommended_components}}\n\nOutput a JSON array of component objects with structure:\n[\n  {\n    \"component_id\": \"component_identifier\",\n    \"needs_analysis\": true\n  }\n]\n\nEnsure that all components are included, using the exact component_id values from the analysis result.",
-                "model": "{{model|default:'openai/o3-mini'}}",
+                "model": "{{model|default:'openai/o4-mini'}}",
                 "output_format": [
                   {
                     "type": "object",

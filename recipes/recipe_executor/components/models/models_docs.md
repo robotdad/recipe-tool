@@ -92,7 +92,7 @@ recipe = Recipe(
             type="llm_generate",
             config={
                 "prompt": "Generate code for: {{spec}}",
-                "model": "{{model|default:'openai/o3-mini'}}",
+                "model": "{{model|default:'openai/o4-mini'}}",
                 "output_format": "files",
                 "output_key": "code_result"
             }

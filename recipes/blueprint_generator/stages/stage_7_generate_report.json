@@ -60,7 +60,7 @@
               "type": "llm_generate",
               "config": {
                 "prompt": "Generate a final summary report of all blueprint generation.\n\nProject Specification:\n{{project_spec}}\n\nFinal Components:\n{{ordered_components}}\n\nComponent Dependencies:\n{{component_dependencies}}\n\nBlueprint Summaries:\n{{blueprint_summaries}}\n\nCreate a comprehensive summary of the blueprint generation process, including:\n1. Project overview\n2. Component breakdown\n3. Dependency graph\n4. Implementation recommendations\n5. Next steps\n\nFormat the report as a structured Markdown document with appropriate sections, tables, and diagrams.",
-                "model": "{{model|default:'openai/o3-mini'}}",
+                "model": "{{model|default:'openai/o4-mini'}}",
                 "output_format": "files",
                 "output_key": "final_report"
               }

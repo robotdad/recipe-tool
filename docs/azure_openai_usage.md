@@ -40,8 +40,8 @@ azure:model_name:deployment_name
 
 For example:
 
-- `azure/gpt-4:deployment-gpt4`
-- `azure/o3-mini:deployment-o3-mini`
+- `azure/gpt-4o:deployment-gpt4o`
+- `azure/o4-mini:deployment-o4-mini`
 
 These model identifiers are used in recipe files and when calling the LLM service directly.
 

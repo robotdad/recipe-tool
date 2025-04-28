@@ -17,6 +17,7 @@ class LLM:
             self,
             logger: logging.Logger,
             model: str = "openai/gpt-4o",
+            max_tokens: Optional[int] = None,
             mcp_servers: Optional[List[MCPServer]] = None,
         ):
         """
@@ -24,16 +25,14 @@ class LLM:
         Args:
             logger (logging.Logger): Logger for logging messages.
             model (str): Model identifier in the format 'provider/model_name' (or 'provider/model_name/deployment_name').
-                Default is "openai/gpt-4o".
+            max_tokens (int): Maximum number of tokens for the LLM response.
             mcp_servers Optional[List[MCPServer]]: List of MCP servers for access to tools.
         """
-        self.model = model
-        self.logger = logger
-        self.mcp_servers = mcp_servers
 
     async def generate(
         prompt: str,
         model: Optional[str] = None,
+        max_tokens: Optional[int] = None,
         output_type: Type[Union[str, BaseModel]] = str,
         mcp_servers: Optional[List[MCPServer]] = None
     ) -> Union[str, BaseModel]:
@@ -43,6 +42,8 @@ class LLM:
         Args:
             prompt (str): The prompt string to be sent to the LLM.
             model (Optional[str]): The model identifier in the format 'provider/model_name' (or 'provider/model_name/deployment_name').
+                If not provided, the default set during initialization will be used.
+            max_tokens (Optional[int]): Maximum number of tokens for the LLM response.
                 If not provided, the default set during initialization will be used.
             output_type (Type[Union[str, BaseModel]]): The requested type for the LLM output.
                 - str: Plain text output (default).
@@ -65,7 +66,7 @@ class LLM:
 
 Usage example:
 
-````python
+```python
 from recipe_executor.llm_utils.mcp import get_mcp_server
 
 llm = LLM(logger=logger)
@@ -87,7 +88,7 @@ result = await llm.generate("What is the weather in Redmond, WA today?")
 # Call with specific model
 result = await llm.generate(
     prompt="What is the capital of France?",
-    model="openai/o3-mini"
+    model="openai/o4-mini"
 )
 
 # Call with JSON schema validation
@@ -98,16 +99,18 @@ class UserProfile(BaseModel):
 
 result = await llm.generate(
     prompt="Extract the user profile from the following text: {{text}}",
-    model="openai/o3-mini",
+    model="openai/o4-mini",
+    max_tokens=100,
     output_type=UserProfile
 )
+```
 
 ## Model ID Format
 
 The component uses a standardized model identifier format:
 
 All models: `provider/model_name`
-Example: `openai/o3-mini`
+Example: `openai/o4-mini`
 
 Azure OpenAI models with custom deployment name: `azure/model_name/deployment_name`
 Example: `azure/gpt-4o/my_deployment_name`
@@ -115,8 +118,8 @@ If no deployment name is provided, the model name is used as the deployment name
 
 ### Supported providers:
 
-- **openai**: OpenAI models (e.g., `gpt-4o`, `o3-mini`)
-- **azure**: Azure OpenAI models (e.g., `gpt-4o`, `o3-mini`)
+- **openai**: OpenAI models (e.g., `gpt-4o`, `o3`, `o4-mini`, etc.)
+- **azure**: Azure OpenAI models (e.g., `gpt-4o`, `o3`, `o4-mini`, etc.)
 - **azure**: Azure OpenAI models with custom deployment name (e.g., `gpt-4o/my_deployment_name`)
 - **anthropic**: Anthropic models (e.g., `claude-3-7-sonnet-latest`)
 - **ollama**: Ollama models (e.g., `phi4`, `llama3.2`, `qwen2.5-coder:14b`)
@@ -135,9 +138,8 @@ except ValueError as e:
 except Exception as e:
     # Handle other errors (network, API, etc.)
     print(f"LLM call failed: {e}")
-````
+```
 
 ## Important Notes
 
-- OpenAI is the default provider if none is specified
 - The component logs full request details at debug level

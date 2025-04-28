@@ -12,7 +12,7 @@
       "type": "llm_generate",
       "config": {
         "prompt": "Take this collection of items and add one invalid item (with a non-existent type or malformed structure) that might cause an error during processing:\n\n{{collection_data.test_items}}\n\nReturn the modified array with the added error-causing item.",
-        "model": "openai/o3-mini",
+        "model": "openai/o4-mini",
         "output_format": {
           "type": "object",
           "properties": {

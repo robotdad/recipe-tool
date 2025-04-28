@@ -9,7 +9,7 @@
             {
               "type": "read_files",
               "config": {
-                "path": "{{ existing_code_root }}/recipe_executor/{{ component.id | replace: '.', '/' }}/{{ component.id | split: '.' | last }}.py",
+                "path": "{{ existing_code_root | default: 'recipe_executor' }}/{{ component.id | replace: '.', '/' }}.py",
                 "content_key": "existing_code",
                 "optional": true
               }
