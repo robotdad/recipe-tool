@@ -1,5 +1,5 @@
 # AI Context Files
-Date: 4/26/2025, 9:34:06 AM
+Date: 4/29/2025, 5:13:34 PM
 Files: 14
 
 === File: recipes/blueprint_generator/blueprint_generator.json ===
@@ -353,7 +353,7 @@ The system should be modular, extensible, and allow for future integration of ma
               "type": "llm_generate",
               "config": {
                 "prompt": "Transform this raw idea into a structured project specification. Consider the guidance docs and reference materials.\n\nRaw Idea:\n{{raw_idea}}\n\nGuidance Documents:\n{{guidance_docs}}\n\nContext Files:\n{{context_files}}\n\nReference Docs:\n{{reference_docs}}\n\nCreate a comprehensive, structured specification that includes project overview, requirements, technical constraints, and implementation guidelines. The specification should be detailed enough to analyze for component splitting.\n\nName the output file 'initial_project_spec.md'.",
-                "model": "{{model|default:'openai/o3-mini'}}",
+                "model": "{{model|default:'openai/o4-mini'}}",
                 "output_format": "files",
                 "output_key": "initial_project_spec"
               }
@@ -405,7 +405,7 @@ The system should be modular, extensible, and allow for future integration of ma
               "type": "llm_generate",
               "config": {
                 "prompt": "Analyze this project specification and determine if it should be split into multiple components.\n\nProject Specification:\n{{project_spec}}\n\nGuidance Documents:\n{{guidance_docs}}\n\nProvide your analysis as a JSON object with the following structure:\n{\n  \"needs_splitting\": true/false,\n  \"reasoning\": \"Explanation of your decision\",\n  \"recommended_components\": [\n    {\n      \"component_id\": \"component_identifier\",\n      \"component_name\": \"Human Readable Component Name\",\n      \"description\": \"Brief description of this component\"\n    }\n  ]\n}\n\nYour response should be ONLY valid JSON with no additional text.",
-                "model": "{{model|default:'openai/o3-mini'}}",
+                "model": "{{model|default:'openai/o4-mini'}}",
                 "output_format": {
                   "type": "object",
                   "properties": {
@@ -498,7 +498,7 @@ The system should be modular, extensible, and allow for future integration of ma
                             "type": "llm_generate",
                             "config": {
                               "prompt": "Create a detailed component specification for this component identified in the project analysis:\n\nProject Specification:\n{{project_spec}}\n\nComponent Name: {{current_component.component_name}}\nComponent ID: {{current_component.component_id}}\nDescription: {{current_component.description}}\n\nGenerate a comprehensive component specification that includes purpose, requirements, implementation considerations, dependencies, and other relevant details. The specification should follow the standard format with all necessary sections.\n\nDO NOT include any file path or filename in your response. Just return the content of the specification.",
-                              "model": "{{model|default:'openai/o3-mini'}}",
+                              "model": "{{model|default:'openai/o4-mini'}}",
                               "output_format": "text",
                               "output_key": "component_spec_content"
                             }
@@ -527,7 +527,7 @@ The system should be modular, extensible, and allow for future integration of ma
               "type": "llm_generate",
               "config": {
                 "prompt": "Based on the component specifications that were generated, create a list of components for further processing.\n\nComponents from Analysis:\n{{analysis_result.recommended_components}}\n\nOutput a JSON array of component objects with structure:\n[\n  {\n    \"component_id\": \"component_identifier\",\n    \"needs_analysis\": true\n  }\n]\n\nEnsure that all components are included, using the exact component_id values from the analysis result.",
-                "model": "{{model|default:'openai/o3-mini'}}",
+                "model": "{{model|default:'openai/o4-mini'}}",
                 "output_format": [
                   {
                     "type": "object",
@@ -595,7 +595,7 @@ The system should be modular, extensible, and allow for future integration of ma
                       "type": "llm_generate",
                       "config": {
                         "prompt": "Create a single component specification for this project since it doesn't need splitting.\n\nProject Specification:\n{{project_spec}}\n\nCreate a comprehensive component specification with a component_id of 'main_component'.",
-                        "model": "{{model|default:'openai/o3-mini'}}",
+                        "model": "{{model|default:'openai/o4-mini'}}",
                         "output_format": "files",
                         "output_key": "main_component_spec"
                       }
@@ -611,7 +611,7 @@ The system should be modular, extensible, and allow for future integration of ma
                       "type": "llm_generate",
                       "config": {
                         "prompt": "Create a list with just the main component for processing.\n\nOutput only this JSON array:\n[\n  {\n    \"component_id\": \"main_component\",\n    \"needs_analysis\": false\n  }\n]",
-                        "model": "{{model|default:'openai/o3-mini'}}",
+                        "model": "{{model|default:'openai/o4-mini'}}",
                         "output_format": [
                           {
                             "type": "object",
@@ -700,7 +700,7 @@ The system should be modular, extensible, and allow for future integration of ma
                       "type": "llm_generate",
                       "config": {
                         "prompt": "Initialize processing variables.\n\nOutput only this JSON object:\n{\n  \"iteration\": 0,\n  \"max_iterations\": 3,\n  \"done_processing\": false\n}",
-                        "model": "{{model|default:'openai/o3-mini'}}",
+                        "model": "{{model|default:'openai/o4-mini'}}",
                         "output_format": {
                           "type": "object",
                           "properties": {
@@ -755,7 +755,7 @@ The system should be modular, extensible, and allow for future integration of ma
                       "type": "llm_generate",
                       "config": {
                         "prompt": "Initialize empty arrays for results.\n\nOutput only this JSON object:\n{\n  \"final_components\": [],\n  \"components_to_split\": [],\n  \"new_components\": []\n}",
-                        "model": "{{model|default:'openai/o3-mini'}}",
+                        "model": "{{model|default:'openai/o4-mini'}}",
                         "output_format": {
                           "type": "object",
                           "properties": {
@@ -840,7 +840,7 @@ The system should be modular, extensible, and allow for future integration of ma
                       "type": "llm_generate",
                       "config": {
                         "prompt": "Create a copy of the components to process.\n\nComponents:\n{{components_to_process}}\n\nOutput only this identical JSON array without any changes.",
-                        "model": "{{model|default:'openai/o3-mini'}}",
+                        "model": "{{model|default:'openai/o4-mini'}}",
                         "output_format": [
                           {
                             "type": "object",
@@ -950,7 +950,7 @@ The system should be modular, extensible, and allow for future integration of ma
                     "type": "llm_generate",
                     "config": {
                       "prompt": "Analyze the component specification to identify dependencies.\n\nComponent Specification:\n{{component_spec}}\n\nIdentify all other components this component depends on.\n\nOutput a JSON object with structure:\n{\n  \"component_id\": \"{{component.component_id}}\",\n  \"dependencies\": [\"dependency1\", \"dependency2\", ...]\n}",
-                      "model": "{{model|default:'openai/o3-mini'}}",
+                      "model": "{{model|default:'openai/o4-mini'}}",
                       "output_format": {
                         "type": "object",
                         "properties": {
@@ -973,7 +973,7 @@ The system should be modular, extensible, and allow for future integration of ma
               "type": "llm_generate",
               "config": {
                 "prompt": "Determine the order in which components should be generated based on dependencies.\n\nComponent Dependencies:\n{{component_dependency_analysis}}\n\nCreate a dependency graph and perform a topological sort to determine the generation order. The order should ensure that a component is generated only after all its dependencies have been generated.\n\nOutput a JSON array with the component IDs in the order they should be generated.",
-                "model": "{{model|default:'openai/o3-mini'}}",
+                "model": "{{model|default:'openai/o4-mini'}}",
                 "output_format": [{ "type": "string" }],
                 "output_key": "component_generation_order"
               }
@@ -982,7 +982,7 @@ The system should be modular, extensible, and allow for future integration of ma
               "type": "llm_generate",
               "config": {
                 "prompt": "Organize the components by their generation order.\n\nComponents:\n{{final_component_list}}\n\nGeneration Order:\n{{component_generation_order}}\n\nCreate an array of components in the correct generation order. Each component should have at least a component_id and any other relevant properties from the original final_component_list.\n\nOutput a JSON array of component objects in generation order.",
-                "model": "{{model|default:'openai/o3-mini'}}",
+                "model": "{{model|default:'openai/o4-mini'}}",
                 "output_format": [
                   {
                     "type": "object",
@@ -1036,6 +1036,14 @@ The system should be modular, extensible, and allow for future integration of ma
       }
     },
     {
+      "type": "read_files",
+      "config": {
+        "path": "ai_context/COMPONENT_DOCS_SPEC_GUIDE.md",
+        "content_key": "component_docs_spec_guide",
+        "optional": false
+      }
+    },
+    {
       "type": "loop",
       "config": {
         "items": "ordered_components",
@@ -1058,8 +1066,8 @@ The system should be modular, extensible, and allow for future integration of ma
                   {
                     "type": "llm_generate",
                     "config": {
-                      "prompt": "Generate clarification questions for this component specification.\n\nComponent ID: {{component.component_id}}\n\nComponent Specification:\n{{component_spec}}\n\nIdentify any ambiguities, missing details, or areas that need further clarification. Generate a list of specific questions that would help refine the specification.\n\nOutput the questions as a Markdown file.",
-                      "model": "{{model|default:'openai/o3-mini'}}",
+                      "prompt": "Generate clarification questions for this component specification.\n\nComponent ID: {{component.component_id}}\n\nComponent Specification:\n{{component_spec}}\n\nIdentify any ambiguities, missing details, or areas that need further clarification. Generate a list of specific questions that would help refine the specification.\n\nOutput the questions as a Markdown file. For guidance, these are the guidelines for what will be required when later writing the docs & spec files:\n{{component_docs_spec_guide}}\n\nMake sure to include questions that will help provide the information needed.",
+                      "model": "{{model|default:'openai/o4-mini'}}",
                       "output_format": "files",
                       "output_key": "clarification_questions"
                     }
@@ -1074,8 +1082,8 @@ The system should be modular, extensible, and allow for future integration of ma
                   {
                     "type": "llm_generate",
                     "config": {
-                      "prompt": "Generate answers to the clarification questions and create a revised specification.\n\nComponent ID: {{component.component_id}}\n\nOriginal Specification:\n{{component_spec}}\n\nClarification Questions:\n{{clarification_questions}}\n\nProvide answers to each question and then create a revised, more detailed specification for the component. The revised specification should incorporate the clarifications and provide a comprehensive guide for implementation.",
-                      "model": "{{model|default:'openai/o3-mini'}}",
+                      "prompt": "Provide answers to these requests for clarification and create a revised specification.\n\nComponent ID: {{component.component_id}}\n\nOriginal Specification:\n{{component_spec}}\n\nClarification Questions:\n{{clarification_questions}}\n\nProvide answers to each question and then create a revised, more detailed specification for the component. The revised specification should incorporate the clarifications and provide a comprehensive guide for implementation. Here are the originally provided details for the overall project, to assist in the context:\n{{initial_project_spec}}\n\nAdditional context files:\n{{context}}\n\nExternal library references:\n{{references}}",
+                      "model": "{{model|default:'openai/o4-mini'}}",
                       "output_format": "files",
                       "output_key": "revised_spec"
                     }
@@ -1090,8 +1098,8 @@ The system should be modular, extensible, and allow for future integration of ma
                   {
                     "type": "llm_generate",
                     "config": {
-                      "prompt": "Evaluate the revised specification for completeness and implementability.\n\nComponent ID: {{component.component_id}}\n\nRevised Specification:\n{{revised_spec}}\n\nEvaluate whether the specification is complete, clear, and ready for implementation. Consider aspects such as:\n- Clear purpose and responsibilities\n- Well-defined interfaces\n- Comprehensive requirements\n- Sufficient implementation guidance\n- Identified dependencies\n\nOutput an evaluation report with a final determination of whether the specification is ready for blueprint generation.",
-                      "model": "{{model|default:'openai/o3-mini'}}",
+                      "prompt": "Evaluate the revised specification for completeness and implementability and readiness for the generation of docs and spec files.\n\nComponent ID: {{component.component_id}}\n\nRevised Specification:\n{{revised_spec}}\n\nEvaluate whether the specification is complete, clear, and ready for implementation. Consider aspects such as:\n- Clear purpose and responsibilities\n- Well-defined interfaces\n- Comprehensive requirements\n- Sufficient implementation guidance\n- Identified dependencies\n\nOutput an evaluation report with a final determination of whether the specification is ready for blueprint generation. Here is the guide for what will be required when later writing the docs & spec files:\n{{component_docs_spec_guide}}",
+                      "model": "{{model|default:'openai/o4-mini'}}",
                       "output_format": "files",
                       "output_key": "evaluation_result"
                     }
@@ -1106,8 +1114,8 @@ The system should be modular, extensible, and allow for future integration of ma
                   {
                     "type": "llm_generate",
                     "config": {
-                      "prompt": "Generate a comprehensive blueprint for this component based on its specification.\n\nComponent ID: {{component.component_id}}\n\nRevised Specification:\n{{revised_spec}}\n\nEvaluation:\n{{evaluation_result}}\n\nCreate a complete blueprint including:\n1. Formal specification\n2. Implementation details\n3. Documentation\n4. API definitions\n5. Sample code or pseudocode\n6. Testing strategy\n\nGenerate all content in a comprehensive file structure.",
-                      "model": "{{model|default:'openai/o3-mini'}}",
+                      "prompt": "Generate a comprehensive blueprint for this component based on its specification.\n\nComponent ID: {{component.component_id}}\n\nRevised Specification:\n{{revised_spec}}\n\nEvaluation:\n{{evaluation_result}}\n\nCreate a complete blueprint by following this guidance for creating a docs and spec file structure:\n{{component_docs_spec_guide}}",
+                      "model": "{{model|default:'openai/o4-mini'}}",
                       "output_format": "files",
                       "output_key": "component_blueprint"
                     }
@@ -1123,7 +1131,7 @@ The system should be modular, extensible, and allow for future integration of ma
                     "type": "llm_generate",
                     "config": {
                       "prompt": "Generate a summary of the blueprint.\n\nComponent ID: {{component.component_id}}\n\nBlueprint:\n{{component_blueprint}}\n\nCreate a concise summary of the blueprint, including key implementation details, interfaces, and integration points with other components.",
-                      "model": "{{model|default:'openai/o3-mini'}}",
+                      "model": "{{model|default:'openai/o4-mini'}}",
                       "output_format": "files",
                       "output_key": "blueprint_summary"
                     }
@@ -1210,7 +1218,7 @@ The system should be modular, extensible, and allow for future integration of ma
               "type": "llm_generate",
               "config": {
                 "prompt": "Generate a final summary report of all blueprint generation.\n\nProject Specification:\n{{project_spec}}\n\nFinal Components:\n{{ordered_components}}\n\nComponent Dependencies:\n{{component_dependencies}}\n\nBlueprint Summaries:\n{{blueprint_summaries}}\n\nCreate a comprehensive summary of the blueprint generation process, including:\n1. Project overview\n2. Component breakdown\n3. Dependency graph\n4. Implementation recommendations\n5. Next steps\n\nFormat the report as a structured Markdown document with appropriate sections, tables, and diagrams.",
-                "model": "{{model|default:'openai/o3-mini'}}",
+                "model": "{{model|default:'openai/o4-mini'}}",
                 "output_format": "files",
                 "output_key": "final_report"
               }
@@ -1243,7 +1251,7 @@ The system should be modular, extensible, and allow for future integration of ma
               "type": "llm_generate",
               "config": {
                 "prompt": "Extract the final list of all components that don't need further splitting.\n\nProcessing Results:\n{{processing_results}}\n\nOutput a JSON array containing all components in the final_components list.\n",
-                "model": "{{model|default:'openai/o3-mini'}}",
+                "model": "{{model|default:'openai/o4-mini'}}",
                 "output_format": [
                   {
                     "type": "object",
@@ -1272,7 +1280,7 @@ The system should be modular, extensible, and allow for future integration of ma
               "type": "llm_generate",
               "config": {
                 "prompt": "Generate a summary of the component analysis and splitting process.\n\nFinal Components:\n{{final_component_list}}\n\nProcess State:\n{{process_state}}\n\nCreate a detailed summary of the process, including how many iterations were performed, how many components were split, and the final list of components.",
-                "model": "{{model|default:'openai/o3-mini'}}",
+                "model": "{{model|default:'openai/o4-mini'}}",
                 "output_format": "files",
                 "output_key": "component_analysis_summary"
               }
@@ -1319,7 +1327,7 @@ The system should be modular, extensible, and allow for future integration of ma
                     "type": "llm_generate",
                     "config": {
                       "prompt": "Analyze this component to determine if it needs to be split further.\n\nComponent ID: {{component.component_id}}\nComponent Specification:\n{{component_spec}}\n\nAnalyze the complexity and coherence of this component. If it's too large or handles multiple distinct responsibilities, it should be split into smaller components.\n\nProvide your analysis as a JSON object with the following structure:\n{\n  \"needs_splitting\": true/false,\n  \"reasoning\": \"Explanation of your decision\",\n  \"recommended_subcomponents\": [\n    {\n      \"component_id\": \"subcomponent_identifier\",\n      \"component_name\": \"Human Readable Subcomponent Name\",\n      \"description\": \"Brief description of this subcomponent\"\n    }\n  ]\n}",
-                      "model": "{{model|default:'openai/o3-mini'}}",
+                      "model": "{{model|default:'openai/o4-mini'}}",
                       "output_format": {
                         "type": "object",
                         "properties": {
@@ -1387,7 +1395,7 @@ The system should be modular, extensible, and allow for future integration of ma
       "type": "llm_generate",
       "config": {
         "prompt": "Process analysis results and categorize components.\n\nAnalysis Results:\n{{analysis_results}}\n\nFor each component, determine if it needs splitting. If it does, add it to components_to_split. If not, add it to final_components.\n\nOutput a JSON object with structure:\n{\n  \"final_components\": [...],\n  \"components_to_split\": [...]\n}",
-        "model": "{{model|default:'openai/o3-mini'}}",
+        "model": "{{model|default:'openai/o4-mini'}}",
         "output_format": {
           "type": "object",
           "properties": {
@@ -1469,7 +1477,7 @@ The system should be modular, extensible, and allow for future integration of ma
                             "type": "llm_generate",
                             "config": {
                               "prompt": "Create detailed specifications for each sub-component identified in the analysis.\n\nParent Component Specification:\n{{component_spec}}\n\nComponent Analysis:\n{{component_analysis}}\n\nFor each sub-component, create a complete specification that includes purpose, requirements, implementation considerations, and dependencies. Output a list of files, one for each sub-component specification.",
-                              "model": "{{model|default:'openai/o3-mini'}}",
+                              "model": "{{model|default:'openai/o4-mini'}}",
                               "output_format": "files",
                               "output_key": "subcomponent_specs"
                             }
@@ -1485,7 +1493,7 @@ The system should be modular, extensible, and allow for future integration of ma
                             "type": "llm_generate",
                             "config": {
                               "prompt": "Extract the component IDs from these sub-component specifications and create a list of sub-components for further processing.\n\nSub-Component Specs:\n{{subcomponent_specs}}\n\nOutput a JSON array of component objects with structure:\n[\n  {\n    \"component_id\": \"subcomponent_identifier\",\n    \"needs_analysis\": true,\n    \"parent_id\": \"{{component.component_id}}\"\n  }\n]",
-                              "model": "{{model|default:'openai/o3-mini'}}",
+                              "model": "{{model|default:'openai/o4-mini'}}",
                               "output_format": [
                                 {
                                   "type": "object",
@@ -1544,7 +1552,7 @@ The system should be modular, extensible, and allow for future integration of ma
       "type": "llm_generate",
       "config": {
         "prompt": "Update the processing state based on results.\n\nCurrent State:\n{{process_state}}\n\nCategorized Components:\n{{categorized_components}}\n\nSub-Components:\n{{sub_components}}\n\nIncrement the iteration counter. Set done_processing to true if there are no components to split or if iteration >= max_iterations.\n\nOutput an updated JSON object with structure:\n{\n  \"iteration\": {{process_state.iteration | plus: 1}},\n  \"max_iterations\": {{process_state.max_iterations}},\n  \"done_processing\": <true/false>\n}",
-        "model": "{{model|default:'openai/o3-mini'}}",
+        "model": "{{model|default:'openai/o4-mini'}}",
         "output_format": {
           "type": "object",
           "properties": {
@@ -1573,7 +1581,7 @@ The system should be modular, extensible, and allow for future integration of ma
       "type": "llm_generate",
       "config": {
         "prompt": "Prepare components for next iteration or finalization.\n\nFinal Components from this iteration:\n{{categorized_components.final_components}}\n\nExisting Final Components:\n{{processing_results.final_components}}\n\nSub-Components for next iteration:\n{{sub_components}}\n\nCombine all final components and prepare sub-components for the next iteration.\n\nOutput a JSON object with structure:\n{\n  \"final_components\": [...combined final components...],\n  \"components_to_split\": [...sub-components...],\n  \"new_components\": [...sub-components...]\n}",
-        "model": "{{model|default:'openai/o3-mini'}}",
+        "model": "{{model|default:'openai/o4-mini'}}",
         "output_format": {
           "type": "object",
           "properties": {
@@ -1636,7 +1644,7 @@ The system should be modular, extensible, and allow for future integration of ma
       "type": "llm_generate",
       "config": {
         "prompt": "Prepare components for the next iteration.\n\nSub-Components:\n{{sub_components}}\n\nIf there are sub-components, output them for the next iteration. Otherwise, output an empty array.\n\nOutput only a JSON array.",
-        "model": "{{model|default:'openai/o3-mini'}}",
+        "model": "{{model|default:'openai/o4-mini'}}",
         "output_format": [
           {
             "type": "object",

@@ -1,5 +1,5 @@
 # AI Context Files
-Date: 4/23/2025, 4:27:07 PM
+Date: 4/29/2025, 5:13:34 PM
 Files: 17
 
 === File: recipes/example_complex/README.md ===
@@ -131,7 +131,7 @@ args: `stdio`
       "type": "llm_generate",
       "config": {
         "prompt": "You are an expert creative writer. Using the idea provided below, and any additional context if available, generate new content that is engaging and follows the style of the reference content if provided. Output your answer as a JSON object with exactly two keys: 'path' and 'content'. The 'path' must be a filename ending with .md (which will be used as the output file name), and 'content' is the full generated content. Do not include any additional text outside the JSON object.\n\nIdea:\n{{idea_content}}\n\nAdditional Context (if any):\n{{additional_files_content}}\n\nReference Style (optional):\n{{reference_content_text}}",
-        "model": "{{model|default:'openai/gpt-4'}}",
+        "model": "{{model|default:'openai/gpt-4o'}}",
         "output_format": "files",
         "output_key": "generated_content"
       }
@@ -170,7 +170,7 @@ Generate some new content based the combined context of the idea + any additiona
       "type": "llm_generate",
       "config": {
         "prompt": "Transform the following item based on its type:\n- If type is 'string': Convert value to uppercase\n- If type is 'number': Multiply value by 2\n- If type is 'object': Add a 'processed: true' property to the value\n\nItem: {{current_item}}\n\nOutput the transformed item with the same structure (keeping the type field).",
-        "model": "openai/o3-mini",
+        "model": "openai/o4-mini",
         "output_format": {
           "type": "object",
           "properties": {
@@ -221,7 +221,7 @@ Generate some new content based the combined context of the idea + any additiona
       "type": "llm_generate",
       "config": {
         "prompt": "Verify that the loop processing worked correctly by analyzing these results:\n\nOriginal items: {{collection_data.test_items}}\n\nProcessed items: {{processed_items}}\n\nProvide a detailed analysis of what changed for each item and whether the transformations were applied correctly.",
-        "model": "openai/o3-mini",
+        "model": "openai/o4-mini",
         "output_format": "text",
         "output_key": "verification_result"
       }
@@ -256,7 +256,7 @@ Generate some new content based the combined context of the idea + any additiona
       "type": "llm_generate",
       "config": {
         "prompt": "Take this collection of items and add one invalid item (with a non-existent type or malformed structure) that might cause an error during processing:\n\n{{collection_data.test_items}}\n\nReturn the modified array with the added error-causing item.",
-        "model": "openai/o3-mini",
+        "model": "openai/o4-mini",
         "output_format": {
           "type": "object",
           "properties": {
@@ -320,7 +320,7 @@ Generate some new content based the combined context of the idea + any additiona
       "type": "llm_generate",
       "config": {
         "prompt": "Create a test collection with different types of data. Output only a JSON array with 5 items: two strings, two numbers, and one object with properties.",
-        "model": "openai/o3-mini",
+        "model": "openai/o4-mini",
         "output_format": {
           "type": "object",
           "properties": {
@@ -568,7 +568,7 @@ Print "Hello, Test!" to the console.
       "type": "llm_generate",
       "config": {
         "prompt": "Using the following specification, generate a Python script:\n\n{{spec_text}}",
-        "model": "{{model|default:'openai/o3-mini'}}",
+        "model": "{{model|default:'openai/o4-mini'}}",
         "output_format": "files",
         "output_key": "generated_files"
       }

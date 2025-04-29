@@ -1,5 +1,5 @@
 # AI Context Files
-Date: 4/23/2025, 3:04:58 PM
+Date: 4/29/2025, 5:13:34 PM
 Files: 1
 
 === File: recipes/utilities/generate_from_files.json ===
@@ -17,7 +17,7 @@ Files: 1
       "type": "llm_generate",
       "config": {
         "prompt": "{% if combined_input != '' %}{{combined_input}}{% else %}A request was made to generate an output based upon some files that were read in, but no files were received, please respond with an `error.md` file that contains a message indicating that no files were read and that 'context.path' must contain a valid list of files.{% endif %}",
-        "model": "{{model|default:'openai/o3-mini'}}",
+        "model": "{{model|default:'openai/o4-mini'}}",
         "output_format": "files",
         "output_key": "llm_output"
       }

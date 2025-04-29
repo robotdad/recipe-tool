@@ -1,5 +1,5 @@
 # AI Context Files
-Date: 4/23/2025, 3:04:58 PM
+Date: 4/29/2025, 5:13:34 PM
 Files: 4
 
 === File: recipes/recipe_creator/create.json ===
@@ -33,7 +33,7 @@ Files: 4
       "type": "llm_generate",
       "config": {
         "prompt": "Create a new JSON recipe file for use with recipe executor based on the following content:\n\n- Recipe Idea: {{recipe_idea}}\n- Context Files:\n  <CONTEXT_FILES>{{context_files}}</CONTEXT_FILES>\n  {% if additional_files %}\n- Additional Files:\n  <ADDITIONAL_FILES>{{additional_files}}</ADDITIONAL_FILES>\n  {% endif %}\n\nSave the generated recipe file as {{target_file | default:'generated_recipe.json'}} unless a different name is specified in the recipe idea.",
-        "model": "{{model | default:'openai/o3-mini'}}",
+        "model": "{{model | default:'openai/o4-mini'}}",
         "output_format": "files",
         "output_key": "generated_recipe"
       }
@@ -60,7 +60,7 @@ Create a new JSON recipe file for creating new JSON recipe files, named `create_
 
 - `input`: [Required] The file path to a recipe idea file.
 - `files`: [Optional] A list of additional files to include in the recipe.
-- `model`: [Optional] The model to use for generating the recipe. Defaults to `openai/o3-mini`.
+- `model`: [Optional] The model to use for generating the recipe. Defaults to `openai/o4-mini`.
 - `output_root`: [Optional] The root directory for saving the generated recipe file. Defaults to `output`.
 - `target_file`: [Optional] The name of the file to save the generated recipe to. Defaults to `generated_recipe.json` unless the recipe idea suggests a different name.
 
@@ -75,7 +75,7 @@ Create a new JSON recipe file for creating new JSON recipe files, named `create_
 
 3. Load any other files that are passed in via the `files` context variable. These files should be considered optional and stored in a variable called `additional_files`.
 
-4. Use the LLM (default set to use `openai/o3-mini`) to generate the content for a JSON recipe file:
+4. Use the LLM (default set to use `openai/o4-mini`) to generate the content for a JSON recipe file:
 
 ```markdown
 Create a new JSON recipe file for use with recipe executor based on the following content:
@@ -123,7 +123,7 @@ Create a new recipe file based on the following content:
 Save the generated recipe file as {{target_file|default:'generated_recipe.json'}}.
 ```
 
-Default model for this recipe should be: `openai/o3-mini`
+Default model for this recipe should be: `openai/o4-mini`
 
 The final step should be a `write_files` step that saves the generated recipe file to the specified target file. The `root` should be set to: {{output_root|default:'output'}}
 
@@ -140,14 +140,14 @@ Create a new recipe for analyzing a codebase from a file roll-up, named `analyze
 ### Input context variables
 
 - `input`: [Required] The file path to the codebase roll-up file(s).
-- `model`: [Optional] The model to use for generating the recipe. Defaults to `openai/o3-mini`.
+- `model`: [Optional] The model to use for generating the recipe. Defaults to `openai/o4-mini`.
 - `output_root`: [Optional] The root directory for saving the generated recipe file. Defaults to `output`.
 
 ### Steps
 
 1. Start with read of the codebase roll-up file(s) (`input` context variable).
 
-2. Use the LLM (default set to use `openai/o3-mini`) to generate the analysis:
+2. Use the LLM (default set to use `openai/o4-mini`) to generate the analysis:
 
 ```markdown
 Anayze the codebase from the following roll-up file(s):

@@ -1,5 +1,5 @@
 # AI Context Files
-Date: 4/27/2025, 10:26:20 AM
+Date: 4/29/2025, 5:13:34 PM
 Files: 25
 
 === File: .env.example ===
@@ -28,6 +28,8 @@ AZURE_USE_MANAGED_IDENTITY=false
 # Recipe Tool
 
 A tool for executing recipe-like natural language instructions to create complex workflows. This project includes a recipe executor and a recipe creator, both of which can be used to automate tasks and generate new recipes.
+
+**NOTE** This project is a very early, experimental project that is being explored in the open. There is no support offered and it will include frequent breaking changes. This project may be abandoned at any time. If you find it useful, it is strongly encouraged to create a fork and remain on a commit that works for your needs unless you are willing to make the necessary changes to use the latest version. This project is currently **NOT** accepting contributions and suggestions; please see the [dev_guidance.md](docs/dev_guidance.md) for more details.
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
@@ -165,7 +167,7 @@ recipe-tool --execute path/to/your/recipe.json context_key=value context_key2=va
 Example:
 
 ```bash
-recipe-tool --execute recipes/example_simple/test_recipe.json model=azure/o3-mini
+recipe-tool --execute recipes/example_simple/test_recipe.json model=azure/o4-mini
 ```
 
 ## Creating New Recipes from a Recipe Idea
@@ -503,14 +505,14 @@ class Executor(ExecutorProtocol):
 
 
 === File: recipe_executor/llm_utils/azure_openai.py ===
-import os
 import logging
+import os
 from typing import Optional
 
-from openai import AsyncAzureOpenAI
 from azure.identity import DefaultAzureCredential, ManagedIdentityCredential, get_bearer_token_provider
-from pydantic_ai.providers.openai import OpenAIProvider
+from openai import AsyncAzureOpenAI
 from pydantic_ai.models.openai import OpenAIModel
+from pydantic_ai.providers.openai import OpenAIProvider
 
 
 def _mask_secret(secret: Optional[str]) -> str:
@@ -530,20 +532,20 @@ def get_azure_openai_model(
     deployment_name: Optional[str] = None,
 ) -> OpenAIModel:
     """
-    Create a PydanticAI OpenAIModel instance for Azure OpenAI.
+    Create a PydanticAI OpenAIModel instance, configured from environment variables for Azure OpenAI.
 
     Args:
         logger (logging.Logger): Logger for logging messages.
-        model_name (str): Model name, such as "gpt-4o" or "o3-mini".
-        deployment_name (Optional[str]): Azure deployment name; defaults to model_name.
+        model_name (str): Model name, such as "gpt-4o" or "o4-mini".
+        deployment_name (Optional[str]): Azure deployment name; defaults to model_name or env var.
 
     Returns:
-        OpenAIModel: Configured PydanticAI OpenAIModel instance.
+        OpenAIModel: A PydanticAI OpenAIModel instance created from AsyncAzureOpenAI client.
 
     Raises:
-        Exception: If required environment variables are missing or client creation fails.
+        Exception: If required environment variables are missing or client/model creation fails.
     """
-    # Load configuration from environment
+    # Load configuration
     use_managed_identity = os.getenv("AZURE_USE_MANAGED_IDENTITY", "false").lower() in ("1", "true", "yes")
     azure_endpoint = os.getenv("AZURE_OPENAI_BASE_URL")
     azure_api_version = os.getenv("AZURE_OPENAI_API_VERSION", "2025-03-01-preview")
@@ -554,15 +556,15 @@ def get_azure_openai_model(
         logger.error("Environment variable AZURE_OPENAI_BASE_URL is required")
         raise Exception("Missing AZURE_OPENAI_BASE_URL")
 
-    # Determine deployment identifier
+    # Determine deployment
     deployment = deployment_name or env_deployment or model_name
 
-    # Log loaded configuration (mask secrets)
+    # Log loaded config
+    masked_key = _mask_secret(os.getenv("AZURE_OPENAI_API_KEY"))
     logger.debug(
         f"Azure OpenAI config: endpoint={azure_endpoint}, api_version={azure_api_version}, "
         f"deployment={deployment}, use_managed_identity={use_managed_identity}, "
-        f"client_id={azure_client_id or '<None>'}, "
-        f"api_key={_mask_secret(os.getenv('AZURE_OPENAI_API_KEY'))}"
+        f"client_id={azure_client_id or '<None>'}, api_key={masked_key}"
     )
 
     # Create Azure OpenAI client
@@ -574,10 +576,7 @@ def get_azure_openai_model(
             else:
                 credential = DefaultAzureCredential()
 
-            token_provider = get_bearer_token_provider(
-                credential,
-                "https://cognitiveservices.azure.com/.default"
-            )
+            token_provider = get_bearer_token_provider(credential, "https://cognitiveservices.azure.com/.default")
             azure_client = AsyncAzureOpenAI(
                 azure_ad_token_provider=token_provider,
                 azure_endpoint=azure_endpoint,
@@ -598,17 +597,17 @@ def get_azure_openai_model(
                 azure_deployment=deployment,
             )
             auth_method = "API Key"
-    except Exception as error:
-        logger.error(f"Failed to create AsyncAzureOpenAI client: {error}")
+    except Exception as err:
+        logger.error(f"Failed to create AsyncAzureOpenAI client: {err}")
         raise
 
-    # Wrap client in PydanticAI provider and model
+    # Wrap in PydanticAI provider and model
     logger.info(f"Creating Azure OpenAI model '{model_name}' with {auth_method}")
     provider = OpenAIProvider(openai_client=azure_client)
     try:
         model = OpenAIModel(model_name=model_name, provider=provider)
-    except Exception as error:
-        logger.error(f"Failed to create OpenAIModel: {error}")
+    except Exception as err:
+        logger.error(f"Failed to create OpenAIModel: {err}")
         raise
 
     return model
@@ -631,9 +630,9 @@ from recipe_executor.llm_utils.azure_openai import get_azure_openai_model
 
 __all__ = ["LLM"]
 
-# env var for default model
-DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "openai/gpt-4o")
-OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+# Default model identifier and Ollama endpoint
+DEFAULT_MODEL: str = os.getenv("DEFAULT_MODEL", "openai/gpt-4o")
+OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 
 
 def _get_model(logger: logging.Logger, model_id: Optional[str]) -> Union[OpenAIModel, AnthropicModel]:
@@ -648,8 +647,9 @@ def _get_model(logger: logging.Logger, model_id: Optional[str]) -> Union[OpenAIM
         raise ValueError(f"Invalid model identifier '{model_id}', expected 'provider/model_name'")
     provider = parts[0].lower()
     model_name = parts[1]
-    # azure may include a deployment name
+
     if provider == "azure":
+        # Azure OpenAI may include a deployment name
         deployment_name: Optional[str] = parts[2] if len(parts) == 3 else None
         try:
             return get_azure_openai_model(
@@ -660,16 +660,18 @@ def _get_model(logger: logging.Logger, model_id: Optional[str]) -> Union[OpenAIM
         except Exception:
             logger.error(f"Failed to initialize Azure OpenAI model '{model_id}'", exc_info=True)
             raise
+
     if provider == "openai":
-        # OpenAIModel will pick up OPENAI_API_KEY from env
         return OpenAIModel(model_name)
+
     if provider == "anthropic":
         return AnthropicModel(model_name)
+
     if provider == "ollama":
-        # Ollama endpoint via OpenAIProvider
         base_url = OLLAMA_BASE_URL.rstrip("/") + "/v1"
-        provider_client = OpenAIProvider(base_url=base_url)
-        return OpenAIModel(model_name, provider=provider_client)
+        client = OpenAIProvider(base_url=base_url)
+        return OpenAIModel(model_name, provider=client)
+
     raise ValueError(f"Unsupported LLM provider '{provider}' in model identifier '{model_id}'")
 
 
@@ -682,72 +684,84 @@ class LLM:
         self,
         logger: logging.Logger,
         model: str = DEFAULT_MODEL,
+        max_tokens: Optional[int] = None,
         mcp_servers: Optional[List[MCPServer]] = None,
     ):
         self.logger: logging.Logger = logger
         self.model: str = model
-        # store list or empty list
+        self.max_tokens: Optional[int] = max_tokens
         self.mcp_servers: List[MCPServer] = mcp_servers if mcp_servers is not None else []
 
     async def generate(
         self,
         prompt: str,
         model: Optional[str] = None,
+        max_tokens: Optional[int] = None,
         output_type: Type[Union[str, BaseModel]] = str,
         mcp_servers: Optional[List[MCPServer]] = None,
     ) -> Union[str, BaseModel]:
         """
         Generate an output from the LLM based on the provided prompt.
         """
-        # Determine model identifier and servers
         model_id = model or self.model
         servers = mcp_servers if mcp_servers is not None else self.mcp_servers
+        tokens_limit = max_tokens if max_tokens is not None else self.max_tokens
 
-        # Initialize model
         try:
             llm_model = _get_model(self.logger, model_id)
         except Exception:
+            # Propagate initialization errors
             raise
 
+        # Derive a human-readable model name for logging
         model_name = getattr(llm_model, "model_name", str(llm_model))
 
-        # Create agent
         agent = Agent(
             model=llm_model,
             output_type=output_type,
             mcp_servers=servers or [],
         )
-        # Logging before call
+
+        # Info-level: model invocation
         self.logger.info(f"LLM request: model={model_name}")
-        self.logger.debug(f"LLM request payload: prompt={prompt!r}, output_type={output_type}, mcp_servers={servers}")
+        # Debug-level: full request payload
+        self.logger.debug(
+            f"LLM request payload: prompt={prompt!r}, output_type={output_type},"
+            f" max_tokens={tokens_limit}, mcp_servers={servers}"
+        )
 
-        start_time = time.monotonic()
+        start = time.monotonic()
         try:
-            # open MCP sessions if any
             async with agent.run_mcp_servers():
-                result = await agent.run(prompt)
+                # Pass max_tokens if provided
+                if tokens_limit is not None:
+                    result = await agent.run(prompt, model_settings={"max_tokens": tokens_limit})
+                else:
+                    result = await agent.run(prompt)
         except Exception:
-            self.logger.error(f"LLM call failed for model {model_id}", exc_info=True)
+            self.logger.error(f"LLM call failed for model '{model_id}'", exc_info=True)
             raise
-        end_time = time.monotonic()
+        end = time.monotonic()
 
-        # Logging after call
-        duration = end_time - start_time
-        usage = None
+        duration = end - start
+        usage_info = None
         try:
             usage = result.usage()
+            usage_info = (usage.total_tokens, usage.request_tokens, usage.response_tokens)
         except Exception:
             pass
-        # debug full result
-        self.logger.debug(f"LLM result payload: {result!r}")
-        # info summary
-        if usage:
-            tokens = f"total={usage.total_tokens}, request={usage.request_tokens}, response={usage.response_tokens}"
-        else:
-            tokens = "unknown"
-        self.logger.info(f"LLM completed in {duration:.2f}s, tokens used: {tokens}")
 
-        # Return only the output
+        # Debug-level: full result payload
+        self.logger.debug(f"LLM result payload: {result!r}")
+
+        # Info-level: summary of execution
+        if usage_info:
+            total, req, resp = usage_info
+            tokens_str = f"total={total}, request={req}, response={resp}"
+        else:
+            tokens_str = "unknown"
+        self.logger.info(f"LLM completed in {duration:.2f}s, tokens used: {tokens_str}")
+
         return result.output
 
 
@@ -1575,16 +1589,19 @@ from recipe_executor.utils.templates import render_template
 class LLMGenerateConfig(StepConfig):
     """
     Config for LLMGenerateStep.
+
     Fields:
         prompt: The prompt to send to the LLM (templated beforehand).
         model: The model identifier to use (provider/model_name format).
-        mcp_servers: List of MCP servers for access to tools.
-        output_format: The format of the LLM output (text, files, or JSON/object/list schemas).
+        max_tokens: The maximum number of tokens for the LLM response.
+        mcp_servers: List of MCP server configurations for access to tools.
+        output_format: The format of the LLM output (text, files, or JSON/list schemas).
         output_key: The name under which to store the LLM output in context.
     """
 
     prompt: str
     model: str = "openai/gpt-4o"
+    max_tokens: Optional[Union[str, int]] = None
     mcp_servers: Optional[List[Dict[str, Any]]] = None
     output_format: Union[str, Dict[str, Any], List[Any]]
     output_key: str = "llm_output"
@@ -1594,79 +1611,135 @@ class FileSpecCollection(BaseModel):
     files: List[FileSpec]
 
 
-def render_template_config(config: Dict[str, Any], context: ContextProtocol) -> Dict[str, Any]:
-    rendered: Dict[str, Any] = {}
-    for k, v in config.items():
-        if isinstance(v, str):
-            rendered[k] = render_template(v, context)
-        elif isinstance(v, dict):
-            rendered[k] = render_template_config(v, context)
-        elif isinstance(v, list):
-            rendered[k] = [render_template_config(i, context) if isinstance(i, dict) else i for i in v]
+def _render_config(config: Dict[str, Any], context: ContextProtocol) -> Dict[str, Any]:
+    """
+    Recursively render templated strings in a dict.
+    """
+    result: Dict[str, Any] = {}
+    for key, value in config.items():
+        if isinstance(value, str):
+            result[key] = render_template(value, context)
+        elif isinstance(value, dict):
+            result[key] = _render_config(value, context)
+        elif isinstance(value, list):
+            items: List[Any] = []
+            for item in value:
+                if isinstance(item, dict):
+                    items.append(_render_config(item, context))
+                else:
+                    items.append(item)
+            result[key] = items
         else:
-            rendered[k] = v
-    return rendered
+            result[key] = value
+    return result
 
 
 class LLMGenerateStep(BaseStep[LLMGenerateConfig]):
+    """
+    Step to generate content via a large language model (LLM).
+    """
+
     def __init__(self, logger: logging.Logger, config: Dict[str, Any]) -> None:
         super().__init__(logger, LLMGenerateConfig(**config))
 
     async def execute(self, context: ContextProtocol) -> None:
+        # Render templates for core inputs
         prompt: str = render_template(self.config.prompt, context)
-        model_id: str = render_template(self.config.model, context) if self.config.model else "openai/gpt-4o"
+        model_id: str = render_template(self.config.model, context)
         output_key: str = render_template(self.config.output_key, context)
 
-        # Collect MCP server configs from config and context
-        mcp_servers_configs: List[Dict[str, Any]] = []
-        if self.config.mcp_servers:
-            mcp_servers_configs.extend(self.config.mcp_servers)
-        context_mcp_servers_cfg = context.get_config().get("mcp_servers", [])
-        if context_mcp_servers_cfg:
-            mcp_servers_configs.extend(context_mcp_servers_cfg)
-        mcp_servers: Optional[List[Any]] = None
-        if mcp_servers_configs:
-            mcp_servers = [
-                get_mcp_server(logger=self.logger, config=render_template_config(cfg, context))
-                for cfg in mcp_servers_configs
-            ]
+        # Prepare max_tokens
+        raw_max = self.config.max_tokens
+        max_tokens: Optional[int] = None
+        if raw_max is not None:
+            max_str = render_template(str(raw_max), context)
+            try:
+                max_tokens = int(max_str)
+            except ValueError:
+                raise ValueError(f"Invalid max_tokens value: {raw_max!r}")
 
-        llm = LLM(logger=self.logger, model=model_id, mcp_servers=mcp_servers)
+        # Collect MCP server configurations
+        mcp_cfgs: List[Dict[str, Any]] = []
+        if self.config.mcp_servers:
+            mcp_cfgs.extend(self.config.mcp_servers)
+        ctx_mcp = context.get_config().get("mcp_servers") or []
+        if isinstance(ctx_mcp, list):
+            mcp_cfgs.extend(ctx_mcp)
+
+        mcp_servers: List[Any] = []
+        for cfg in mcp_cfgs:
+            rendered = _render_config(cfg, context)
+            server = get_mcp_server(logger=self.logger, config=rendered)
+            mcp_servers.append(server)
+
+        # Initialize LLM client
+        llm = LLM(
+            logger=self.logger,
+            model=model_id,
+            mcp_servers=mcp_servers or None,
+        )
         output_format = self.config.output_format
         result: Any = None
+
         try:
             self.logger.debug(
-                "Calling LLM: model=%s, output_format=%r, mcp_servers=%r", model_id, output_format, mcp_servers
+                "Calling LLM: model=%s, format=%r, max_tokens=%s, mcp_servers=%r",
+                model_id,
+                output_format,
+                max_tokens,
+                mcp_servers,
             )
-            if output_format == "text":
-                result = await llm.generate(prompt, output_type=str)
+            # Text output
+            if output_format == "text":  # type: ignore
+                kwargs: Dict[str, Any] = {"output_type": str}
+                if max_tokens is not None:
+                    kwargs["max_tokens"] = max_tokens
+                result = await llm.generate(prompt, **kwargs)
                 context[output_key] = result
-            elif output_format == "files":
-                result = await llm.generate(prompt, output_type=FileSpecCollection)
+
+            # Files output
+            elif output_format == "files":  # type: ignore
+                kwargs = {"output_type": FileSpecCollection}
+                if max_tokens is not None:
+                    kwargs["max_tokens"] = max_tokens
+                result = await llm.generate(prompt, **kwargs)
+                # Store only the list of FileSpec
                 context[output_key] = result.files
-            elif isinstance(output_format, dict) and output_format.get("type") == "object":
+
+            # JSON object schema
+            elif isinstance(output_format, dict):
                 schema_model = json_object_to_pydantic_model(output_format, model_name="LLMObject")
-                result = await llm.generate(prompt, output_type=schema_model)
+                kwargs = {"output_type": schema_model}
+                if max_tokens is not None:
+                    kwargs["max_tokens"] = max_tokens
+                result = await llm.generate(prompt, **kwargs)
                 context[output_key] = result.model_dump()
-            elif isinstance(output_format, list):
+
+            # List schema
+            elif isinstance(output_format, list):  # type: ignore
                 if len(output_format) != 1 or not isinstance(output_format[0], dict):
                     raise ValueError(
-                        "When output_format is a list, it must be a single-item list containing a valid schema object."
+                        "When output_format is a list, it must be a single-item list containing a schema object."
                     )
                 item_schema = output_format[0]
-                object_schema = {
+                wrapper_schema: Dict[str, Any] = {
                     "type": "object",
                     "properties": {"items": {"type": "array", "items": item_schema}},
                     "required": ["items"],
                 }
-                schema_model = json_object_to_pydantic_model(object_schema, model_name="LLMListWrapper")
-                result = await llm.generate(prompt, output_type=schema_model)
-                items = result.model_dump()["items"]
-                context[output_key] = items
+                schema_model = json_object_to_pydantic_model(wrapper_schema, model_name="LLMListWrapper")
+                kwargs = {"output_type": schema_model}
+                if max_tokens is not None:
+                    kwargs["max_tokens"] = max_tokens
+                result = await llm.generate(prompt, **kwargs)
+                wrapper = result.model_dump()
+                context[output_key] = wrapper.get("items", [])
+
             else:
                 raise ValueError(f"Unsupported output_format: {output_format!r}")
-        except Exception as e:
-            self.logger.error("LLM generate failed: %r", e, exc_info=True)
+
+        except Exception as exc:
+            self.logger.error("LLM generate failed: %r", exc, exc_info=True)
             raise
 
 
