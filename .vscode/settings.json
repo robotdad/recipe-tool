@@ -76,6 +76,7 @@
     "ollama",
     "PYDANTIC",
     "setrecursionlimit",
+    "slugified",
     "stype",
     "subschema",
     "substep",

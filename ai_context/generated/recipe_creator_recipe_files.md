@@ -1,6 +1,6 @@
 # AI Context Files
-Date: 4/29/2025, 5:13:34 PM
-Files: 4
+Date: 4/29/2025, 10:01:16 PM
+Files: 3
 
 === File: recipes/recipe_creator/create.json ===
 {
@@ -15,14 +15,6 @@ Files: 4
     {
       "type": "read_files",
       "config": {
-        "path": "ai_context/generated/recipe_executor_code_files.md,ai_context/generated/recipe_executor_recipe_files.md",
-        "content_key": "context_files",
-        "merge_mode": "concat"
-      }
-    },
-    {
-      "type": "read_files",
-      "config": {
         "path": "{{files}}",
         "content_key": "additional_files",
         "optional": true,
@@ -30,9 +22,17 @@ Files: 4
       }
     },
     {
+      "type": "read_files",
+      "config": {
+        "path": "ai_context/generated/recipe_executor_code_files.md,ai_context/generated/recipe_executor_recipe_files.md,ai_context/RECIPE_JSON_AUTHORING_GUIDE.md,ai_context/IMPLEMENTATION_PHILOSOPHY.md,ai_context/MODULAR_DESIGN_PHILOSOPHY.md,ai_context/git_collector/LIQUID_PYTHON_DOCS.md",
+        "content_key": "context_files",
+        "merge_mode": "concat"
+      }
+    },
+    {
       "type": "llm_generate",
       "config": {
-        "prompt": "Create a new JSON recipe file for use with recipe executor based on the following content:\n\n- Recipe Idea: {{recipe_idea}}\n- Context Files:\n  <CONTEXT_FILES>{{context_files}}</CONTEXT_FILES>\n  {% if additional_files %}\n- Additional Files:\n  <ADDITIONAL_FILES>{{additional_files}}</ADDITIONAL_FILES>\n  {% endif %}\n\nSave the generated recipe file as {{target_file | default:'generated_recipe.json'}} unless a different name is specified in the recipe idea.",
+        "prompt": "Create a new JSON recipe file for use with recipe executor based on the following Recipe Idea:\n\n<RECIPE_IDEA>\n{{recipe_idea}}\n</RECIPE_IDEA>\n\n{% if additional_files %}In addition, here are some additional files for reference (DO NOT INCLUDE THEM IN THE RECIPE ITSELF):\n\n<ADDITIONAL_FILES>\n{{additional_files}}\n</ADDITIONAL_FILES>\n\n{% endif %}Here is some documentation, code, examples, and guides for the recipes concept for additional context when writing a recipe for the requested recipe idea (DO NOT INCLUDE THEM IN THE RECIPE ITSELF):\n\n<CONTEXT_FILES>\n{{context_files}}\n</CONTEXT_FILES>\n\nThe output MUST be valid JSON: no comments, all strings should be on a single line within the file (use escape characters for newlines), etc.\n\nSave the generated recipe file as {{target_file | default:'generated_recipe.json'}} unless a different name is specified in the recipe idea.",
         "model": "{{model | default:'openai/o4-mini'}}",
         "output_format": "files",
         "output_key": "generated_recipe"
@@ -49,7 +49,7 @@ Files: 4
 }
 
 
-=== File: recipes/recipe_creator/prompts/create_recipe_json.md ===
+=== File: recipes/recipe_creator/recipe_ideas/create_recipe_json.md ===
 ## Goal
 
 Create a new JSON recipe file for creating new JSON recipe files, named `create_recipe_json.json`.
@@ -72,65 +72,48 @@ Create a new JSON recipe file for creating new JSON recipe files, named `create_
 
 - `ai_context/generated/recipe_executor_code_files.md`
 - `ai_context/generated/recipe_executor_recipe_files.md`
+- `ai_context/RECIPE_JSON_AUTHORING_GUIDE.md`
+- `ai_context/IMPLEMENTATION_PHILOSOPHY.md`
+- `ai_context/MODULAR_DESIGN_PHILOSOPHY.md`
+- `ai_context/git_collector/LIQUID_PYTHON_DOCS.md`
 
 3. Load any other files that are passed in via the `files` context variable. These files should be considered optional and stored in a variable called `additional_files`.
 
 4. Use the LLM (default set to use `openai/o4-mini`) to generate the content for a JSON recipe file:
 
+{% raw %}
+
 ```markdown
-Create a new JSON recipe file for use with recipe executor based on the following content:
+Create a new JSON recipe file for use with recipe executor based on the following Recipe Idea:
+<RECIPE_IDEA>
+{{recipe_idea}}
+</RECIPE_IDEA>
 
-- Recipe Idea: {{recipe_idea}}
-- Context Files:
-  <CONTEXT_FILES>{{context_files}}</CONTEXT_FILES>
-  {% if additional_files %}
-- Additional Files:
-  <ADDITIONAL_FILES>{{additional_files}}</ADDITIONAL_FILES>
-  {% endif %}
+{% if additional_files %}
+In addition, here are some additional files for reference (DO NOT INCLUDE THEM IN THE RECIPE ITSELF):
+<ADDITIONAL_FILES>
+{{additional_files}}
+</ADDITIONAL_FILES>
+{% endif %}
 
-Save the generated recipe file as `generated_recipe.json` unless a different name is specified in the recipe idea.
+Here is some documentation, code, examples, and guides for the recipes concept for additional context when writing a recipe for the requested recipe idea (DO NOT INCLUDE THEM IN THE RECIPE ITSELF):
+<CONTEXT_FILES>
+{{context_files}}
+</CONTEXT_FILES>
+
+The output MUST be valid JSON: no comments, all strings should be on a single new within the file (use escape characters for newlines), etc.
+
+Save the generated recipe file as {{target_file | default:'generated_recipe.json'}} unless a different name is specified in the recipe idea.
 ```
+
+{% endraw %}
 
 5. Save the generated file.
 
 - The root should be set to value of `output_root` context variable, or `output` if not specified.
 
 
-=== File: recipes/recipe_creator/prompts/recipe_creator-future_version.md ===
-Create a new JSON recipe file in the current folder. It should be named `create_recipe.json`. The recipe should use the `read_files` step to load a file that contains a request for a recipe to be created, from context key `input`. This file should be configurable via context, and the default value should be an error message indicating that the file is missing. The loaded content should be stored in a variable called `input`.
-
-The next step should load the following files into context as `context_files`:
-
-- `ai_context/MODULAR_DESIGN_PHILOSOPHY.md`
-- `ai_context/IMPLEMENTATION_PHILOSOPHY.md`
-- `ai_context/generated/recipe_executor_code_files.md`
-- `ai_context/generated/recipe_executor_recipe_files.md`
-
-The `input` value will be of type FileSpec or List[FileSpec] from the recipe executor, you will need to unpack that value properly to use it in the next `generate` step.
-
-Pass the loaded content to a `generate` step that extracts values to `recipe_idea`, `additional_files`, and `target_file` from the loaded content if such values are present. If the values are not present, assume the request is actually the recipe idea and set `recipe_idea` to the loaded content. The `additional_files` value should be a comma-separated list of files to be loaded into context, and the `target_file` value should be the name of the file to save the generated recipe to.
-
-The next step should be another `generate` step that should _start with_:
-
-```
-Create a new recipe file based on the following content:
-- Recipe Idea: {recipe_idea}
-- Context Files: {context_files}
-{% if additional_files != '' %}
-- Additional Files: {additional_files}
-{% endif %}
-
-Save the generated recipe file as {{target_file|default:'generated_recipe.json'}}.
-```
-
-Default model for this recipe should be: `openai/o4-mini`
-
-The final step should be a `write_files` step that saves the generated recipe file to the specified target file. The `root` should be set to: {{output_root|default:'output'}}
-
-Consider the ideas and patterns expressed in _this_ request as good practices to append to the end of the generated recipe's generation prompt.
-
-
-=== File: recipes/recipe_creator/prompts/sample_recipe_idea.md ===
+=== File: recipes/recipe_creator/recipe_ideas/sample_recipe_idea.md ===
 ## Goal
 
 Create a new recipe for analyzing a codebase from a file roll-up, named `analyze_codebase.json`.

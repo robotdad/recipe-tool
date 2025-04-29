@@ -1,5 +1,5 @@
 # AI Context Files
-Date: 4/29/2025, 5:13:34 PM
+Date: 4/29/2025, 10:01:16 PM
 Files: 17
 
 === File: recipes/example_complex/README.md ===
@@ -89,7 +89,7 @@ This recipe demonstrates a multi-step workflow that:
 }
 
 
-=== File: recipes/example_complex/prompts/complex_example_idea.md ===
+=== File: recipes/example_complex/recipe_creator_idea/complex_example_idea.md ===
 Create a recipe file named `complex_example.json` that generates a recipe file based on the following scenario:
 
 Let's write some code that uses the PydanticAI library (docs for it are located in `ai_context/git_collector/PYDANTIC_AI_DOCS.md`, have the recipe read the content of this file in) to create simple chat client that uses an LLM. Have it create multiple files and use the parallel step to generate them in parallel.
@@ -103,51 +103,73 @@ args: `stdio`
 
 === File: recipes/example_content_writer/generate_content.json ===
 {
+  "description": "Generate new Markdown content from an idea file plus optional context and reference style.",
   "steps": [
     {
       "type": "read_files",
       "config": {
-        "path": "{{idea}}",
+        "path": "{{ idea }}",
         "content_key": "idea_content"
       }
     },
     {
-      "type": "read_files",
+      "type": "conditional",
       "config": {
-        "path": "{{files}}",
-        "content_key": "additional_files_content",
-        "optional": true
+        "condition": "{% if files %}true{% else %}false{% endif %}",
+        "if_true": {
+          "steps": [
+            {
+              "type": "read_files",
+              "config": {
+                "path": "{{ files }}",
+                "content_key": "additional_files_content",
+                "merge_mode": "concat",
+                "optional": true
+              }
+            }
+          ]
+        }
       }
     },
     {
-      "type": "read_files",
+      "type": "conditional",
       "config": {
-        "path": "{{reference_content}}",
-        "content_key": "reference_content_text",
-        "optional": true
+        "condition": "{% if reference_content %}true{% else %}false{% endif %}",
+        "if_true": {
+          "steps": [
+            {
+              "type": "read_files",
+              "config": {
+                "path": "{{ reference_content }}",
+                "content_key": "reference_content",
+                "merge_mode": "concat",
+                "optional": true
+              }
+            }
+          ]
+        }
       }
     },
     {
       "type": "llm_generate",
       "config": {
-        "prompt": "You are an expert creative writer. Using the idea provided below, and any additional context if available, generate new content that is engaging and follows the style of the reference content if provided. Output your answer as a JSON object with exactly two keys: 'path' and 'content'. The 'path' must be a filename ending with .md (which will be used as the output file name), and 'content' is the full generated content. Do not include any additional text outside the JSON object.\n\nIdea:\n{{idea_content}}\n\nAdditional Context (if any):\n{{additional_files_content}}\n\nReference Style (optional):\n{{reference_content_text}}",
-        "model": "{{model|default:'openai/gpt-4o'}}",
+        "prompt": "You are a professional writer.\\n\\n<IDEA>\\n{{ idea_content }}\\n</IDEA>\\n\\n{% if additional_files_content %}<ADDITIONAL_FILES>\\n{{ additional_files_content }}\\n</ADDITIONAL_FILES>\\n{% endif %}\\n\\n{% if reference_content %}<REFERENCE_CONTENT>\\n{{ reference_content }}\\n</REFERENCE_CONTENT>\\n{% endif %}\\n\\nUsing the IDEA (and ADDITIONAL_FILES for context if provided), write a complete Markdown article in the style of the REFERENCE_CONTENT if that section exists; otherwise use a crisp, conversational tech-blog tone.\\n\\nReturn exactly one JSON array with a single object matching this schema:\\n[\\n  {\\n    \\\"path\\\": \\\"{{ output_root | default: 'output' }}/<slugified_title>.md\\\",\\n    \\\"content\\\": \\\"<full_markdown_document>\\\"\\n  }\\n]\\n*Replace* <slugified_title> with a kebab-case version of the article title (e.g. \\\"AI-and-you\\\").\\nDo not add any keys or commentary outside that JSON array.",
+        "model": "{{ model | default: 'openai/gpt-4o' }}",
         "output_format": "files",
-        "output_key": "generated_content"
+        "output_key": "generated_files"
       }
     },
     {
       "type": "write_files",
       "config": {
-        "files_key": "generated_content",
-        "root": "{{output_root|default:'.'}}"
+        "files_key": "generated_files"
       }
     }
   ]
 }
 
 
-=== File: recipes/example_content_writer/prompts/content_from_idea.md ===
+=== File: recipes/example_content_writer/recipe_creator_idea/content_from_idea.md ===
 Create a recipe file named `generate_content.json` that generates new content based on the following scenario:
 
 Input context variables:
