@@ -1,0 +1,185 @@
+{
+  "steps": [
+    {
+      "type": "conditional",
+      "config": {
+        "condition": "file_exists('{{ output_dir }}/components/components_manifest.json')",
+        "if_true": {
+          "steps": [
+            {
+              "type": "read_files",
+              "config": {
+                "path": "{{ output_dir }}/components/components_manifest.json",
+                "content_key": "final_components",
+                "optional": false
+              }
+            }
+          ]
+        },
+        "if_false": {
+          "steps": [
+            {
+              "type": "conditional",
+              "config": {
+                "condition": "{{ analysis_result.needs_splitting }}",
+                "if_true": {
+                  "steps": [
+                    {
+                      "type": "execute_recipe",
+                      "config": {
+                        "recipe_path": "recipes/blueprint_generator_v3/recipes/split_project.json",
+                        "context_overrides": {
+                          "analysis_result": "{{ output_dir }}/analysis/analysis_result.json",
+                          "output_root": "{{ output_dir }}/components",
+                          "model": "{{ model | default: 'openai/o4-mini' }}"
+                        }
+                      }
+                    },
+                    {
+                      "type": "read_files",
+                      "config": {
+                        "path": "{{ output_dir }}/components/components_manifest.json",
+                        "content_key": "components_manifest",
+                        "optional": false
+                      }
+                    },
+                    {
+                      "type": "loop",
+                      "config": {
+                        "items": "components_manifest",
+                        "item_key": "component",
+                        "max_concurrency": 0,
+                        "delay": 0.1,
+                        "substeps": [
+                          {
+                            "type": "execute_recipe",
+                            "config": {
+                              "recipe_path": "recipes/blueprint_generator_v3/recipes/analyze_project_flow.json",
+                              "context_overrides": {
+                                "component_spec": "{{ output_dir }}/components/{{ component.spec_file }}",
+                                "output_dir": "{{ output_dir }}/components/{{ component.component_id }}",
+                                "model": "{{ model | default: 'openai/o4-mini' }}"
+                              }
+                            }
+                          },
+                          {
+                            "type": "conditional",
+                            "config": {
+                              "condition": "{{ analysis_result.needs_splitting }}",
+                              "if_true": {
+                                "steps": [
+                                  {
+                                    "type": "execute_recipe",
+                                    "config": {
+                                      "recipe_path": "recipes/blueprint_generator_v3/recipes/split_project_recursively.json",
+                                      "context_overrides": {
+                                        "component_spec": "{{ output_dir }}/components/{{ component.spec_file }}",
+                                        "output_dir": "{{ output_dir }}/components/{{ component.component_id }}",
+                                        "model": "{{ model | default: 'openai/o4-mini' }}"
+                                      }
+                                    }
+                                  }
+                                ]
+                              },
+                              "if_false": {
+                                "steps": [
+                                  {
+                                    "type": "llm_generate",
+                                    "config": {
+                                      "prompt": "Update the component with the following information:\n\nComponent ID: {{ component.component_id }}\nComponent Name: {{ component.component_name }}\nDescription: {{ component.description }}\nSpec File: {{ component.spec_file }}",
+                                      "model": "{{ model | default: 'openai/o4-mini' }}",
+                                      "output_format": "text",
+                                      "output_key": "updated_component"
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          }
+                        ],
+                        "result_key": "processed_components"
+                      }
+                    },
+                    {
+                      "type": "llm_generate",
+                      "config": {
+                        "prompt": "Create a final components summary as a JSON array. Format the processed components data into a JSON string for the file:\n\nComponents:\n{% for component in processed_components %}\n- ID: {{ component.component_id }}\n  Name: {{ component.component_name }}\n  Description: {{ component.description }}\n  Spec File: {{ component.spec_file }}\n{% endfor %}",
+                        "model": "{{ model | default: 'openai/o4-mini' }}",
+                        "output_format": "text",
+                        "output_key": "final_components_json"
+                      }
+                    },
+                    {
+                      "type": "write_files",
+                      "config": {
+                        "files": [
+                          {
+                            "path": "{{ output_dir }}/final_components_summary.json",
+                            "content": "{{ final_components_json }}"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "read_files",
+                      "config": {
+                        "path": "{{ output_dir }}/final_components_summary.json",
+                        "content_key": "final_components",
+                        "optional": false
+                      }
+                    }
+                  ]
+                },
+                "if_false": {
+                  "steps": [
+                    {
+                      "type": "llm_generate",
+                      "config": {
+                        "prompt": "Generate a single component specification for a project that doesn't need splitting:\n\nProject spec: {{ project_spec_content }}\n\nFormat this as a JSON object with:\n- component_id: \"main_component\"\n- component_name: \"Main Component\"\n- description: \"Single component implementation\"\n- spec_file: \"main_component_spec.md\"\n- dependencies: [] (empty array)",
+                        "model": "{{ model | default: 'openai/o4-mini' }}",
+                        "output_format": "files",
+                        "output_key": "main_component_spec_json"
+                      }
+                    },
+                    {
+                      "type": "llm_generate",
+                      "config": {
+                        "prompt": "Generate the content for the main component specification file:\n\nProject spec: {{ project_spec_content }}",
+                        "model": "{{ model | default: 'openai/o4-mini' }}",
+                        "output_format": "text",
+                        "output_key": "main_component_spec_content"
+                      }
+                    },
+                    {
+                      "type": "write_files",
+                      "config": {
+                        "files": [
+                          {
+                            "path": "{{ output_dir }}/components/main_component_spec.md",
+                            "content": "{{ main_component_spec_content }}"
+                          },
+                          {
+                            "path": "{{ output_dir }}/components/components_manifest.json",
+                            "content": "[{{ main_component_spec_json }}]"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "read_files",
+                      "config": {
+                        "path": "{{ output_dir }}/components/components_manifest.json",
+                        "content_key": "final_components",
+                        "optional": false
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

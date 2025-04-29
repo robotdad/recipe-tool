@@ -1,0 +1,87 @@
+{
+  "steps": [
+    {
+      "type": "execute_recipe",
+      "config": {
+        "recipe_path": "recipes/blueprint_generator_v3/recipes/generate_clarification_questions.json",
+        "context_overrides": {
+          "candidate_spec_path": "{{ spec_path }}",
+          "component_id": "{{ component_id }}",
+          "output_root": "{{ output_dir }}/clarification",
+          "model": "{{ model | default: 'openai/o4-mini' }}"
+        }
+      }
+    },
+    {
+      "type": "execute_recipe",
+      "config": {
+        "recipe_path": "recipes/blueprint_generator_v3/recipes/generate_clarification_answers.json",
+        "context_overrides": {
+          "candidate_spec_path": "{{ spec_path }}",
+          "clarification_questions_path": "{{ output_dir }}/clarification/{{ component_id }}_component_clarification_questions.md",
+          "component_id": "{{ component_id }}",
+          "output_root": "{{ output_dir }}/clarification",
+          "model": "{{ model | default: 'openai/o4-mini' }}"
+        }
+      }
+    },
+    {
+      "type": "execute_recipe",
+      "config": {
+        "recipe_path": "recipes/blueprint_generator_v3/recipes/evaluate_candidate_spec.json",
+        "context_overrides": {
+          "candidate_spec_path": "{{ output_dir }}/clarification/{{ component_id }}_candidate_spec_revised.md",
+          "component_id": "{{ component_id }}",
+          "output_root": "{{ output_dir }}/evaluation",
+          "model": "{{ model | default: 'openai/o4-mini' }}"
+        }
+      }
+    },
+    {
+      "type": "conditional",
+      "config": {
+        "condition": "file_exists('{{ output_dir }}/evaluation/{{ component_id }}_needs_clarification.md')",
+        "if_true": {
+          "steps": [
+            {
+              "type": "execute_recipe",
+              "config": {
+                "recipe_path": "recipes/blueprint_generator_v3/recipes/prepare_human_review.json",
+                "context_overrides": {
+                  "component_id": "{{ component_id }}",
+                  "original_spec_path": "{{ spec_path }}",
+                  "revised_spec_path": "{{ output_dir }}/clarification/{{ component_id }}_candidate_spec_revised.md",
+                  "evaluation_path": "{{ output_dir }}/evaluation/{{ component_id }}_needs_clarification.md",
+                  "questions_path": "{{ output_dir }}/clarification/{{ component_id }}_component_clarification_questions.md",
+                  "output_dir": "{{ output_dir }}/human_review"
+                }
+              }
+            },
+            {
+              "type": "llm_generate",
+              "config": {
+                "prompt": "Generate a result object indicating the component needs review:\n\nComponent ID: {{ component_id }}\nOriginal spec: {{ spec_path }}\nRevised spec: {{ output_dir }}/clarification/{{ component_id }}_candidate_spec_revised.md\nEvaluation: {{ output_dir }}/evaluation/{{ component_id }}_needs_clarification.md\nQuestions: {{ output_dir }}/clarification/{{ component_id }}_component_clarification_questions.md",
+                "model": "{{ model | default: 'openai/o4-mini' }}",
+                "output_format": "text",
+                "output_key": "component_result"
+              }
+            }
+          ]
+        },
+        "if_false": {
+          "steps": [
+            {
+              "type": "llm_generate",
+              "config": {
+                "prompt": "Generate a result object indicating the component passed evaluation:\n\nComponent ID: {{ component_id }}\nOriginal spec: {{ spec_path }}\nRevised spec: {{ output_dir }}/clarification/{{ component_id }}_candidate_spec_revised.md\nEvaluation: {{ output_dir }}/evaluation/{{ component_id }}_evaluation_summary.md\nQuestions: {{ output_dir }}/clarification/{{ component_id }}_component_clarification_questions.md",
+                "model": "{{ model | default: 'openai/o4-mini' }}",
+                "output_format": "text",
+                "output_key": "component_result"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

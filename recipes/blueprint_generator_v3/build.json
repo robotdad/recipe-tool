@@ -1,0 +1,112 @@
+{
+  "steps": [
+    {
+      "type": "read_files",
+      "config": {
+        "path": "{{ project_spec }}",
+        "content_key": "project_spec_content"
+      }
+    },
+    {
+      "type": "read_files",
+      "config": {
+        "path": "ai_context/COMPONENT_DOCS_SPEC_GUIDE.md",
+        "content_key": "component_docs_spec_guide"
+      }
+    },
+    {
+      "type": "read_files",
+      "config": {
+        "path": "ai_context/IMPLEMENTATION_PHILOSOPHY.md",
+        "content_key": "implementation_philosophy"
+      }
+    },
+    {
+      "type": "read_files",
+      "config": {
+        "path": "ai_context/MODULAR_DESIGN_PHILOSOPHY.md",
+        "content_key": "modular_design_philosophy"
+      }
+    },
+    {
+      "type": "conditional",
+      "config": {
+        "condition": "{% if process_review %}true{% else %}false{% endif %}",
+        "if_true": {
+          "steps": [
+            {
+              "type": "execute_recipe",
+              "config": {
+                "recipe_path": "recipes/blueprint_generator_v3/recipes/process_human_review.json",
+                "context_overrides": {
+                  "component_id": "{{ process_review }}",
+                  "updated_spec_path": "{{ review_path }}"
+                }
+              }
+            }
+          ]
+        },
+        "if_false": {
+          "steps": [
+            {
+              "type": "execute_recipe",
+              "config": {
+                "recipe_path": "recipes/blueprint_generator_v3/recipes/analyze_project_flow.json"
+              }
+            },
+            {
+              "type": "conditional",
+              "config": {
+                "condition": "{{ analysis_result.needs_splitting }}",
+                "if_true": {
+                  "steps": [
+                    {
+                      "type": "execute_recipe",
+                      "config": {
+                        "recipe_path": "recipes/blueprint_generator_v3/recipes/split_project_recursively.json"
+                      }
+                    },
+                    {
+                      "type": "conditional",
+                      "config": {
+                        "condition": "{% if skip_processing %}false{% else %}true{% endif %}",
+                        "if_true": {
+                          "steps": [
+                            {
+                              "type": "read_files",
+                              "config": {
+                                "path": "{{ output_dir }}/components/components_manifest.json",
+                                "content_key": "components_json",
+                                "optional": false
+                              }
+                            },
+                            {
+                              "type": "execute_recipe",
+                              "config": {
+                                "recipe_path": "recipes/blueprint_generator_v3/recipes/process_components.json"
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                },
+                "if_false": {
+                  "steps": [
+                    {
+                      "type": "execute_recipe",
+                      "config": {
+                        "recipe_path": "recipes/blueprint_generator_v3/recipes/process_single_component.json"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,67 @@
+{
+  "steps": [
+    {
+      "type": "read_files",
+      "config": {
+        "path": "{{ updated_spec_path }}",
+        "content_key": "updated_spec_content",
+        "optional": false
+      }
+    },
+    {
+      "type": "write_files",
+      "config": {
+        "files": [
+          {
+            "path": "{{ output_dir }}/clarification/{{ component_id }}_candidate_spec_revised.md",
+            "content": "{{ updated_spec_content }}"
+          }
+        ]
+      }
+    },
+    {
+      "type": "execute_recipe",
+      "config": {
+        "recipe_path": "recipes/blueprint_generator_v3/recipes/evaluate_candidate_spec.json",
+        "context_overrides": {
+          "candidate_spec_path": "{{ output_dir }}/clarification/{{ component_id }}_candidate_spec_revised.md",
+          "component_id": "{{ component_id }}",
+          "output_root": "{{ output_dir }}/evaluation",
+          "model": "{{ model | default: 'openai/o4-mini' }}"
+        }
+      }
+    },
+    {
+      "type": "conditional",
+      "config": {
+        "condition": "file_exists('{{ output_dir }}/evaluation/{{ component_id }}_needs_clarification.md')",
+        "if_true": {
+          "steps": [
+            {
+              "type": "llm_generate",
+              "config": {
+                "prompt": "Generate a result indicating the component still needs review after processing feedback:\n\nComponent ID: {{ component_id }}\nUpdated spec: {{ updated_spec_path }}\nEvaluation: {{ output_dir }}/evaluation/{{ component_id }}_needs_clarification.md",
+                "model": "{{ model | default: 'openai/o4-mini' }}",
+                "output_format": "text",
+                "output_key": "feedback_result"
+              }
+            }
+          ]
+        },
+        "if_false": {
+          "steps": [
+            {
+              "type": "llm_generate",
+              "config": {
+                "prompt": "Generate a result indicating the component is now ready after processing feedback:\n\nComponent ID: {{ component_id }}\nUpdated spec: {{ updated_spec_path }}\nEvaluation: {{ output_dir }}/evaluation/{{ component_id }}_evaluation_summary.md",
+                "model": "{{ model | default: 'openai/o4-mini' }}",
+                "output_format": "text",
+                "output_key": "feedback_result"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

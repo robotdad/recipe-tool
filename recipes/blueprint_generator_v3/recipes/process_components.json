@@ -1,0 +1,88 @@
+{
+  "steps": [
+    {
+      "type": "read_files",
+      "config": {
+        "path": "{{ output_dir }}/components/components_manifest.json",
+        "content_key": "components",
+        "optional": false
+      }
+    },
+    {
+      "type": "conditional",
+      "config": {
+        "condition": "file_exists('{{ output_dir }}/evaluation')",
+        "if_true": {
+          "steps": [
+            {
+              "type": "llm_generate",
+              "config": {
+                "prompt": "Extract component IDs from evaluation files in {{ output_dir }}/evaluation.\nReview the following components and determine which ones are ready for blueprint generation and which ones need human review:\n\nComponents:\n{% for component in components %}\n- ID: {{ component.component_id }}\n  Name: {{ component.component_name }}\n  Description: {{ component.description }}\n  Spec File: {{ component.spec_file }}\n{% endfor %}",
+                "model": "{{ model | default: 'openai/o4-mini' }}",
+                "output_format": "text",
+                "output_key": "evaluation_analysis"
+              }
+            },
+            {
+              "type": "conditional",
+              "config": {
+                "condition": "{% if evaluation_analysis contains 'ready' %}true{% else %}false{% endif %}",
+                "if_true": {
+                  "steps": [
+                    {
+                      "type": "execute_recipe",
+                      "config": {
+                        "recipe_path": "recipes/blueprint_generator_v3/recipes/generate_blueprints.json"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        "if_false": {
+          "steps": [
+            {
+              "type": "loop",
+              "config": {
+                "items": "components",
+                "item_key": "component",
+                "max_concurrency": 0,
+                "delay": 0.1,
+                "substeps": [
+                  {
+                    "type": "execute_recipe",
+                    "config": {
+                      "recipe_path": "recipes/blueprint_generator_v3/recipes/process_component.json",
+                      "context_overrides": {
+                        "component_id": "{{ component.component_id }}",
+                        "spec_path": "{{ output_dir }}/components/{{ component.spec_file }}"
+                      }
+                    }
+                  }
+                ],
+                "result_key": "processed_results"
+              }
+            },
+            {
+              "type": "llm_generate",
+              "config": {
+                "prompt": "Analyze processed components to determine which ones are ready for blueprint generation and which ones need human review:\n\nProcessed Results:\n{% for result in processed_results %}\n- Component ID: {{ result.component_id }}\n  Status: {{ result.status }}\n  {% if result.error %}Error: {{ result.error }}{% endif %}\n{% endfor %}",
+                "model": "{{ model | default: 'openai/o4-mini' }}",
+                "output_format": "text",
+                "output_key": "processing_summary"
+              }
+            },
+            {
+              "type": "execute_recipe",
+              "config": {
+                "recipe_path": "recipes/blueprint_generator_v3/recipes/generate_blueprints.json"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

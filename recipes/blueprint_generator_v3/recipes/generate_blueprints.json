@@ -1,0 +1,84 @@
+{
+  "steps": [
+    {
+      "type": "llm_generate",
+      "config": {
+        "prompt": "Extract components that are ready for blueprint generation.\nFilter the components with '{{ filter }}' status.\n\nComponents:\n{% for component in components %}\n- ID: {{ component.component_id }}\n  Name: {{ component.component_name }}\n  Status: {{ component.status | default: 'unknown' }}\n  Spec File: {{ component.spec_file | default: component.revised_spec | default: 'unknown' }}\n{% endfor %}",
+        "model": "{{ model }}",
+        "output_format": "text",
+        "output_key": "filtered_components"
+      }
+    },
+    {
+      "type": "llm_generate",
+      "config": {
+        "prompt": "Analyze dependencies between components:\n\nComponents: {{ filtered_components }}\n\nReturn a JSON mapping of component_id to array of dependencies.",
+        "model": "{{ model }}",
+        "output_format": "text",
+        "output_key": "dependency_graph"
+      }
+    },
+    {
+      "type": "llm_generate",
+      "config": {
+        "prompt": "Determine the optimal generation order based on dependencies:\n\nDependency graph: {{ dependency_graph }}\n\nReturn an ordered array of component_ids (dependencies should come before components that depend on them).",
+        "model": "{{ model }}",
+        "output_format": [{ "type": "string" }],
+        "output_key": "generation_order"
+      }
+    },
+    {
+      "type": "loop",
+      "config": {
+        "items": "generation_order",
+        "item_key": "component_id",
+        "max_concurrency": 0,
+        "delay": 0.1,
+        "substeps": [
+          {
+            "type": "llm_generate",
+            "config": {
+              "prompt": "Find the component specification for component ID '{{ component_id }}':\n\nComponents: {{ filtered_components }}",
+              "model": "{{ model }}",
+              "output_format": "text",
+              "output_key": "component_spec"
+            }
+          },
+          {
+            "type": "llm_generate",
+            "config": {
+              "prompt": "Generate a detailed blueprint for the component:\n\nComponent ID: {{ component_id }}\nComponent spec: {{ component_spec }}\nDependency graph: {{ dependency_graph }}\n\nInclude:\n1. Detailed implementation plan\n2. File structure\n3. API definitions\n4. Data models\n5. Implementation sequence",
+              "model": "{{ model }}",
+              "output_format": "files",
+              "output_key": "blueprint_files"
+            }
+          },
+          {
+            "type": "write_files",
+            "config": {
+              "files_key": "blueprint_files",
+              "root": "{{ output_dir }}/blueprints/{{ component_id }}"
+            }
+          }
+        ],
+        "result_key": "generated_blueprints"
+      }
+    },
+    {
+      "type": "llm_generate",
+      "config": {
+        "prompt": "Generate a summary report of the blueprint generation process:\n\nGenerated Blueprints:\n{% for blueprint in generated_blueprints %}\n- Component: {{ blueprint.component_id }}\n  Files: \n  {% for file in blueprint.files %}\n  - {{ file.path }}\n  {% endfor %}\n{% endfor %}",
+        "model": "{{ model }}",
+        "output_format": "files",
+        "output_key": "summary_report"
+      }
+    },
+    {
+      "type": "write_files",
+      "config": {
+        "files_key": "summary_report",
+        "root": "{{ output_dir }}/reports"
+      }
+    }
+  ]
+}
