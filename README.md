@@ -164,7 +164,7 @@ Example:
 recipe-tool --create recipes/recipe_creator/prompts/sample_recipe_idea.md
 
 # Test it out
-recipe-tool --execute output/analyze_codebase.json input=ai_context/generated/recipe_executor_code_files.md,ai_context/generated/recipe_executor_recipe_files.md
+recipe-tool --execute output/analyze_codebase.json input=ai_context/generated/RECIPE_EXECUTOR_CODE_FILES.md,ai_context/generated/RECIPE_EXECUTOR_RECIPE_FILES.md
 ```
 
 ## Project Structure

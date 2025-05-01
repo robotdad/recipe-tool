@@ -1,0 +1,75 @@
+{
+  "steps": [
+    {
+      "type": "read_files",
+      "config": {
+        "path": "{{ original_spec_path }}",
+        "content_key": "original_spec_content"
+      }
+    },
+    {
+      "type": "read_files",
+      "config": {
+        "path": "{{ revised_spec_path }}",
+        "content_key": "revised_spec_content"
+      }
+    },
+    {
+      "type": "read_files",
+      "config": {
+        "path": "{{ evaluation_path }}",
+        "content_key": "evaluation_content"
+      }
+    },
+    {
+      "type": "read_files",
+      "config": {
+        "path": "{{ questions_path }}",
+        "content_key": "questions_content"
+      }
+    },
+    {
+      "type": "write_files",
+      "config": {
+        "files": [
+          {
+            "path": "{{ output_dir }}/{{ component_id }}_original_spec.md",
+            "content_key": "original_spec_content"
+          },
+          {
+            "path": "{{ output_dir }}/{{ component_id }}_revised_spec.md",
+            "content_key": "revised_spec_content"
+          },
+          {
+            "path": "{{ output_dir }}/{{ component_id }}_evaluation.md",
+            "content_key": "evaluation_content"
+          },
+          {
+            "path": "{{ output_dir }}/{{ component_id }}_questions.md",
+            "content_key": "questions_content"
+          }
+        ]
+      }
+    },
+    {
+      "type": "llm_generate",
+      "config": {
+        "prompt": "Generate a review summary for the component:\n\nComponent ID: {{ component_id }}\n\nOriginal Specification:\n\n<ORIGINAL_SPEC>\n{{ original_spec_content }}\n</ORIGINAL_SPEC>\n\nRevised Specification:\n\n<REVISED_SPEC>\n{{ revised_spec_content }}\n</REVISED_SPEC>\n\nClarification Questions:\n\n<QUESTIONS>\n{{ questions_content }}\n</QUESTIONS>\n\nEvaluation Results:\n\n<EVALUATION>\n{{ evaluation_content }}\n</EVALUATION>\n\nCreate a markdown summary with instructions for review.",
+        "model": "{{ model | default: 'openai/o4-mini' }}",
+        "output_format": "text",
+        "output_key": "review_summary"
+      }
+    },
+    {
+      "type": "write_files",
+      "config": {
+        "files": [
+          {
+            "path": "{{ output_dir }}/{{ component_id }}_review_summary.md",
+            "content_key": "review_summary"
+          }
+        ]
+      }
+    }
+  ]
+}

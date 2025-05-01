@@ -1,6 +1,12 @@
-# AI Context Files
-Date: 4/27/2025, 9:41:58 AM
-Files: 51
+# recipes/recipe_executor
+
+[collect-files]
+
+**Search:** ['recipes/recipe_executor']
+**Exclude:** ['.venv', 'node_modules', '.git', '__pycache__', '*.pyc', '*.ruff_cache']
+**Include:** []
+**Date:** 4/30/2025, 4:04:18 PM
+**Files:** 51
 
 === File: recipes/recipe_executor/README.md ===
 # Recipe Executor Recipes
@@ -642,7 +648,7 @@ def get_azure_openai_model(
 
     Args:
         logger (logging.Logger): Logger for logging messages.
-        model_name (str): Model name, such as "gpt-4o" or "o3-mini".
+        model_name (str): Model name, such as "gpt-4o" or "o4-mini".
         deployment_name (Optional[str]): Deployment name for Azure OpenAI, defaults to model_name.
 
     Returns:
@@ -658,7 +664,7 @@ Usage example:
 ```python
 # Get an OpenAI model using Azure OpenAI
 openai_model = get_azure_openai_model(
-    model_name="o3-mini",
+    model_name="o4-mini",
     logger=logger
 )
 ```
@@ -667,7 +673,7 @@ openai_model = get_azure_openai_model(
 
 ```python
 openai_model = get_azure_openai_model(
-    model_name="o3-mini",
+    model_name="o4-mini",
     deployment_name="my_deployment_name",
     logger=logger
 )
@@ -813,6 +819,7 @@ class LLM:
             self,
             logger: logging.Logger,
             model: str = "openai/gpt-4o",
+            max_tokens: Optional[int] = None,
             mcp_servers: Optional[List[MCPServer]] = None,
         ):
         """
@@ -820,16 +827,14 @@ class LLM:
         Args:
             logger (logging.Logger): Logger for logging messages.
             model (str): Model identifier in the format 'provider/model_name' (or 'provider/model_name/deployment_name').
-                Default is "openai/gpt-4o".
+            max_tokens (int): Maximum number of tokens for the LLM response.
             mcp_servers Optional[List[MCPServer]]: List of MCP servers for access to tools.
         """
-        self.model = model
-        self.logger = logger
-        self.mcp_servers = mcp_servers
 
     async def generate(
         prompt: str,
         model: Optional[str] = None,
+        max_tokens: Optional[int] = None,
         output_type: Type[Union[str, BaseModel]] = str,
         mcp_servers: Optional[List[MCPServer]] = None
     ) -> Union[str, BaseModel]:
@@ -839,6 +844,8 @@ class LLM:
         Args:
             prompt (str): The prompt string to be sent to the LLM.
             model (Optional[str]): The model identifier in the format 'provider/model_name' (or 'provider/model_name/deployment_name').
+                If not provided, the default set during initialization will be used.
+            max_tokens (Optional[int]): Maximum number of tokens for the LLM response.
                 If not provided, the default set during initialization will be used.
             output_type (Type[Union[str, BaseModel]]): The requested type for the LLM output.
                 - str: Plain text output (default).
@@ -861,7 +868,7 @@ class LLM:
 
 Usage example:
 
-````python
+```python
 from recipe_executor.llm_utils.mcp import get_mcp_server
 
 llm = LLM(logger=logger)
@@ -883,7 +890,7 @@ result = await llm.generate("What is the weather in Redmond, WA today?")
 # Call with specific model
 result = await llm.generate(
     prompt="What is the capital of France?",
-    model="openai/o3-mini"
+    model="openai/o4-mini"
 )
 
 # Call with JSON schema validation
@@ -894,16 +901,18 @@ class UserProfile(BaseModel):
 
 result = await llm.generate(
     prompt="Extract the user profile from the following text: {{text}}",
-    model="openai/o3-mini",
+    model="openai/o4-mini",
+    max_tokens=100,
     output_type=UserProfile
 )
+```
 
 ## Model ID Format
 
 The component uses a standardized model identifier format:
 
 All models: `provider/model_name`
-Example: `openai/o3-mini`
+Example: `openai/o4-mini`
 
 Azure OpenAI models with custom deployment name: `azure/model_name/deployment_name`
 Example: `azure/gpt-4o/my_deployment_name`
@@ -911,8 +920,8 @@ If no deployment name is provided, the model name is used as the deployment name
 
 ### Supported providers:
 
-- **openai**: OpenAI models (e.g., `gpt-4o`, `o3-mini`)
-- **azure**: Azure OpenAI models (e.g., `gpt-4o`, `o3-mini`)
+- **openai**: OpenAI models (e.g., `gpt-4o`, `o3`, `o4-mini`, etc.)
+- **azure**: Azure OpenAI models (e.g., `gpt-4o`, `o3`, `o4-mini`, etc.)
 - **azure**: Azure OpenAI models with custom deployment name (e.g., `gpt-4o/my_deployment_name`)
 - **anthropic**: Anthropic models (e.g., `claude-3-7-sonnet-latest`)
 - **ollama**: Ollama models (e.g., `phi4`, `llama3.2`, `qwen2.5-coder:14b`)
@@ -931,11 +940,10 @@ except ValueError as e:
 except Exception as e:
     # Handle other errors (network, API, etc.)
     print(f"LLM call failed: {e}")
-````
+```
 
 ## Important Notes
 
-- OpenAI is the default provider if none is specified
 - The component logs full request details at debug level
 
 
@@ -1045,8 +1053,8 @@ Usage example:
 
 ```python
 # Get an OpenAI model
-openai_model = get_model("openai/o3-mini")
-# Uses OpenAIModel('o3-mini')
+openai_model = get_model("openai/o4-mini")
+# Uses OpenAIModel('o4-mini')
 
 # Get an Anthropic model
 anthropic_model = get_model("anthropic/claude-3-7-sonnet-latest")
@@ -1618,7 +1626,7 @@ recipe = Recipe(
             type="llm_generate",
             config={
                 "prompt": "Generate code for: {{spec}}",
-                "model": "{{model|default:'openai/o3-mini'}}",
+                "model": "{{model|default:'openai/o4-mini'}}",
                 "output_format": "files",
                 "output_key": "code_result"
             }
@@ -2038,10 +2046,11 @@ class ConditionalConfig(StepConfig):
 
     Fields:
         condition: Expression string to evaluate against the context.
+          - Will attempt to coerce to a boolean value.
         if_true: Optional steps to execute when the condition evaluates to true.
         if_false: Optional steps to execute when the condition evaluates to false.
     """
-    condition: str
+    condition: Any
     if_true: Optional[Dict[str, Any]] = None
     if_false: Optional[Dict[str, Any]] = None
 ```
@@ -2240,6 +2249,7 @@ The Conditional step enables branching execution paths in recipes based on evalu
 ## Core Requirements
 
 - Evaluate conditional expressions against the current context state
+  - Attempt to coerce the expression to a boolean value
 - Support multiple condition types including:
   - Context value checks
   - File existence checks
@@ -2251,6 +2261,7 @@ The Conditional step enables branching execution paths in recipes based on evalu
 ## Implementation Considerations
 
 - If expression is already a boolean or a string that can be evaluated to a boolean, use it directly as it may have been rendered by the template engine
+- Do not send non-string values to the template engine
 - Include conversion of "true" and "false" strings to boolean values in any safe globals list
 - Keep expression evaluation lightweight and focused on common needs
 - Allow for direct access to context values via expression syntax
@@ -2313,7 +2324,7 @@ class ExecuteRecipeConfig(StepConfig):
     """
 
     recipe_path: str
-    context_overrides: Dict[str, str] = {}
+    context_overrides: Dict[str, Any] = {}
 ```
 
 ## Step Registration
@@ -2357,6 +2368,9 @@ You can override specific context values for the sub-recipe execution:
         "recipe_path": "recipes/generate_component.json",
         "context_overrides": {
           "component_name": "Utils",
+          "is_component": true,
+          "revision_count": 1,
+          "sub_components": ["utils"],
           "output_dir": "output/components/utils"
         }
       }
@@ -2498,6 +2512,9 @@ The ExecuteRecipeStep component enables recipes to execute other recipes as sub-
 - Use the same executor instance for sub-recipe execution
 - Apply context overrides before sub-recipe execution
 - Use template rendering for all dynamic values
+- When processing context overrides
+  - Process all **string** values (including those within lists or dictionaries) using the template engine
+  - All non-string values in context overrides should be passed as-is
 - Keep the implementation simple and focused on a single responsibility
 - Log detailed information about sub-recipe execution
 
@@ -2561,6 +2578,7 @@ class LLMGenerateConfig(StepConfig):
     Fields:
         prompt: The prompt to send to the LLM (templated beforehand).
         model: The model identifier to use (provider/model_name format).
+        max_tokens: The maximum number of tokens for the LLM response.
         mcp_servers: List of MCP servers for access to tools.
         output_format: The format of the LLM output (text, files, or JSON).
             - text: Plain text output.
@@ -2572,6 +2590,7 @@ class LLMGenerateConfig(StepConfig):
 
     prompt: str
     model: str = "openai/gpt-4o"
+    max_tokens: Optional[Union[str, int]] = None
     mcp_servers: Optional[List[Dict[str, Any]]] = None
     output_format: "text" | "files" | Dict[str, Any]
     output_key: str = "llm_output"
@@ -2588,7 +2607,7 @@ The LLMGenerateStep can be used in recipes via the `llm_generate` step type:
       "type": "llm_generate",
       "config": {
         "prompt": "What is the weather in Redmond, WA today?",
-        "model": "openai/o3-mini",
+        "model": "openai/o4-mini",
         "mcp_servers": [
           {
             "url": "http://localhost:3001/sse"
@@ -2620,7 +2639,7 @@ The prompt can include template variables from the context:
       "type": "llm_generate",
       "config": {
         "prompt": "Based on the following specification, generate python code for a component:\n\n{{component_spec_content}}",
-        "model": "{{model|default:'openai/o3-mini'}}",
+        "model": "{{model|default:'openai/o4-mini'}}",
         "output_format": "files",
         "output_key": "component_code_files"
       }
@@ -2648,7 +2667,7 @@ The output key can be templated to create dynamic storage locations:
       "type": "llm_generate",
       "config": {
         "prompt": "Generate a JSON object with user details.",
-        "model": "{{model|default:'openai/o3-mini'}}",
+        "model": "{{model|default:'openai/o4-mini'}}",
         "output_format": {
           "type": "object",
           "properties": {
@@ -2743,7 +2762,8 @@ Request:
   "type": "llm_generate",
   "config": {
     "prompt": "What is the capital of France?",
-    "model": "openai/o3-mini",
+    "model": "openai/gpt-4o",
+    "max_tokens": 100,
     "output_format": "text",
     "output_key": "capital_result"
   }
@@ -2767,7 +2787,7 @@ Request:
   "type": "llm_generate",
   "config": {
     "prompt": "Generate Python files for a simple calculator.",
-    "model": "openai/o3-mini",
+    "model": "openai/o4-mini",
     "output_format": "files",
     "output_key": "calculator_files"
   }
@@ -2800,7 +2820,7 @@ Request:
   "type": "llm_generate",
   "config": {
     "prompt": "Generate a JSON object with user details.",
-    "model": "openai/o3-mini",
+    "model": "openai/o4-mini",
     "output_format": {
       "type": "object",
       "properties": {
@@ -2845,7 +2865,7 @@ Request:
   "type": "llm_generate",
   "config": {
     "prompt": "Extract the list of users from this document: {{document_content}}.",
-    "model": "openai/o3-mini",
+    "model": "openai/o4-mini",
     "output_format": [
       {
         "type": "object",
@@ -2904,6 +2924,8 @@ The LLMGenerateStep component enables recipes to generate content using large la
 
 - Use `render_template` for templating prompts, model identifiers, mcp server configs, and output key
 - Convert any MCP Server configurations to `MCPServer` instances (via `get_mcp_server`) to pass as `mcp_servers` to the LLM component
+- Accept a string for `max_tokens` and convert it to an integer to pass to the LLM component
+- In order to support dyanmic output keys, set the result type to `Any` prior to determining the output format and then set the output key immediately after the LLM call
 - If `output_format` is an object (JSON schema) or list:
   - Use `json_object_to_pydantic_model` to create a dynamic Pydantic model from the JSON schema
   - Pass the dynamic model to the LLM call as the `output_type` parameter
@@ -4217,6 +4239,8 @@ Either `files_key` or `files` is required in the configuration. If both are prov
 
 The `files_key` is the context key where the generated files are stored. The `files` parameter can be used to directly provide a list of dictionaries with `path` and `content` keys. Alternatively, the path and content can be specfied using `path_key` and `content_key` respectively to reference values in the context.
 
+Content (regardless of the input format or which context path the data comes in) is automatically detected and serialized to proper JSON with indentation if it is a Python dictionary or list. This ensures that the content is written in a readable format.
+
 The WriteFilesStep can be used in recipes like this:
 
 Files Key Example:
@@ -4228,7 +4252,7 @@ Files Key Example:
       "type": "llm_generate",
       "config": {
         "prompt": "Generate a Python script that prints 'Hello, world!'",
-        "model": "openai/o3-mini",
+        "model": "openai/o4-mini",
         "output_format": "files",
         "output_key": "generated_files"
       }
@@ -4311,7 +4335,7 @@ When the content to be written is a Python dictionary or list, WriteFilesStep au
       "type": "llm_generate",
       "config": {
         "prompt": "Generate configuration data for a project.",
-        "model": "openai/o3-mini",
+        "model": "openai/o4-mini",
         "output_format": {
           "type": "object",
           "properties": {
@@ -4464,7 +4488,7 @@ The WriteFilesStep component writes generated files to disk based on content fro
 - Use template rendering for dynamic path resolution
 - Create parent directories automatically if they do not exist
 - Apply template rendering to content prior to detecting its type, in case the content is a string that needs to be serialized
-- Automatically detect when content is a Python dictionary or list and serialize it to proper JSON with indentation
+- Regardless of which context path the data comes in, automatically detect when content is a Python dictionary or list and serialize it to proper JSON with indentation
 - When serializing to JSON, use `json.dumps(content, ensure_ascii=False, indent=2)` for consistent, readable formatting
 - Handle serialization errors with clear messages
 - Keep the implementation simple and focused on a single responsibility
@@ -7703,7 +7727,7 @@ None
             {
               "type": "read_files",
               "config": {
-                "path": "{{ existing_code_root }}/recipe_executor/{{ component.id | replace: '.', '/' }}/{{ component.id | split: '.' | last }}.py",
+                "path": "{{ existing_code_root | default: 'recipe_executor' }}/{{ component.id | replace: '.', '/' }}.py",
                 "content_key": "existing_code",
                 "optional": true
               }
@@ -7749,7 +7773,7 @@ None
     {
       "type": "read_files",
       "config": {
-        "path": "{% for dep in component.deps %}{{ recipe_root | default: 'recipes/recipe_executor' }}/components/{{ dep | replace: '.', '/' }}/{{ dep | split: '.' | last }}_spec.md{% unless forloop.last %},{% endunless %}{% endfor %}",
+        "path": "{% for dep in component.deps %}{{ recipe_root | default: 'recipes/recipe_executor' }}/components/{{ dep | replace: '.', '/' }}/{{ dep | split: '.' | last }}_docs.md{% unless forloop.last %},{% endunless %}{% endfor %}",
         "content_key": "dep_docs",
         "merge_mode": "dict",
         "optional": true

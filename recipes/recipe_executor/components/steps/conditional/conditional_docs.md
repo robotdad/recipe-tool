@@ -17,10 +17,11 @@ class ConditionalConfig(StepConfig):
 
     Fields:
         condition: Expression string to evaluate against the context.
+          - Will attempt to coerce to a boolean value.
         if_true: Optional steps to execute when the condition evaluates to true.
         if_false: Optional steps to execute when the condition evaluates to false.
     """
-    condition: str
+    condition: Any
     if_true: Optional[Dict[str, Any]] = None
     if_false: Optional[Dict[str, Any]] = None
 ```

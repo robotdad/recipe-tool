@@ -14,7 +14,8 @@ And will be run from the repository root.
 import argparse
 import os
 import sys
-from datetime import datetime
+import datetime
+import re
 
 OUTPUT_DIR = "ai_context/generated"
 
@@ -55,58 +56,64 @@ def ensure_directory_exists(file_path) -> None:
         print(f"Created directory: {directory}")
 
 
+def strip_date_line(text: str) -> str:
+    """Remove any '**Date:** …' line so we can compare content ignoring timestamps."""
+    # Remove the entire line that begins with **Date:**
+    return re.sub(r'^\*\*Date:\*\*.*\n?', '', text, flags=re.MULTILINE)
+
+
 def build_context_files(force=False) -> None:
     # Define the tasks to run
     tasks = [
         # Collect files from recipe_executor
         {
             "patterns": ["recipe_executor"],
-            "output": f"{OUTPUT_DIR}/recipe_executor_code_files.md",
+            "output": f"{OUTPUT_DIR}/RECIPE_EXECUTOR_CODE_FILES.md",
             "exclude": collect_files.DEFAULT_EXCLUDE,
             "include": ["README.md", "pyproject.toml", ".env.example"],
         },
         # Collect files from recipes/recipe_executor
         {
             "patterns": ["recipes/recipe_executor"],
-            "output": f"{OUTPUT_DIR}/recipe_executor_recipe_files.md",
+            "output": f"{OUTPUT_DIR}/RECIPE_EXECUTOR_RECIPE_FILES.md",
             "exclude": collect_files.DEFAULT_EXCLUDE,
             "include": [],
         },
         # Collect files from recipes/recipe_creator
         {
             "patterns": ["recipes/recipe_creator"],
-            "output": f"{OUTPUT_DIR}/recipe_creator_recipe_files.md",
+            "output": f"{OUTPUT_DIR}/RECIPE_CREATOR_RECIPE_FILES.md",
             "exclude": collect_files.DEFAULT_EXCLUDE,
             "include": [],
         },
         # Collect files from recipes/utilities
         {
             "patterns": ["recipes/utilities"],
-            "output": f"{OUTPUT_DIR}/utilities_recipe_files.md",
+            "output": f"{OUTPUT_DIR}/UTILITIES_RECIPE_FILES.md",
             "exclude": collect_files.DEFAULT_EXCLUDE,
             "include": [],
         },
         # Collect files from mcp-servers/python-code-tools
         {
             "patterns": ["mcp-servers/python-code-tools"],
-            "output": f"{OUTPUT_DIR}/python_code_tools_files.md",
+            "output": f"{OUTPUT_DIR}/PYTHON_CODE_TOOLS_FILES.md",
             "exclude": collect_files.DEFAULT_EXCLUDE,
             "include": [],
         },
         # Collect files from recipes/examples_*
         {
             "patterns": ["recipes/example_*"],
-            "output": f"{OUTPUT_DIR}/recipe_examples_files.md",
+            "output": f"{OUTPUT_DIR}/RECIPE_EXAMPLES_FILES.md",
             "exclude": collect_files.DEFAULT_EXCLUDE,
             "include": [],
         },
-        # Collect files from recipes/blueprint_generator
+        # Collect files from recipes/blueprint_generator_v3
         {
-            "patterns": ["recipes/blueprint_generator"],
-            "output": f"{OUTPUT_DIR}/blueprint_generator_files.md",
+            "patterns": ["recipes/blueprint_generator_v3"],
+            "output": f"{OUTPUT_DIR}/BLUEPRINT_GENERATOR_V3_FILES.md",
             "exclude": collect_files.DEFAULT_EXCLUDE,
             "include": [],
-        },
+        }
     ]
 
     # Execute each task
@@ -128,10 +135,20 @@ def build_context_files(force=False) -> None:
         print(f"Found {len(files)} files.")
 
         # Build header
-        now = datetime.now()
-        hour12 = now.hour % 12 or 12
-        date_str = f"{now.month}/{now.day}/{now.year}, {hour12}:{now.minute:02d}:{now.second:02d} {'AM' if now.hour < 12 else 'PM'}"
-        header = f"# AI Context Files\nDate: {date_str}\nFiles: {len(files)}\n\n"
+        now = datetime.datetime.now()
+        date_str = now.strftime('%-m/%-d/%Y, %-I:%M:%S %p')
+        header_lines = [
+            f"# {' | '.join(patterns)}",
+            "",
+            "[collect-files]",
+            "",
+            f"**Search:** {patterns}",
+            f"**Exclude:** {exclude}",
+            f"**Include:** {include}",
+            f"**Date:** {date_str}",
+            f"**Files:** {len(files)}\n\n",
+        ]
+        header = "\n".join(header_lines)
 
         # Build content body
         content_body = ""
@@ -147,15 +164,16 @@ def build_context_files(force=False) -> None:
 
         new_content = header + content_body
 
-        # Compare with existing file if not forcing
+        # If file exists and we're not forcing, compare (ignoring only the date)
         if os.path.exists(output) and not force:
             try:
                 with open(output, "r", encoding="utf-8") as f:
                     existing_content = f.read()
-                existing_body = existing_content.split("\n\n", 1)[1] if "\n\n" in existing_content else ""
-                new_body = new_content.split("\n\n", 1)[1] if "\n\n" in new_content else ""
-                if existing_body == new_body:
-                    print(f"No changes for {output}, skipping write.")
+                # Strip out date lines from both
+                existing_sanitized = strip_date_line(existing_content).strip()
+                new_sanitized = strip_date_line(new_content).strip()
+                if existing_sanitized == new_sanitized:
+                    print(f"No substantive changes in {output}, skipping write.")
                     continue
             except Exception as e:
                 print(f"Warning: unable to compare existing file {output}: {e}")
@@ -163,7 +181,7 @@ def build_context_files(force=False) -> None:
         # Write the file (new or forced update)
         with open(output, "w", encoding="utf-8") as outfile:
             outfile.write(new_content)
-        print(f"Written to {output}\n")
+        print(f"Written to {output}")
 
 
 def main():

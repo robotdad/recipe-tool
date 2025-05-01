@@ -22,7 +22,7 @@ The WriteFilesStep component writes generated files to disk based on content fro
 - Use template rendering for dynamic path resolution
 - Create parent directories automatically if they do not exist
 - Apply template rendering to content prior to detecting its type, in case the content is a string that needs to be serialized
-- Automatically detect when content is a Python dictionary or list and serialize it to proper JSON with indentation
+- Regardless of which context path the data comes in, automatically detect when content is a Python dictionary or list and serialize it to proper JSON with indentation
 - When serializing to JSON, use `json.dumps(content, ensure_ascii=False, indent=2)` for consistent, readable formatting
 - Handle serialization errors with clear messages
 - Keep the implementation simple and focused on a single responsibility

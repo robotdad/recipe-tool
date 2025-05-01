@@ -26,7 +26,8 @@
             "path": "System_Blueprint.md",
             "content": "{{blueprint_doc}}"
           }
-        ]
+        ],
+        "root": "{{ output_dir }}"
       }
     }
   ]

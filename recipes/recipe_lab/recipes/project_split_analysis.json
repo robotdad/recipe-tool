@@ -6,7 +6,7 @@
         "recipe_path": "recipes/blueprint_generator/recipes/project_split_analysis.json",
         "context_overrides": {
           "input": "recipes/recipe_lab/docs/project_idea.md",
-          "files": "ai_context/generated/recipe_executor_code_files.md,ai_context/generated/recipe_executor_recipe_files.md",
+          "files": "ai_context/generated/RECIPE_EXECUTOR_CODE_FILES.md,ai_context/generated/RECIPE_EXECUTOR_RECIPE_FILES.md",
           "output_root": "recipes/recipe_lab",
           "model": "{{model|default:'openai/gpt-4.1'}}"
         }

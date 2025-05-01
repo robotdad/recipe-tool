@@ -29,7 +29,8 @@
                           "path": "summaries/context_{{doc_name}}_summary.md",
                           "content": "{{doc_summary}}"
                         }
-                      ]
+                      ],
+                      "root": "{{ output_dir }}"
                     }
                   }
                 ]

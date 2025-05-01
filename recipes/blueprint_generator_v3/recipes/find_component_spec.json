@@ -1,0 +1,96 @@
+{
+  "steps": [
+    {
+      "type": "conditional",
+      "config": {
+        "condition": "{% if component_status_obj and component_status_obj.current_spec_path %}true{% else %}false{% endif %}",
+        "if_true": {
+          "steps": [
+            {
+              "type": "read_files",
+              "config": {
+                "path": "{{ component_status_obj.current_spec_path }}",
+                "content_key": "component_spec_content"
+              }
+            }
+          ]
+        },
+        "if_false": {
+          "steps": [
+            {
+              "type": "conditional",
+              "config": {
+                "condition": "file_exists('{{ output_dir }}/clarification/{{ component_info_obj.component_id }}_candidate_spec_revised.md')",
+                "if_true": {
+                  "steps": [
+                    {
+                      "type": "read_files",
+                      "config": {
+                        "path": "{{ output_dir }}/clarification/{{ component_info_obj.component_id }}_candidate_spec_revised.md",
+                        "content_key": "component_spec_content"
+                      }
+                    }
+                  ]
+                },
+                "if_false": {
+                  "steps": [
+                    {
+                      "type": "conditional",
+                      "config": {
+                        "condition": "file_exists('{{ output_dir }}/components/{{ component_info_obj.spec_file }}')",
+                        "if_true": {
+                          "steps": [
+                            {
+                              "type": "read_files",
+                              "config": {
+                                "path": "{{ output_dir }}/components/{{ component_info_obj.spec_file }}",
+                                "content_key": "component_spec_content"
+                              }
+                            }
+                          ]
+                        },
+                        "if_false": {
+                          "steps": [
+                            {
+                              "type": "conditional",
+                              "config": {
+                                "condition": "file_exists('{{ output_dir }}/clarification/{{ component_info_obj.component_id }}_candidate_spec_revised.md')",
+                                "if_true": {
+                                  "steps": [
+                                    {
+                                      "type": "read_files",
+                                      "config": {
+                                        "path": "{{ output_dir }}/clarification/{{ component_info_obj.component_id }}_candidate_spec_revised.md",
+                                        "content_key": "component_spec_content"
+                                      }
+                                    }
+                                  ]
+                                },
+                                "if_false": {
+                                  "steps": [
+                                    {
+                                      "type": "read_files",
+                                      "config": {
+                                        "path": "{{ output_dir }}/components/{{ component_info_obj.spec_file }}",
+                                        "content_key": "component_spec_content",
+                                        "optional": true
+                                      }
+                                    }
+                                  ]
+                                }
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

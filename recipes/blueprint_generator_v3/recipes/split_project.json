@@ -1,0 +1,44 @@
+{
+  "steps": [
+    {
+      "type": "read_files",
+      "config": {
+        "path": "{{ output_dir }}/analysis/analysis_result.json",
+        "content_key": "analysis_result_json",
+        "merge_mode": "dict"
+      }
+    },
+    {
+      "type": "llm_generate",
+      "config": {
+        "prompt": "# Project Splitting Task\n\nYou are an expert software architect tasked with splitting a project or component into multiple sub-components based on a previous analysis.\n\n## Project Specification (overrides context files or reference docs where discrepancies)\n\n<PROJECT_SPEC>\n{{ project_spec_content }}\n</PROJECT_SPEC>{% if component_spec_content %}\n\n## Component Specification (focus analysis on this sub-component, knowing each other sub-component from the project spec is being analyzed separately - project spec is provided for context)\n\n<COMPONENT_SPEC>\n{{ component_spec_content }}\n</COMPONENT_SPEC>{% endif %}\n\n## Analysis Result\n\n<ANALYSIS_RESULT>\n{{ analysis_result_json }}\n</ANALYSIS_RESULT>\n\n## Guidance Philosophy (how to make decisions)\n\n<IMPLEMENTATION_PHILOSOPHY>\n{{ implementation_philosophy }}\n</IMPLEMENTATION_PHILOSOPHY>\n\n<MODULAR_DESIGN_PHILOSOPHY>\n{{ modular_design_philosophy }}\n</MODULAR_DESIGN_PHILOSOPHY>{% if context_files_content %}\n\n## Context Files\n\n<CONTEXT_FILES>\n{{ context_files_content }}\n</CONTEXT_FILES>{% endif %}{% if reference_docs_content %}\n\n## Reference Docs\n\n<REFERENCE_DOCS>\n{{ reference_docs_content }}\n</REFERENCE_DOCS>{% endif %}\n\n## Your Task\n\nCreate detailed component specifications for each component identified in the analysis result. For each component, create a complete specification that includes:\n\n1. Component name and ID (from the analysis)\n2. Purpose and responsibility\n3. Core requirements and functionality\n4. API and interfaces\n5. Dependencies (both internal and external)\n6. Implementation considerations\n7. Error handling approach\n8. Testing strategy\n\nEach component specification should be comprehensive enough that it could be implemented independently by a developer who has only this specification and the identified dependencies.\n\n## Output Format\n\nCreate a separate markdown file for each component with the exact naming pattern `<component_id>_spec.md` (ex: 'service_spec.md').",
+        "model": "{{ model }}",
+        "output_format": "files",
+        "output_key": "component_specs"
+      }
+    },
+    {
+      "type": "write_files",
+      "config": {
+        "files_key": "component_specs",
+        "root": "{{ output_root }}"
+      }
+    },
+    {
+      "type": "llm_generate",
+      "config": {
+        "prompt": "# Components Manifest Creation\n\nYou are an expert software architect tasked with creating a manifest file that lists all generated components from the project split. The manifest should include for each component:\n\n<COMPONENT_SPECS>\n{{ component_specs }}\n</COMPONENT_SPECS>\n\n## Output Format\n\nFormat the manifest as a JSON array of objects:\n\n```json\n[\n  {\n    \"component_id\": \"component_identifier\",\n    \"component_name\": \"Human Readable Component Name\",\n    \"spec_file\": \"component_identifier_spec.md\",\n    \"description\": \"Brief description of this component\",\n    \"dependencies\": [\"dependency_1\", \"dependency_2\"]\n  }\n]\n```\n\nThe output file must be named `components_manifest.json` (with no directories or paths).",
+        "model": "{{ model }}",
+        "output_format": "files",
+        "output_key": "components_manifest"
+      }
+    },
+    {
+      "type": "write_files",
+      "config": {
+        "files_key": "components_manifest",
+        "root": "{{ output_root }}"
+      }
+    }
+  ]
+}

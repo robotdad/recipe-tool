@@ -46,6 +46,7 @@
   },
   // For use with optional extension: "streetsidesoftware.code-spell-checker"
   "cSpell.ignorePaths": [
+    ".devcontainer",
     ".git",
     ".gitignore",
     ".vscode",
@@ -71,9 +72,11 @@
     "levelname",
     "levelno",
     "msecs",
+    "oaicite",
     "ollama",
     "PYDANTIC",
     "setrecursionlimit",
+    "slugified",
     "stype",
     "subschema",
     "substep",

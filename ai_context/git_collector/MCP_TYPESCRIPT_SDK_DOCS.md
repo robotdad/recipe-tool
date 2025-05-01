@@ -3,7 +3,7 @@
 [git-collector-data]
 
 **URL:** https://github.com/modelcontextprotocol/typescript-sdk  
-**Date:** 4/23/2025, 3:05:03 PM  
+**Date:** 4/29/2025, 5:23:37 PM  
 **Files:** 1  
 
 === File: README.md ===
@@ -330,13 +330,13 @@ app.post('/mcp', async (req: Request, res: Response) => {
     const transport: StreamableHTTPServerTransport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined,
     });
-    await server.connect(transport);
-    await transport.handleRequest(req, res, req.body);
     res.on('close', () => {
       console.log('Request closed');
       transport.close();
       server.close();
     });
+    await server.connect(transport);
+    await transport.handleRequest(req, res, req.body);
   } catch (error) {
     console.error('Error handling MCP request:', error);
     if (!res.headersSent) {

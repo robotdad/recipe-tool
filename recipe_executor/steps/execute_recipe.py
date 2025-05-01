@@ -6,38 +6,63 @@ from recipe_executor.steps.base import BaseStep, StepConfig
 from recipe_executor.protocols import ContextProtocol
 from recipe_executor.utils.templates import render_template
 
+__all__ = ["ExecuteRecipeConfig", "ExecuteRecipeStep"]
+
+
+def _render_override(value: Any, context: ContextProtocol) -> Any:
+    """
+    Recursively render string values using the template engine.
+    Non-string values are returned as-is.
+    """
+    if isinstance(value, str):
+        return render_template(value, context)
+    if isinstance(value, list):  # type: ignore[type-arg]
+        return [_render_override(item, context) for item in value]
+    if isinstance(value, dict):  # type: ignore[type-arg]
+        return {key: _render_override(val, context) for key, val in value.items()}
+    return value
+
 
 class ExecuteRecipeConfig(StepConfig):
     """Config for ExecuteRecipeStep.
 
     Fields:
-        recipe_path: Path to the recipe to execute.
+        recipe_path: Path to the sub-recipe to execute (templateable).
         context_overrides: Optional values to override in the context.
     """
     recipe_path: str
-    context_overrides: Dict[str, str] = {}
+    context_overrides: Dict[str, Any] = {}
 
 
 class ExecuteRecipeStep(BaseStep[ExecuteRecipeConfig]):
     """Step to execute a sub-recipe with shared context and optional overrides."""
 
-    def __init__(self, logger: logging.Logger, config: Dict[str, Any]) -> None:
-        super().__init__(logger, ExecuteRecipeConfig(**config))
+    def __init__(
+        self,
+        logger: logging.Logger,
+        config: Dict[str, Any]
+    ) -> None:
+        # Validate and store configuration
+        validated: ExecuteRecipeConfig = ExecuteRecipeConfig.model_validate(config)
+        super().__init__(logger, validated)
 
     async def execute(self, context: ContextProtocol) -> None:
-        # Render the recipe path template
-        rendered_path: str = render_template(self.config.recipe_path, context)
+        """
+        Execute a sub-recipe located at the rendered recipe_path.
 
-        # Validate that the sub-recipe file exists
+        Applies context_overrides before execution, shares the same context,
+        and logs progress.
+        """
+        # Render and validate recipe path
+        rendered_path: str = render_template(self.config.recipe_path, context)
         if not os.path.isfile(rendered_path):
             raise FileNotFoundError(f"Sub-recipe file not found: {rendered_path}")
 
-        # Apply context overrides before execution
-        for key, template_value in self.config.context_overrides.items():
-            rendered_value: str = render_template(template_value, context)
+        # Apply context overrides with templating
+        for key, override_value in self.config.context_overrides.items():
+            rendered_value: Any = _render_override(override_value, context)
             context[key] = rendered_value
 
-        # Execute the sub-recipe
         try:
             # Import here to avoid circular dependencies
             from recipe_executor.executor import Executor
@@ -46,7 +71,10 @@ class ExecuteRecipeStep(BaseStep[ExecuteRecipeConfig]):
             executor = Executor(self.logger)
             await executor.execute(rendered_path, context)
             self.logger.info(f"Completed sub-recipe execution: {rendered_path}")
-        except Exception as e:
-            # Log and propagate with context
-            self.logger.error(f"Error executing sub-recipe '{rendered_path}': {e}")
-            raise RuntimeError(f"Failed to execute sub-recipe '{rendered_path}': {e}") from e
+        except Exception as exc:
+            self.logger.error(
+                f"Error executing sub-recipe '{rendered_path}': {exc}"
+            )
+            raise RuntimeError(
+                f"Failed to execute sub-recipe '{rendered_path}': {exc}"
+            ) from exc

@@ -1,6 +1,12 @@
-# AI Context Files
-Date: 4/27/2025, 10:26:20 AM
-Files: 25
+# recipe_executor
+
+[collect-files]
+
+**Search:** ['recipe_executor']
+**Exclude:** ['.venv', 'node_modules', '.git', '__pycache__', '*.pyc', '*.ruff_cache']
+**Include:** ['README.md', 'pyproject.toml', '.env.example']
+**Date:** 4/30/2025, 4:04:18 PM
+**Files:** 25
 
 === File: .env.example ===
 # Optional for the project
@@ -28,6 +34,8 @@ AZURE_USE_MANAGED_IDENTITY=false
 # Recipe Tool
 
 A tool for executing recipe-like natural language instructions to create complex workflows. This project includes a recipe executor and a recipe creator, both of which can be used to automate tasks and generate new recipes.
+
+**NOTE** This project is a very early, experimental project that is being explored in the open. There is no support offered and it will include frequent breaking changes. This project may be abandoned at any time. If you find it useful, it is strongly encouraged to create a fork and remain on a commit that works for your needs unless you are willing to make the necessary changes to use the latest version. This project is currently **NOT** accepting contributions and suggestions; please see the [dev_guidance.md](docs/dev_guidance.md) for more details.
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
@@ -165,7 +173,7 @@ recipe-tool --execute path/to/your/recipe.json context_key=value context_key2=va
 Example:
 
 ```bash
-recipe-tool --execute recipes/example_simple/test_recipe.json model=azure/o3-mini
+recipe-tool --execute recipes/example_simple/test_recipe.json model=azure/o4-mini
 ```
 
 ## Creating New Recipes from a Recipe Idea
@@ -189,7 +197,7 @@ Example:
 recipe-tool --create recipes/recipe_creator/prompts/sample_recipe_idea.md
 
 # Test it out
-recipe-tool --execute output/analyze_codebase.json input=ai_context/generated/recipe_executor_code_files.md,ai_context/generated/recipe_executor_recipe_files.md
+recipe-tool --execute output/analyze_codebase.json input=ai_context/generated/RECIPE_EXECUTOR_CODE_FILES.md,ai_context/generated/RECIPE_EXECUTOR_RECIPE_FILES.md
 ```
 
 ## Project Structure
@@ -503,14 +511,14 @@ class Executor(ExecutorProtocol):
 
 
 === File: recipe_executor/llm_utils/azure_openai.py ===
-import os
 import logging
+import os
 from typing import Optional
 
-from openai import AsyncAzureOpenAI
 from azure.identity import DefaultAzureCredential, ManagedIdentityCredential, get_bearer_token_provider
-from pydantic_ai.providers.openai import OpenAIProvider
+from openai import AsyncAzureOpenAI
 from pydantic_ai.models.openai import OpenAIModel
+from pydantic_ai.providers.openai import OpenAIProvider
 
 
 def _mask_secret(secret: Optional[str]) -> str:
@@ -530,20 +538,20 @@ def get_azure_openai_model(
     deployment_name: Optional[str] = None,
 ) -> OpenAIModel:
     """
-    Create a PydanticAI OpenAIModel instance for Azure OpenAI.
+    Create a PydanticAI OpenAIModel instance, configured from environment variables for Azure OpenAI.
 
     Args:
         logger (logging.Logger): Logger for logging messages.
-        model_name (str): Model name, such as "gpt-4o" or "o3-mini".
-        deployment_name (Optional[str]): Azure deployment name; defaults to model_name.
+        model_name (str): Model name, such as "gpt-4o" or "o4-mini".
+        deployment_name (Optional[str]): Azure deployment name; defaults to model_name or env var.
 
     Returns:
-        OpenAIModel: Configured PydanticAI OpenAIModel instance.
+        OpenAIModel: A PydanticAI OpenAIModel instance created from AsyncAzureOpenAI client.
 
     Raises:
-        Exception: If required environment variables are missing or client creation fails.
+        Exception: If required environment variables are missing or client/model creation fails.
     """
-    # Load configuration from environment
+    # Load configuration
     use_managed_identity = os.getenv("AZURE_USE_MANAGED_IDENTITY", "false").lower() in ("1", "true", "yes")
     azure_endpoint = os.getenv("AZURE_OPENAI_BASE_URL")
     azure_api_version = os.getenv("AZURE_OPENAI_API_VERSION", "2025-03-01-preview")
@@ -554,15 +562,15 @@ def get_azure_openai_model(
         logger.error("Environment variable AZURE_OPENAI_BASE_URL is required")
         raise Exception("Missing AZURE_OPENAI_BASE_URL")
 
-    # Determine deployment identifier
+    # Determine deployment
     deployment = deployment_name or env_deployment or model_name
 
-    # Log loaded configuration (mask secrets)
+    # Log loaded config
+    masked_key = _mask_secret(os.getenv("AZURE_OPENAI_API_KEY"))
     logger.debug(
         f"Azure OpenAI config: endpoint={azure_endpoint}, api_version={azure_api_version}, "
         f"deployment={deployment}, use_managed_identity={use_managed_identity}, "
-        f"client_id={azure_client_id or '<None>'}, "
-        f"api_key={_mask_secret(os.getenv('AZURE_OPENAI_API_KEY'))}"
+        f"client_id={azure_client_id or '<None>'}, api_key={masked_key}"
     )
 
     # Create Azure OpenAI client
@@ -574,10 +582,7 @@ def get_azure_openai_model(
             else:
                 credential = DefaultAzureCredential()
 
-            token_provider = get_bearer_token_provider(
-                credential,
-                "https://cognitiveservices.azure.com/.default"
-            )
+            token_provider = get_bearer_token_provider(credential, "https://cognitiveservices.azure.com/.default")
             azure_client = AsyncAzureOpenAI(
                 azure_ad_token_provider=token_provider,
                 azure_endpoint=azure_endpoint,
@@ -598,17 +603,17 @@ def get_azure_openai_model(
                 azure_deployment=deployment,
             )
             auth_method = "API Key"
-    except Exception as error:
-        logger.error(f"Failed to create AsyncAzureOpenAI client: {error}")
+    except Exception as err:
+        logger.error(f"Failed to create AsyncAzureOpenAI client: {err}")
         raise
 
-    # Wrap client in PydanticAI provider and model
+    # Wrap in PydanticAI provider and model
     logger.info(f"Creating Azure OpenAI model '{model_name}' with {auth_method}")
     provider = OpenAIProvider(openai_client=azure_client)
     try:
         model = OpenAIModel(model_name=model_name, provider=provider)
-    except Exception as error:
-        logger.error(f"Failed to create OpenAIModel: {error}")
+    except Exception as err:
+        logger.error(f"Failed to create OpenAIModel: {err}")
         raise
 
     return model
@@ -631,9 +636,9 @@ from recipe_executor.llm_utils.azure_openai import get_azure_openai_model
 
 __all__ = ["LLM"]
 
-# env var for default model
-DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "openai/gpt-4o")
-OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+# Default model identifier and Ollama endpoint
+DEFAULT_MODEL: str = os.getenv("DEFAULT_MODEL", "openai/gpt-4o")
+OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 
 
 def _get_model(logger: logging.Logger, model_id: Optional[str]) -> Union[OpenAIModel, AnthropicModel]:
@@ -648,8 +653,9 @@ def _get_model(logger: logging.Logger, model_id: Optional[str]) -> Union[OpenAIM
         raise ValueError(f"Invalid model identifier '{model_id}', expected 'provider/model_name'")
     provider = parts[0].lower()
     model_name = parts[1]
-    # azure may include a deployment name
+
     if provider == "azure":
+        # Azure OpenAI may include a deployment name
         deployment_name: Optional[str] = parts[2] if len(parts) == 3 else None
         try:
             return get_azure_openai_model(
@@ -660,16 +666,18 @@ def _get_model(logger: logging.Logger, model_id: Optional[str]) -> Union[OpenAIM
         except Exception:
             logger.error(f"Failed to initialize Azure OpenAI model '{model_id}'", exc_info=True)
             raise
+
     if provider == "openai":
-        # OpenAIModel will pick up OPENAI_API_KEY from env
         return OpenAIModel(model_name)
+
     if provider == "anthropic":
         return AnthropicModel(model_name)
+
     if provider == "ollama":
-        # Ollama endpoint via OpenAIProvider
         base_url = OLLAMA_BASE_URL.rstrip("/") + "/v1"
-        provider_client = OpenAIProvider(base_url=base_url)
-        return OpenAIModel(model_name, provider=provider_client)
+        client = OpenAIProvider(base_url=base_url)
+        return OpenAIModel(model_name, provider=client)
+
     raise ValueError(f"Unsupported LLM provider '{provider}' in model identifier '{model_id}'")
 
 
@@ -682,72 +690,84 @@ class LLM:
         self,
         logger: logging.Logger,
         model: str = DEFAULT_MODEL,
+        max_tokens: Optional[int] = None,
         mcp_servers: Optional[List[MCPServer]] = None,
     ):
         self.logger: logging.Logger = logger
         self.model: str = model
-        # store list or empty list
+        self.max_tokens: Optional[int] = max_tokens
         self.mcp_servers: List[MCPServer] = mcp_servers if mcp_servers is not None else []
 
     async def generate(
         self,
         prompt: str,
         model: Optional[str] = None,
+        max_tokens: Optional[int] = None,
         output_type: Type[Union[str, BaseModel]] = str,
         mcp_servers: Optional[List[MCPServer]] = None,
     ) -> Union[str, BaseModel]:
         """
         Generate an output from the LLM based on the provided prompt.
         """
-        # Determine model identifier and servers
         model_id = model or self.model
         servers = mcp_servers if mcp_servers is not None else self.mcp_servers
+        tokens_limit = max_tokens if max_tokens is not None else self.max_tokens
 
-        # Initialize model
         try:
             llm_model = _get_model(self.logger, model_id)
         except Exception:
+            # Propagate initialization errors
             raise
 
+        # Derive a human-readable model name for logging
         model_name = getattr(llm_model, "model_name", str(llm_model))
 
-        # Create agent
         agent = Agent(
             model=llm_model,
             output_type=output_type,
             mcp_servers=servers or [],
         )
-        # Logging before call
+
+        # Info-level: model invocation
         self.logger.info(f"LLM request: model={model_name}")
-        self.logger.debug(f"LLM request payload: prompt={prompt!r}, output_type={output_type}, mcp_servers={servers}")
+        # Debug-level: full request payload
+        self.logger.debug(
+            f"LLM request payload: prompt={prompt!r}, output_type={output_type},"
+            f" max_tokens={tokens_limit}, mcp_servers={servers}"
+        )
 
-        start_time = time.monotonic()
+        start = time.monotonic()
         try:
-            # open MCP sessions if any
             async with agent.run_mcp_servers():
-                result = await agent.run(prompt)
+                # Pass max_tokens if provided
+                if tokens_limit is not None:
+                    result = await agent.run(prompt, model_settings={"max_tokens": tokens_limit})
+                else:
+                    result = await agent.run(prompt)
         except Exception:
-            self.logger.error(f"LLM call failed for model {model_id}", exc_info=True)
+            self.logger.error(f"LLM call failed for model '{model_id}'", exc_info=True)
             raise
-        end_time = time.monotonic()
+        end = time.monotonic()
 
-        # Logging after call
-        duration = end_time - start_time
-        usage = None
+        duration = end - start
+        usage_info = None
         try:
             usage = result.usage()
+            usage_info = (usage.total_tokens, usage.request_tokens, usage.response_tokens)
         except Exception:
             pass
-        # debug full result
-        self.logger.debug(f"LLM result payload: {result!r}")
-        # info summary
-        if usage:
-            tokens = f"total={usage.total_tokens}, request={usage.request_tokens}, response={usage.response_tokens}"
-        else:
-            tokens = "unknown"
-        self.logger.info(f"LLM completed in {duration:.2f}s, tokens used: {tokens}")
 
-        # Return only the output
+        # Debug-level: full result payload
+        self.logger.debug(f"LLM result payload: {result!r}")
+
+        # Info-level: summary of execution
+        if usage_info:
+            total, req, resp = usage_info
+            tokens_str = f"total={total}, request={req}, response={resp}"
+        else:
+            tokens_str = "unknown"
+        self.logger.info(f"LLM completed in {duration:.2f}s, tokens used: {tokens_str}")
+
         return result.output
 
 
@@ -1335,18 +1355,16 @@ class ConditionalConfig(StepConfig):
     Configuration for ConditionalStep.
 
     Fields:
-        condition: Expression string to evaluate against the context.
-        if_true: Optional steps to execute when the condition evaluates to true.
-        if_false: Optional steps to execute when the condition evaluates to false.
+        condition: Expression or boolean to evaluate against the context.
+        if_true: Optional branch configuration when condition is true.
+        if_false: Optional branch configuration when condition is false.
     """
-
-    condition: str
+    condition: Any
     if_true: Optional[Dict[str, Any]] = None
     if_false: Optional[Dict[str, Any]] = None
 
 
 # Utility functions for condition evaluation
-
 
 def file_exists(path: Any) -> bool:
     """Check if a given path exists on the filesystem."""
@@ -1393,56 +1411,66 @@ def not_(val: Any) -> bool:
     return not bool(val)
 
 
-def evaluate_condition(expr: str, context: ContextProtocol, logger: logging.Logger) -> bool:
+def evaluate_condition(
+    expr: Any, context: ContextProtocol, logger: logging.Logger
+) -> bool:
     """
     Render and evaluate a condition expression against the context.
-    Supports file checks, comparisons, and function-like logical operations.
-    Raises ValueError on render or eval errors.
+    Supports boolean literals, file checks, comparisons, and logical operations.
+    Raises ValueError on render or evaluation errors.
     """
+    # Direct boolean
+    if isinstance(expr, bool):
+        logger.debug("Using boolean condition: %s", expr)
+        return expr
+
+    # Ensure expression is a string for rendering
+    expr_str = expr if isinstance(expr, str) else str(expr)
     try:
-        rendered = render_template(expr, context)
+        rendered = render_template(expr_str, context)
     except Exception as err:
-        raise ValueError(f"Error rendering condition '{expr}': {err}")
+        raise ValueError(f"Error rendering condition '{expr_str}': {err}")
 
-    logger.debug(f"Rendered condition '{expr}': '{rendered}'")
-    trimmed = rendered.strip()
-    lowered = trimmed.lower()
+    logger.debug("Rendered condition '%s': '%s'", expr_str, rendered)
+    text = rendered.strip()
+    lowered = text.lower()
 
-    # Direct boolean literal
+    # Boolean literal handling
     if lowered in ("true", "false"):
-        result = lowered == "true"
-        logger.debug(f"Interpreted boolean literal '{trimmed}' as {result}")
+        result = (lowered == "true")
+        logger.debug("Interpreted boolean literal '%s' as %s", text, result)
         return result
 
-    # Replace logical function names to avoid Python keyword conflicts
-    expr_transformed = re.sub(r"\band\(", "and_(", trimmed)
-    expr_transformed = re.sub(r"\bor\(", "or_(", expr_transformed)
-    expr_transformed = re.sub(r"\bnot\(", "not_(", expr_transformed)
-    logger.debug(f"Transformed expression for eval: '{expr_transformed}'")
+    # Replace function-like logical keywords to avoid Python keyword conflicts
+    transformed = re.sub(r"\band\(", "and_(", text)
+    transformed = re.sub(r"\bor\(", "or_(", transformed)
+    transformed = re.sub(r"\bnot\(", "not_(", transformed)
+    logger.debug("Transformed expression for eval: '%s'", transformed)
 
+    # Safe globals for eval
     safe_globals: Dict[str, Any] = {
         "__builtins__": {},
-        # file utilities
+        # File utilities
         "file_exists": file_exists,
         "all_files_exist": all_files_exist,
         "file_is_newer": file_is_newer,
-        # logical helpers
+        # Logical helpers
         "and_": and_,
         "or_": or_,
         "not_": not_,
-        # boolean literals
+        # Boolean literals
         "true": True,
         "false": False,
     }
 
     try:
-        eval_result = eval(expr_transformed, safe_globals, {})  # noqa: P204
+        result = eval(transformed, safe_globals, {})  # nosec
     except Exception as err:
-        raise ValueError(f"Invalid condition expression '{expr_transformed}': {err}")
+        raise ValueError(f"Invalid condition expression '{transformed}': {err}")
 
-    result_bool = bool(eval_result)
-    logger.debug(f"Condition '{expr_transformed}' evaluated to {result_bool}")
-    return result_bool
+    outcome = bool(result)
+    logger.debug("Condition '%s' evaluated to %s", transformed, outcome)
+    return outcome
 
 
 class ConditionalStep(BaseStep[ConditionalConfig]):
@@ -1450,31 +1478,38 @@ class ConditionalStep(BaseStep[ConditionalConfig]):
     Step that branches execution based on a boolean condition.
     """
 
-    def __init__(self, logger: logging.Logger, config: Dict[str, Any]) -> None:
-        super().__init__(logger, ConditionalConfig(**config))
+    def __init__(
+        self, logger: logging.Logger, config: Dict[str, Any]
+    ) -> None:
+        config_model = ConditionalConfig.model_validate(config)
+        super().__init__(logger, config_model)
 
     async def execute(self, context: ContextProtocol) -> None:
         expr = self.config.condition
-        self.logger.debug(f"Evaluating conditional expression: '{expr}'")
+        self.logger.debug("Evaluating conditional expression: '%s'", expr)
         try:
             result = evaluate_condition(expr, context, self.logger)
         except ValueError as err:
             raise RuntimeError(f"Condition evaluation error: {err}")
 
-        if result:
-            self.logger.debug(f"Condition '{expr}' is True, executing 'if_true' branch")
-            branch = self.config.if_true
-        else:
-            self.logger.debug(f"Condition '{expr}' is False, executing 'if_false' branch")
-            branch = self.config.if_false
+        branch = self.config.if_true if result else self.config.if_false
+        branch_name = "if_true" if result else "if_false"
+        self.logger.debug(
+            "Condition '%s' is %s, executing '%s' branch",
+            expr,
+            result,
+            branch_name,
+        )
 
-        if branch and isinstance(branch, dict):
+        if isinstance(branch, dict) and branch.get("steps"):
             await self._execute_branch(branch, context)
         else:
             self.logger.debug("No branch to execute for this condition result")
 
-    async def _execute_branch(self, branch: Dict[str, Any], context: ContextProtocol) -> None:
-        steps: List[Any] = branch.get("steps", []) or []
+    async def _execute_branch(
+        self, branch: Dict[str, Any], context: ContextProtocol
+    ) -> None:
+        steps: List[Any] = branch.get("steps") or []
         if not isinstance(steps, list):
             self.logger.debug("Branch 'steps' is not a list, skipping execution")
             return
@@ -1484,22 +1519,22 @@ class ConditionalStep(BaseStep[ConditionalConfig]):
                 continue
 
             step_type = step_def.get("type")
-            step_conf = step_def.get("config", {}) or {}
+            step_conf = step_def.get("config") or {}
             if not step_type:
                 self.logger.debug("Step definition missing 'type', skipping")
                 continue
 
             step_cls = STEP_REGISTRY.get(step_type)
-            if not step_cls:
-                raise RuntimeError(f"Unknown step type in conditional branch: {step_type}")
+            if step_cls is None:
+                raise RuntimeError(
+                    f"Unknown step type in conditional branch: {step_type}"
+                )
 
-            self.logger.debug(f"Executing step '{step_type}' in conditional branch")
-            step = step_cls(self.logger, step_conf)
-            await step.execute(context)
-
-
-# Register this step in the global registry
-STEP_REGISTRY["conditional"] = ConditionalStep
+            self.logger.debug(
+                "Executing step '%s' in conditional branch", step_type
+            )
+            step_instance = step_cls(self.logger, step_conf)
+            await step_instance.execute(context)
 
 
 === File: recipe_executor/steps/execute_recipe.py ===
@@ -1511,38 +1546,63 @@ from recipe_executor.steps.base import BaseStep, StepConfig
 from recipe_executor.protocols import ContextProtocol
 from recipe_executor.utils.templates import render_template
 
+__all__ = ["ExecuteRecipeConfig", "ExecuteRecipeStep"]
+
+
+def _render_override(value: Any, context: ContextProtocol) -> Any:
+    """
+    Recursively render string values using the template engine.
+    Non-string values are returned as-is.
+    """
+    if isinstance(value, str):
+        return render_template(value, context)
+    if isinstance(value, list):  # type: ignore[type-arg]
+        return [_render_override(item, context) for item in value]
+    if isinstance(value, dict):  # type: ignore[type-arg]
+        return {key: _render_override(val, context) for key, val in value.items()}
+    return value
+
 
 class ExecuteRecipeConfig(StepConfig):
     """Config for ExecuteRecipeStep.
 
     Fields:
-        recipe_path: Path to the recipe to execute.
+        recipe_path: Path to the sub-recipe to execute (templateable).
         context_overrides: Optional values to override in the context.
     """
     recipe_path: str
-    context_overrides: Dict[str, str] = {}
+    context_overrides: Dict[str, Any] = {}
 
 
 class ExecuteRecipeStep(BaseStep[ExecuteRecipeConfig]):
     """Step to execute a sub-recipe with shared context and optional overrides."""
 
-    def __init__(self, logger: logging.Logger, config: Dict[str, Any]) -> None:
-        super().__init__(logger, ExecuteRecipeConfig(**config))
+    def __init__(
+        self,
+        logger: logging.Logger,
+        config: Dict[str, Any]
+    ) -> None:
+        # Validate and store configuration
+        validated: ExecuteRecipeConfig = ExecuteRecipeConfig.model_validate(config)
+        super().__init__(logger, validated)
 
     async def execute(self, context: ContextProtocol) -> None:
-        # Render the recipe path template
-        rendered_path: str = render_template(self.config.recipe_path, context)
+        """
+        Execute a sub-recipe located at the rendered recipe_path.
 
-        # Validate that the sub-recipe file exists
+        Applies context_overrides before execution, shares the same context,
+        and logs progress.
+        """
+        # Render and validate recipe path
+        rendered_path: str = render_template(self.config.recipe_path, context)
         if not os.path.isfile(rendered_path):
             raise FileNotFoundError(f"Sub-recipe file not found: {rendered_path}")
 
-        # Apply context overrides before execution
-        for key, template_value in self.config.context_overrides.items():
-            rendered_value: str = render_template(template_value, context)
+        # Apply context overrides with templating
+        for key, override_value in self.config.context_overrides.items():
+            rendered_value: Any = _render_override(override_value, context)
             context[key] = rendered_value
 
-        # Execute the sub-recipe
         try:
             # Import here to avoid circular dependencies
             from recipe_executor.executor import Executor
@@ -1551,10 +1611,13 @@ class ExecuteRecipeStep(BaseStep[ExecuteRecipeConfig]):
             executor = Executor(self.logger)
             await executor.execute(rendered_path, context)
             self.logger.info(f"Completed sub-recipe execution: {rendered_path}")
-        except Exception as e:
-            # Log and propagate with context
-            self.logger.error(f"Error executing sub-recipe '{rendered_path}': {e}")
-            raise RuntimeError(f"Failed to execute sub-recipe '{rendered_path}': {e}") from e
+        except Exception as exc:
+            self.logger.error(
+                f"Error executing sub-recipe '{rendered_path}': {exc}"
+            )
+            raise RuntimeError(
+                f"Failed to execute sub-recipe '{rendered_path}': {exc}"
+            ) from exc
 
 
 === File: recipe_executor/steps/llm_generate.py ===
@@ -1575,16 +1638,19 @@ from recipe_executor.utils.templates import render_template
 class LLMGenerateConfig(StepConfig):
     """
     Config for LLMGenerateStep.
+
     Fields:
         prompt: The prompt to send to the LLM (templated beforehand).
         model: The model identifier to use (provider/model_name format).
-        mcp_servers: List of MCP servers for access to tools.
-        output_format: The format of the LLM output (text, files, or JSON/object/list schemas).
+        max_tokens: The maximum number of tokens for the LLM response.
+        mcp_servers: List of MCP server configurations for access to tools.
+        output_format: The format of the LLM output (text, files, or JSON/list schemas).
         output_key: The name under which to store the LLM output in context.
     """
 
     prompt: str
     model: str = "openai/gpt-4o"
+    max_tokens: Optional[Union[str, int]] = None
     mcp_servers: Optional[List[Dict[str, Any]]] = None
     output_format: Union[str, Dict[str, Any], List[Any]]
     output_key: str = "llm_output"
@@ -1594,79 +1660,135 @@ class FileSpecCollection(BaseModel):
     files: List[FileSpec]
 
 
-def render_template_config(config: Dict[str, Any], context: ContextProtocol) -> Dict[str, Any]:
-    rendered: Dict[str, Any] = {}
-    for k, v in config.items():
-        if isinstance(v, str):
-            rendered[k] = render_template(v, context)
-        elif isinstance(v, dict):
-            rendered[k] = render_template_config(v, context)
-        elif isinstance(v, list):
-            rendered[k] = [render_template_config(i, context) if isinstance(i, dict) else i for i in v]
+def _render_config(config: Dict[str, Any], context: ContextProtocol) -> Dict[str, Any]:
+    """
+    Recursively render templated strings in a dict.
+    """
+    result: Dict[str, Any] = {}
+    for key, value in config.items():
+        if isinstance(value, str):
+            result[key] = render_template(value, context)
+        elif isinstance(value, dict):
+            result[key] = _render_config(value, context)
+        elif isinstance(value, list):
+            items: List[Any] = []
+            for item in value:
+                if isinstance(item, dict):
+                    items.append(_render_config(item, context))
+                else:
+                    items.append(item)
+            result[key] = items
         else:
-            rendered[k] = v
-    return rendered
+            result[key] = value
+    return result
 
 
 class LLMGenerateStep(BaseStep[LLMGenerateConfig]):
+    """
+    Step to generate content via a large language model (LLM).
+    """
+
     def __init__(self, logger: logging.Logger, config: Dict[str, Any]) -> None:
         super().__init__(logger, LLMGenerateConfig(**config))
 
     async def execute(self, context: ContextProtocol) -> None:
+        # Render templates for core inputs
         prompt: str = render_template(self.config.prompt, context)
-        model_id: str = render_template(self.config.model, context) if self.config.model else "openai/gpt-4o"
+        model_id: str = render_template(self.config.model, context)
         output_key: str = render_template(self.config.output_key, context)
 
-        # Collect MCP server configs from config and context
-        mcp_servers_configs: List[Dict[str, Any]] = []
-        if self.config.mcp_servers:
-            mcp_servers_configs.extend(self.config.mcp_servers)
-        context_mcp_servers_cfg = context.get_config().get("mcp_servers", [])
-        if context_mcp_servers_cfg:
-            mcp_servers_configs.extend(context_mcp_servers_cfg)
-        mcp_servers: Optional[List[Any]] = None
-        if mcp_servers_configs:
-            mcp_servers = [
-                get_mcp_server(logger=self.logger, config=render_template_config(cfg, context))
-                for cfg in mcp_servers_configs
-            ]
+        # Prepare max_tokens
+        raw_max = self.config.max_tokens
+        max_tokens: Optional[int] = None
+        if raw_max is not None:
+            max_str = render_template(str(raw_max), context)
+            try:
+                max_tokens = int(max_str)
+            except ValueError:
+                raise ValueError(f"Invalid max_tokens value: {raw_max!r}")
 
-        llm = LLM(logger=self.logger, model=model_id, mcp_servers=mcp_servers)
+        # Collect MCP server configurations
+        mcp_cfgs: List[Dict[str, Any]] = []
+        if self.config.mcp_servers:
+            mcp_cfgs.extend(self.config.mcp_servers)
+        ctx_mcp = context.get_config().get("mcp_servers") or []
+        if isinstance(ctx_mcp, list):
+            mcp_cfgs.extend(ctx_mcp)
+
+        mcp_servers: List[Any] = []
+        for cfg in mcp_cfgs:
+            rendered = _render_config(cfg, context)
+            server = get_mcp_server(logger=self.logger, config=rendered)
+            mcp_servers.append(server)
+
+        # Initialize LLM client
+        llm = LLM(
+            logger=self.logger,
+            model=model_id,
+            mcp_servers=mcp_servers or None,
+        )
         output_format = self.config.output_format
         result: Any = None
+
         try:
             self.logger.debug(
-                "Calling LLM: model=%s, output_format=%r, mcp_servers=%r", model_id, output_format, mcp_servers
+                "Calling LLM: model=%s, format=%r, max_tokens=%s, mcp_servers=%r",
+                model_id,
+                output_format,
+                max_tokens,
+                mcp_servers,
             )
-            if output_format == "text":
-                result = await llm.generate(prompt, output_type=str)
+            # Text output
+            if output_format == "text":  # type: ignore
+                kwargs: Dict[str, Any] = {"output_type": str}
+                if max_tokens is not None:
+                    kwargs["max_tokens"] = max_tokens
+                result = await llm.generate(prompt, **kwargs)
                 context[output_key] = result
-            elif output_format == "files":
-                result = await llm.generate(prompt, output_type=FileSpecCollection)
+
+            # Files output
+            elif output_format == "files":  # type: ignore
+                kwargs = {"output_type": FileSpecCollection}
+                if max_tokens is not None:
+                    kwargs["max_tokens"] = max_tokens
+                result = await llm.generate(prompt, **kwargs)
+                # Store only the list of FileSpec
                 context[output_key] = result.files
-            elif isinstance(output_format, dict) and output_format.get("type") == "object":
+
+            # JSON object schema
+            elif isinstance(output_format, dict):
                 schema_model = json_object_to_pydantic_model(output_format, model_name="LLMObject")
-                result = await llm.generate(prompt, output_type=schema_model)
+                kwargs = {"output_type": schema_model}
+                if max_tokens is not None:
+                    kwargs["max_tokens"] = max_tokens
+                result = await llm.generate(prompt, **kwargs)
                 context[output_key] = result.model_dump()
-            elif isinstance(output_format, list):
+
+            # List schema
+            elif isinstance(output_format, list):  # type: ignore
                 if len(output_format) != 1 or not isinstance(output_format[0], dict):
                     raise ValueError(
-                        "When output_format is a list, it must be a single-item list containing a valid schema object."
+                        "When output_format is a list, it must be a single-item list containing a schema object."
                     )
                 item_schema = output_format[0]
-                object_schema = {
+                wrapper_schema: Dict[str, Any] = {
                     "type": "object",
                     "properties": {"items": {"type": "array", "items": item_schema}},
                     "required": ["items"],
                 }
-                schema_model = json_object_to_pydantic_model(object_schema, model_name="LLMListWrapper")
-                result = await llm.generate(prompt, output_type=schema_model)
-                items = result.model_dump()["items"]
-                context[output_key] = items
+                schema_model = json_object_to_pydantic_model(wrapper_schema, model_name="LLMListWrapper")
+                kwargs = {"output_type": schema_model}
+                if max_tokens is not None:
+                    kwargs["max_tokens"] = max_tokens
+                result = await llm.generate(prompt, **kwargs)
+                wrapper = result.model_dump()
+                context[output_key] = wrapper.get("items", [])
+
             else:
                 raise ValueError(f"Unsupported output_format: {output_format!r}")
-        except Exception as e:
-            self.logger.error("LLM generate failed: %r", e, exc_info=True)
+
+        except Exception as exc:
+            self.logger.error("LLM generate failed: %r", exc, exc_info=True)
             raise
 
 

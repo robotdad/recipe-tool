@@ -18,6 +18,9 @@ The ExecuteRecipeStep component enables recipes to execute other recipes as sub-
 - Use the same executor instance for sub-recipe execution
 - Apply context overrides before sub-recipe execution
 - Use template rendering for all dynamic values
+- When processing context overrides
+  - Process all **string** values (including those within lists or dictionaries) using the template engine
+  - All non-string values in context overrides should be passed as-is
 - Keep the implementation simple and focused on a single responsibility
 - Log detailed information about sub-recipe execution
 

@@ -37,7 +37,8 @@
                   "path": "components/{{component.name}}_docs.md",
                   "content": "{{component_docs}}"
                 }
-              ]
+              ],
+              "root": "{{ output_dir }}"
             }
           }
         ]

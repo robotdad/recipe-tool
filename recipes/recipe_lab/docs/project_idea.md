@@ -28,7 +28,7 @@ Create a web app that allows users to create and execute recipes for automating 
 
 ### Reference Files (library docs, etc.)
 
-- `ai_context/generated/recipe_executor_code_files.md`:
+- `ai_context/generated/RECIPE_EXECUTOR_CODE_FILES.md`:
   - This file contains the code files for the `recipe-executor` library.
 - `ai_context/generated/recipe_executor_recipes.md`:
   - This file contains the recipes for the `recipe-executor` library.
