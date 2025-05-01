@@ -1,6 +1,12 @@
-# AI Context Files
-Date: 4/29/2025, 10:01:16 PM
-Files: 17
+# recipes/example_*
+
+[collect-files]
+
+**Search:** ['recipes/example_*']
+**Exclude:** ['.venv', 'node_modules', '.git', '__pycache__', '*.pyc', '*.ruff_cache']
+**Include:** []
+**Date:** 4/30/2025, 11:17:09 AM
+**Files:** 17
 
 === File: recipes/example_complex/README.md ===
 # Complex Code Generation Recipe

@@ -25,6 +25,63 @@ In this example, the single step is of type **`execute_recipe`**, which calls an
 
 **Context and Data Flow:** The context is the mechanism for passing information between steps. Steps can read from and write to the context by using keys (much like variables). For example, a file-reading step might store file content under a key, and a subsequent LLM step can include that content in its prompt via templating. You can also initialize context values when invoking the recipe (e.g. via command-line arguments `recipe-tool --execute recipe.json key=value`). All steps in the recipe share the same context object (except where isolated copies are used, e.g. in parallel or loop iterations as discussed later). This means earlier steps can prepare data for later steps, and later steps can refer back to results from earlier steps.
 
+## Working with Objects Between Recipe Steps
+
+### Context Object Passing
+
+When passing data between recipe steps in the Recipe Executor, objects are passed by reference in their native format. This means:
+
+```json
+"context_overrides": {
+  "some_object": "{{ variable_name }}"
+}
+```
+
+The object is passed directly without requiring conversion to a string format.
+
+### Common Mistakes
+
+#### ❌ Incorrect: Using a "json" filter
+
+```json
+"context_overrides": {
+  "some_object": "{{ variable_name | json }}"  // Error: "json" filter doesn't exist
+}
+```
+
+#### ✅ Correct: Direct reference
+
+```json
+"context_overrides": {
+  "some_object": "{{ variable_name }}"  // Passes the object directly
+}
+```
+
+### When to Use Serialization
+
+For most object passing between steps, no serialization is needed. The Recipe Executor handles complex objects automatically.
+
+If you specifically need a JSON string representation within a template (rare), use the Liquid template features directly to access the object properties:
+
+```json
+"prompt": "Data: {{ variable_name.property1 }}, {{ variable_name.property2 }}"
+```
+
+### Reading Files as Objects
+
+When reading JSON files, use the `merge_mode: "dict"` option to automatically parse them as objects:
+
+```json
+{
+  "type": "read_files",
+  "config": {
+    "path": "path/to/file.json",
+    "content_key": "my_data",
+    "merge_mode": "dict" // Parses JSON into an object automatically
+  }
+}
+```
+
 ## Using Liquid Templating for Dynamic Content
 
 To make recipes dynamic and reusable, the Recipe Executor supports **Liquid templating** in most string fields of step configs. Liquid is a templating language (similar to Jinja or Handlebars) that allows inserting context values and simple logic into strings. Before a step executes, any templated fields are rendered by substituting placeholders with actual values from the context.

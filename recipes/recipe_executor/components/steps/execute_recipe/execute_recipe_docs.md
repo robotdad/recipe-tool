@@ -20,7 +20,7 @@ class ExecuteRecipeConfig(StepConfig):
     """
 
     recipe_path: str
-    context_overrides: Dict[str, str] = {}
+    context_overrides: Dict[str, Any] = {}
 ```
 
 ## Step Registration
@@ -64,6 +64,9 @@ You can override specific context values for the sub-recipe execution:
         "recipe_path": "recipes/generate_component.json",
         "context_overrides": {
           "component_name": "Utils",
+          "is_component": true,
+          "revision_count": 1,
+          "sub_components": ["utils"],
           "output_dir": "output/components/utils"
         }
       }

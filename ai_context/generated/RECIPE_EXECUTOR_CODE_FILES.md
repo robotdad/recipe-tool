@@ -1,6 +1,12 @@
-# AI Context Files
-Date: 4/29/2025, 5:13:34 PM
-Files: 25
+# recipe_executor
+
+[collect-files]
+
+**Search:** ['recipe_executor']
+**Exclude:** ['.venv', 'node_modules', '.git', '__pycache__', '*.pyc', '*.ruff_cache']
+**Include:** ['README.md', 'pyproject.toml', '.env.example']
+**Date:** 4/30/2025, 4:04:18 PM
+**Files:** 25
 
 === File: .env.example ===
 # Optional for the project
@@ -191,7 +197,7 @@ Example:
 recipe-tool --create recipes/recipe_creator/prompts/sample_recipe_idea.md
 
 # Test it out
-recipe-tool --execute output/analyze_codebase.json input=ai_context/generated/recipe_executor_code_files.md,ai_context/generated/recipe_executor_recipe_files.md
+recipe-tool --execute output/analyze_codebase.json input=ai_context/generated/RECIPE_EXECUTOR_CODE_FILES.md,ai_context/generated/RECIPE_EXECUTOR_RECIPE_FILES.md
 ```
 
 ## Project Structure
@@ -1349,18 +1355,16 @@ class ConditionalConfig(StepConfig):
     Configuration for ConditionalStep.
 
     Fields:
-        condition: Expression string to evaluate against the context.
-        if_true: Optional steps to execute when the condition evaluates to true.
-        if_false: Optional steps to execute when the condition evaluates to false.
+        condition: Expression or boolean to evaluate against the context.
+        if_true: Optional branch configuration when condition is true.
+        if_false: Optional branch configuration when condition is false.
     """
-
-    condition: str
+    condition: Any
     if_true: Optional[Dict[str, Any]] = None
     if_false: Optional[Dict[str, Any]] = None
 
 
 # Utility functions for condition evaluation
-
 
 def file_exists(path: Any) -> bool:
     """Check if a given path exists on the filesystem."""
@@ -1407,56 +1411,66 @@ def not_(val: Any) -> bool:
     return not bool(val)
 
 
-def evaluate_condition(expr: str, context: ContextProtocol, logger: logging.Logger) -> bool:
+def evaluate_condition(
+    expr: Any, context: ContextProtocol, logger: logging.Logger
+) -> bool:
     """
     Render and evaluate a condition expression against the context.
-    Supports file checks, comparisons, and function-like logical operations.
-    Raises ValueError on render or eval errors.
+    Supports boolean literals, file checks, comparisons, and logical operations.
+    Raises ValueError on render or evaluation errors.
     """
+    # Direct boolean
+    if isinstance(expr, bool):
+        logger.debug("Using boolean condition: %s", expr)
+        return expr
+
+    # Ensure expression is a string for rendering
+    expr_str = expr if isinstance(expr, str) else str(expr)
     try:
-        rendered = render_template(expr, context)
+        rendered = render_template(expr_str, context)
     except Exception as err:
-        raise ValueError(f"Error rendering condition '{expr}': {err}")
+        raise ValueError(f"Error rendering condition '{expr_str}': {err}")
 
-    logger.debug(f"Rendered condition '{expr}': '{rendered}'")
-    trimmed = rendered.strip()
-    lowered = trimmed.lower()
+    logger.debug("Rendered condition '%s': '%s'", expr_str, rendered)
+    text = rendered.strip()
+    lowered = text.lower()
 
-    # Direct boolean literal
+    # Boolean literal handling
     if lowered in ("true", "false"):
-        result = lowered == "true"
-        logger.debug(f"Interpreted boolean literal '{trimmed}' as {result}")
+        result = (lowered == "true")
+        logger.debug("Interpreted boolean literal '%s' as %s", text, result)
         return result
 
-    # Replace logical function names to avoid Python keyword conflicts
-    expr_transformed = re.sub(r"\band\(", "and_(", trimmed)
-    expr_transformed = re.sub(r"\bor\(", "or_(", expr_transformed)
-    expr_transformed = re.sub(r"\bnot\(", "not_(", expr_transformed)
-    logger.debug(f"Transformed expression for eval: '{expr_transformed}'")
+    # Replace function-like logical keywords to avoid Python keyword conflicts
+    transformed = re.sub(r"\band\(", "and_(", text)
+    transformed = re.sub(r"\bor\(", "or_(", transformed)
+    transformed = re.sub(r"\bnot\(", "not_(", transformed)
+    logger.debug("Transformed expression for eval: '%s'", transformed)
 
+    # Safe globals for eval
     safe_globals: Dict[str, Any] = {
         "__builtins__": {},
-        # file utilities
+        # File utilities
         "file_exists": file_exists,
         "all_files_exist": all_files_exist,
         "file_is_newer": file_is_newer,
-        # logical helpers
+        # Logical helpers
         "and_": and_,
         "or_": or_,
         "not_": not_,
-        # boolean literals
+        # Boolean literals
         "true": True,
         "false": False,
     }
 
     try:
-        eval_result = eval(expr_transformed, safe_globals, {})  # noqa: P204
+        result = eval(transformed, safe_globals, {})  # nosec
     except Exception as err:
-        raise ValueError(f"Invalid condition expression '{expr_transformed}': {err}")
+        raise ValueError(f"Invalid condition expression '{transformed}': {err}")
 
-    result_bool = bool(eval_result)
-    logger.debug(f"Condition '{expr_transformed}' evaluated to {result_bool}")
-    return result_bool
+    outcome = bool(result)
+    logger.debug("Condition '%s' evaluated to %s", transformed, outcome)
+    return outcome
 
 
 class ConditionalStep(BaseStep[ConditionalConfig]):
@@ -1464,31 +1478,38 @@ class ConditionalStep(BaseStep[ConditionalConfig]):
     Step that branches execution based on a boolean condition.
     """
 
-    def __init__(self, logger: logging.Logger, config: Dict[str, Any]) -> None:
-        super().__init__(logger, ConditionalConfig(**config))
+    def __init__(
+        self, logger: logging.Logger, config: Dict[str, Any]
+    ) -> None:
+        config_model = ConditionalConfig.model_validate(config)
+        super().__init__(logger, config_model)
 
     async def execute(self, context: ContextProtocol) -> None:
         expr = self.config.condition
-        self.logger.debug(f"Evaluating conditional expression: '{expr}'")
+        self.logger.debug("Evaluating conditional expression: '%s'", expr)
         try:
             result = evaluate_condition(expr, context, self.logger)
         except ValueError as err:
             raise RuntimeError(f"Condition evaluation error: {err}")
 
-        if result:
-            self.logger.debug(f"Condition '{expr}' is True, executing 'if_true' branch")
-            branch = self.config.if_true
-        else:
-            self.logger.debug(f"Condition '{expr}' is False, executing 'if_false' branch")
-            branch = self.config.if_false
+        branch = self.config.if_true if result else self.config.if_false
+        branch_name = "if_true" if result else "if_false"
+        self.logger.debug(
+            "Condition '%s' is %s, executing '%s' branch",
+            expr,
+            result,
+            branch_name,
+        )
 
-        if branch and isinstance(branch, dict):
+        if isinstance(branch, dict) and branch.get("steps"):
             await self._execute_branch(branch, context)
         else:
             self.logger.debug("No branch to execute for this condition result")
 
-    async def _execute_branch(self, branch: Dict[str, Any], context: ContextProtocol) -> None:
-        steps: List[Any] = branch.get("steps", []) or []
+    async def _execute_branch(
+        self, branch: Dict[str, Any], context: ContextProtocol
+    ) -> None:
+        steps: List[Any] = branch.get("steps") or []
         if not isinstance(steps, list):
             self.logger.debug("Branch 'steps' is not a list, skipping execution")
             return
@@ -1498,22 +1519,22 @@ class ConditionalStep(BaseStep[ConditionalConfig]):
                 continue
 
             step_type = step_def.get("type")
-            step_conf = step_def.get("config", {}) or {}
+            step_conf = step_def.get("config") or {}
             if not step_type:
                 self.logger.debug("Step definition missing 'type', skipping")
                 continue
 
             step_cls = STEP_REGISTRY.get(step_type)
-            if not step_cls:
-                raise RuntimeError(f"Unknown step type in conditional branch: {step_type}")
+            if step_cls is None:
+                raise RuntimeError(
+                    f"Unknown step type in conditional branch: {step_type}"
+                )
 
-            self.logger.debug(f"Executing step '{step_type}' in conditional branch")
-            step = step_cls(self.logger, step_conf)
-            await step.execute(context)
-
-
-# Register this step in the global registry
-STEP_REGISTRY["conditional"] = ConditionalStep
+            self.logger.debug(
+                "Executing step '%s' in conditional branch", step_type
+            )
+            step_instance = step_cls(self.logger, step_conf)
+            await step_instance.execute(context)
 
 
 === File: recipe_executor/steps/execute_recipe.py ===
@@ -1525,38 +1546,63 @@ from recipe_executor.steps.base import BaseStep, StepConfig
 from recipe_executor.protocols import ContextProtocol
 from recipe_executor.utils.templates import render_template
 
+__all__ = ["ExecuteRecipeConfig", "ExecuteRecipeStep"]
+
+
+def _render_override(value: Any, context: ContextProtocol) -> Any:
+    """
+    Recursively render string values using the template engine.
+    Non-string values are returned as-is.
+    """
+    if isinstance(value, str):
+        return render_template(value, context)
+    if isinstance(value, list):  # type: ignore[type-arg]
+        return [_render_override(item, context) for item in value]
+    if isinstance(value, dict):  # type: ignore[type-arg]
+        return {key: _render_override(val, context) for key, val in value.items()}
+    return value
+
 
 class ExecuteRecipeConfig(StepConfig):
     """Config for ExecuteRecipeStep.
 
     Fields:
-        recipe_path: Path to the recipe to execute.
+        recipe_path: Path to the sub-recipe to execute (templateable).
         context_overrides: Optional values to override in the context.
     """
     recipe_path: str
-    context_overrides: Dict[str, str] = {}
+    context_overrides: Dict[str, Any] = {}
 
 
 class ExecuteRecipeStep(BaseStep[ExecuteRecipeConfig]):
     """Step to execute a sub-recipe with shared context and optional overrides."""
 
-    def __init__(self, logger: logging.Logger, config: Dict[str, Any]) -> None:
-        super().__init__(logger, ExecuteRecipeConfig(**config))
+    def __init__(
+        self,
+        logger: logging.Logger,
+        config: Dict[str, Any]
+    ) -> None:
+        # Validate and store configuration
+        validated: ExecuteRecipeConfig = ExecuteRecipeConfig.model_validate(config)
+        super().__init__(logger, validated)
 
     async def execute(self, context: ContextProtocol) -> None:
-        # Render the recipe path template
-        rendered_path: str = render_template(self.config.recipe_path, context)
+        """
+        Execute a sub-recipe located at the rendered recipe_path.
 
-        # Validate that the sub-recipe file exists
+        Applies context_overrides before execution, shares the same context,
+        and logs progress.
+        """
+        # Render and validate recipe path
+        rendered_path: str = render_template(self.config.recipe_path, context)
         if not os.path.isfile(rendered_path):
             raise FileNotFoundError(f"Sub-recipe file not found: {rendered_path}")
 
-        # Apply context overrides before execution
-        for key, template_value in self.config.context_overrides.items():
-            rendered_value: str = render_template(template_value, context)
+        # Apply context overrides with templating
+        for key, override_value in self.config.context_overrides.items():
+            rendered_value: Any = _render_override(override_value, context)
             context[key] = rendered_value
 
-        # Execute the sub-recipe
         try:
             # Import here to avoid circular dependencies
             from recipe_executor.executor import Executor
@@ -1565,10 +1611,13 @@ class ExecuteRecipeStep(BaseStep[ExecuteRecipeConfig]):
             executor = Executor(self.logger)
             await executor.execute(rendered_path, context)
             self.logger.info(f"Completed sub-recipe execution: {rendered_path}")
-        except Exception as e:
-            # Log and propagate with context
-            self.logger.error(f"Error executing sub-recipe '{rendered_path}': {e}")
-            raise RuntimeError(f"Failed to execute sub-recipe '{rendered_path}': {e}") from e
+        except Exception as exc:
+            self.logger.error(
+                f"Error executing sub-recipe '{rendered_path}': {exc}"
+            )
+            raise RuntimeError(
+                f"Failed to execute sub-recipe '{rendered_path}': {exc}"
+            ) from exc
 
 
 === File: recipe_executor/steps/llm_generate.py ===

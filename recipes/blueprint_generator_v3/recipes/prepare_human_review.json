@@ -4,32 +4,28 @@
       "type": "read_files",
       "config": {
         "path": "{{ original_spec_path }}",
-        "content_key": "original_spec_content",
-        "optional": false
+        "content_key": "original_spec_content"
       }
     },
     {
       "type": "read_files",
       "config": {
         "path": "{{ revised_spec_path }}",
-        "content_key": "revised_spec_content",
-        "optional": false
+        "content_key": "revised_spec_content"
       }
     },
     {
       "type": "read_files",
       "config": {
         "path": "{{ evaluation_path }}",
-        "content_key": "evaluation_content",
-        "optional": false
+        "content_key": "evaluation_content"
       }
     },
     {
       "type": "read_files",
       "config": {
         "path": "{{ questions_path }}",
-        "content_key": "questions_content",
-        "optional": false
+        "content_key": "questions_content"
       }
     },
     {
@@ -38,19 +34,19 @@
         "files": [
           {
             "path": "{{ output_dir }}/{{ component_id }}_original_spec.md",
-            "content": "{{ original_spec_content }}"
+            "content_key": "original_spec_content"
           },
           {
             "path": "{{ output_dir }}/{{ component_id }}_revised_spec.md",
-            "content": "{{ revised_spec_content }}"
+            "content_key": "revised_spec_content"
           },
           {
             "path": "{{ output_dir }}/{{ component_id }}_evaluation.md",
-            "content": "{{ evaluation_content }}"
+            "content_key": "evaluation_content"
           },
           {
             "path": "{{ output_dir }}/{{ component_id }}_questions.md",
-            "content": "{{ questions_content }}"
+            "content_key": "questions_content"
           }
         ]
       }
@@ -58,7 +54,7 @@
     {
       "type": "llm_generate",
       "config": {
-        "prompt": "Generate a review summary for the component:\n\nComponent ID: {{ component_id }}\nOriginal Specification: The content of the original specification\nRevised Specification: The content of the revised specification\nClarification Questions: The content of the questions file\nEvaluation Results: The content of the evaluation file\n\nCreate a markdown summary with instructions for review.",
+        "prompt": "Generate a review summary for the component:\n\nComponent ID: {{ component_id }}\n\nOriginal Specification:\n\n<ORIGINAL_SPEC>\n{{ original_spec_content }}\n</ORIGINAL_SPEC>\n\nRevised Specification:\n\n<REVISED_SPEC>\n{{ revised_spec_content }}\n</REVISED_SPEC>\n\nClarification Questions:\n\n<QUESTIONS>\n{{ questions_content }}\n</QUESTIONS>\n\nEvaluation Results:\n\n<EVALUATION>\n{{ evaluation_content }}\n</EVALUATION>\n\nCreate a markdown summary with instructions for review.",
         "model": "{{ model | default: 'openai/o4-mini' }}",
         "output_format": "text",
         "output_key": "review_summary"
@@ -70,7 +66,7 @@
         "files": [
           {
             "path": "{{ output_dir }}/{{ component_id }}_review_summary.md",
-            "content": "{{ review_summary }}"
+            "content_key": "review_summary"
           }
         ]
       }

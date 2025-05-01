@@ -1,6 +1,12 @@
-# AI Context Files
-Date: 4/29/2025, 5:13:34 PM
-Files: 51
+# recipes/recipe_executor
+
+[collect-files]
+
+**Search:** ['recipes/recipe_executor']
+**Exclude:** ['.venv', 'node_modules', '.git', '__pycache__', '*.pyc', '*.ruff_cache']
+**Include:** []
+**Date:** 4/30/2025, 4:04:18 PM
+**Files:** 51
 
 === File: recipes/recipe_executor/README.md ===
 # Recipe Executor Recipes
@@ -2040,10 +2046,11 @@ class ConditionalConfig(StepConfig):
 
     Fields:
         condition: Expression string to evaluate against the context.
+          - Will attempt to coerce to a boolean value.
         if_true: Optional steps to execute when the condition evaluates to true.
         if_false: Optional steps to execute when the condition evaluates to false.
     """
-    condition: str
+    condition: Any
     if_true: Optional[Dict[str, Any]] = None
     if_false: Optional[Dict[str, Any]] = None
 ```
@@ -2242,6 +2249,7 @@ The Conditional step enables branching execution paths in recipes based on evalu
 ## Core Requirements
 
 - Evaluate conditional expressions against the current context state
+  - Attempt to coerce the expression to a boolean value
 - Support multiple condition types including:
   - Context value checks
   - File existence checks
@@ -2253,6 +2261,7 @@ The Conditional step enables branching execution paths in recipes based on evalu
 ## Implementation Considerations
 
 - If expression is already a boolean or a string that can be evaluated to a boolean, use it directly as it may have been rendered by the template engine
+- Do not send non-string values to the template engine
 - Include conversion of "true" and "false" strings to boolean values in any safe globals list
 - Keep expression evaluation lightweight and focused on common needs
 - Allow for direct access to context values via expression syntax
@@ -2315,7 +2324,7 @@ class ExecuteRecipeConfig(StepConfig):
     """
 
     recipe_path: str
-    context_overrides: Dict[str, str] = {}
+    context_overrides: Dict[str, Any] = {}
 ```
 
 ## Step Registration
@@ -2359,6 +2368,9 @@ You can override specific context values for the sub-recipe execution:
         "recipe_path": "recipes/generate_component.json",
         "context_overrides": {
           "component_name": "Utils",
+          "is_component": true,
+          "revision_count": 1,
+          "sub_components": ["utils"],
           "output_dir": "output/components/utils"
         }
       }
@@ -2500,6 +2512,9 @@ The ExecuteRecipeStep component enables recipes to execute other recipes as sub-
 - Use the same executor instance for sub-recipe execution
 - Apply context overrides before sub-recipe execution
 - Use template rendering for all dynamic values
+- When processing context overrides
+  - Process all **string** values (including those within lists or dictionaries) using the template engine
+  - All non-string values in context overrides should be passed as-is
 - Keep the implementation simple and focused on a single responsibility
 - Log detailed information about sub-recipe execution
 
@@ -4224,6 +4239,8 @@ Either `files_key` or `files` is required in the configuration. If both are prov
 
 The `files_key` is the context key where the generated files are stored. The `files` parameter can be used to directly provide a list of dictionaries with `path` and `content` keys. Alternatively, the path and content can be specfied using `path_key` and `content_key` respectively to reference values in the context.
 
+Content (regardless of the input format or which context path the data comes in) is automatically detected and serialized to proper JSON with indentation if it is a Python dictionary or list. This ensures that the content is written in a readable format.
+
 The WriteFilesStep can be used in recipes like this:
 
 Files Key Example:
@@ -4471,7 +4488,7 @@ The WriteFilesStep component writes generated files to disk based on content fro
 - Use template rendering for dynamic path resolution
 - Create parent directories automatically if they do not exist
 - Apply template rendering to content prior to detecting its type, in case the content is a string that needs to be serialized
-- Automatically detect when content is a Python dictionary or list and serialize it to proper JSON with indentation
+- Regardless of which context path the data comes in, automatically detect when content is a Python dictionary or list and serialize it to proper JSON with indentation
 - When serializing to JSON, use `json.dumps(content, ensure_ascii=False, indent=2)` for consistent, readable formatting
 - Handle serialization errors with clear messages
 - Keep the implementation simple and focused on a single responsibility

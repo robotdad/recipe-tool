@@ -14,18 +14,16 @@ class ConditionalConfig(StepConfig):
     Configuration for ConditionalStep.
 
     Fields:
-        condition: Expression string to evaluate against the context.
-        if_true: Optional steps to execute when the condition evaluates to true.
-        if_false: Optional steps to execute when the condition evaluates to false.
+        condition: Expression or boolean to evaluate against the context.
+        if_true: Optional branch configuration when condition is true.
+        if_false: Optional branch configuration when condition is false.
     """
-
-    condition: str
+    condition: Any
     if_true: Optional[Dict[str, Any]] = None
     if_false: Optional[Dict[str, Any]] = None
 
 
 # Utility functions for condition evaluation
-
 
 def file_exists(path: Any) -> bool:
     """Check if a given path exists on the filesystem."""
@@ -72,56 +70,66 @@ def not_(val: Any) -> bool:
     return not bool(val)
 
 
-def evaluate_condition(expr: str, context: ContextProtocol, logger: logging.Logger) -> bool:
+def evaluate_condition(
+    expr: Any, context: ContextProtocol, logger: logging.Logger
+) -> bool:
     """
     Render and evaluate a condition expression against the context.
-    Supports file checks, comparisons, and function-like logical operations.
-    Raises ValueError on render or eval errors.
+    Supports boolean literals, file checks, comparisons, and logical operations.
+    Raises ValueError on render or evaluation errors.
     """
+    # Direct boolean
+    if isinstance(expr, bool):
+        logger.debug("Using boolean condition: %s", expr)
+        return expr
+
+    # Ensure expression is a string for rendering
+    expr_str = expr if isinstance(expr, str) else str(expr)
     try:
-        rendered = render_template(expr, context)
+        rendered = render_template(expr_str, context)
     except Exception as err:
-        raise ValueError(f"Error rendering condition '{expr}': {err}")
+        raise ValueError(f"Error rendering condition '{expr_str}': {err}")
 
-    logger.debug(f"Rendered condition '{expr}': '{rendered}'")
-    trimmed = rendered.strip()
-    lowered = trimmed.lower()
+    logger.debug("Rendered condition '%s': '%s'", expr_str, rendered)
+    text = rendered.strip()
+    lowered = text.lower()
 
-    # Direct boolean literal
+    # Boolean literal handling
     if lowered in ("true", "false"):
-        result = lowered == "true"
-        logger.debug(f"Interpreted boolean literal '{trimmed}' as {result}")
+        result = (lowered == "true")
+        logger.debug("Interpreted boolean literal '%s' as %s", text, result)
         return result
 
-    # Replace logical function names to avoid Python keyword conflicts
-    expr_transformed = re.sub(r"\band\(", "and_(", trimmed)
-    expr_transformed = re.sub(r"\bor\(", "or_(", expr_transformed)
-    expr_transformed = re.sub(r"\bnot\(", "not_(", expr_transformed)
-    logger.debug(f"Transformed expression for eval: '{expr_transformed}'")
+    # Replace function-like logical keywords to avoid Python keyword conflicts
+    transformed = re.sub(r"\band\(", "and_(", text)
+    transformed = re.sub(r"\bor\(", "or_(", transformed)
+    transformed = re.sub(r"\bnot\(", "not_(", transformed)
+    logger.debug("Transformed expression for eval: '%s'", transformed)
 
+    # Safe globals for eval
     safe_globals: Dict[str, Any] = {
         "__builtins__": {},
-        # file utilities
+        # File utilities
         "file_exists": file_exists,
         "all_files_exist": all_files_exist,
         "file_is_newer": file_is_newer,
-        # logical helpers
+        # Logical helpers
         "and_": and_,
         "or_": or_,
         "not_": not_,
-        # boolean literals
+        # Boolean literals
         "true": True,
         "false": False,
     }
 
     try:
-        eval_result = eval(expr_transformed, safe_globals, {})  # noqa: P204
+        result = eval(transformed, safe_globals, {})  # nosec
     except Exception as err:
-        raise ValueError(f"Invalid condition expression '{expr_transformed}': {err}")
+        raise ValueError(f"Invalid condition expression '{transformed}': {err}")
 
-    result_bool = bool(eval_result)
-    logger.debug(f"Condition '{expr_transformed}' evaluated to {result_bool}")
-    return result_bool
+    outcome = bool(result)
+    logger.debug("Condition '%s' evaluated to %s", transformed, outcome)
+    return outcome
 
 
 class ConditionalStep(BaseStep[ConditionalConfig]):
@@ -129,31 +137,38 @@ class ConditionalStep(BaseStep[ConditionalConfig]):
     Step that branches execution based on a boolean condition.
     """
 
-    def __init__(self, logger: logging.Logger, config: Dict[str, Any]) -> None:
-        super().__init__(logger, ConditionalConfig(**config))
+    def __init__(
+        self, logger: logging.Logger, config: Dict[str, Any]
+    ) -> None:
+        config_model = ConditionalConfig.model_validate(config)
+        super().__init__(logger, config_model)
 
     async def execute(self, context: ContextProtocol) -> None:
         expr = self.config.condition
-        self.logger.debug(f"Evaluating conditional expression: '{expr}'")
+        self.logger.debug("Evaluating conditional expression: '%s'", expr)
         try:
             result = evaluate_condition(expr, context, self.logger)
         except ValueError as err:
             raise RuntimeError(f"Condition evaluation error: {err}")
 
-        if result:
-            self.logger.debug(f"Condition '{expr}' is True, executing 'if_true' branch")
-            branch = self.config.if_true
-        else:
-            self.logger.debug(f"Condition '{expr}' is False, executing 'if_false' branch")
-            branch = self.config.if_false
+        branch = self.config.if_true if result else self.config.if_false
+        branch_name = "if_true" if result else "if_false"
+        self.logger.debug(
+            "Condition '%s' is %s, executing '%s' branch",
+            expr,
+            result,
+            branch_name,
+        )
 
-        if branch and isinstance(branch, dict):
+        if isinstance(branch, dict) and branch.get("steps"):
             await self._execute_branch(branch, context)
         else:
             self.logger.debug("No branch to execute for this condition result")
 
-    async def _execute_branch(self, branch: Dict[str, Any], context: ContextProtocol) -> None:
-        steps: List[Any] = branch.get("steps", []) or []
+    async def _execute_branch(
+        self, branch: Dict[str, Any], context: ContextProtocol
+    ) -> None:
+        steps: List[Any] = branch.get("steps") or []
         if not isinstance(steps, list):
             self.logger.debug("Branch 'steps' is not a list, skipping execution")
             return
@@ -163,19 +178,19 @@ class ConditionalStep(BaseStep[ConditionalConfig]):
                 continue
 
             step_type = step_def.get("type")
-            step_conf = step_def.get("config", {}) or {}
+            step_conf = step_def.get("config") or {}
             if not step_type:
                 self.logger.debug("Step definition missing 'type', skipping")
                 continue
 
             step_cls = STEP_REGISTRY.get(step_type)
-            if not step_cls:
-                raise RuntimeError(f"Unknown step type in conditional branch: {step_type}")
+            if step_cls is None:
+                raise RuntimeError(
+                    f"Unknown step type in conditional branch: {step_type}"
+                )
 
-            self.logger.debug(f"Executing step '{step_type}' in conditional branch")
-            step = step_cls(self.logger, step_conf)
-            await step.execute(context)
-
-
-# Register this step in the global registry
-STEP_REGISTRY["conditional"] = ConditionalStep
+            self.logger.debug(
+                "Executing step '%s' in conditional branch", step_type
+            )
+            step_instance = step_cls(self.logger, step_conf)
+            await step_instance.execute(context)

@@ -7,6 +7,7 @@ The Conditional step enables branching execution paths in recipes based on evalu
 ## Core Requirements
 
 - Evaluate conditional expressions against the current context state
+  - Attempt to coerce the expression to a boolean value
 - Support multiple condition types including:
   - Context value checks
   - File existence checks
@@ -18,6 +19,7 @@ The Conditional step enables branching execution paths in recipes based on evalu
 ## Implementation Considerations
 
 - If expression is already a boolean or a string that can be evaluated to a boolean, use it directly as it may have been rendered by the template engine
+- Do not send non-string values to the template engine
 - Include conversion of "true" and "false" strings to boolean values in any safe globals list
 - Keep expression evaluation lightweight and focused on common needs
 - Allow for direct access to context values via expression syntax

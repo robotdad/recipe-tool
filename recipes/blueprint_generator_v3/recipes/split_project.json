@@ -4,7 +4,8 @@
       "type": "read_files",
       "config": {
         "path": "{{ output_dir }}/analysis/analysis_result.json",
-        "content_key": "analysis_result_json"
+        "content_key": "analysis_result_json",
+        "merge_mode": "dict"
       }
     },
     {

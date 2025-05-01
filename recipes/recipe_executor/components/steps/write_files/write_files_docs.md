@@ -42,6 +42,8 @@ Either `files_key` or `files` is required in the configuration. If both are prov
 
 The `files_key` is the context key where the generated files are stored. The `files` parameter can be used to directly provide a list of dictionaries with `path` and `content` keys. Alternatively, the path and content can be specfied using `path_key` and `content_key` respectively to reference values in the context.
 
+Content (regardless of the input format or which context path the data comes in) is automatically detected and serialized to proper JSON with indentation if it is a Python dictionary or list. This ensures that the content is written in a readable format.
+
 The WriteFilesStep can be used in recipes like this:
 
 Files Key Example:

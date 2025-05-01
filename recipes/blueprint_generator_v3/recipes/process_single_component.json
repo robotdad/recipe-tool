@@ -15,7 +15,7 @@
         "files": [
           {
             "path": "{{ output_dir }}/components/main_component_spec.md",
-            "content": "{{ main_component_spec }}"
+            "content_key": "main_component_spec"
           }
         ]
       }

@@ -1,0 +1,50 @@
+{
+  "steps": [
+    {
+      "type": "llm_generate",
+      "config": {
+        "prompt": "Create a status object for tracking component {{ component_id }} through the processing pipeline.\n\nInitial specs from: {{ spec_path }}\nComponent name: {{ component.component_name | default: component_id }}\nCurrent processing step: 'initial'",
+        "model": "{{ model | default: 'openai/o4-mini' }}",
+        "output_format": {
+          "type": "object",
+          "properties": {
+            "component_id": { "type": "string" },
+            "component_name": { "type": "string" },
+            "status": {
+              "type": "string",
+              "enum": [
+                "initial",
+                "questions_generated",
+                "answers_generated",
+                "evaluated",
+                "needs_human_review",
+                "ready"
+              ]
+            },
+            "revision_count": { "type": "integer" },
+            "current_spec_path": { "type": "string" }
+          },
+          "required": [
+            "component_id",
+            "status",
+            "revision_count",
+            "current_spec_path"
+          ]
+        },
+        "output_key": "component_status"
+      }
+    },
+    {
+      "type": "write_files",
+      "config": {
+        "files": [
+          {
+            "path": "{{ component_id }}_status.json",
+            "content_key": "component_status"
+          }
+        ],
+        "root": "{{ output_dir }}/status"
+      }
+    }
+  ]
+}

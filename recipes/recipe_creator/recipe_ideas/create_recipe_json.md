@@ -18,8 +18,8 @@ Create a new JSON recipe file for creating new JSON recipe files, named `create_
 
 2. Always load the following files into context as `context_files`:
 
-- `ai_context/generated/recipe_executor_code_files.md`
-- `ai_context/generated/recipe_executor_recipe_files.md`
+- `ai_context/generated/RECIPE_EXECUTOR_CODE_FILES.md`
+- `ai_context/generated/RECIPE_EXECUTOR_RECIPE_FILES.md`
 - `ai_context/RECIPE_JSON_AUTHORING_GUIDE.md`
 - `ai_context/IMPLEMENTATION_PHILOSOPHY.md`
 - `ai_context/MODULAR_DESIGN_PHILOSOPHY.md`

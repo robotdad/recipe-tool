@@ -1,6 +1,12 @@
-# AI Context Files
-Date: 4/22/2025, 10:49:12 AM
-Files: 25
+# mcp-servers/python-code-tools
+
+[collect-files]
+
+**Search:** ['mcp-servers/python-code-tools']
+**Exclude:** ['.venv', 'node_modules', '.git', '__pycache__', '*.pyc', '*.ruff_cache']
+**Include:** []
+**Date:** 4/30/2025, 11:16:19 AM
+**Files:** 25
 
 === File: mcp-servers/python-code-tools/.ruff.toml ===
 line-length = 120

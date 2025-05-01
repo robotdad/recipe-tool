@@ -1,6 +1,12 @@
-# AI Context Files
-Date: 4/29/2025, 5:13:34 PM
-Files: 1
+# recipes/utilities
+
+[collect-files]
+
+**Search:** ['recipes/utilities']
+**Exclude:** ['.venv', 'node_modules', '.git', '__pycache__', '*.pyc', '*.ruff_cache']
+**Include:** []
+**Date:** 4/30/2025, 11:10:41 AM
+**Files:** 1
 
 === File: recipes/utilities/generate_from_files.json ===
 {

@@ -17,6 +17,7 @@ Usage examples:
 """
 
 import argparse
+import datetime
 import fnmatch
 import glob
 import os
@@ -244,11 +245,18 @@ def format_output(
     """
     output_lines = []
 
-    # Add header information
-    output_lines.append(f"Scanning patterns: {patterns}")
-    output_lines.append(f"Excluding patterns: {exclude_patterns}")
-    output_lines.append(f"Including patterns: {include_patterns}")
-    output_lines.append(f"Found {len(file_paths)} files.\n")
+    # Add metadata header
+    now = datetime.datetime.now()
+    date_str = now.strftime('%-m/%-d/%Y, %-I:%M:%S %p')
+    output_lines.append(f"# {patterns}")
+    output_lines.append("")
+    output_lines.append("[collect-files]")
+    output_lines.append("")
+    output_lines.append(f"**Search:** {patterns}")
+    output_lines.append(f"**Exclude:** {exclude_patterns}")
+    output_lines.append(f"**Include:** {include_patterns}")
+    output_lines.append(f"**Date:** {date_str}")
+    output_lines.append(f"**Files:** {len(file_paths)}\n\n")
 
     # Process each file
     for file_path in file_paths:

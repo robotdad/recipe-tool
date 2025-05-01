@@ -10,7 +10,8 @@
               "type": "read_files",
               "config": {
                 "path": "{{ output_dir }}/analysis/analysis_result.json",
-                "content_key": "analysis_result"
+                "content_key": "analysis_result",
+                "merge_mode": "dict"
               }
             }
           ]
@@ -56,7 +57,8 @@
               "type": "read_files",
               "config": {
                 "path": "{{ output_dir }}/analysis/analysis_result.json",
-                "content_key": "analysis_result"
+                "content_key": "analysis_result",
+                "merge_mode": "dict"
               }
             }
           ]

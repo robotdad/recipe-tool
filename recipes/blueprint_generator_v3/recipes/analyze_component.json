@@ -4,8 +4,7 @@
       "type": "read_files",
       "config": {
         "path": "{{ component_spec }}",
-        "content_key": "component_spec_content",
-        "optional": false
+        "content_key": "component_spec_content"
       }
     },
     {

@@ -4,7 +4,8 @@
       "type": "read_files",
       "config": {
         "path": "{{ candidate_spec_path }}",
-        "content_key": "candidate_spec"
+        "content_key": "candidate_spec",
+        "merge_mode": "dict"
       }
     },
     {
