@@ -4,16 +4,14 @@
       "type": "read_files",
       "config": {
         "path": "{{vision_doc_path}}",
-        "content_key": "vision_content",
-        "optional": false
+        "content_key": "vision_content"
       }
     },
     {
       "type": "read_files",
       "config": {
         "path": "{{requirements_doc_path}}",
-        "content_key": "requirements_content",
-        "optional": false
+        "content_key": "requirements_content"
       }
     },
     {
@@ -58,17 +56,14 @@
       "type": "read_files",
       "config": {
         "path": "ai_context/COMPONENT_DOCS_SPEC_GUIDE.md",
-        "content_key": "component_docs_spec_guide",
-        "optional": false
+        "content_key": "component_docs_spec_guide"
       }
     },
     {
       "type": "read_files",
       "config": {
         "path": "ai_context/IMPLEMENTATION_PHILOSOPHY.md,ai_context/MODULAR_DESIGN_PHILOSOPHY.md",
-        "content_key": "philosophy_guidance",
-        "merge_mode": "concat",
-        "optional": false
+        "content_key": "philosophy_guidance"
       }
     }
   ]

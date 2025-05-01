@@ -1,6 +1,10 @@
-# Instructions for Testing the Blueprint Generator
+# Instructions for Testing the Blueprint Generator v3
 
-## Setup
+This version of the Blueprint Generator is patterned after a prior version that was used to create an MVP for a platform service, but was previously stitched together with a bit of glue code. The goal of this version is to create a pure recipe version that can be used to generate blueprints for various projects.
+
+## Setup Example
+
+The following instructions will guide you through setting up a test project for the Blueprint Generator. This example uses a simplified Task Manager API specification to demonstrate the process. Replace the example with your own project specifications as needed.
 
 1. Create a test directory structure:
 
@@ -8,10 +12,10 @@
    mkdir -p blueprint_test/{input,output}
    ```
 
-2. Save the Task Manager API specification:
+2. Place high-level specification files in the `input` directory.
 
    ```bash
-   # Save the provided Task Manager API spec to this file
+   # Create a sample Task Manager API specification
    nano blueprint_test/input/task_manager_spec.md
    ```
 
@@ -26,10 +30,10 @@
 ## Run the Blueprint Generator
 
 ```bash
-# Run the blueprint generator with the test project
+# From the repo root, run the blueprint generator with the test project
 recipe-tool --execute recipes/blueprint_generator_v3/build.json \
   project_spec=blueprint_test/input/task_manager_spec.md \
-  output_dir=blueprint_test/output \
+  output_dir=blueprint_test/output/blueprint_generator_v3 \
   model=openai/o4-mini
 ```
 

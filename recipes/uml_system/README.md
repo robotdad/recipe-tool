@@ -30,21 +30,16 @@ recipes/
 
 ## How to Use
 
-1. Create a folder structure to hold the recipes:
+- Run the main recipe with the sample Recipe Management UI vision document:
 
-   ```bash
-   mkdir -p recipes/uml_system
-   ```
+  ```bash
+  recipe-tool --execute recipes/uml_system/main.json \
+     input_path=blueprint_test/input/recipe_management_ui_vision.md \
+     output_dir=blueprint_test/output/uml_system \
+     model=openai/o4-mini
+  ```
 
-2. Place all the recipe files in the appropriate directory
-
-3. Run the main recipe with the provided Recipe Management UI vision document:
-
-   ```bash
-   recipe-tool --execute recipes/uml_system/main.json input_path=specs/recipe_management_ui_vision.md
-   ```
-
-4. Review any items flagged for human intervention (stored in the `output/review` directory)
+4. Review any items flagged for human intervention (stored in the `**output**/review` directory)
 
 5. Continue the process by following the instructions in the `NEXT_STEPS.md` file
 
