@@ -28,7 +28,7 @@
     {
       "type": "conditional",
       "config": {
-        "condition": "and(not({{ analysis_result.approved | default: false }}), {{ retry_count }} < {{ max_retries }})",
+        "condition": "and(not({{ approval_result.approved | default: false }}), {{ retry_count }} < {{ max_retries }})",
         "if_true": {
           "steps": [
             {

@@ -20,7 +20,7 @@
     {
       "type": "conditional",
       "config": {
-        "condition": "{{ analysis_result.approved }}",
+        "condition": "{{ approval_result.approved }}",
         "if_false": {
           "steps": [
             {

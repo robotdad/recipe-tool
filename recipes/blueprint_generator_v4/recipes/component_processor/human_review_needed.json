@@ -1,0 +1,35 @@
+{
+  "steps": [
+    {
+      "type": "conditional",
+      "config": {
+        "condition": "file_exists('{{ output_dir }}/{{ component.id }}_review_needed.md')",
+        "if_false": {
+          "steps": [
+            {
+              "type": "llm_generate",
+              "config": {
+                "model": "{{ model }}",
+                "prompt": "Write up a brief summary of why the specification for this component needs human review, based upon the approval result.\n<REFINED_SPEC>\n{{ refined_spec }}\n</REFINED_SPEC>\n\n<COMPONENT_DOCS_SPEC_GUIDE>\n{{ component_docs_spec_guide }}\n</COMPONENT_DOCS_SPEC_GUIDE>\n\n<APPROVAL_RESULT>\n{{ approval_result }}\n</APPROVAL_RESULT>",
+                "output_format": "text",
+                "output_key": "human_review_needed"
+              }
+            },
+            {
+              "type": "write_files",
+              "config": {
+                "files": [
+                  {
+                    "path": "{{ component.id }}_review_needed.md",
+                    "content_key": "human_review_needed"
+                  }
+                ],
+                "root": "{{ output_dir }}"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}
