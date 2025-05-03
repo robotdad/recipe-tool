@@ -10,7 +10,8 @@
               "type": "read_files",
               "config": {
                 "path": "{{ output_dir }}/components/{{ component.id }}/refined_spec.json",
-                "content_key": "refined_spec"
+                "content_key": "refined_spec",
+                "merge_model": "dict"
               }
             }
           ]

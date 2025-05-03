@@ -10,7 +10,8 @@
               "type": "read_files",
               "config": {
                 "path": "{{ output_dir }}/components/{{ component.id }}/approval_result.json",
-                "content_key": "approval_result"
+                "content_key": "approval_result",
+                "merge_model": "dict"
               }
             }
           ]

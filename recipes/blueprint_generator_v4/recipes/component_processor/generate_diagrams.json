@@ -10,7 +10,8 @@
               "type": "read_files",
               "config": {
                 "path": "{{ output_dir }}/components/{{ component.id }}/diagrams.json",
-                "content_key": "diagrams"
+                "content_key": "diagrams",
+                "merge_model": "dict"
               }
             }
           ]
