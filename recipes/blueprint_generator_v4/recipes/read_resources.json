@@ -1,0 +1,57 @@
+{
+  "steps": [
+    {
+      "type": "read_files",
+      "config": {
+        "path": "{{ project_spec }}",
+        "content_key": "project_spec_content"
+      }
+    },
+    {
+      "type": "read_files",
+      "config": {
+        "path": "{{ ref_docs }}",
+        "content_key": "ref_docs_content",
+        "merge_mode": "dict",
+        "optional": true
+      }
+    },
+    {
+      "type": "read_files",
+      "config": {
+        "path": "{{ context_docs }}",
+        "content_key": "context_docs_content",
+        "merge_mode": "dict",
+        "optional": true
+      }
+    },
+    {
+      "type": "read_files",
+      "config": {
+        "path": "ai_context/UML_MERMAID_GUIDE.md",
+        "content_key": "uml_mermaid_guide"
+      }
+    },
+    {
+      "type": "read_files",
+      "config": {
+        "path": "ai_context/IMPLEMENTATION_PHILOSOPHY.md",
+        "content_key": "implementation_philosophy"
+      }
+    },
+    {
+      "type": "read_files",
+      "config": {
+        "path": "ai_context/MODULAR_DESIGN_PHILOSOPHY.md",
+        "content_key": "modular_design_philosophy"
+      }
+    },
+    {
+      "type": "read_files",
+      "config": {
+        "path": "ai_context/COMPONENT_DOCS_SPEC_GUIDE.md",
+        "content_key": "component_docs_spec_guide"
+      }
+    }
+  ]
+}

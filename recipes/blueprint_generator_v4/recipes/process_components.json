@@ -1,0 +1,20 @@
+{
+  "steps": [
+    {
+      "type": "loop",
+      "config": {
+        "items": "analysis_result.components",
+        "item_key": "component",
+        "substeps": [
+          {
+            "type": "execute_recipe",
+            "config": {
+              "recipe_path": "recipes/blueprint_generator_v4/recipes/component_processor/process_component.json"
+            }
+          }
+        ],
+        "result_key": "processed_components"
+      }
+    }
+  ]
+}

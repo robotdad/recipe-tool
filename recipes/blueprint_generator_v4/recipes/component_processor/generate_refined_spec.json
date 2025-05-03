@@ -1,0 +1,59 @@
+{
+  "steps": [
+    {
+      "type": "conditional",
+      "config": {
+        "condition": "file_exists('{{ output_dir }}/components/{{ component.id }}/refined_spec.json')",
+        "if_true": {
+          "steps": [
+            {
+              "type": "read_files",
+              "config": {
+                "files": [
+                  {
+                    "path": "{{ output_dir }}/components/{{ component.id }}/refined_spec.json",
+                    "content_key": "refined_spec"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "if_false": {
+          "steps": [
+            {
+              "type": "llm_generate",
+              "config": {
+                "model": "{{ model }}",
+                "prompt": "Generate a refined spec for the component based on the candidate spec and the clarification questions.\n<CANDIDATE_SPEC>\n{{ candidate_spec }}\n</CANDIDATE_SPEC>\n<QUESTIONS>\n{{ clarification_questions }}\n</QUESTIONS>\n\nAdditional Context:\n\n<PROJECT_SPEC>\n{{ project_spec_content }}\n</PROJECT_SPEC>\n<CONTEXT_DOCS>\n{% if context_docs_content %}{% for path in context_docs_content %}[{{ path }}]\n{{ context_docs_content[path] }}\n{% endfor %}{% endif %}\n</CONTEXT_DOCS>\n<REFERENCE_DOCS>\n{% if ref_docs_content %}{% for path in ref_docs_content %}[{{ path }}]\n{{ ref_docs_content[path] }}\n{% endfor %}{% endif %}\n</REFERENCE_DOCS>\n<PHILOSOPHY_GUIDES>\n[IMPLEMENTATION] {{ implementation_philosophy }}\n[MODULAR] {{ modular_design_philosophy }}\n[DOCS_GUIDE] {{ component_docs_spec_guide }}\n</PHILOSOPHY_GUIDES>",
+                "output_format": {
+                  "type": "object",
+                  "properties": {
+                    "refined_spec": {
+                      "type": "object",
+                      "properties": {}
+                    }
+                  },
+                  "required": ["refined_spec"]
+                },
+                "output_key": "refined_spec"
+              }
+            },
+            {
+              "type": "write_files",
+              "config": {
+                "files": [
+                  {
+                    "path": "{{ component.id }}/refined_spec.json",
+                    "content_key": "refined_spec"
+                  }
+                ],
+                "root": "{{ output_dir }}/components"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}
