@@ -5,6 +5,8 @@
       "config": {
         "items": "analysis_result.components",
         "item_key": "component",
+        "max_concurrency": 0,
+        "delay": 0.1,
         "substeps": [
           {
             "type": "execute_recipe",

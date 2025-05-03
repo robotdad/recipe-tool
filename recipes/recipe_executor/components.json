@@ -54,7 +54,7 @@
   },
   {
     "id": "steps.conditional",
-    "deps": ["context", "steps.base", "utils.templates"],
+    "deps": ["context", "protocols", "steps.base", "utils.templates"],
     "refs": []
   },
   {
@@ -75,6 +75,7 @@
       "models",
       "llm_utils.llm",
       "llm_utils.mcp",
+      "protocols",
       "steps.base",
       "utils.models",
       "utils.templates"
@@ -86,6 +87,7 @@
     "deps": [
       "context",
       "executor",
+      "protocols",
       "steps.base",
       "steps.registry",
       "utils.templates"
@@ -104,7 +106,7 @@
   },
   {
     "id": "steps.read_files",
-    "deps": ["steps.base", "context", "utils.templates"],
+    "deps": ["context", "protocols", "steps.base", "utils.templates"],
     "refs": []
   },
   {
@@ -114,7 +116,7 @@
   },
   {
     "id": "steps.write_files",
-    "deps": ["context", "models", "steps.base", "utils/.templates"],
+    "deps": ["context", "models", "protocols", "steps.base", "utils.templates"],
     "refs": []
   },
   {

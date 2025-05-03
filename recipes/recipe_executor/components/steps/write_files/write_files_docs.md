@@ -194,7 +194,7 @@ File paths within the FileSpec objects can also contain templates:
 ```python
 FileSpec(
     path="{{component_name}}/{{filename}}.py",
-    content="# Generated code for {{component_name}}"
+    content="# Generated code....\nprint('Hello, world!')"
 )
 ```
 
@@ -260,6 +260,7 @@ When `config_data` is a Python dictionary or list, it will be automatically seri
 - Directories are created automatically if they don't exist
 - Files are overwritten without confirmation if they already exist
 - All paths are rendered using template variables from the context (ContextProtocol)
+- File content is not processed for templates
 - File content is written using UTF-8 encoding
 - Both FileSpec and List[FileSpec] input formats are supported
 - Python dictionaries and lists are automatically serialized to properly formatted JSON with indentation
