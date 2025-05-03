@@ -1,0 +1,23 @@
+Create a recipe file named `generate_ytsummary.json` that generates new content based on the following scenario:
+
+Input context variables:
+- A YouTube url passed as a variable `yturl`
+- Pass the `yturl` to an MCP step for processing:
+    - MCP Server:
+        - Command `mcp-server-youtube-transcript`
+        - Args `stdio`
+
+    - Tool Call:
+        `get_transcript`
+        - Arguments
+            `url` = `yturl`
+
+- Pass the results of the tool call to an LLM step to generate a report and output as type `files`:
+
+```prompt
+Generate a comprehensive report about the YouTube transcript. Provide an overview, followed by a detailed summary of the content. Include a conclusion that judges whether the quality of the content based on the type of content it is, for media commentary judge it by standards for entertainment, novelty etc. and for financial judge it on accuracy, whether it is prone to hyperbole etc. and so on for other types of content. Determine a good title for the report.
+
+Save to title + `_yt_analysis.md`.
+```
+
+- Write the file to the `output` directory.

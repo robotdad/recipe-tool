@@ -1,0 +1,33 @@
+{
+  "steps": [
+    {
+      "type": "mcp",
+      "config": {
+        "server": {
+          "command": "mcp-server-youtube-transcript",
+          "args": ["stdio"]
+        },
+        "tool_name": "get_transcript",
+        "arguments": {
+          "url": ""
+        },
+        "result_key": "transcript_response"
+      }
+    },
+    {
+      "type": "llm_generate",
+      "config": {
+        "prompt": "Generate a comprehensive report about the YouTube transcript. Provide an overview, followed by a detailed summary of the content. Include a conclusion that judges whether the quality of the content based on the type of content it is, for media commentary judge it by standards for entertainment, novelty etc. and for financial judge it on accuracy, whether it is prone to hyperbole etc. and so on for other types of content. Determine a good title for the report.\n\nTranscript:\n\n\nSave to title + `_yt_analysis.md`.",
+        "output_format": "files",
+        "output_key": "generated_files"
+      }
+    },
+    {
+      "type": "write_files",
+      "config": {
+        "files_key": "generated_files",
+        "root": "output"
+      }
+    }
+  ]
+}
