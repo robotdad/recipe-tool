@@ -4,8 +4,12 @@
       "type": "mcp",
       "config": {
         "server": {
-          "command": "mcp-server-youtube-transcript",
-          "args": ["stdio"]
+          "command": "uvx",
+          "args": [
+            "--from",
+            "git+https://github.com/jkawamoto/mcp-youtube-transcript",
+            "mcp-youtube-transcript"
+          ]
         },
         "tool_name": "get_transcript",
         "arguments": {
@@ -17,8 +21,8 @@
     {
       "type": "llm_generate",
       "config": {
-        "prompt": "Generate a comprehensive report about the YouTube transcript. Provide an overview, followed by a detailed summary of the content. Include a conclusion that judges whether the quality of the content based on the type of content it is, for media commentary judge it by standards for entertainment, novelty etc. and for financial judge it on accuracy, whether it is prone to hyperbole etc. and so on for other types of content. Determine a good title for the report.\n\nTranscript:\n{% if transcript_response is mapping %}{% if 'transcript' in transcript_response %}{{ transcript_response.transcript }}{% elif 'content' in transcript_response %}{{ transcript_response.content }}{% else %}{{ transcript_response }}{% endif %}{% else %}{{ transcript_response }}{% endif %}\n\nSave to title + `_yt_analysis.md`.",
-        "model": "{{ model | default('openai/gpt-4o') }}",
+        "prompt": "Generate a comprehensive report about the YouTube transcript. Provide an overview, followed by a detailed summary of the content. Include a conclusion that judges whether the quality of the content based on the type of content it is, for media commentary judge it by standards for entertainment, novelty etc. and for financial judge it on accuracy, whether it is prone to hyperbole etc. and so on for other types of content. Determine a good title for the report.\n\nTranscript:\n{{ transcript_response }}\n\nSave to title + `_yt_analysis.md`.",
+        "model": "{{ model | default: 'openai/gpt-4o' }}",
         "output_format": "files",
         "output_key": "generated_files"
       }
