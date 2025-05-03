@@ -9,12 +9,8 @@
             {
               "type": "read_files",
               "config": {
-                "files": [
-                  {
-                    "path": "{{ output_dir }}/components/{{ component.id }}/candidate_spec.json",
-                    "content_key": "candidate_spec"
-                  }
-                ]
+                "path": "{{ output_dir }}/components/{{ component.id }}/candidate_spec.json",
+                "content_key": "candidate_spec"
               }
             }
           ]

@@ -9,12 +9,8 @@
             {
               "type": "read_files",
               "config": {
-                "files": [
-                  {
-                    "path": "{{ output_dir }}/components/{{ component.id }}/diagrams.json",
-                    "content_key": "diagrams"
-                  }
-                ]
+                "path": "{{ output_dir }}/components/{{ component.id }}/diagrams.json",
+                "content_key": "diagrams"
               }
             }
           ]

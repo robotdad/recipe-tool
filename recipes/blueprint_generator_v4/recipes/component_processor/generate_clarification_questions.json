@@ -9,12 +9,8 @@
             {
               "type": "read_files",
               "config": {
-                "files": [
-                  {
-                    "path": "{{ output_dir }}/components/{{ component.id }}/clarification_questions.json",
-                    "content_key": "clarification_questions"
-                  }
-                ]
+                "path": "{{ output_dir }}/components/{{ component.id }}/clarification_questions.json",
+                "content_key": "clarification_questions"
               }
             }
           ]
