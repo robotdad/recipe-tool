@@ -1,6 +1,7 @@
 {
   "name": "YouTube Analysis Generator (Improved)",
   "description": "Enhanced analysis of YouTube videos with granular fact-checking and multi-stage refinement",
+  "usage_notes": "This recipe analyzes YouTube videos by retrieving the transcript, generating targeted search queries, performing web searches, retrieving full content from top sources, and creating an engaging, accurate analysis.\n\nKey features:\n- Content-first approach: presents video content fairly before any critical analysis\n- Full content retrieval: uses MCP fetch to retrieve and analyze complete articles beyond snippets\n- Temporal awareness: specifically targets current (2025) information and highlights temporal mismatches\n- Authoritative context analysis: analyzes provided trusted information to determine research needs\n- Smart query generation: focuses on information gaps not covered by authoritative context\n- Research prioritization: intelligently balances authoritative context with web research\n\nAI Context Workflow:\n1. Provide facts file with `ai_context` parameter\n2. Recipe analyzes fact file to extract established facts and information gaps\n3. Search queries prioritize topics not already covered in provided facts\n4. Web research fills gaps while authoritative context takes precedence on conflicts\n5. Final analysis seamlessly integrates both authoritative facts and web research\n\nDependencies:\n- mcp-server-fetch: Install with `pip install mcp-server-fetch` or `uvx mcp-server-fetch`\n- Brave API key for search functionality\n\nOptional parameters:\n- ai_context: Path to a file containing authoritative information that will override conflicting web results\n- freshness: Controls the recency of Brave search results. Options include:\n  - pd: Past day (last 24 hours)\n  - pw: Past week (last 7 days)\n  - pm: Past month (last 31 days)\n  - py: Past year (last 365 days) - Default if not specified\n  - Custom range: YYYY-MM-DDtoYYYY-MM-DD (e.g., 2024-01-01to2025-01-01)\n- model: The LLM model to use (default: openai/gpt-4o)\n\nOutput files:\n- content_draft.md: Initial analysis draft\n- content_critique.md: Editorial feedback on the draft\n- content_final.md: Polished final analysis\n- diagnostic_report.md: Detailed methodology and research process documentation\n- raw_research_data.md: Complete research data including snippets and full content\n\nExample usage:\nrecipe-tool --execute recipes/ytsummary/generate_ytanalysis.json model=azure/o4-mini brave_api_key=XXX yturl=XXX freshness=pm ai_context=/path/to/facts.md",
   "steps": [
     {
       "type": "mcp",
@@ -21,9 +22,35 @@
       }
     },
     {
+      "type": "read_files",
+      "config": {
+        "path": "{{ ai_context }}",
+        "content_key": "authoritative_context",
+        "optional": true
+      }
+    },
+    {
       "type": "llm_generate",
       "config": {
-        "prompt": "Read this YouTube transcript and extract key topics, claims, and named entities that should be fact-checked or explored via web search.\n\nTranscript:\n{{ transcript_response }}\n\nExtract 5-10 search-ready queries. For each query, include a brief explanation of why this is an important point to verify. Make each query specific, concise, and focused on a single verifiable claim or topic.\n\nChoose queries that will help create a balanced, insightful analysis of the video's content - not just to check for errors, but to provide context, background information, and relevant perspectives.",
+        "prompt": "{% if authoritative_context %}Analyze this authoritative context document that has been provided as a trusted source of information for our YouTube video analysis:\n\n{{ authoritative_context }}\n\nExtract and categorize the key facts, claims, and information contained in this document. Your analysis should:\n\n1. Identify specific claims and factual statements that are definitively established by this document\n2. Note any temporal information (dates, timeframes, etc.) associated with these claims\n3. List any topics, entities, or claims that are mentioned but not fully addressed (gaps in information)\n4. Identify any explicitly mentioned sources or citations\n\nFormat your response as a structured summary with clear sections for:\n- Established Facts (claims we can consider authoritative)\n- Partial Information (claims that have some coverage but might need more research)\n- Information Gaps (important topics not covered)\n- Source Assessment (evaluation of the authoritative context's comprehensiveness)\n\nThis analysis will help determine which aspects of the video still require web research versus which are already covered by the authoritative context.{% else %}No authoritative context was provided. All claims in the video will need to be researched.{% endif %}",
+        "model": "{{ model | default: 'openai/gpt-4o' }}",
+        "output_format": "text",
+        "output_key": "authoritative_context_analysis"
+      }
+    },
+    {
+      "type": "llm_generate",
+      "config": {
+        "prompt": "Create a comprehensive, objective summary of this YouTube video based solely on its transcript. This will serve as a baseline understanding of the video content before any research or fact-checking.\n\nTranscript:\n{{ transcript_response }}\n\nYour summary should:\n1. Identify the main topic and purpose of the video\n2. Outline the key points, claims, and arguments presented\n3. Note the structure and flow of the presentation\n4. Capture the tone and style of the speaker/creator\n5. Identify any self-disclosed sources or references mentioned within the video itself\n\nFocus only on what is explicitly stated in the transcript - do not add external information, personal opinions, or fact-checking at this stage. This should be a fair, comprehensive representation of what a viewer would take away from watching the video.\n\nKeep your language clear, neutral, and objective.",
+        "model": "{{ model | default: 'openai/gpt-4o' }}",
+        "output_format": "text",
+        "output_key": "content_summary"
+      }
+    },
+    {
+      "type": "llm_generate",
+      "config": {
+        "prompt": "Based on this YouTube video summary and transcript, extract key topics, claims, and named entities that should be fact-checked or explored via web search.\n\nVideo Summary:\n{{ content_summary }}\n\nTranscript:\n{{ transcript_response }}\n\n{% if authoritative_context %}\nAuthoritative Context Analysis:\n{{ authoritative_context_analysis }}\n\nIMPORTANT: Prioritize generating queries for claims and topics that are NOT already comprehensively covered in the authoritative context. Focus on:\n1. Information gaps identified in the authoritative context analysis\n2. Claims in the video that aren't addressed in the authoritative context\n3. Areas where the authoritative context offers only partial information\n4. Topics where web search might provide more recent data than the authoritative context\n{% endif %}\n\nIMPORTANT: The search results will be filtered by recency ({{ freshness | default: 'past year' }}), but it's crucial to also embed temporal cues directly in the queries.\n\nExtract 5-10 search-ready queries. For each query:\n\n1. Include a brief explanation of why this is an important point to verify\n2. ALWAYS specify relevant time periods directly in the query text using YEAR/MONTH format:\n   - For current events: Use \"2025\" or specific month \"March 2025\" in the query text\n   - For historical comparisons: Use explicit date ranges \"smartphone features 2024-2025 vs 2019-2020\"\n   - For policy changes: Include both before/after dates \"streaming service pricing before May 2025 vs after\"\n3. Include specific names, numbers, and details that will produce precise search results\n4. Add contextual keywords that distinguish between similar events/policies from different periods\n5. When referring to specific people, include their current role (\"CEO Satya Nadella 2025\")\n\nEvery query MUST have a year specified. Queries without explicit temporal markers will receive mixed results from different time periods.\n\nMake each query specific, concise, and focused on a single verifiable claim or topic. Choose queries that will help create a balanced, insightful analysis of the video's content - not just to check for errors, but to provide context, background information, and relevant perspectives.",
         "model": "{{ model | default: 'openai/gpt-4o' }}",
         "output_format": {
           "type": "object",
@@ -33,8 +60,9 @@
               "items": {
                 "type": "object",
                 "properties": {
-                  "query": {"type": "string"},
-                  "rationale": {"type": "string"}
+                  "query": { "type": "string" },
+                  "rationale": { "type": "string" },
+                  "time_period": { "type": "string" }
                 },
                 "required": ["query", "rationale"]
               }
@@ -64,7 +92,8 @@
               "tool_name": "brave_web_search",
               "arguments": {
                 "query": "{{ current_query.query }}",
-                "count": 5
+                "count": 5,
+                "freshness": "{{ freshness | default: 'py' }}"
               },
               "result_key": "current_search_results"
             }
@@ -72,20 +101,95 @@
           {
             "type": "llm_generate",
             "config": {
-              "prompt": "You are a fact-checker analyzing the following search query and its results:\n\nQuery: {{ current_query.query }}\nRationale: {{ current_query.rationale }}\n\nSearch Results:\n{{ current_search_results }}\n\nProvide a concise fact-check report that:\n1. Restates the query as a verifiable claim/topic\n2. Summarizes what the search results reveal about this topic\n3. Provides 2-3 verified facts with citations to specific search results\n4. Notes any contradictions or inconsistencies among sources\n5. Assigns a confidence level (High/Medium/Low) for the verified information\n6. Explains how this information enhances our understanding of the video content\n\nWrite in an engaging, journalistic style - as if you're uncovering interesting information for readers, not just verifying facts. Keep your response under 300 words and focused only on this specific query.",
+              "prompt": "From these search results, identify the 2 most relevant URLs that contain substantial content related to the query. Focus on sources that appear to be high-quality, recent, and likely to provide detailed information on the topic. For each URL, provide a brief explanation of why it's likely to be valuable.\n\nSearch Query: {{ current_query.query }}\nSearch Results: {{ current_search_results }}\n\nReturn exactly 2 URLs in JSON format.",
+              "model": "{{ model | default: 'openai/gpt-4o' }}",
+              "output_format": {
+                "type": "object",
+                "properties": {
+                  "urls": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "url": {"type": "string"},
+                        "reason": {"type": "string"}
+                      },
+                      "required": ["url", "reason"]
+                    }
+                  }
+                },
+                "required": ["urls"]
+              },
+              "output_key": "top_urls"
+            }
+          },
+          {
+            "type": "loop",
+            "config": {
+              "items": "top_urls.urls",
+              "item_key": "current_url",
+              "substeps": [
+                {
+                  "type": "mcp",
+                  "config": {
+                    "server": {
+                      "command": "uvx",
+                      "args": ["mcp-server-fetch"]
+                    },
+                    "tool_name": "fetch",
+                    "arguments": {
+                      "url": "{{ current_url.url }}",
+                      "max_length": 10000
+                    },
+                    "result_key": "current_full_content"
+                  }
+                }
+              ],
+              "result_key": "full_content_results"
+            }
+          },
+          {
+            "type": "llm_generate",
+            "config": {
+              "prompt": "You are a fact-checker analyzing the following search query, initial search results, and full article content:\n\nQuery: {{ current_query.query }}\nRationale: {{ current_query.rationale }}\n{% if current_query.time_period %}Time Period: {{ current_query.time_period }}{% endif %}\n\nSearch Results Overview (filtered by freshness: {{ freshness | default: 'past year' }}):\n{{ current_search_results }}\n\nFull Content of Top Sources:\n{{ full_content_results }}\n\n{% if authoritative_context %}\nAuthoritative Context:\n{{ authoritative_context }}\n\nAuthoritative Context Analysis:\n{{ authoritative_context_analysis }}\n\nIMPORTANT: When there's a conflict between web search results and the authoritative context, prioritize the information from the authoritative context after careful consideration. Explain any discrepancies you identify. Pay special attention to the 'Established Facts' section in the authoritative context analysis as these should be treated as definitive.\n{% endif %}\n\nTEMPORAL FILTERING INSTRUCTIONS:\n1. Before analyzing, examine all content for publication dates\n2. Strongly prioritize content from the specific year/period mentioned in the query\n3. If content is from years prior to those mentioned in the query, note this as \"Temporal Mismatch\" and be extremely cautious about using this information\n4. For any fact derived from content more than 1 year older than the period being discussed, apply a clear disclaimer\n\nProvide a concise fact-check report that:\n1. Restates the query as a verifiable claim/topic\n2. Lists publication dates/year of each source being used (e.g., \"From April 2025 Washington Post article...\")\n3. Summarizes what the most temporally-relevant content reveals\n4. Provides 2-3 verified facts with citations to specific sources\n5. Notes any contradictions or inconsistencies among sources\n6. Assigns a confidence level (High/Medium/Low) for the verified information\n7. Explains how this information enhances our understanding of the video content\n8. Notes any significant additional context found in the full article content that wasn't apparent from the snippets\n\nWrite in an engaging, journalistic style - as if you're uncovering interesting information for readers, not just verifying facts. Keep your response under 400 words and focused only on this specific query.",
               "model": "{{ model | default: 'openai/gpt-4o' }}",
               "output_format": "text",
               "output_key": "current_fact_check"
             }
+          },
+          {
+            "type": "llm_generate",
+            "config": {
+              "prompt": "Create a brief diagnostic report comparing the search snippets versus the full content retrieval for this query:\n\nQuery: {{ current_query.query }}\n\nSearch Snippets: {{ current_search_results }}\n\nFull Content: {{ full_content_results }}\n\nPlease analyze:\n1. What important information was only available in the full content?\n2. Were there any misleading impressions from just the snippets?\n3. How did the full content change your understanding of the topic?\n4. Were publication dates/temporal context clearer in the full content?\n5. Did the full content provide more recent information than was apparent from the snippets?\n\nAlso, please try to identify:\n- Publication date of each full content source (if available)\n- Whether the content appears to be from 2025 or is older content\n- Any indicators of content freshness/recency\n\nFormat this as a brief but insightful comparison that helps us understand the value of full content retrieval.",
+              "model": "{{ model | default: 'openai/gpt-4o' }}",
+              "output_format": "text",
+              "output_key": "content_comparison"
+            }
           }
         ],
-        "result_key": "fact_checks"
+        "result_key": "fact_checks_with_diagnostics"
       }
     },
     {
       "type": "llm_generate",
       "config": {
-        "prompt": "Synthesize these individual fact-check reports into a comprehensive research document. Organize the information by topics, highlight key findings, and note any patterns or contradictions across different fact-checks.\n\nIndividual Fact-Checks:\n{{ fact_checks }}\n\nQueries and Rationales:\n{{ search_queries_object.queries }}\n\nCreate a well-structured, cohesive research document that will be used as a reference for generating the YouTube video analysis. Use an engaging, investigative tone that makes the research feel like a discovery process rather than a dry report.",
+        "prompt": "Collect and format the raw search results and full content retrievals for each query to aid in debugging and analysis:\n\nQueries:\n{{ search_queries_object.queries }}\n\nSearch Results, Full Content, and Fact-Checks:\n{{ fact_checks_with_diagnostics }}\n\nFormat this as a well-structured markdown document with the following for each query:\n1. Query text and rationale\n2. Raw search results including:\n   - Title of each result\n   - URL\n   - Publication date (if available)\n   - Source/domain\n   - Brief snippet from result\n3. Full content retrieval summary:\n   - URLs that were fully retrieved\n   - Publication dates from full content\n   - Content length/quality assessment\n4. Content comparison highlights (snippet vs. full content)\n5. Summary of temporal distribution of all sources\n\nTitle this document \"Raw Research Data - [VIDEO TITLE]\" where [VIDEO TITLE] is derived from the content.",
+        "model": "{{ model | default: 'openai/gpt-4o' }}",
+        "output_format": "files",
+        "output_key": "raw_search_results"
+      }
+    },
+    {
+      "type": "write_files",
+      "config": {
+        "files_key": "raw_search_results",
+        "root": "output"
+      }
+    },
+    {
+      "type": "llm_generate",
+      "config": {
+        "prompt": "Synthesize these individual fact-check reports into a comprehensive research document. Organize the information by topics, highlight key findings, and note any patterns or contradictions across different fact-checks.\n\nVideo Content Summary:\n{{ content_summary }}\n\nIndividual Fact-Checks and Content Analyses:\n{{ fact_checks_with_diagnostics }}\n\nQueries and Rationales:\n{{ search_queries_object.queries }}\n\n{% if authoritative_context %}\nAuthoritative Context (higher priority source):\n{{ authoritative_context }}\n\nAuthoritative Context Analysis:\n{{ authoritative_context_analysis }}\n{% endif %}\n\nSource Weighting Guidelines:\n1. Prioritize the authoritative context when available\n2. Give strong preference to content from the current year (2025)\n3. Consider source expertise, publication date, and full content analysis when available\n4. Clearly identify when claims in the video are supported or contradicted by research\n5. When sources conflict, prioritize those with the most recent publication date and most complete content\n6. Note when temporal confusion might exist (e.g., older events mixed with recent ones)\n\nCreate a well-structured, cohesive research document that will be used as a reference for generating the YouTube video analysis. The document should:\n1. Start with a clear summary of the video's claims and presentation\n2. Include a section on the research methodology and content retrieval process\n3. Organize fact-checking results by major themes or claims\n4. For each key point, note whether it was from snippet-only or full content analysis\n5. Highlight areas where the video is accurate and supported by evidence\n6. Note areas where additional context or corrections are needed\n7. Use an engaging, investigative tone that makes the research feel like a discovery process rather than a dry report",
         "model": "{{ model | default: 'openai/gpt-4o' }}",
         "output_format": "text",
         "output_key": "consolidated_research"
@@ -94,7 +198,7 @@
     {
       "type": "llm_generate",
       "config": {
-        "prompt": "Create a diagnostic summary of the research process for this YouTube video analysis.\n\nQueries explored:\n{{ search_queries_object.queries }}\n\nSearch results and fact-checks:\n{{ fact_checks }}\n\nFormat this as a well-structured markdown document that shows:\n1. Each query and why it was selected\n2. A brief summary of what was found for each query\n3. How the findings inform our understanding of the video\n\nThis will be included as an appendix to help readers understand the research methodology.",
+        "prompt": "Create a detailed diagnostic summary of the research process for this YouTube video analysis.\n\nVideo Content Summary:\n{{ content_summary }}\n\nQueries explored:\n{{ search_queries_object.queries }}\n\nSearch results, full content, and fact-checks:\n{{ fact_checks_with_diagnostics }}\n\n{% if authoritative_context %}\nAuthoritative Context Used:\n{{ authoritative_context }}\n\nAuthoritative Context Analysis:\n{{ authoritative_context_analysis }}\n{% endif %}\n\nFormat this as a well-structured markdown document that shows:\n1. A concise summary of the video content as understood from the transcript\n\n2. Queries and Selection Rationale in a table format with columns for:\n   - Query number and text\n   - Rationale for selection\n   - Time period targeted (from the query)\n\n3. Search Results Analysis in a table format with columns for:\n   - Query number\n   - Source publication dates (range or specific dates found in results)\n   - Content type (Snippet Only vs. Full Content)\n   - Relevance to query (High/Medium/Low)\n   - Key findings summary\n\n4. Full Content Retrieval Assessment in a table format with columns for:\n   - Query number\n   - URL retrieved\n   - Publication date verified from full content\n   - Content quality (depth, relevance, etc.)\n   - Value added beyond snippets (High/Medium/Low)\n\n5. Detailed findings for each query, including specific dates of sources where available\n\n6. How the findings inform or modify our understanding of the video\n\n7. Any conflicts between different sources and how they were resolved, with special attention to temporal conflicts (older vs. newer information)\n\n8. How search result freshness (filtered for: {{ freshness | default: 'past year' }}) affected the research quality\n\n9. Comparative analysis of snippet-only vs. full content retrieval outcomes\n\n{% if authoritative_context %}10. How the authoritative context influenced the analysis{% endif %}\n\nEnsure all temporal information is clearly highlighted to help identify if older information is affecting the analysis.\n\nThis diagnostic report serves as a transparent record of the research methodology and will be referenced in the final analysis.",
         "model": "{{ model | default: 'openai/gpt-4o' }}",
         "output_format": "files",
         "output_key": "diagnostic_summary"
@@ -110,7 +214,7 @@
     {
       "type": "llm_generate",
       "config": {
-        "prompt": "Create an engaging, insightful analysis of a YouTube video that feels like a high-quality media critique or feature article, not just a fact-check report. Base your analysis on:\n\nTranscript:\n{{ transcript_response }}\n\nFact-Check Research:\n{{ consolidated_research }}\n\nYour analysis should:\n1. Start with a compelling hook and an interesting, catchy title\n2. Provide a vivid, readable summary that captures the essence and style of the video\n3. Weave fact-checked information naturally into your narrative, without making the piece feel like a list of corrections\n4. Include interesting context and background that helps readers better understand the topic\n5. Use a conversational, engaging tone that draws readers in while maintaining critical thinking\n6. Include subheadings, bullet points, and other formatting to enhance readability\n\nThis should read like something published in a quality digital publication - informative but enjoyable to read, with personality and insight.\n\nFormat your output as a well-structured markdown document.\n\nSave to title + `_draft.md`.",
+        "prompt": "Create an engaging, insightful analysis of a YouTube video that feels like a high-quality media critique or feature article. Base your analysis on:\n\nVideo Content Summary:\n{{ content_summary }}\n\nTranscript:\n{{ transcript_response }}\n\nFact-Check Research:\n{{ consolidated_research }}\n\n{% if authoritative_context %}\nAuthoritative Context:\n{{ authoritative_context }}\n{% endif %}\n\nIMPORTANT STRUCTURE: Your analysis should clearly separate content summary from critical analysis:\n\nPART 1: VIDEO CONTENT (First half of article)\n- Begin with a compelling hook and an interesting, catchy title\n- Provide a rich, detailed summary of what the video presents\n- Capture the creator's perspective, tone, and key arguments\n- Present the content fairly and completely, without criticism at this stage\n- Make this section engaging and readable, not just a mechanical summary\n\nPART 2: ANALYSIS & CONTEXT (Second half of article)\n- After fully presenting the content, transition to analysis \n- Explore how well-supported the creator's claims are, based on research\n- Add relevant background information that viewers would benefit from knowing\n- Discuss any inaccuracies or points where additional context is important\n- Evaluate the overall value and credibility of the content\n\nGeneral Guidelines:\n- Use a conversational, engaging tone throughout\n- Include creative formatting (subheadings, pull quotes, bullet points) to enhance readability\n- Weave fact-checked information naturally into your narrative\n- This should read like something published in a quality digital publication\n\nFormat your output as a well-structured markdown document.\n\nSave to title + `_draft.md`.",
         "model": "{{ model | default: 'openai/gpt-4o' }}",
         "output_format": "files",
         "output_key": "first_draft"
@@ -126,7 +230,7 @@
     {
       "type": "llm_generate",
       "config": {
-        "prompt": "You are a senior editor at a top digital publication reviewing this YouTube video analysis. Evaluate it based on the following criteria:\n\n1. Reader Engagement: Does it hook the reader and maintain interest throughout?\n2. Narrative Flow: Does it tell a compelling story rather than just listing facts?\n3. Voice and Style: Is the writing vibrant, conversational, and distinctive?\n4. Insight Value: Does it provide unique perspectives that enhance understanding?\n5. Balanced Accuracy: Does it present fact-checked information in a fair but interesting way?\n6. Visual Structure: Does the formatting enhance readability and engagement?\n\nAnalysis:\n{{ first_draft }}\n\nFact-Check Research:\n{{ consolidated_research }}\n\nProvide specific, actionable feedback focused on making this piece more engaging for readers while maintaining accuracy and insight. Include examples of both strong sections and areas needing improvement, with concrete suggestions for enhancing the writing style and reader experience.\n\nSave to title + `_critique.md`.",
+        "prompt": "You are a senior editor at a top digital publication reviewing this YouTube video analysis. Evaluate it based on the following criteria:\n\n1. Content Presentation: Does it fairly and thoroughly present the video content before analysis?\n2. Structure Balance: Is there a clear separation between content summary and critical analysis?\n3. Reader Engagement: Does it hook the reader and maintain interest throughout?\n4. Voice and Style: Is the writing vibrant, conversational, and distinctive?\n5. Insight Value: Does it provide unique perspectives that enhance understanding?\n6. Balanced Accuracy: Does it present fact-checked information in a fair but interesting way?\n7. Visual Structure: Does the formatting enhance readability and engagement?\n\nAnalysis:\n{{ first_draft }}\n\nVideo Content Summary:\n{{ content_summary }}\n\nFact-Check Research:\n{{ consolidated_research }}\n\n{% if authoritative_context %}\nAuthoritative Context:\n{{ authoritative_context }}\n{% endif %}\n\nProvide specific, actionable feedback focused on:\n1. Ensuring content is presented completely and fairly BEFORE criticism begins\n2. Maintaining proper balance between content summary and analysis\n3. Making the piece engaging for readers while maintaining accuracy and insight\n4. Enhancing the writing style and reader experience\n\nInclude examples of both strong sections and areas needing improvement, with concrete suggestions for each.\n\nSave to title + `_critique.md`.",
         "model": "{{ model | default: 'openai/gpt-4o' }}",
         "output_format": "files",
         "output_key": "critique"
@@ -142,7 +246,7 @@
     {
       "type": "llm_generate",
       "config": {
-        "prompt": "Create a final, polished analysis of the YouTube video that reads like a feature in a top-tier digital publication - combining journalistic standards with engaging storytelling.\n\nOriginal Draft:\n{{ first_draft }}\n\nEditor's Critique:\n{{ critique }}\n\nFact-Check Research:\n{{ consolidated_research }}\n\nYour final piece should:\n1. Open with an irresistible hook and compelling narrative framing\n2. Use vivid language, varied sentence structure, and a distinctive voice\n3. Weave fact-checked information seamlessly into an engaging narrative\n4. Include relevant cultural context and thought-provoking perspectives\n5. Use formatting creatively (pull quotes, subheadings, bullet points) to enhance readability\n6. End with a conclusion that leaves readers with something meaningful to consider\n7. Include a brief, transparent methodology section at the end that explains your research process\n8. Link to the diagnostic summary file for readers who want to explore your research further\n\nThis should be a piece that informs while entertaining - giving readers an accurate understanding of the video content while providing an enjoyable reading experience.\n\nFormat as a professional markdown document.\n\nSave to title + `_final.md`.",
+        "prompt": "Create a final, polished analysis of the YouTube video that reads like a feature in a top-tier digital publication - combining journalistic standards with engaging storytelling.\n\nVideo Content Summary:\n{{ content_summary }}\n\nOriginal Draft:\n{{ first_draft }}\n\nEditor's Critique:\n{{ critique }}\n\nFact-Check Research:\n{{ consolidated_research }}\n\n{% if authoritative_context %}\nAuthoritative Context:\n{{ authoritative_context }}\n{% endif %}\n\nCRITICAL STRUCTURE: Your final analysis must maintain a clear two-part structure:\n\nPART 1: VIDEO CONTENT (First half of article)\n- Present the video content fully and fairly before any analysis\n- Ensure readers understand what the creator is saying/arguing\n- Make this content summary engaging and readable (not just mechanical reporting)\n\nPART 2: ANALYSIS & CONTEXT (Second half of article)\n- Only after fully presenting content, transition to analysis and additional context\n- Use research to enhance understanding rather than immediately contradicting\n- When presenting critiques, do so thoughtfully and with supporting evidence\n\nYour final piece should:\n1. Open with an irresistible hook and compelling narrative framing\n2. Use vivid language, varied sentence structure, and a distinctive voice\n3. Clearly mark the transition between content reporting and analysis\n4. Weave fact-checked information seamlessly into an engaging narrative\n5. Include relevant cultural context and thought-provoking perspectives\n6. Use formatting creatively (pull quotes, subheadings, bullet points) to enhance readability\n7. End with a conclusion that leaves readers with something meaningful to consider\n8. Include a brief methodology section that explains your research process\n9. Link to the diagnostic summary file for readers who want to explore your research further\n\nThis should be a piece that informs while entertaining - giving readers an accurate understanding of the video content before providing insightful analysis.\n\nFormat as a professional markdown document.\n\nSave to title + `_final.md`.",
         "model": "{{ model | default: 'openai/gpt-4o' }}",
         "output_format": "files",
         "output_key": "final_analysis"
