@@ -21,7 +21,16 @@
     {
       "type": "llm_generate",
       "config": {
-        "prompt": "Generate a comprehensive report about the YouTube transcript. Provide an overview, followed by a detailed summary of the content. Include a conclusion that judges whether the quality of the content based on the type of content it is, for media commentary judge it by standards for entertainment, novelty etc. and for financial judge it on accuracy, whether it is prone to hyperbole etc. and so on for other types of content. Determine a good title for the report.\n\nTranscript:\n{{ transcript_response }}\n\nSave to title + `_yt_analysis.md`.",
+        "prompt": "Based on the video transcript, determine a concise descriptive title that captures the main topic of the video. This will be used as a prefix for all output files.\n\nTranscript:\n{{ transcript_response }}\n\nProvide ONLY the title, without any explanation or formatting. Do not include phrases like \"Title:\" or quotation marks. Keep it concise (3-8 words) and focused on the main topic.",
+        "model": "{{ model | default: 'openai/gpt-4o' }}",
+        "output_format": "text",
+        "output_key": "video_title"
+      }
+    },
+    {
+      "type": "llm_generate",
+      "config": {
+        "prompt": "Generate a comprehensive report about the YouTube transcript. Provide an overview, followed by a detailed summary of the content. Include a conclusion that judges whether the quality of the content based on the type of content it is, for media commentary judge it by standards for entertainment, novelty etc. and for financial judge it on accuracy, whether it is prone to hyperbole etc. and so on for other types of content.\n\nTranscript:\n{{ transcript_response }}\n\nTitle the file \"{{ video_title }} - Summary.md\".",
         "model": "{{ model | default: 'openai/gpt-4o' }}",
         "output_format": "files",
         "output_key": "generated_files"
