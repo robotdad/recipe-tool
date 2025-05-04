@@ -1,0 +1,159 @@
+{
+  "name": "YouTube Analysis Generator (Improved)",
+  "description": "Enhanced analysis of YouTube videos with granular fact-checking and multi-stage refinement",
+  "steps": [
+    {
+      "type": "mcp",
+      "config": {
+        "server": {
+          "command": "uvx",
+          "args": [
+            "--from",
+            "git+https://github.com/jkawamoto/mcp-youtube-transcript",
+            "mcp-youtube-transcript"
+          ]
+        },
+        "tool_name": "get_transcript",
+        "arguments": {
+          "url": "{{ yturl }}"
+        },
+        "result_key": "transcript_response"
+      }
+    },
+    {
+      "type": "llm_generate",
+      "config": {
+        "prompt": "Read this YouTube transcript and extract key topics, claims, and named entities that should be fact-checked or explored via web search.\n\nTranscript:\n{{ transcript_response }}\n\nExtract 5-10 search-ready queries. For each query, include a brief explanation of why this is an important point to verify. Make each query specific, concise, and focused on a single verifiable claim or topic.\n\nChoose queries that will help create a balanced, insightful analysis of the video's content - not just to check for errors, but to provide context, background information, and relevant perspectives.",
+        "model": "{{ model | default: 'openai/gpt-4o' }}",
+        "output_format": {
+          "type": "object",
+          "properties": {
+            "queries": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "query": {"type": "string"},
+                  "rationale": {"type": "string"}
+                },
+                "required": ["query", "rationale"]
+              }
+            }
+          },
+          "required": ["queries"]
+        },
+        "output_key": "search_queries_object"
+      }
+    },
+    {
+      "type": "loop",
+      "config": {
+        "items": "search_queries_object.queries",
+        "item_key": "current_query",
+        "substeps": [
+          {
+            "type": "mcp",
+            "config": {
+              "server": {
+                "command": "npx",
+                "args": ["-y", "@modelcontextprotocol/server-brave-search"],
+                "env": {
+                  "BRAVE_API_KEY": "{{ brave_api_key }}"
+                }
+              },
+              "tool_name": "brave_web_search",
+              "arguments": {
+                "query": "{{ current_query.query }}",
+                "count": 5
+              },
+              "result_key": "current_search_results"
+            }
+          },
+          {
+            "type": "llm_generate",
+            "config": {
+              "prompt": "You are a fact-checker analyzing the following search query and its results:\n\nQuery: {{ current_query.query }}\nRationale: {{ current_query.rationale }}\n\nSearch Results:\n{{ current_search_results }}\n\nProvide a concise fact-check report that:\n1. Restates the query as a verifiable claim/topic\n2. Summarizes what the search results reveal about this topic\n3. Provides 2-3 verified facts with citations to specific search results\n4. Notes any contradictions or inconsistencies among sources\n5. Assigns a confidence level (High/Medium/Low) for the verified information\n6. Explains how this information enhances our understanding of the video content\n\nWrite in an engaging, journalistic style - as if you're uncovering interesting information for readers, not just verifying facts. Keep your response under 300 words and focused only on this specific query.",
+              "model": "{{ model | default: 'openai/gpt-4o' }}",
+              "output_format": "text",
+              "output_key": "current_fact_check"
+            }
+          }
+        ],
+        "result_key": "fact_checks"
+      }
+    },
+    {
+      "type": "llm_generate",
+      "config": {
+        "prompt": "Synthesize these individual fact-check reports into a comprehensive research document. Organize the information by topics, highlight key findings, and note any patterns or contradictions across different fact-checks.\n\nIndividual Fact-Checks:\n{{ fact_checks }}\n\nQueries and Rationales:\n{{ search_queries_object.queries }}\n\nCreate a well-structured, cohesive research document that will be used as a reference for generating the YouTube video analysis. Use an engaging, investigative tone that makes the research feel like a discovery process rather than a dry report.",
+        "model": "{{ model | default: 'openai/gpt-4o' }}",
+        "output_format": "text",
+        "output_key": "consolidated_research"
+      }
+    },
+    {
+      "type": "llm_generate",
+      "config": {
+        "prompt": "Create a diagnostic summary of the research process for this YouTube video analysis.\n\nQueries explored:\n{{ search_queries_object.queries }}\n\nSearch results and fact-checks:\n{{ fact_checks }}\n\nFormat this as a well-structured markdown document that shows:\n1. Each query and why it was selected\n2. A brief summary of what was found for each query\n3. How the findings inform our understanding of the video\n\nThis will be included as an appendix to help readers understand the research methodology.",
+        "model": "{{ model | default: 'openai/gpt-4o' }}",
+        "output_format": "files",
+        "output_key": "diagnostic_summary"
+      }
+    },
+    {
+      "type": "write_files",
+      "config": {
+        "files_key": "diagnostic_summary",
+        "root": "output"
+      }
+    },
+    {
+      "type": "llm_generate",
+      "config": {
+        "prompt": "Create an engaging, insightful analysis of a YouTube video that feels like a high-quality media critique or feature article, not just a fact-check report. Base your analysis on:\n\nTranscript:\n{{ transcript_response }}\n\nFact-Check Research:\n{{ consolidated_research }}\n\nYour analysis should:\n1. Start with a compelling hook and an interesting, catchy title\n2. Provide a vivid, readable summary that captures the essence and style of the video\n3. Weave fact-checked information naturally into your narrative, without making the piece feel like a list of corrections\n4. Include interesting context and background that helps readers better understand the topic\n5. Use a conversational, engaging tone that draws readers in while maintaining critical thinking\n6. Include subheadings, bullet points, and other formatting to enhance readability\n\nThis should read like something published in a quality digital publication - informative but enjoyable to read, with personality and insight.\n\nFormat your output as a well-structured markdown document.\n\nSave to title + `_draft.md`.",
+        "model": "{{ model | default: 'openai/gpt-4o' }}",
+        "output_format": "files",
+        "output_key": "first_draft"
+      }
+    },
+    {
+      "type": "write_files",
+      "config": {
+        "files_key": "first_draft",
+        "root": "output"
+      }
+    },
+    {
+      "type": "llm_generate",
+      "config": {
+        "prompt": "You are a senior editor at a top digital publication reviewing this YouTube video analysis. Evaluate it based on the following criteria:\n\n1. Reader Engagement: Does it hook the reader and maintain interest throughout?\n2. Narrative Flow: Does it tell a compelling story rather than just listing facts?\n3. Voice and Style: Is the writing vibrant, conversational, and distinctive?\n4. Insight Value: Does it provide unique perspectives that enhance understanding?\n5. Balanced Accuracy: Does it present fact-checked information in a fair but interesting way?\n6. Visual Structure: Does the formatting enhance readability and engagement?\n\nAnalysis:\n{{ first_draft }}\n\nFact-Check Research:\n{{ consolidated_research }}\n\nProvide specific, actionable feedback focused on making this piece more engaging for readers while maintaining accuracy and insight. Include examples of both strong sections and areas needing improvement, with concrete suggestions for enhancing the writing style and reader experience.\n\nSave to title + `_critique.md`.",
+        "model": "{{ model | default: 'openai/gpt-4o' }}",
+        "output_format": "files",
+        "output_key": "critique"
+      }
+    },
+    {
+      "type": "write_files",
+      "config": {
+        "files_key": "critique",
+        "root": "output"
+      }
+    },
+    {
+      "type": "llm_generate",
+      "config": {
+        "prompt": "Create a final, polished analysis of the YouTube video that reads like a feature in a top-tier digital publication - combining journalistic standards with engaging storytelling.\n\nOriginal Draft:\n{{ first_draft }}\n\nEditor's Critique:\n{{ critique }}\n\nFact-Check Research:\n{{ consolidated_research }}\n\nYour final piece should:\n1. Open with an irresistible hook and compelling narrative framing\n2. Use vivid language, varied sentence structure, and a distinctive voice\n3. Weave fact-checked information seamlessly into an engaging narrative\n4. Include relevant cultural context and thought-provoking perspectives\n5. Use formatting creatively (pull quotes, subheadings, bullet points) to enhance readability\n6. End with a conclusion that leaves readers with something meaningful to consider\n7. Include a brief, transparent methodology section at the end that explains your research process\n8. Link to the diagnostic summary file for readers who want to explore your research further\n\nThis should be a piece that informs while entertaining - giving readers an accurate understanding of the video content while providing an enjoyable reading experience.\n\nFormat as a professional markdown document.\n\nSave to title + `_final.md`.",
+        "model": "{{ model | default: 'openai/gpt-4o' }}",
+        "output_format": "files",
+        "output_key": "final_analysis"
+      }
+    },
+    {
+      "type": "write_files",
+      "config": {
+        "files_key": "final_analysis",
+        "root": "output"
+      }
+    }
+  ]
+}
