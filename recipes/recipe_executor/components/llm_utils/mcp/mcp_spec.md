@@ -13,6 +13,9 @@ The MCP utilities provide minimal, low‑level utilities for interacting with MC
 - For the `get_mcp_server` function:
   - Accept a logger and a configuration object.
   - Create an `MCPServer` instance based on the provided configuration, inferring the type of server (HTTP or stdio) from the configuration.
+  - For Stdio servers:
+    - Use `cwd` as the working directory in the server config.
+    - If the `env` variable is set to `""`, attempt to load the variable from the system environment variables and `.env` file.
   - Only use the values that are necessary for the MCP server, ignore the rest.
   - Validate the configuration and raise `ValueError` if invalid.
   - Always return a PydanticAI `MCPServer` instance.
