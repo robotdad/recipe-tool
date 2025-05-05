@@ -96,7 +96,7 @@
   },
   {
     "id": "steps.mcp",
-    "deps": ["protocols", "llm_utils.mcp", "steps.base", "utils.templates"],
+    "deps": ["context", "protocols", "steps.base", "utils.templates"],
     "refs": ["git_collector/MCP_PYTHON_SDK_DOCS.md"]
   },
   {

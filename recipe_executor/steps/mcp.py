@@ -2,8 +2,10 @@
 MCPStep component for invoking tools on remote MCP servers and storing results in context.
 """
 import logging
-from typing import Any, Dict, List, Optional, Tuple
+import os
+from typing import Any, Dict, List, Optional
 
+from dotenv import load_dotenv
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.sse import sse_client
 from mcp.client.stdio import stdio_client
@@ -13,7 +15,21 @@ from recipe_executor.steps.base import BaseStep, ContextProtocol, StepConfig
 from recipe_executor.utils.templates import render_template
 
 
-class MCPConfig(StepConfig):
+def _merge_environment(config_env: Optional[Dict[str, Any]]) -> Dict[str, str]:
+    """
+    Load .env file, merge with system environment, and overlay config_env.
+    Configured variables take precedence.
+    """
+    # Load .env into os.environ without overriding existing vars
+    load_dotenv(override=False)
+    merged: Dict[str, str] = dict(os.environ)
+    if config_env:
+        for key, val in config_env.items():
+            merged[key] = val if isinstance(val, str) else str(val)
+    return merged
+
+
+class MCPConfig(StepConfig):  # type: ignore
     """
     Configuration for MCPStep.
 
@@ -21,9 +37,8 @@ class MCPConfig(StepConfig):
         server: Configuration for the MCP server.
         tool_name: Name of the tool to invoke.
         arguments: Arguments to pass to the tool as a dictionary.
-        result_key: Context key under which to store the tool result as a dictionary.
+        result_key: Context key under which to store the tool result.
     """
-
     server: Dict[str, Any]
     tool_name: str
     arguments: Dict[str, Any]
@@ -34,47 +49,53 @@ class MCPStep(BaseStep[MCPConfig]):
     """
     Step that connects to an MCP server, invokes a tool, and stores the result in the context.
     """
-
-    def __init__(self, logger: logging.Logger, config: Dict[str, Any]) -> None:
-        super().__init__(logger, MCPConfig(**config))
+    def __init__(
+        self,
+        logger: logging.Logger,
+        config: Dict[str, Any]
+    ) -> None:
+        # Validate and store config
+        cfg = MCPConfig.model_validate(config)  # type: ignore
+        super().__init__(logger, cfg)
 
     async def execute(self, context: ContextProtocol) -> None:
-        # Render tool name
+        # Resolve tool name
         tool_name: str = render_template(self.config.tool_name, context)
 
-        # Render arguments
+        # Resolve arguments
         raw_args: Dict[str, Any] = self.config.arguments or {}
         arguments: Dict[str, Any] = {}
-        for key, value in raw_args.items():
-            if isinstance(value, str):
-                arguments[key] = render_template(value, context)
+        for key, val in raw_args.items():
+            if isinstance(val, str):
+                arguments[key] = render_template(val, context)
             else:
-                arguments[key] = value
+                arguments[key] = val
 
-        # Prepare server config
         server_conf: Dict[str, Any] = self.config.server
-        client_cm: Any
         service_desc: str
 
-        # Choose transport
+        # Determine transport
         if "command" in server_conf:
             # stdio transport
             cmd: str = render_template(server_conf.get("command", ""), context)
+            raw_args_list = server_conf.get("args", [])
             args_list: List[str] = []
-            for arg in server_conf.get("args", []):
-                if isinstance(arg, str):
-                    args_list.append(render_template(arg, context))
+            for item in raw_args_list:
+                if isinstance(item, str):
+                    args_list.append(render_template(item, context))
                 else:
-                    args_list.append(str(arg))
+                    args_list.append(str(item))
 
-            env_conf: Optional[Dict[str, str]] = None
+            # Merge environments
+            config_env: Optional[Dict[str, Any]] = None
             if server_conf.get("env") is not None:
-                env_conf = {}
-                for k, v in server_conf.get("env", {}).items():
-                    if isinstance(v, str):
-                        env_conf[k] = render_template(v, context)
+                config_env = {}
+                for env_key, env_val in server_conf.get("env", {}).items():
+                    if isinstance(env_val, str):
+                        config_env[env_key] = render_template(env_val, context)
                     else:
-                        env_conf[k] = str(v)
+                        config_env[env_key] = str(env_val)
+            env: Dict[str, str] = _merge_environment(config_env)
 
             cwd: Optional[str] = None
             if server_conf.get("working_dir") is not None:
@@ -83,7 +104,7 @@ class MCPStep(BaseStep[MCPConfig]):
             server_params = StdioServerParameters(
                 command=cmd,
                 args=args_list,
-                env=env_conf,
+                env=env,
                 cwd=cwd,
             )
             client_cm = stdio_client(server_params)
@@ -94,12 +115,11 @@ class MCPStep(BaseStep[MCPConfig]):
             headers_conf: Optional[Dict[str, Any]] = None
             if server_conf.get("headers") is not None:
                 headers_conf = {}
-                for k, v in server_conf.get("headers", {}).items():
-                    if isinstance(v, str):
-                        headers_conf[k] = render_template(v, context)
+                for hk, hv in server_conf.get("headers", {}).items():
+                    if isinstance(hv, str):
+                        headers_conf[hk] = render_template(hv, context)
                     else:
-                        headers_conf[k] = v
-
+                        headers_conf[hk] = hv
             client_cm = sse_client(url, headers=headers_conf)
             service_desc = f"SSE server '{url}'"
 
@@ -109,26 +129,27 @@ class MCPStep(BaseStep[MCPConfig]):
             async with client_cm as (read_stream, write_stream):
                 async with ClientSession(read_stream, write_stream) as session:
                     await session.initialize()
-                    self.logger.debug(f"Invoking tool '{tool_name}' with arguments {arguments}")
+                    self.logger.debug(
+                        f"Invoking tool '{tool_name}' with arguments {arguments}"
+                    )
                     try:
                         result: CallToolResult = await session.call_tool(
                             name=tool_name,
                             arguments=arguments,
                         )
                     except Exception as e:
-                        msg = (
-                            f"Tool invocation failed for '{tool_name}' "
-                            f"on {service_desc}: {e}"
-                        )
-                        raise ValueError(msg) from e
+                        raise ValueError(
+                            f"Tool invocation failed for '{tool_name}' on {service_desc}: {e}"
+                        ) from e
         except ValueError:
-            # Propagate invocation errors
+            # Propagate tool invocation errors
             raise
         except Exception as e:
-            msg = f"Failed to call tool '{tool_name}' on {service_desc}: {e}"
-            raise ValueError(msg) from e
+            raise ValueError(
+                f"Failed to call tool '{tool_name}' on {service_desc}: {e}"
+            ) from e
 
-        # Convert result to dictionary
+        # Convert result to dict
         try:
             result_dict: Dict[str, Any] = result.__dict__  # type: ignore
         except Exception:
