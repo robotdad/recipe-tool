@@ -64,7 +64,7 @@ This project is intended for use in a controlled environment, such as a home or 
 
 ## Initial videos.json content
 
-IMPORTANT: Include this in the initial `videos.json` file to ensure the app has something to display.
+IMPORTANT: Include this in the spec as the initial `videos.json` file to ensure the app has something to display.
 
 ```json
 [

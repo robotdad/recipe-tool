@@ -11,26 +11,37 @@ recipe-tool --execute recipes/blueprint_generator_v4/build.json \
    model=openai/o4-mini
 ```
 
-## Generate code from the blueprint
+## Youtube Viewer Example with Code Generation
 
-````bash
-# Copy the generate code scripts from recipes/recipe_executor (TODO: move to a common location)
-cp recipes/recipe_executor/build.json blueprint_test/output/blueprint_generator_v4/
-# Copy the recipes/recipe_executor/recipes directory to the output directory
-cp -r recipes/recipe_executor/recipes blueprint_test/output/blueprint_generator_v4/
-
-# Copy the recipes/recipe_executor/components.json as a template
-cp recipes/recipe_executor/components.json blueprint_test/output/blueprint_generator_v4/
-
-# Edit the components.json file to include the components you want to generate
-nano blueprint_test/output/blueprint_generator_v4/components.json
-
-# Run the generate code script
 ```bash
+# Run the Youtube Viewer example
+recipe-tool --execute recipes/blueprint_generator_v4/build.json \
+   project_spec=blueprint_test/input/youtube_viewer.md \
+   context_docs=blueprint_test/input/videos.json \
+   output_dir=blueprint_test/output/youtube_viewer \
+   model=openai/o4-mini
+
+# TODO: Handle this in the blueprint generator recipes
+# Copy the code generation recipes from the recipe executor
+cp recipes/recipe_executor/build.json blueprint_test/output/youtube_viewer/
+cp -r recipes/recipe_executor/recipes blueprint_test/output/youtube_viewer/
+
+# Create a simple components.json file
+nano blueprint_test/output/youtube_viewer/components.json
+# Add single entry:
+[
+   {
+      "id": "main",
+      "deps": [],
+      "refs": ["blueprint_test/input/videos.json"]
+   }
+]
+
+# Run the code generation recipe
 recipe-tool --execute blueprint_test/output/youtube_viewer/build.json \
-   output_root=blueprint_test/output/blueprint_generator_v4/code \
-   output_path=blueprint_generator_v4 \
-   recipe_root=blueprint_test/output/blueprint_generator_v4 \
+   output_root=blueprint_test/output/youtube_viewer/code \
+   output_path=youtube_viewer \
+   recipe_root=blueprint_test/output/youtube_viewer \
    dev_guide_path=ai_context/DEV_GUIDE_FOR_PYTHON.md,ai_context/DEV_GUIDE_FOR_WEB.md \
    model=openai/o4-mini
-````
+```
