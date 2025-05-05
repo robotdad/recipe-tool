@@ -84,7 +84,11 @@
             "config": {
               "server": {
                 "command": "uvx",
-                "args": ["mcp-server-bing-search"],
+                "args": [
+                  "--from", 
+                  "git+https://github.com/microsoft/semanticworkbench.git#subdirectory=mcp-servers/mcp-server-bing-search",
+                  "mcp-server-bing-search"
+                ],
                 "env": {
                   "BING_SEARCH_API_KEY": "{{ bing_api_key }}"
                 }
@@ -125,22 +129,6 @@
         "model": "{{ model | default: 'openai/gpt-4o' }}",
         "output_format": "text",
         "output_key": "video_title"
-      }
-    },
-    {
-      "type": "llm_generate",
-      "config": {
-        "prompt": "Collect and format the raw search results for each query to aid in debugging and analysis:\n\nQueries:\n{{ search_queries_object.queries }}\n\nSearch Results and Fact-Checks:\n{{ fact_checks_with_diagnostics }}\n\nFormat this as a well-structured markdown document with the following for each query:\n1. Query text and rationale\n2. Search results summary including:\n   - Titles and URLs of results\n   - Publication dates (if available)\n   - Sources/domains\n   - Content excerpts\n3. Search quality assessment\n4. Summary of temporal distribution of all sources\n\nIMPORTANT: Use \"{{ video_title }} - Raw Research Data.md\" as the filename for this document. Do NOT create your own title for the filename.",
-        "model": "{{ model | default: 'openai/gpt-4o' }}",
-        "output_format": "files",
-        "output_key": "raw_search_results"
-      }
-    },
-    {
-      "type": "write_files",
-      "config": {
-        "files_key": "raw_search_results",
-        "root": "output"
       }
     },
     {
