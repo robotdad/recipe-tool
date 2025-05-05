@@ -33,7 +33,7 @@ The LLM component provides a unified interface for interacting with various larg
 
 ## Logging
 
-- Debug: Log full request payload before making call and then full result payload after receiving it
+- Debug: Log full request payload before making call and then full result payload after receiving it, making sure to mask any sensitive information (e.g. API keys, secrets, etc.)
 - Info: Log model name and provider before making call (do not include the request payload details) and then include processing times and tokens used upon completion (do not include the result payload details)
 
 ## Component Dependencies
