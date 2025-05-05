@@ -113,7 +113,14 @@ def build_context_files(force=False) -> None:
             "output": f"{OUTPUT_DIR}/BLUEPRINT_GENERATOR_V3_FILES.md",
             "exclude": collect_files.DEFAULT_EXCLUDE,
             "include": [],
-        }
+        },
+        # Collect files from recipes/blueprint_generator_v4
+        {
+            "patterns": ["recipes/blueprint_generator_v4"],
+            "output": f"{OUTPUT_DIR}/BLUEPRINT_GENERATOR_V4_FILES.md",
+            "exclude": collect_files.DEFAULT_EXCLUDE,
+            "include": [],
+        },
     ]
 
     # Execute each task

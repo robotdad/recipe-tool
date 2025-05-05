@@ -3,14 +3,14 @@
     {
       "type": "read_files",
       "config": {
-        "path": "{{ recipe_root | default: 'recipes/recipe_executor' }}/components/{{ component.id | replace: '.', '/' }}/{{ component.id | split: '.' | last }}_spec.md",
+        "path": "{{ recipe_root }}/components/{{ component.id | replace: '.', '/' }}/{{ component.id | split: '.' | last }}_spec.md",
         "content_key": "spec"
       }
     },
     {
       "type": "read_files",
       "config": {
-        "path": "{{ recipe_root | default: 'recipes/recipe_executor' }}/components/{{ component.id | replace: '.', '/' }}/{{ component.id | split: '.' | last }}_docs.md",
+        "path": "{{ recipe_root }}/components/{{ component.id | replace: '.', '/' }}/{{ component.id | split: '.' | last }}_docs.md",
         "content_key": "docs",
         "optional": true
       }
@@ -18,7 +18,7 @@
     {
       "type": "read_files",
       "config": {
-        "path": "{% for dep in component.deps %}{{ recipe_root | default: 'recipes/recipe_executor' }}/components/{{ dep | replace: '.', '/' }}/{{ dep | split: '.' | last }}_docs.md{% unless forloop.last %},{% endunless %}{% endfor %}",
+        "path": "{% for dep in component.deps %}{{ recipe_root }}/components/{{ dep | replace: '.', '/' }}/{{ dep | split: '.' | last }}_docs.md{% unless forloop.last %},{% endunless %}{% endfor %}",
         "content_key": "dep_docs",
         "merge_mode": "dict",
         "optional": true
@@ -27,7 +27,7 @@
     {
       "type": "read_files",
       "config": {
-        "path": "{% for ref in component.refs %}{{ refs_root | default: 'ai_context' }}/{{ ref }}{% unless forloop.last %},{% endunless %}{% endfor %}",
+        "path": "{% for ref in component.refs %}{{ refs_root }}/{{ ref }}{% unless forloop.last %},{% endunless %}{% endfor %}",
         "content_key": "ref_docs",
         "merge_mode": "dict",
         "optional": true
@@ -41,10 +41,20 @@
       }
     },
     {
-      "type": "read_files",
+      "type": "conditional",
       "config": {
-        "path": "ai_context/DEV_GUIDE_FOR_PYTHON.md",
-        "content_key": "dev_guide"
+        "condition": "{% if dev_guide_path != 'none' %}true{% else %}false{% endif %}",
+        "if_true": {
+          "steps": [
+            {
+              "type": "read_files",
+              "config": {
+                "path": "{{ dev_guide_path }}",
+                "content_key": "dev_guide"
+              }
+            }
+          ]
+        }
       }
     }
   ]

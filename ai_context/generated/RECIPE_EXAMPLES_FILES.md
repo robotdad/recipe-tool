@@ -5,8 +5,76 @@
 **Search:** ['recipes/example_*']
 **Exclude:** ['.venv', 'node_modules', '.git', '__pycache__', '*.pyc', '*.ruff_cache']
 **Include:** []
-**Date:** 4/30/2025, 11:17:09 AM
-**Files:** 17
+**Date:** 5/5/2025, 6:18:45 AM
+**Files:** 19
+
+=== File: recipes/example_brave_search/README.md ===
+# Brave Search Recipe
+
+This recipe demonstrates use of the Brave Search API to perform a search and retrieve results.
+
+It allows for passing of the BRAVE_API_KEY as either a context variable or an environment variable.
+
+## Run the Recipe
+
+### Use env var for API key
+
+```bash
+export BRAVE_API_KEY=your_api_key
+
+# From the repo root, run the recipe with the test project
+recipe-tool --execute recipes/example_brave_search/search.json \
+   query="Tell me about model context protocol." \
+   model=openai/o4-mini
+```
+
+### Use context variable for API key
+
+```bash
+# From the repo root, run the recipe with the test project
+recipe-tool --execute recipes/example_brave_search/search.json \
+   query="Tell me about model context protocol." \
+   model=openai/o4-mini \
+   brave_api_key=your_api_key
+```
+
+
+=== File: recipes/example_brave_search/search.json ===
+{
+  "steps": [
+    {
+      "type": "llm_generate",
+      "config": {
+        "prompt": "Perform a search for {{ query }} using the Brave Search API. Format the results, summarizing the content and extracting the most relevant information. The output should be a list of URLs and their corresponding summaries. Ensure that the search is comprehensive and covers various aspects of the query. Current date: {{ now }}",
+        "model": "{{ model | default: 'openai/gpt-4o' }}",
+        "mcp_servers": [
+          {
+            "command": "npx",
+            "args": ["-y", "@modelcontextprotocol/server-brave-search"],
+            "env": {
+              "BRAVE_API_KEY": "{{ brave_api_key }}"
+            }
+          }
+        ],
+        "output_format": "text",
+        "output_key": "search_results"
+      }
+    },
+    {
+      "type": "write_files",
+      "config": {
+        "files": [
+          {
+            "path": "search_results.md",
+            "content_key": "search_results"
+          }
+        ],
+        "root": "{{ output_root | default: 'output' }}"
+      }
+    }
+  ]
+}
+
 
 === File: recipes/example_complex/README.md ===
 # Complex Code Generation Recipe
