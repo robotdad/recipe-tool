@@ -22,7 +22,7 @@
               "type": "llm_generate",
               "config": {
                 "model": "{{ model }}",
-                "prompt": "Evaluate the refined spec for completeness and alignment with our component docs and spec guide.\n<REFINED_SPEC>\n{{ refined_spec }}\n</REFINED_SPEC>\n\n<COMPONENT_DOCS_SPEC_GUIDE>\n{{ component_docs_spec_guide }}\n</COMPONENT_DOCS_SPEC_GUIDE>",
+                "prompt": "Evaluate the refined spec for completeness and alignment with our component docs and spec guide. Consider the fact that this is a JSON representation of what will later be converted to a markdown file, so go easy on things like formatting and focus more on determining if this data is comprehensive enough to convert it to a comprehensive docs/spec pair in a future step.\n<REFINED_SPEC>\n{{ refined_spec }}\n</REFINED_SPEC>\n\n<COMPONENT_DOCS_SPEC_GUIDE>\n{{ component_docs_spec_guide }}\n</COMPONENT_DOCS_SPEC_GUIDE>",
                 "output_format": {
                   "type": "object",
                   "properties": {

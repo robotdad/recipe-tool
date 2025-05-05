@@ -5,7 +5,7 @@
 **Search:** ['recipes/recipe_executor']
 **Exclude:** ['.venv', 'node_modules', '.git', '__pycache__', '*.pyc', '*.ruff_cache']
 **Include:** []
-**Date:** 4/30/2025, 4:04:18 PM
+**Date:** 5/5/2025, 7:59:05 AM
 **Files:** 51
 
 === File: recipes/recipe_executor/README.md ===
@@ -120,7 +120,9 @@ This workflow demonstrates the power of the Recipe Executor to generate its own 
       "type": "execute_recipe",
       "config": {
         "recipe_path": "{{ recipe_root | default: 'recipes/recipe_executor' }}/recipes/read_components.json",
-        "context_overrides": {}
+        "context_overrides": {
+          "recipe_root": "{{ recipe_root | default: 'recipes/recipe_executor' }}"
+        }
       }
     },
     {
@@ -142,7 +144,16 @@ This workflow demonstrates the power of the Recipe Executor to generate its own 
                     "type": "execute_recipe",
                     "config": {
                       "recipe_path": "{{ recipe_root | default: 'recipes/recipe_executor' }}/recipes/process_component.json",
-                      "context_overrides": {}
+                      "context_overrides": {
+                        "dev_guide_path": "{{ dev_guide_path | default: 'ai_context/DEV_GUIDE_FOR_PYTHON.md' }}",
+                        "edit": "{{ edit | default: false }}",
+                        "existing_code_root": "{{ existing_code_root | default: 'recipe_executor' }}",
+                        "model": "{{ model | default: 'openai/o4-mini' }}",
+                        "output_root": "{{ output_root | default: 'output' }}",
+                        "output_path": "{{ output_path | default: 'recipe_executor' }}",
+                        "recipe_root": "{{ recipe_root | default: 'recipes/recipe_executor' }}",
+                        "refs_root": "{{ refs_root | default: 'ai_context' }}"
+                      }
                     }
                   }
                 ]
@@ -213,7 +224,7 @@ This workflow demonstrates the power of the Recipe Executor to generate its own 
   },
   {
     "id": "steps.conditional",
-    "deps": ["context", "steps.base", "utils.templates"],
+    "deps": ["context", "protocols", "steps.base", "utils.templates"],
     "refs": []
   },
   {
@@ -234,6 +245,7 @@ This workflow demonstrates the power of the Recipe Executor to generate its own 
       "models",
       "llm_utils.llm",
       "llm_utils.mcp",
+      "protocols",
       "steps.base",
       "utils.models",
       "utils.templates"
@@ -245,6 +257,7 @@ This workflow demonstrates the power of the Recipe Executor to generate its own 
     "deps": [
       "context",
       "executor",
+      "protocols",
       "steps.base",
       "steps.registry",
       "utils.templates"
@@ -253,7 +266,7 @@ This workflow demonstrates the power of the Recipe Executor to generate its own 
   },
   {
     "id": "steps.mcp",
-    "deps": ["protocols", "llm_utils.mcp", "steps.base", "utils.templates"],
+    "deps": ["context", "protocols", "steps.base", "utils.templates"],
     "refs": ["git_collector/MCP_PYTHON_SDK_DOCS.md"]
   },
   {
@@ -263,7 +276,7 @@ This workflow demonstrates the power of the Recipe Executor to generate its own 
   },
   {
     "id": "steps.read_files",
-    "deps": ["steps.base", "context", "utils.templates"],
+    "deps": ["context", "protocols", "steps.base", "utils.templates"],
     "refs": []
   },
   {
@@ -273,7 +286,7 @@ This workflow demonstrates the power of the Recipe Executor to generate its own 
   },
   {
     "id": "steps.write_files",
-    "deps": ["context", "models", "steps.base", "utils/.templates"],
+    "deps": ["context", "models", "protocols", "steps.base", "utils.templates"],
     "refs": []
   },
   {
@@ -983,7 +996,7 @@ The LLM component provides a unified interface for interacting with various larg
 
 ## Logging
 
-- Debug: Log full request payload before making call and then full result payload after receiving it
+- Debug: Log full request payload before making call and then full result payload after receiving it, making sure to mask any sensitive information (e.g. API keys, secrets, etc.)
 - Info: Log model name and provider before making call (do not include the request payload details) and then include processing times and tokens used upon completion (do not include the result payload details)
 
 ## Component Dependencies
@@ -1136,11 +1149,26 @@ def get_mcp_server(
     """
 ```
 
+The configuration object should contain the necessary parameters for the MCP server. The function will create an instance of `MCPServer` based on the provided configuration.
+
+For HTTP servers:
+
+- `url`: str - the URL of the MCP server.
+- `headers`: Optional[Dict[str, Any]] -headers to include in the request.
+
+For stdio servers:
+
+- `command`: str - the command to run the MCP server.
+- `args`: List[str] - arguments to pass to the command.
+- `env`: Optional[Dict[str, str]] - environment variables to set for the command.
+  - If an env var is set to "", an attempt will be made to load the variable from the system environment variables and `.env` file.
+- `working_dir`: The working directory for the command.
+
 Use the provided `MCPServer` client to connect to an MCP server for external tool calls:
 
 ```python
 from recipe_executor.llm_utils.mcp import get_mcp_server
-from recipe_executor.models import MCPServerHttpConfig
+
 mcp_server = get_mcp_server(
     logger=logger,
     config={
@@ -1192,6 +1220,9 @@ The MCP utilities provide minimal, low‑level utilities for interacting with MC
 - For the `get_mcp_server` function:
   - Accept a logger and a configuration object.
   - Create an `MCPServer` instance based on the provided configuration, inferring the type of server (HTTP or stdio) from the configuration.
+  - For Stdio servers:
+    - Use `cwd` as the working directory in the server config.
+    - If the `env` variable is set to `""`, attempt to load the variable from the system environment variables and `.env` file.
   - Only use the values that are necessary for the MCP server, ignore the rest.
   - Validate the configuration and raise `ValueError` if invalid.
   - Always return a PydanticAI `MCPServer` instance.
@@ -1735,6 +1766,12 @@ None
 
 The Protocols component provides **interface definitions** for key parts of the Recipe Executor system. By defining formal contracts (`Protocol` classes) for the `Executor`, `Context`, and `Step`, this component decouples implementations from each other and serves as the single source of truth for how components interact. All components that implement or use these interfaces should refer to the `Protocols` component to ensure consistency. Where the concrete implementations are needed, consider importing them inside the method or class that requires them, rather than at the top of the file. This helps to prevent circular imports and keeps the code clean.
 
+## Importing
+
+```python
+from recipe_executor.protocols import ContextProtocol, StepProtocol, ExecutorProtocol
+```
+
 ## Provided Interfaces
 
 ### `ContextProtocol`
@@ -1847,6 +1884,22 @@ class MyCustomExecutor(ExecutorProtocol):
 
 In this example, `MyCustomExecutor` implements the `ExecutorProtocol`, ensuring it adheres to the expected interface. This allows it to be used interchangeably with any other executor that also implements `ExecutorProtocol`.
 
+```python
+from recipe_executor.protocols import ContextProtocol, StepProtocol
+from recipe_executor.models import StepConfig
+
+class MyCustomStep(StepProtocol):
+    def __init__(self, logger: logging.Logger, config: StepConfig) -> None:
+        self.logger = logger
+        self.config = config
+
+    def execute(self, context: ContextProtocol) -> None:
+        # Custom implementation
+        pass
+```
+
+In this example, `MyCustomStep` implements the `StepProtocol`, ensuring it adheres to the expected interface. This allows creation of custom steps that may be used as plugins or replacements for existing steps in the Recipe Executor system.
+
 ## Implementation Notes for Developers
 
 - **For Implementers**: When creating a new Context or Executor implementation (or any new Step), ensure it provides all methods defined in the corresponding protocol. It is recommended to inherit from the protocol class to ensure compliance. This way, you can be sure that your implementation will work seamlessly with any code that relies on the protocol.
@@ -1920,6 +1973,7 @@ To use the `BaseStep` and `StepConfig` classes in your custom step implementatio
 
 ```python
 from recipe_executor.steps.base import BaseStep, StepConfig
+from recipe_executor.protocols import ContextProtocol, StepProtocol
 ```
 
 ## Defining a New Step (Example)
@@ -3451,6 +3505,7 @@ For stdio servers:
 - `command`: str - the command to run the MCP server.
 - `args`: List[str] - arguments to pass to the command.
 - `env`: Optional[Dict[str, str]] - environment variables to set for the command.
+  - If an env var is set to "", an attempt will be made to load the variable from the system environment variables and `.env` file.
 - `working_dir`: The working directory for the command.
 
 ## Basic Usage in Recipes
@@ -3518,10 +3573,10 @@ The MCPStep component allows recipes to invoke tools on remote MCP servers and s
 
 - Retrieve configuration values via the step config object.
 - Use `render_template` to resolve templated configuration values before use.
-- Use `sse_client` or `stdio_client` to create `ClientSession` instance.
+- Use `mcp.client.sse.sse_client` or `mcp.client.stdio.stdio_client` to create `ClientSession` instance.
   - For `stdio_client`:
     - Use `StdioServerParameters` for `server` config parameter.
-    - Use `cwd` as the working directory for the command.
+    - Use `cwd` as the working directory in the server config.
 - Intialize session and execute session.call_tool with the tool name and arguments.
 - Wrap exceptions from the client in `ValueError` including the tool name and service.
 - Convert the `mcp.types.CallToolResult` to `Dict[str, Any]`.
@@ -3542,7 +3597,8 @@ The MCPStep component allows recipes to invoke tools on remote MCP servers and s
 
 ### External Libraries
 
-- **mcp**: Provides `sse_client`, `stdio_client`, `CallToolResult` `StdioServerParameters` and `ClientSession` for MCP server interactions.
+- **mcp**: Provides `client.sse.sse_client`, `stdio_client`, `types.CallToolResult` `StdioServerParameters` and `ClientSession` for MCP server interactions.
+- **dotenv**: For loading environment variables from `.env` files.
 
 ### Configuration Dependencies
 
@@ -4391,7 +4447,7 @@ File paths within the FileSpec objects can also contain templates:
 ```python
 FileSpec(
     path="{{component_name}}/{{filename}}.py",
-    content="# Generated code for {{component_name}}"
+    content="# Generated code....\nprint('Hello, world!')"
 )
 ```
 
@@ -4457,6 +4513,7 @@ When `config_data` is a Python dictionary or list, it will be automatically seri
 - Directories are created automatically if they don't exist
 - Files are overwritten without confirmation if they already exist
 - All paths are rendered using template variables from the context (ContextProtocol)
+- File content is not processed for templates
 - File content is written using UTF-8 encoding
 - Both FileSpec and List[FileSpec] input formats are supported
 - Python dictionaries and lists are automatically serialized to properly formatted JSON with indentation
@@ -4477,7 +4534,8 @@ The WriteFilesStep component writes generated files to disk based on content fro
 - Optional use of `files_key` to specify the context key for file content or `files` for direct input
 - While `FileSpec` is preferred, the component should also support a list of dictionaries with `path` and `content` keys and then write the files to disk, preserving the original structure of `content`
 - Create directories as needed for file paths
-- Apply template rendering to all file paths, content, and keys
+- Apply template rendering to all file paths and keys
+- Do not apply template rendering to file content
 - Automatically serialize Python dictionaries or lists to proper JSON format when writing to files
 - Provide appropriate logging for file operations
 - Follow a minimal design with clear error handling
@@ -4487,7 +4545,6 @@ The WriteFilesStep component writes generated files to disk based on content fro
 - Support multiple file output formats (single FileSpec or list of FileSpec)
 - Use template rendering for dynamic path resolution
 - Create parent directories automatically if they do not exist
-- Apply template rendering to content prior to detecting its type, in case the content is a string that needs to be serialized
 - Regardless of which context path the data comes in, automatically detect when content is a Python dictionary or list and serialize it to proper JSON with indentation
 - When serializing to JSON, use `json.dumps(content, ensure_ascii=False, indent=2)` for consistent, readable formatting
 - Handle serialization errors with clear messages
@@ -4503,14 +4560,15 @@ The WriteFilesStep component writes generated files to disk based on content fro
 
 ### Internal Components
 
-- **Step Interface** – (Required) Follows the step interface via StepProtocol
-- **Models** – (Required) Uses FileSpec models for content structure
-- **Context** – (Required) Reads file content from a context that implements ContextProtocol (artifacts stored under a specified key)
-- **Utils/Templates** – (Required) Uses render_template for dynamic path resolution
+- **Protocols**: Uses `ContextProtocol` for the type of the context parameter in `execute` and `StepProtocol` for the step interface
+- **Step Base**: Inherits from `BaseStep` to implement the step interface and uses `StepConfig` for configuration management
+- **Models**: Uses FileSpec models for content structure
+- **Context**: Reads file content from a context that implements ContextProtocol (artifacts stored under a specified key)
+- **Utils/Templates**: Uses render_template for dynamic path resolution
 
 ### External Libraries
 
-- **json** - (Required) For serializing Python dictionaries and lists to JSON
+- **json**: For serializing Python dictionaries and lists to JSON
 
 ### Configuration Dependencies
 
@@ -7698,8 +7756,8 @@ None
     {
       "type": "llm_generate",
       "config": {
-        "prompt": "{% assign id_parts = component.id | split: '.' -%}{% assign path = id_parts | size | minus: 1 | join: '/' -%}{% assign id = id_parts | last -%}# Task\n\nYou are an expert developer. Based on the following specification{% if existing_code %} and existing code{% endif %}, generate python code for the {{ component.id }} component of a larger project.\n\n## Specification\n<SPECIFICATION>\n{{ spec }}\n</SPECIFICATION>\n\n{% if existing_code %}## Existing Code\n\nThis is the prior version of the code and can be used for reference, however the specifications or dependencies may have changed, so it may need to be updated.\n\n<EXISTING_CODE>\n{{ existing_code }}\n</EXISTING_CODE>\n\n{% endif %}## Usage Documentation\n\nThis is the usage documentation that will be provided to callers of this component, it is critical that this is considered a contract and must be fulfilled as this is what is being promised from this component.\n\n<USAGE_DOCUMENTATION>\n{{ docs }}\n</USAGE_DOCUMENTATION>\n\n{% if dep_docs %}## Dependency Documentation\n\nIncludes documentation for internal dependencies.\n{% for dep_doc in dep_docs %}<DEPENDENCY_DOC>\n{{ dep_docs[dep_doc] }}\n</DEPENDENCY_DOC>\n{% endfor %}\n{% endif %}{% if ref_docs %}# Reference Documentation\n\nIncludes additional documentation for external libraries that have been loaded into this project.\n{% for ref_doc in ref_docs %}<REFERENCE_DOC>\n{{ ref_docs[ref_doc] }}\n</REFERENCE_DOC>\n{% endfor %}\n{% endif %}## Guidance\n\nEnsure the code follows the specification exactly, implements all required functionality, and adheres to the implementation philosophy described in the tags. Include appropriate error handling and type hints. The implementation should be minimal but complete.\n\n<IMPLEMENTATION_PHILOSOPHY>\n{{ implementation_philosophy }}\n</IMPLEMENTATION_PHILOSOPHY>\n\n{% if dev_guide %}<DEV_GUIDE>\n{{ dev_guide }}\n</DEV_GUIDE>\n\n{% endif %}# Output\n\nGenerate the appropriate file(s) (if the specification defines multiple output files, MAKE SURE TO CREATE ALL FILES at once and return in the `files` collection). For example, {{ output_path | default: 'recipe_executor' }}/{{ path }}/{{ id }}.<ext>, {{ output_path | default: 'recipe_executor' }}/{{ path }}/<other files defined in specification>, etc.\n\n",
-        "model": "{{ model | default: 'openai/o4-mini' }}",
+        "prompt": "{% assign id_parts = component.id | split: '.' -%}{% assign path = id_parts | size | minus: 1 | join: '/' -%}{% assign id = id_parts | last -%}# Task\n\nYou are an expert developer. Based on the following specification{% if existing_code %} and existing code{% endif %}, generate code for the {{ component.id }} component of a larger project.\n\n## Specification\n<SPECIFICATION>\n{{ spec }}\n</SPECIFICATION>\n\n{% if existing_code %}## Existing Code\n\nThis is the prior version of the code and can be used for reference, however the specifications or dependencies may have changed, so it may need to be updated.\n\n<EXISTING_CODE>\n{{ existing_code }}\n</EXISTING_CODE>\n\n{% endif %}## Usage Documentation\n\nThis is the usage documentation that will be provided to callers of this component, it is critical that this is considered a contract and must be fulfilled as this is what is being promised from this component.\n\n<USAGE_DOCUMENTATION>\n{{ docs }}\n</USAGE_DOCUMENTATION>\n\n{% if dep_docs %}## Dependency Documentation\n\nIncludes documentation for internal dependencies.\n{% for dep_doc in dep_docs %}<DEPENDENCY_DOC>\n{{ dep_doc }}\n</DEPENDENCY_DOC>\n{% endfor %}\n{% endif %}{% if ref_docs %}# Reference Documentation\n\nIncludes additional documentation for external libraries that have been loaded into this project.\n{% for ref_doc in ref_docs %}<REFERENCE_DOC>\n{{ ref_doc }}\n</REFERENCE_DOC>\n{% endfor %}\n{% endif %}## Guidance\n\nEnsure the code follows the specification exactly, implements all required functionality, and adheres to the implementation philosophy described in the tags. Include appropriate error handling and type hints. The implementation should be minimal but complete.\n\n<IMPLEMENTATION_PHILOSOPHY>\n{{ implementation_philosophy }}\n</IMPLEMENTATION_PHILOSOPHY>\n\n{% if dev_guide %}<DEV_GUIDE>\n{{ dev_guide }}\n</DEV_GUIDE>\n\n{% endif %}# Output\n\nGenerate the appropriate file(s) (if the specification defines multiple output files, MAKE SURE TO CREATE ALL FILES at once and return in the `files` collection). For example, {{ output_path }}/{{ path }}/{{ id }}.<ext>, {{ output_path }}/{{ path }}/<other files defined in specification>, etc.\n\n",
+        "model": "{{ model }}",
         "output_format": "files",
         "output_key": "generated_files"
       }
@@ -7708,7 +7766,7 @@ None
       "type": "write_files",
       "config": {
         "files_key": "generated_files",
-        "root": "{{ output_root | default: 'output' }}"
+        "root": "{{ output_root }}"
       }
     }
   ]
@@ -7721,13 +7779,13 @@ None
     {
       "type": "conditional",
       "config": {
-        "condition": "{{ edit | default: false }}",
+        "condition": "{{ edit }}",
         "if_true": {
           "steps": [
             {
               "type": "read_files",
               "config": {
-                "path": "{{ existing_code_root | default: 'recipe_executor' }}/{{ component.id | replace: '.', '/' }}.py",
+                "path": "{{ existing_code_root }}/{{ component.id | replace: '.', '/' }}.py",
                 "content_key": "existing_code",
                 "optional": true
               }
@@ -7739,13 +7797,13 @@ None
     {
       "type": "execute_recipe",
       "config": {
-        "recipe_path": "{{ recipe_root | default: 'recipes/recipe_executor' }}/recipes/read_component_resources.json"
+        "recipe_path": "{{ recipe_root }}/recipes/read_component_resources.json"
       }
     },
     {
       "type": "execute_recipe",
       "config": {
-        "recipe_path": "{{ recipe_root | default: 'recipes/recipe_executor' }}/recipes/generate_component_code.json"
+        "recipe_path": "{{ recipe_root }}/recipes/generate_component_code.json"
       }
     }
   ]
@@ -7758,14 +7816,14 @@ None
     {
       "type": "read_files",
       "config": {
-        "path": "{{ recipe_root | default: 'recipes/recipe_executor' }}/components/{{ component.id | replace: '.', '/' }}/{{ component.id | split: '.' | last }}_spec.md",
+        "path": "{{ recipe_root }}/components/{{ component.id | replace: '.', '/' }}/{{ component.id | split: '.' | last }}_spec.md",
         "content_key": "spec"
       }
     },
     {
       "type": "read_files",
       "config": {
-        "path": "{{ recipe_root | default: 'recipes/recipe_executor' }}/components/{{ component.id | replace: '.', '/' }}/{{ component.id | split: '.' | last }}_docs.md",
+        "path": "{{ recipe_root }}/components/{{ component.id | replace: '.', '/' }}/{{ component.id | split: '.' | last }}_docs.md",
         "content_key": "docs",
         "optional": true
       }
@@ -7773,7 +7831,7 @@ None
     {
       "type": "read_files",
       "config": {
-        "path": "{% for dep in component.deps %}{{ recipe_root | default: 'recipes/recipe_executor' }}/components/{{ dep | replace: '.', '/' }}/{{ dep | split: '.' | last }}_docs.md{% unless forloop.last %},{% endunless %}{% endfor %}",
+        "path": "{% for dep in component.deps %}{{ recipe_root }}/components/{{ dep | replace: '.', '/' }}/{{ dep | split: '.' | last }}_docs.md{% unless forloop.last %},{% endunless %}{% endfor %}",
         "content_key": "dep_docs",
         "merge_mode": "dict",
         "optional": true
@@ -7782,7 +7840,7 @@ None
     {
       "type": "read_files",
       "config": {
-        "path": "{% for ref in component.refs %}{{ refs_root | default: 'ai_context' }}/{{ ref }}{% unless forloop.last %},{% endunless %}{% endfor %}",
+        "path": "{% for ref in component.refs %}{{ refs_root }}/{{ ref }}{% unless forloop.last %},{% endunless %}{% endfor %}",
         "content_key": "ref_docs",
         "merge_mode": "dict",
         "optional": true
@@ -7796,10 +7854,20 @@ None
       }
     },
     {
-      "type": "read_files",
+      "type": "conditional",
       "config": {
-        "path": "ai_context/DEV_GUIDE_FOR_PYTHON.md",
-        "content_key": "dev_guide"
+        "condition": "{% if dev_guide_path != 'none' %}true{% else %}false{% endif %}",
+        "if_true": {
+          "steps": [
+            {
+              "type": "read_files",
+              "config": {
+                "path": "{{ dev_guide_path }}",
+                "content_key": "dev_guide"
+              }
+            }
+          ]
+        }
       }
     }
   ]
@@ -7812,7 +7880,7 @@ None
     {
       "type": "read_files",
       "config": {
-        "path": "recipes/recipe_executor/components.json",
+        "path": "{{ recipe_root }}/components.json",
         "content_key": "components",
         "merge_mode": "dict"
       }

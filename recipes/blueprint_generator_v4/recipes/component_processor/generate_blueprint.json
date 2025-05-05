@@ -29,14 +29,14 @@
       "type": "write_files",
       "config": {
         "files_key": "docs_file",
-        "root": "{{ output_dir }}/components"
+        "root": "{{ output_dir }}/components/{{ component.id }}"
       }
     },
     {
       "type": "llm_generate",
       "config": {
         "model": "{{ model }}",
-        "prompt": "Generate the spec file for the component '{{ component.id }}' based on the refined spec, component docs, and provided diagrams.\nInclude any of the diagrams that were not used by the docs file for this component, so that they are available to the implementer who will get both the docs and spec file for their context.\n<REFINED_SPEC>\n{{ refined_spec }}\n</REFINED_SPEC>\n<COMPONENT>\n{{ component }}\n</COMPONENT>\n<DIAGRAMS>\n{{ diagrams }}\n</DIAGRAMS>\n<COMPONENT_DOCS>\n{{ docs_file[0].content }}\n</COMPONENT_DOCS>\n<PHILOSOPHY_GUIDES>\n[IMPLEMENTATION] {{ implementation_philosophy }}\n[MODULAR] {{ modular_design_philosophy }}\n[DOCS_GUIDE] {{ component_docs_spec_guide }}\n</PHILOSOPHY_GUIDES>\nSave as '{{ component.id }}_spec.md'.",
+        "prompt": "Generate the spec file for the component '{{ component.id }}' based on the refined spec, component docs, and provided diagrams.\nInclude any of the diagrams that were not used by the docs file for this component, so that they are available to the implementer who will get both the docs and spec file for their context.\n<REFINED_SPEC>\n{{ refined_spec }}\n</REFINED_SPEC>\n<COMPONENT>\n{{ component }}\n</COMPONENT>\n<DIAGRAMS>\n{{ diagrams }}\n</DIAGRAMS>\n<COMPONENT_DOCS>\n{{ docs_file[0].content }}\n</COMPONENT_DOCS>\n<PHILOSOPHY_GUIDES>\n[IMPLEMENTATION] {{ implementation_philosophy }}\n[MODULAR] {{ modular_design_philosophy }}\n[DOCS_GUIDE] {{ component_docs_spec_guide }}\n</PHILOSOPHY_GUIDES>\nEmpty arrays should be rendered as the string **None** under their respective sections. Save as '{{ component.id }}_spec.md'.",
         "output_format": "files",
         "output_key": "spec_file"
       }
@@ -45,7 +45,7 @@
       "type": "write_files",
       "config": {
         "files_key": "spec_file",
-        "root": "{{ output_dir }}/components"
+        "root": "{{ output_dir }}/components/{{ component.id }}"
       }
     }
   ]
