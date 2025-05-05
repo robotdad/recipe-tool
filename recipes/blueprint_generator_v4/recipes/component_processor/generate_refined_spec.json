@@ -1,0 +1,139 @@
+{
+  "steps": [
+    {
+      "type": "conditional",
+      "config": {
+        "condition": "file_exists('{{ output_dir }}/components/{{ component.id }}/refined_spec.json')",
+        "if_true": {
+          "steps": [
+            {
+              "type": "read_files",
+              "config": {
+                "path": "{{ output_dir }}/components/{{ component.id }}/refined_spec.json",
+                "content_key": "refined_spec",
+                "merge_model": "dict"
+              }
+            }
+          ]
+        },
+        "if_false": {
+          "steps": [
+            {
+              "type": "llm_generate",
+              "config": {
+                "model": "{{ model }}",
+                "prompt": "Generate a refined spec for the component based on the candidate spec and the clarification questions.\n<CANDIDATE_SPEC>\n{{ candidate_spec }}\n</CANDIDATE_SPEC>\n<QUESTIONS>\n{{ clarification_questions }}\n</QUESTIONS>\n\nAdditional Context:\n\n<PROJECT_SPEC>\n{{ project_spec_content }}\n</PROJECT_SPEC>\n<CONTEXT_DOCS>\n{% if context_docs_content %}{% for path in context_docs_content %}[{{ path }}]\n{{ context_docs_content[path] }}\n{% endfor %}{% endif %}\n</CONTEXT_DOCS>\n<REFERENCE_DOCS>\n{% if ref_docs_content %}{% for path in ref_docs_content %}[{{ path }}]\n{{ ref_docs_content[path] }}\n{% endfor %}{% endif %}\n</REFERENCE_DOCS>\n<PHILOSOPHY_GUIDES>\n[IMPLEMENTATION] {{ implementation_philosophy }}\n[MODULAR] {{ modular_design_philosophy }}\n[DOCS_GUIDE] {{ component_docs_spec_guide }}\n</PHILOSOPHY_GUIDES>For any lists that would result in **None**, return an empty array.",
+                "output_format": {
+                  "type": "object",
+                  "properties": {
+                    "component_title": { "type": "string" },
+                    "purpose_statement": { "type": "string" },
+                    "core_requirements": {
+                      "type": "array",
+                      "items": { "type": "string" }
+                    },
+                    "implementation_considerations": {
+                      "type": "array",
+                      "items": { "type": "string" }
+                    },
+                    "component_dependencies": {
+                      "type": "object",
+                      "properties": {
+                        "internal_components": {
+                          "type": "array",
+                          "items": { "type": "string" }
+                        },
+                        "external_libraries": {
+                          "type": "array",
+                          "items": { "type": "string" }
+                        },
+                        "configuration_dependencies": {
+                          "type": "array",
+                          "items": { "type": "string" }
+                        }
+                      },
+                      "required": [
+                        "internal_components",
+                        "external_libraries",
+                        "configuration_dependencies"
+                      ]
+                    },
+                    "output_files": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "path": { "type": "string" },
+                          "description": { "type": "string" }
+                        },
+                        "required": ["path", "description"]
+                      }
+                    },
+                    "logging_requirements": {
+                      "type": "object",
+                      "properties": {
+                        "debug": {
+                          "type": "array",
+                          "items": { "type": "string" }
+                        },
+                        "info": {
+                          "type": "array",
+                          "items": { "type": "string" }
+                        }
+                      },
+                      "required": ["debug", "info"]
+                    },
+                    "error_handling": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "error_type": { "type": "string" },
+                          "error_message": { "type": "string" },
+                          "recovery_action": { "type": "string" }
+                        },
+                        "required": [
+                          "error_type",
+                          "error_message",
+                          "recovery_action"
+                        ]
+                      }
+                    },
+                    "dependency_integration_considerations": {
+                      "type": "array",
+                      "items": { "type": "string" }
+                    }
+                  },
+                  "required": [
+                    "component_title",
+                    "purpose_statement",
+                    "core_requirements",
+                    "implementation_considerations",
+                    "component_dependencies",
+                    "output_files",
+                    "logging_requirements",
+                    "error_handling",
+                    "dependency_integration_considerations"
+                  ]
+                },
+                "output_key": "refined_spec"
+              }
+            },
+            {
+              "type": "write_files",
+              "config": {
+                "files": [
+                  {
+                    "path": "{{ component.id }}/refined_spec.json",
+                    "content_key": "refined_spec"
+                  }
+                ],
+                "root": "{{ output_dir }}/components"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

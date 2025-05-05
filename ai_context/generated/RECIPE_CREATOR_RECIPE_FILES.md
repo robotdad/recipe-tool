@@ -5,7 +5,7 @@
 **Search:** ['recipes/recipe_creator']
 **Exclude:** ['.venv', 'node_modules', '.git', '__pycache__', '*.pyc', '*.ruff_cache']
 **Include:** []
-**Date:** 4/30/2025, 11:10:41 AM
+**Date:** 5/5/2025, 6:18:45 AM
 **Files:** 3
 
 === File: recipes/recipe_creator/create.json ===
@@ -30,7 +30,7 @@
     {
       "type": "read_files",
       "config": {
-        "path": "ai_context/generated/RECIPE_EXECUTOR_CODE_FILES.md,ai_context/generated/RECIPE_EXECUTOR_RECIPE_FILES.md,ai_context/RECIPE_JSON_AUTHORING_GUIDE.md,ai_context/IMPLEMENTATION_PHILOSOPHY.md,ai_context/MODULAR_DESIGN_PHILOSOPHY.md,ai_context/git_collector/LIQUID_PYTHON_DOCS.md",
+        "path": "ai_context/generated/RECIPE_EXECUTOR_CODE_FILES.md,ai_context/generated/RECIPE_EXECUTOR_RECIPE_FILES.md,ai_context/RECIPE_JSON_AUTHORING_GUIDE.md,ai_context/IMPLEMENTATION_PHILOSOPHY.md,ai_context/MODULAR_DESIGN_PHILOSOPHY.md,ai_context/git_collector/LIQUID_PYTHON_DOCS.md,ai_context/git_collector/RECIPE_JSON_AUTHORING_GUIDE.md",
         "content_key": "context_files",
         "merge_mode": "concat"
       }

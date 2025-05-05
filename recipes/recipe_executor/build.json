@@ -4,7 +4,9 @@
       "type": "execute_recipe",
       "config": {
         "recipe_path": "{{ recipe_root | default: 'recipes/recipe_executor' }}/recipes/read_components.json",
-        "context_overrides": {}
+        "context_overrides": {
+          "recipe_root": "{{ recipe_root | default: 'recipes/recipe_executor' }}"
+        }
       }
     },
     {
@@ -26,7 +28,16 @@
                     "type": "execute_recipe",
                     "config": {
                       "recipe_path": "{{ recipe_root | default: 'recipes/recipe_executor' }}/recipes/process_component.json",
-                      "context_overrides": {}
+                      "context_overrides": {
+                        "dev_guide_path": "{{ dev_guide_path | default: 'ai_context/DEV_GUIDE_FOR_PYTHON.md' }}",
+                        "edit": "{{ edit | default: false }}",
+                        "existing_code_root": "{{ existing_code_root | default: 'recipe_executor' }}",
+                        "model": "{{ model | default: 'openai/o4-mini' }}",
+                        "output_root": "{{ output_root | default: 'output' }}",
+                        "output_path": "{{ output_path | default: 'recipe_executor' }}",
+                        "recipe_root": "{{ recipe_root | default: 'recipes/recipe_executor' }}",
+                        "refs_root": "{{ refs_root | default: 'ai_context' }}"
+                      }
                     }
                   }
                 ]

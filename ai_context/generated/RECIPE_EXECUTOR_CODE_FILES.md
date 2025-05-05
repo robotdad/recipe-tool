@@ -5,7 +5,7 @@
 **Search:** ['recipe_executor']
 **Exclude:** ['.venv', 'node_modules', '.git', '__pycache__', '*.pyc', '*.ruff_cache']
 **Include:** ['README.md', 'pyproject.toml', '.env.example']
-**Date:** 4/30/2025, 4:04:18 PM
+**Date:** 5/5/2025, 6:18:45 AM
 **Files:** 25
 
 === File: .env.example ===
@@ -620,83 +620,89 @@ def get_azure_openai_model(
 
 
 === File: recipe_executor/llm_utils/llm.py ===
-import logging
 import os
 import time
-from typing import List, Optional, Type, Union
+import logging
+from typing import Optional, List, Type, Union
 
 from pydantic import BaseModel
 from pydantic_ai import Agent
-from pydantic_ai.mcp import MCPServer
-from pydantic_ai.models.anthropic import AnthropicModel
+from pydantic_ai.settings import ModelSettings
 from pydantic_ai.models.openai import OpenAIModel
 from pydantic_ai.providers.openai import OpenAIProvider
+from pydantic_ai.models.anthropic import AnthropicModel
+from pydantic_ai.mcp import MCPServer
 
 from recipe_executor.llm_utils.azure_openai import get_azure_openai_model
 
-__all__ = ["LLM"]
 
-# Default model identifier and Ollama endpoint
-DEFAULT_MODEL: str = os.getenv("DEFAULT_MODEL", "openai/gpt-4o")
-OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-
-
-def _get_model(logger: logging.Logger, model_id: Optional[str]) -> Union[OpenAIModel, AnthropicModel]:
+def get_model(model_id: str, logger: logging.Logger) -> Union[OpenAIModel, AnthropicModel]:
     """
     Initialize an LLM model based on a standardized model_id string.
     Expected format: 'provider/model_name' or 'provider/model_name/deployment_name'.
+    Supported providers: openai, azure, anthropic, ollama.
     """
-    if not model_id:
-        model_id = DEFAULT_MODEL
-    parts = model_id.split("/", 2)
+    parts = model_id.split('/')
     if len(parts) < 2:
-        raise ValueError(f"Invalid model identifier '{model_id}', expected 'provider/model_name'")
+        raise ValueError(f"Invalid model_id format: '{model_id}'")
     provider = parts[0].lower()
-    model_name = parts[1]
 
-    if provider == "azure":
-        # Azure OpenAI may include a deployment name
-        deployment_name: Optional[str] = parts[2] if len(parts) == 3 else None
-        try:
-            return get_azure_openai_model(
-                logger=logger,
-                model_name=model_name,
-                deployment_name=deployment_name,
-            )
-        except Exception:
-            logger.error(f"Failed to initialize Azure OpenAI model '{model_id}'", exc_info=True)
-            raise
-
-    if provider == "openai":
+    # OpenAI provider
+    if provider == 'openai':
+        if len(parts) != 2:
+            raise ValueError(f"Invalid OpenAI model_id: '{model_id}'")
+        model_name = parts[1]
         return OpenAIModel(model_name)
 
-    if provider == "anthropic":
+    # Azure OpenAI provider
+    if provider == 'azure':
+        if len(parts) == 2:
+            model_name = parts[1]
+            deployment_name = None
+        elif len(parts) == 3:
+            model_name = parts[1]
+            deployment_name = parts[2]
+        else:
+            raise ValueError(f"Invalid Azure model_id: '{model_id}'")
+        return get_azure_openai_model(
+            logger=logger, model_name=model_name, deployment_name=deployment_name
+        )
+
+    # Anthropic provider
+    if provider == 'anthropic':
+        if len(parts) != 2:
+            raise ValueError(f"Invalid Anthropic model_id: '{model_id}'")
+        model_name = parts[1]
         return AnthropicModel(model_name)
 
-    if provider == "ollama":
-        base_url = OLLAMA_BASE_URL.rstrip("/") + "/v1"
-        client = OpenAIProvider(base_url=base_url)
-        return OpenAIModel(model_name, provider=client)
+    # Ollama provider (uses OpenAIModel with custom provider URL)
+    if provider == 'ollama':
+        if len(parts) != 2:
+            raise ValueError(f"Invalid Ollama model_id: '{model_id}'")
+        model_name = parts[1]
+        base_url = os.getenv('OLLAMA_BASE_URL', 'http://localhost:11434')
+        provider_obj = OpenAIProvider(base_url=f"{base_url}/v1")
+        return OpenAIModel(model_name=model_name, provider=provider_obj)
 
-    raise ValueError(f"Unsupported LLM provider '{provider}' in model identifier '{model_id}'")
+    raise ValueError(f"Unsupported LLM provider: '{provider}' in model_id '{model_id}'")
 
 
 class LLM:
     """
-    Unified interface for interacting with LLM providers and optional MCP servers.
+    Unified interface for interacting with various LLM providers
+    and optional MCP servers.
     """
-
     def __init__(
         self,
         logger: logging.Logger,
-        model: str = DEFAULT_MODEL,
+        model: str = "openai/gpt-4o",
         max_tokens: Optional[int] = None,
         mcp_servers: Optional[List[MCPServer]] = None,
     ):
         self.logger: logging.Logger = logger
-        self.model: str = model
-        self.max_tokens: Optional[int] = max_tokens
-        self.mcp_servers: List[MCPServer] = mcp_servers if mcp_servers is not None else []
+        self.default_model_id: str = model
+        self.default_max_tokens: Optional[int] = max_tokens
+        self.default_mcp_servers: List[MCPServer] = mcp_servers or []
 
     async def generate(
         self,
@@ -709,91 +715,97 @@ class LLM:
         """
         Generate an output from the LLM based on the provided prompt.
         """
-        model_id = model or self.model
-        servers = mcp_servers if mcp_servers is not None else self.mcp_servers
-        tokens_limit = max_tokens if max_tokens is not None else self.max_tokens
+        model_id = model or self.default_model_id
+        tokens = max_tokens if max_tokens is not None else self.default_max_tokens
+        servers = mcp_servers if mcp_servers is not None else self.default_mcp_servers
 
+        # Info log: model selection
         try:
-            llm_model = _get_model(self.logger, model_id)
+            provider = model_id.split('/', 1)[0]
         except Exception:
-            # Propagate initialization errors
+            provider = 'unknown'
+        self.logger.info(
+            "LLM generate using provider=%s model_id=%s", provider, model_id
+        )
+
+        # Debug log: request details
+        output_name = getattr(output_type, '__name__', str(output_type))
+        self.logger.debug(
+            "LLM request payload prompt=%r model_id=%s max_tokens=%s output_type=%s",
+            prompt, model_id, tokens, output_name
+        )
+
+        # Initialize model
+        try:
+            model_instance = get_model(model_id, self.logger)
+        except ValueError as e:
+            self.logger.error("Invalid model_id '%s': %s", model_id, str(e))
             raise
 
-        # Derive a human-readable model name for logging
-        model_name = getattr(llm_model, "model_name", str(llm_model))
+        # Prepare agent
+        agent_kwargs = {
+            'model': model_instance,
+            'output_type': output_type,
+            'mcp_servers': servers,
+        }
+        if tokens is not None:
+            agent_kwargs['model_settings'] = ModelSettings(max_tokens=tokens)
 
-        agent = Agent(
-            model=llm_model,
-            output_type=output_type,
-            mcp_servers=servers or [],
-        )
+        agent: Agent = Agent(**agent_kwargs)  # type: ignore
 
-        # Info-level: model invocation
-        self.logger.info(f"LLM request: model={model_name}")
-        # Debug-level: full request payload
-        self.logger.debug(
-            f"LLM request payload: prompt={prompt!r}, output_type={output_type},"
-            f" max_tokens={tokens_limit}, mcp_servers={servers}"
-        )
-
-        start = time.monotonic()
+        # Execute request
+        start_time = time.time()
         try:
             async with agent.run_mcp_servers():
-                # Pass max_tokens if provided
-                if tokens_limit is not None:
-                    result = await agent.run(prompt, model_settings={"max_tokens": tokens_limit})
-                else:
-                    result = await agent.run(prompt)
-        except Exception:
-            self.logger.error(f"LLM call failed for model '{model_id}'", exc_info=True)
+                result = await agent.run(prompt)
+        except Exception as e:
+            self.logger.error(
+                "LLM call failed for model_id=%s error=%s", model_id, str(e)
+            )
             raise
-        end = time.monotonic()
+        end_time = time.time()
 
-        duration = end - start
-        usage_info = None
+        # Log result summary
+        usage = None
         try:
             usage = result.usage()
-            usage_info = (usage.total_tokens, usage.request_tokens, usage.response_tokens)
         except Exception:
-            pass
-
-        # Debug-level: full result payload
-        self.logger.debug(f"LLM result payload: {result!r}")
-
-        # Info-level: summary of execution
-        if usage_info:
-            total, req, resp = usage_info
-            tokens_str = f"total={total}, request={req}, response={resp}"
+            usage = None
+        duration = end_time - start_time
+        if usage:
+            self.logger.info(
+                "LLM result time=%.3f sec requests=%d tokens_total=%d (req=%d res=%d)",
+                duration,
+                usage.requests,
+                usage.total_tokens,
+                usage.request_tokens,
+                usage.response_tokens,
+            )
         else:
-            tokens_str = "unknown"
-        self.logger.info(f"LLM completed in {duration:.2f}s, tokens used: {tokens_str}")
+            self.logger.info(
+                "LLM result time=%.3f sec (usage unavailable)", duration
+            )
+
+        # Debug log: raw result
+        self.logger.debug("LLM raw result: %r", result)
 
         return result.output
 
 
 === File: recipe_executor/llm_utils/mcp.py ===
-"""
-Minimal MCP utility for creating MCPServer instances from configurations.
-"""
+import os
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from pydantic_ai.mcp import MCPServer, MCPServerHTTP, MCPServerStdio
 
-# Keys considered sensitive for masking
-_SENSITIVE_KEYS = ("key", "secret", "token", "password")
+# Attempt to import load_dotenv for .env support; optional
+try:
+    from dotenv import load_dotenv
+except ImportError:
+    load_dotenv = None  # type: ignore
 
-def _mask_value(value: Any, key: Optional[str] = None) -> Any:
-    """
-    Mask sensitive values in a configuration dictionary.
-    """
-    # Mask entire value if key indicates sensitive data
-    if key and any(sensitive in key.lower() for sensitive in _SENSITIVE_KEYS):
-        return "***"
-    # Recurse into dicts
-    if isinstance(value, dict):
-        return {k: _mask_value(v, k) for k, v in value.items()}
-    return value
+__all__ = ["get_mcp_server"]
 
 
 def get_mcp_server(
@@ -801,77 +813,97 @@ def get_mcp_server(
     config: Dict[str, Any]
 ) -> MCPServer:
     """
-    Create an MCPServer instance based on the provided configuration.
+    Create an MCP server client based on the provided configuration.
 
     Args:
         logger: Logger for logging messages.
         config: Configuration for the MCP server.
 
     Returns:
-        A configured PydanticAI MCPServer instance.
+        A configured PydanticAI MCP server client.
 
     Raises:
-        ValueError: If configuration is invalid.
-        RuntimeError: If instantiation of the server fails.
+        ValueError: If the configuration is invalid.
+        RuntimeError: On underlying errors when creating the server instance.
     """
-    # Mask and log configuration for debugging
-    try:
-        masked = _mask_value(config)  # type: ignore
-        logger.debug("MCP configuration: %s", masked)
-    except Exception:
-        logger.debug("MCP configuration contains non-serializable values")
+    # Validate config type
+    if not isinstance(config, dict):
+        raise ValueError("MCP server configuration must be a dict")
 
-    # HTTP transport configuration
-    if "url" in config:
-        url = config.get("url")
-        if not isinstance(url, str):
-            raise ValueError("MCP HTTP configuration requires a string 'url'")
-        headers = config.get("headers")
-        if headers is not None:
-            if not isinstance(headers, dict) or not all(
-                isinstance(k, str) and isinstance(v, str)
-                for k, v in headers.items()
-            ):
-                raise ValueError("MCP HTTP 'headers' must be a dict of string keys and values")
-        logger.info("Configuring MCPServerHTTP for URL: %s", url)
+    # Mask sensitive values for debug logging
+    masked: Dict[str, Any] = {}
+    for key, value in config.items():
+        if key in ("headers", "env") and isinstance(value, dict):
+            masked[key] = {k: "***" for k in value.keys()}
+        else:
+            masked[key] = value
+    logger.debug("MCP server configuration: %s", masked)
+
+    # HTTP transport
+    if 'url' in config:
+        url = config.get('url')
+        if not isinstance(url, str) or not url:
+            raise ValueError("HTTP MCP server requires a non-empty 'url' string")
+        headers = config.get('headers')
+        if headers is not None and not isinstance(headers, dict):
+            raise ValueError("HTTP MCP server 'headers' must be a dict if provided")
+
+        logger.info("Creating HTTP MCP server for URL: %s", url)
         try:
             # Only pass headers if provided
-            if headers is not None:
-                return MCPServerHTTP(url=url, headers=headers)
-            return MCPServerHTTP(url=url)
-        except Exception as error:
-            msg = f"Failed to create HTTP MCP server for {url}: {error}"
-            logger.error(msg)
-            raise RuntimeError(msg) from error
+            server = MCPServerHTTP(url=url, headers=headers) if headers is not None else MCPServerHTTP(url=url)
+        except Exception as exc:
+            raise RuntimeError(f"Failed to create HTTP MCP server: {exc}") from exc
+        return server
 
-    # Stdio transport configuration
-    if "command" in config:
-        command = config.get("command")
-        if not isinstance(command, str):
-            raise ValueError("MCP stdio configuration requires a string 'command'")
-        args_value = config.get("args")
-        if args_value is None:
-            args_list: List[str] = []
-        else:
-            if not isinstance(args_value, list) or not all(isinstance(a, str) for a in args_value):
-                raise ValueError("MCP stdio 'args' must be a list of strings")
-            args_list = args_value  # type: List[str]
-        logger.info(
-            "Configuring MCPServerStdio with command: %s args: %s",
-            command,
-            args_list,
-        )
+    # Stdio transport
+    if 'command' in config:
+        command = config.get('command')
+        if not isinstance(command, str) or not command:
+            raise ValueError("Stdio MCP server requires a non-empty 'command' string")
+
+        args = config.get('args')
+        if not isinstance(args, list) or not all(isinstance(a, str) for a in args):
+            raise ValueError("Stdio MCP server 'args' must be a list of strings")
+
+        env_cfg = config.get('env')
+        env: Optional[Dict[str, str]] = None
+        if env_cfg is not None:
+            if not isinstance(env_cfg, dict):
+                raise ValueError("Stdio MCP server 'env' must be a dict if provided")
+            # Load .env if any value is empty and dotenv is available
+            if load_dotenv and any(v == "" for v in env_cfg.values()):  # type: ignore
+                load_dotenv()  # type: ignore
+            env = {}
+            for k, v in env_cfg.items():
+                if not isinstance(v, str):
+                    raise ValueError(f"Environment variable '{k}' must be a string")
+                if v == "":
+                    # attempt to get from system environment
+                    sys_val = os.getenv(k)
+                    if sys_val is not None:
+                        env[k] = sys_val
+                else:
+                    env[k] = v
+
+        working_dir = config.get('working_dir')
+        if working_dir is not None and not isinstance(working_dir, str):
+            raise ValueError("Stdio MCP server 'working_dir' must be a string if provided")
+
+        logger.info("Creating stdio MCP server with command: %s %s", command, args)
         try:
-            return MCPServerStdio(command=command, args=args_list)
-        except Exception as error:
-            msg = f"Failed to create stdio MCP server for command {command}: {error}"
-            logger.error(msg)
-            raise RuntimeError(msg) from error
+            server = MCPServerStdio(
+                command=command,
+                args=args,
+                cwd=working_dir,
+                env=env
+            )
+        except Exception as exc:
+            raise RuntimeError(f"Failed to create stdio MCP server: {exc}") from exc
+        return server
 
-    # If neither HTTP nor stdio config is present
-    raise ValueError(
-        "Invalid MCP server configuration: provide either 'url' for HTTP or 'command' for stdio"
-    )
+    # Neither HTTP nor Stdio specified
+    raise ValueError("Invalid MCP server configuration: must contain 'url' for HTTP or 'command' for stdio transport")
 
 
 === File: recipe_executor/logger.py ===
@@ -2002,8 +2034,10 @@ def _resolve_path(path: str, context: ContextProtocol) -> Any:
 MCPStep component for invoking tools on remote MCP servers and storing results in context.
 """
 import logging
-from typing import Any, Dict, List, Optional, Tuple
+import os
+from typing import Any, Dict, List, Optional
 
+from dotenv import load_dotenv
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.sse import sse_client
 from mcp.client.stdio import stdio_client
@@ -2013,7 +2047,7 @@ from recipe_executor.steps.base import BaseStep, ContextProtocol, StepConfig
 from recipe_executor.utils.templates import render_template
 
 
-class MCPConfig(StepConfig):
+class MCPConfig(StepConfig):  # type: ignore
     """
     Configuration for MCPStep.
 
@@ -2021,28 +2055,27 @@ class MCPConfig(StepConfig):
         server: Configuration for the MCP server.
         tool_name: Name of the tool to invoke.
         arguments: Arguments to pass to the tool as a dictionary.
-        result_key: Context key under which to store the tool result as a dictionary.
+        result_key: Context key under which to store the tool result.
     """
-
     server: Dict[str, Any]
     tool_name: str
     arguments: Dict[str, Any]
     result_key: str = "tool_result"
 
 
-class MCPStep(BaseStep[MCPConfig]):
+class MCPStep(BaseStep[MCPConfig]):  # type: ignore
     """
     Step that connects to an MCP server, invokes a tool, and stores the result in the context.
     """
-
     def __init__(self, logger: logging.Logger, config: Dict[str, Any]) -> None:
-        super().__init__(logger, MCPConfig(**config))
+        cfg = MCPConfig.model_validate(config)  # type: ignore
+        super().__init__(logger, cfg)
 
     async def execute(self, context: ContextProtocol) -> None:
-        # Render tool name
+        # Resolve the tool name
         tool_name: str = render_template(self.config.tool_name, context)
 
-        # Render arguments
+        # Resolve arguments
         raw_args: Dict[str, Any] = self.config.arguments or {}
         arguments: Dict[str, Any] = {}
         for key, value in raw_args.items():
@@ -2051,31 +2084,42 @@ class MCPStep(BaseStep[MCPConfig]):
             else:
                 arguments[key] = value
 
-        # Prepare server config
         server_conf: Dict[str, Any] = self.config.server
-        client_cm: Any
         service_desc: str
+        client_cm: Any
 
-        # Choose transport
+        # Choose transport based on server config
         if "command" in server_conf:
             # stdio transport
             cmd: str = render_template(server_conf.get("command", ""), context)
+            raw_args_list = server_conf.get("args", []) or []
             args_list: List[str] = []
-            for arg in server_conf.get("args", []):
-                if isinstance(arg, str):
-                    args_list.append(render_template(arg, context))
+            for item in raw_args_list:
+                if isinstance(item, str):
+                    args_list.append(render_template(item, context))
                 else:
-                    args_list.append(str(arg))
+                    args_list.append(str(item))
 
-            env_conf: Optional[Dict[str, str]] = None
+            # Environment variables
+            config_env: Optional[Dict[str, str]] = None
             if server_conf.get("env") is not None:
-                env_conf = {}
-                for k, v in server_conf.get("env", {}).items():
-                    if isinstance(v, str):
-                        env_conf[k] = render_template(v, context)
+                config_env = {}
+                for env_k, env_v in server_conf.get("env", {}).items():
+                    if isinstance(env_v, str):
+                        rendered = render_template(env_v, context)
+                        # Load from .env if empty
+                        if rendered == "":
+                            env_file = os.path.join(os.getcwd(), ".env")
+                            if os.path.exists(env_file):
+                                load_dotenv(env_file)
+                                env_value = os.getenv(env_k)
+                                if env_value is not None:
+                                    rendered = env_value
+                        config_env[env_k] = rendered
                     else:
-                        env_conf[k] = str(v)
+                        config_env[env_k] = str(env_v)
 
+            # Working directory
             cwd: Optional[str] = None
             if server_conf.get("working_dir") is not None:
                 cwd = render_template(server_conf.get("working_dir", ""), context)
@@ -2083,7 +2127,7 @@ class MCPStep(BaseStep[MCPConfig]):
             server_params = StdioServerParameters(
                 command=cmd,
                 args=args_list,
-                env=env_conf,
+                env=config_env,
                 cwd=cwd,
             )
             client_cm = stdio_client(server_params)
@@ -2094,12 +2138,11 @@ class MCPStep(BaseStep[MCPConfig]):
             headers_conf: Optional[Dict[str, Any]] = None
             if server_conf.get("headers") is not None:
                 headers_conf = {}
-                for k, v in server_conf.get("headers", {}).items():
-                    if isinstance(v, str):
-                        headers_conf[k] = render_template(v, context)
+                for hk, hv in server_conf.get("headers", {}).items():
+                    if isinstance(hv, str):
+                        headers_conf[hk] = render_template(hv, context)
                     else:
-                        headers_conf[k] = v
-
+                        headers_conf[hk] = hv
             client_cm = sse_client(url, headers=headers_conf)
             service_desc = f"SSE server '{url}'"
 
@@ -2109,26 +2152,27 @@ class MCPStep(BaseStep[MCPConfig]):
             async with client_cm as (read_stream, write_stream):
                 async with ClientSession(read_stream, write_stream) as session:
                     await session.initialize()
-                    self.logger.debug(f"Invoking tool '{tool_name}' with arguments {arguments}")
+                    self.logger.debug(
+                        f"Invoking tool '{tool_name}' with arguments {arguments}"
+                    )
                     try:
                         result: CallToolResult = await session.call_tool(
                             name=tool_name,
                             arguments=arguments,
                         )
                     except Exception as e:
-                        msg = (
-                            f"Tool invocation failed for '{tool_name}' "
-                            f"on {service_desc}: {e}"
-                        )
-                        raise ValueError(msg) from e
+                        raise ValueError(
+                            f"Tool invocation failed for '{tool_name}' on {service_desc}: {e}"
+                        ) from e
         except ValueError:
             # Propagate invocation errors
             raise
         except Exception as e:
-            msg = f"Failed to call tool '{tool_name}' on {service_desc}: {e}"
-            raise ValueError(msg) from e
+            raise ValueError(
+                f"Failed to call tool '{tool_name}' on {service_desc}: {e}"
+            ) from e
 
-        # Convert result to dictionary
+        # Convert result to a dictionary
         try:
             result_dict: Dict[str, Any] = result.__dict__  # type: ignore
         except Exception:
@@ -2138,14 +2182,14 @@ class MCPStep(BaseStep[MCPConfig]):
                 if not attr.startswith("_")
             }
 
-        # Store in context
+        # Store result in context
         context[self.config.result_key] = result_dict
 
 
 === File: recipe_executor/steps/parallel.py ===
 import asyncio
 import logging
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set
 
 from recipe_executor.steps.base import BaseStep, StepConfig
 from recipe_executor.steps.registry import STEP_REGISTRY
@@ -2434,12 +2478,12 @@ from recipe_executor.utils.templates import render_template
 
 class WriteFilesConfig(StepConfig):
     """
-    Config for WriteFilesStep.
+    Configuration for WriteFilesStep.
 
     Attributes:
-        files_key: Optional context key holding FileSpec or list of FileSpec.
-        files: Optional direct list of dicts with 'path' and 'content' (or keys).
-        root: Base path for output files.
+        files_key: Optional context key containing FileSpec or list/dict specs.
+        files: Optional direct list of dicts with 'path'/'content' or their key references.
+        root: Base directory for output files.
     """
     files_key: Optional[str] = None
     files: Optional[List[Dict[str, Any]]] = None
@@ -2448,18 +2492,20 @@ class WriteFilesConfig(StepConfig):
 
 class WriteFilesStep(BaseStep[WriteFilesConfig]):
     """
-    Step that writes files to disk based on FileSpec or dict inputs.
+    Step that writes one or more files to disk based on FileSpec or dict inputs.
     """
 
     def __init__(self, logger: logging.Logger, config: Dict[str, Any]) -> None:
         super().__init__(logger, WriteFilesConfig(**config))
 
     async def execute(self, context: ContextProtocol) -> None:
-        files_to_write: List[Dict[str, Any]] = []
-        # Render root path template
-        root: str = render_template(self.config.root or ".", context)
+        # Resolve and render the root output directory
+        raw_root: str = self.config.root or "."
+        root: str = render_template(raw_root, context)
 
-        # Direct files list takes precedence
+        files_to_write: List[Dict[str, Any]] = []
+
+        # 1. Direct 'files' entries take precedence
         if self.config.files is not None:
             for entry in self.config.files:
                 # Path extraction
@@ -2472,7 +2518,8 @@ class WriteFilesStep(BaseStep[WriteFilesConfig]):
                     raw_path = context[key]
                 else:
                     raise ValueError("Each file entry must have 'path' or 'path_key'.")
-                path = render_template(str(raw_path), context)
+                path_str = str(raw_path)
+                path = render_template(path_str, context)
 
                 # Content extraction
                 if "content" in entry:
@@ -2485,84 +2532,96 @@ class WriteFilesStep(BaseStep[WriteFilesConfig]):
                 else:
                     raise ValueError("Each file entry must have 'content' or 'content_key'.")
 
-                content: Any
-                if isinstance(raw_content, str):
-                    content = render_template(raw_content, context)
-                else:
-                    content = raw_content
+                files_to_write.append({"path": path, "content": raw_content})
 
-                files_to_write.append({"path": path, "content": content})
-
-        elif self.config.files_key is not None:
+        # 2. Use files from context via 'files_key'
+        elif self.config.files_key:
             key = self.config.files_key
             if key not in context:
                 raise KeyError(f"Files key '{key}' not found in context.")
             raw = context[key]
-            # Normalize to list of specs or dicts
+
             if isinstance(raw, FileSpec):
-                items = [raw]
-            elif isinstance(raw, dict):
+                items: List[Union[FileSpec, Dict[str, Any]]] = [raw]
+            elif isinstance(raw, dict):  # dict spec
                 if "path" in raw and "content" in raw:
                     items = [raw]
                 else:
-                    raise ValueError(f"Malformed file dict under '{key}'.")
-            elif isinstance(raw, list):  # type: ignore
+                    raise ValueError(f"Malformed file dict under key '{key}': {raw}")
+            elif isinstance(raw, list):  # list of specs
                 items = raw  # type: ignore
             else:
                 raise ValueError(f"Unsupported type for files_key '{key}': {type(raw)}")
 
-            for file_item in items:
-                if isinstance(file_item, FileSpec):
-                    path = render_template(file_item.path, context)
-                    content_raw = file_item.content
-                elif isinstance(file_item, dict):
-                    if "path" not in file_item or "content" not in file_item:
-                        raise ValueError(f"Invalid file entry under '{key}': {file_item}")
-                    path = render_template(str(file_item["path"]), context)
-                    content_raw = file_item["content"]
+            for item in items:
+                if isinstance(item, FileSpec):
+                    raw_path = item.path
+                    raw_content = item.content
+                elif isinstance(item, dict):
+                    if "path" not in item or "content" not in item:
+                        raise ValueError(f"Invalid file entry under '{key}': {item}")
+                    raw_path = item["path"]
+                    raw_content = item["content"]
                 else:
-                    raise ValueError("Each file entry must be FileSpec or dict with 'path' and 'content'.")
+                    raise ValueError(
+                        f"Each file entry must be FileSpec or dict with 'path' and 'content', got {type(item)}"
+                    )
 
-                if isinstance(content_raw, str):
-                    content = render_template(content_raw, context)
-                else:
-                    content = content_raw
-
-                files_to_write.append({"path": path, "content": content})
+                path_str = str(raw_path)
+                path = render_template(path_str, context)
+                files_to_write.append({"path": path, "content": raw_content})
 
         else:
             raise ValueError("Either 'files' or 'files_key' must be provided in WriteFilesConfig.")
 
-        # Write out each file
-        for file_entry in files_to_write:
-            try:
-                relative_path = file_entry.get("path", "")
-                final_path = os.path.normpath(os.path.join(root, relative_path)) if root else os.path.normpath(relative_path)
-                parent = os.path.dirname(final_path)
-                if parent and not os.path.exists(parent):
-                    os.makedirs(parent, exist_ok=True)
+        # Write each file to disk
+        for entry in files_to_write:
+            rel_path: str = entry.get("path", "")
+            content = entry.get("content")
 
-                content = file_entry.get("content")
-                # Serialize dict or list to JSON
+            # Compute the final filesystem path
+            if root:
+                combined = os.path.join(root, rel_path)
+            else:
+                combined = rel_path
+            final_path = os.path.normpath(combined)
+
+            try:
+                # Ensure parent directories exist
+                parent_dir = os.path.dirname(final_path)
+                if parent_dir and not os.path.exists(parent_dir):
+                    os.makedirs(parent_dir, exist_ok=True)
+
+                # Serialize content if needed
                 if isinstance(content, (dict, list)):
                     try:
-                        to_write = json.dumps(content, ensure_ascii=False, indent=2)
+                        text = json.dumps(content, ensure_ascii=False, indent=2)
                     except Exception as err:
-                        raise ValueError(f"Failed to serialize content for '{final_path}': {err}")
+                        raise ValueError(
+                            f"Failed to serialize content for '{final_path}': {err}"
+                        )
                 else:
-                    to_write = content  # type: ignore
+                    # Convert None to empty string, others to string if not already
+                    if content is None:
+                        text = ""
+                    elif not isinstance(content, str):
+                        text = str(content)
+                    else:
+                        text = content
 
-                # Debug log before write
-                self.logger.debug(f"[WriteFilesStep] Writing file: {final_path}\nContent:\n{to_write}")
-                # Write file
+                # Debug log before writing
+                self.logger.debug(f"[WriteFilesStep] Writing file: {final_path}\nContent:\n{text}")
+
+                # Write file using UTF-8 encoding
                 with open(final_path, "w", encoding="utf-8") as f:
-                    f.write(to_write)
+                    f.write(text)
 
-                size = len(to_write.encode("utf-8")) if isinstance(to_write, str) else 0
+                # Info log after successful write
+                size = len(text.encode("utf-8"))
                 self.logger.info(f"[WriteFilesStep] Wrote file: {final_path} ({size} bytes)")
 
             except Exception as exc:
-                self.logger.error(f"[WriteFilesStep] Error writing file '{file_entry.get('path', '?')}': {exc}")
+                self.logger.error(f"[WriteFilesStep] Error writing file '{rel_path}': {exc}")
                 raise
 
 

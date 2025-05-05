@@ -1,0 +1,70 @@
+{
+  "steps": [
+    {
+      "type": "conditional",
+      "config": {
+        "condition": "file_exists(\"{{ output_dir }}/analysis/analysis_result.json\")",
+        "if_true": {
+          "steps": [
+            {
+              "type": "read_files",
+              "config": {
+                "path": "{{ output_dir }}/analysis/analysis_result.json",
+                "content_key": "analysis_result",
+                "merge_mode": "dict"
+              }
+            }
+          ]
+        },
+        "if_false": {
+          "steps": [
+            {
+              "type": "llm_generate",
+              "config": {
+                "prompt": "System: You are an expert software architect.\nAnalyze the high-level project specification, vision/context documents, reference docs, and design philosophies.\n<PROJECT_SPEC>\n{{ project_spec_content }}\n</PROJECT_SPEC>\n<CONTEXT_DOCS>\n{% if context_docs_content %}{% for path in context_docs_content %}[{{ path }}]\n{{ context_docs_content[path] }}\n{% endfor %}{% endif %}\n</CONTEXT_DOCS>\n<REFERENCE_DOCS>\n{% if ref_docs_content %}{% for path in ref_docs_content %}[{{ path }}]\n{{ ref_docs_content[path] }}\n{% endfor %}{% endif %}\n</REFERENCE_DOCS>\n<PHILOSOPHY_GUIDES>\n[IMPLEMENTATION] {{ implementation_philosophy }}\n[MODULAR] {{ modular_design_philosophy }}\n[DOCS_GUIDE] {{ component_docs_spec_guide }}\n</PHILOSOPHY_GUIDES>\nPlease output a JSON object with properties:\n- needs_splitting (boolean)\n- components (array of component IDs as strings)\nEnsure the response is valid JSON only.",
+                "model": "{{ model }}",
+                "output_format": {
+                  "type": "object",
+                  "properties": {
+                    "needs_splitting": {
+                      "type": "boolean"
+                    },
+                    "reason": {
+                      "type": "string"
+                    },
+                    "components": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": { "type": "string" },
+                          "name": { "type": "string" },
+                          "description": { "type": "string" }
+                        },
+                        "required": ["id", "name", "description"]
+                      }
+                    }
+                  },
+                  "required": ["needs_splitting", "reason", "components"]
+                },
+                "output_key": "analysis_result"
+              }
+            },
+            {
+              "type": "write_files",
+              "config": {
+                "files": [
+                  {
+                    "path": "analysis_result.json",
+                    "content_key": "analysis_result"
+                  }
+                ],
+                "root": "{{ output_dir }}/analysis"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

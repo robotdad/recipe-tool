@@ -11,7 +11,8 @@ The WriteFilesStep component writes generated files to disk based on content fro
 - Optional use of `files_key` to specify the context key for file content or `files` for direct input
 - While `FileSpec` is preferred, the component should also support a list of dictionaries with `path` and `content` keys and then write the files to disk, preserving the original structure of `content`
 - Create directories as needed for file paths
-- Apply template rendering to all file paths, content, and keys
+- Apply template rendering to all file paths and keys
+- Do not apply template rendering to file content
 - Automatically serialize Python dictionaries or lists to proper JSON format when writing to files
 - Provide appropriate logging for file operations
 - Follow a minimal design with clear error handling
@@ -21,7 +22,6 @@ The WriteFilesStep component writes generated files to disk based on content fro
 - Support multiple file output formats (single FileSpec or list of FileSpec)
 - Use template rendering for dynamic path resolution
 - Create parent directories automatically if they do not exist
-- Apply template rendering to content prior to detecting its type, in case the content is a string that needs to be serialized
 - Regardless of which context path the data comes in, automatically detect when content is a Python dictionary or list and serialize it to proper JSON with indentation
 - When serializing to JSON, use `json.dumps(content, ensure_ascii=False, indent=2)` for consistent, readable formatting
 - Handle serialization errors with clear messages
@@ -37,14 +37,15 @@ The WriteFilesStep component writes generated files to disk based on content fro
 
 ### Internal Components
 
-- **Step Interface** – (Required) Follows the step interface via StepProtocol
-- **Models** – (Required) Uses FileSpec models for content structure
-- **Context** – (Required) Reads file content from a context that implements ContextProtocol (artifacts stored under a specified key)
-- **Utils/Templates** – (Required) Uses render_template for dynamic path resolution
+- **Protocols**: Uses `ContextProtocol` for the type of the context parameter in `execute` and `StepProtocol` for the step interface
+- **Step Base**: Inherits from `BaseStep` to implement the step interface and uses `StepConfig` for configuration management
+- **Models**: Uses FileSpec models for content structure
+- **Context**: Reads file content from a context that implements ContextProtocol (artifacts stored under a specified key)
+- **Utils/Templates**: Uses render_template for dynamic path resolution
 
 ### External Libraries
 
-- **json** - (Required) For serializing Python dictionaries and lists to JSON
+- **json**: For serializing Python dictionaries and lists to JSON
 
 ### Configuration Dependencies
 

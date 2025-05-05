@@ -1,0 +1,56 @@
+{
+  "steps": [
+    {
+      "type": "conditional",
+      "config": {
+        "condition": "file_exists('{{ output_dir }}/components/{{ component.id }}/diagrams.json')",
+        "if_true": {
+          "steps": [
+            {
+              "type": "read_files",
+              "config": {
+                "path": "{{ output_dir }}/components/{{ component.id }}/diagrams.json",
+                "content_key": "diagrams",
+                "merge_model": "dict"
+              }
+            }
+          ]
+        },
+        "if_false": {
+          "steps": [
+            {
+              "type": "llm_generate",
+              "config": {
+                "model": "{{ model }}",
+                "prompt": "Create mermaid versions of the useful UML diagrams for this component '{{ component.id }}' based on the refined spec.\n<COMPONENT>\n{{ component }}\n</COMPONENT>\n<REFINED_SPEC>\n{{ refined_spec }}\n</REFINED_SPEC>\n<UML_MERMAID_GUIDE>\n{{ uml_mermaid_guide }}\n</UML_MERMAID_GUIDE>. For the mermaid code, do not use parentheses in labels",
+                "output_format": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "name": { "type": "string" },
+                      "description": { "type": "string" },
+                      "mermaid_code": { "type": "string" }
+                    }
+                  }
+                ],
+                "output_key": "diagrams"
+              }
+            },
+            {
+              "type": "write_files",
+              "config": {
+                "files": [
+                  {
+                    "path": "{{ component.id }}/diagrams.json",
+                    "content_key": "diagrams"
+                  }
+                ],
+                "root": "{{ output_dir }}/components"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

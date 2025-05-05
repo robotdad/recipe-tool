@@ -3,7 +3,7 @@
 [git-collector-data]
 
 **URL:** https://github.com/modelcontextprotocol/python-sdk  
-**Date:** 4/23/2025, 11:21:13 AM  
+**Date:** 5/3/2025, 3:35:12 PM  
 **Files:** 1  
 
 === File: README.md ===
@@ -317,6 +317,33 @@ async def long_task(files: list[str], ctx: Context) -> str:
         data, mime_type = await ctx.read_resource(f"file://{file}")
     return "Processing complete"
 ```
+
+### Authentication
+
+Authentication can be used by servers that want to expose tools accessing protected resources.
+
+`mcp.server.auth` implements an OAuth 2.0 server interface, which servers can use by
+providing an implementation of the `OAuthServerProvider` protocol.
+
+```
+mcp = FastMCP("My App",
+        auth_provider=MyOAuthServerProvider(),
+        auth=AuthSettings(
+            issuer_url="https://myapp.com",
+            revocation_options=RevocationOptions(
+                enabled=True,
+            ),
+            client_registration_options=ClientRegistrationOptions(
+                enabled=True,
+                valid_scopes=["myscope", "myotherscope"],
+                default_scopes=["myscope"],
+            ),
+            required_scopes=["myscope"],
+        ),
+)
+```
+
+See [OAuthServerProvider](mcp/server/auth/provider.py) for more details.
 
 ## Running Your Server
 
