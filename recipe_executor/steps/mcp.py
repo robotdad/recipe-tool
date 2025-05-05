@@ -15,20 +15,6 @@ from recipe_executor.steps.base import BaseStep, ContextProtocol, StepConfig
 from recipe_executor.utils.templates import render_template
 
 
-def _merge_environment(config_env: Optional[Dict[str, Any]]) -> Dict[str, str]:
-    """
-    Load .env file, merge with system environment, and overlay config_env.
-    Configured variables take precedence.
-    """
-    # Load .env into os.environ without overriding existing vars
-    load_dotenv(override=False)
-    merged: Dict[str, str] = dict(os.environ)
-    if config_env:
-        for key, val in config_env.items():
-            merged[key] = val if isinstance(val, str) else str(val)
-    return merged
-
-
 class MCPConfig(StepConfig):  # type: ignore
     """
     Configuration for MCPStep.
@@ -45,40 +31,36 @@ class MCPConfig(StepConfig):  # type: ignore
     result_key: str = "tool_result"
 
 
-class MCPStep(BaseStep[MCPConfig]):
+class MCPStep(BaseStep[MCPConfig]):  # type: ignore
     """
     Step that connects to an MCP server, invokes a tool, and stores the result in the context.
     """
-    def __init__(
-        self,
-        logger: logging.Logger,
-        config: Dict[str, Any]
-    ) -> None:
-        # Validate and store config
+    def __init__(self, logger: logging.Logger, config: Dict[str, Any]) -> None:
         cfg = MCPConfig.model_validate(config)  # type: ignore
         super().__init__(logger, cfg)
 
     async def execute(self, context: ContextProtocol) -> None:
-        # Resolve tool name
+        # Resolve the tool name
         tool_name: str = render_template(self.config.tool_name, context)
 
         # Resolve arguments
         raw_args: Dict[str, Any] = self.config.arguments or {}
         arguments: Dict[str, Any] = {}
-        for key, val in raw_args.items():
-            if isinstance(val, str):
-                arguments[key] = render_template(val, context)
+        for key, value in raw_args.items():
+            if isinstance(value, str):
+                arguments[key] = render_template(value, context)
             else:
-                arguments[key] = val
+                arguments[key] = value
 
         server_conf: Dict[str, Any] = self.config.server
         service_desc: str
+        client_cm: Any
 
-        # Determine transport
+        # Choose transport based on server config
         if "command" in server_conf:
             # stdio transport
             cmd: str = render_template(server_conf.get("command", ""), context)
-            raw_args_list = server_conf.get("args", [])
+            raw_args_list = server_conf.get("args", []) or []
             args_list: List[str] = []
             for item in raw_args_list:
                 if isinstance(item, str):
@@ -86,17 +68,26 @@ class MCPStep(BaseStep[MCPConfig]):
                 else:
                     args_list.append(str(item))
 
-            # Merge environments
-            config_env: Optional[Dict[str, Any]] = None
+            # Environment variables
+            config_env: Optional[Dict[str, str]] = None
             if server_conf.get("env") is not None:
                 config_env = {}
-                for env_key, env_val in server_conf.get("env", {}).items():
-                    if isinstance(env_val, str):
-                        config_env[env_key] = render_template(env_val, context)
+                for env_k, env_v in server_conf.get("env", {}).items():
+                    if isinstance(env_v, str):
+                        rendered = render_template(env_v, context)
+                        # Load from .env if empty
+                        if rendered == "":
+                            env_file = os.path.join(os.getcwd(), ".env")
+                            if os.path.exists(env_file):
+                                load_dotenv(env_file)
+                                env_value = os.getenv(env_k)
+                                if env_value is not None:
+                                    rendered = env_value
+                        config_env[env_k] = rendered
                     else:
-                        config_env[env_key] = str(env_val)
-            env: Dict[str, str] = _merge_environment(config_env)
+                        config_env[env_k] = str(env_v)
 
+            # Working directory
             cwd: Optional[str] = None
             if server_conf.get("working_dir") is not None:
                 cwd = render_template(server_conf.get("working_dir", ""), context)
@@ -104,7 +95,7 @@ class MCPStep(BaseStep[MCPConfig]):
             server_params = StdioServerParameters(
                 command=cmd,
                 args=args_list,
-                env=env,
+                env=config_env,
                 cwd=cwd,
             )
             client_cm = stdio_client(server_params)
@@ -142,14 +133,14 @@ class MCPStep(BaseStep[MCPConfig]):
                             f"Tool invocation failed for '{tool_name}' on {service_desc}: {e}"
                         ) from e
         except ValueError:
-            # Propagate tool invocation errors
+            # Propagate invocation errors
             raise
         except Exception as e:
             raise ValueError(
                 f"Failed to call tool '{tool_name}' on {service_desc}: {e}"
             ) from e
 
-        # Convert result to dict
+        # Convert result to a dictionary
         try:
             result_dict: Dict[str, Any] = result.__dict__  # type: ignore
         except Exception:
@@ -159,5 +150,5 @@ class MCPStep(BaseStep[MCPConfig]):
                 if not attr.startswith("_")
             }
 
-        # Store in context
+        # Store result in context
         context[self.config.result_key] = result_dict

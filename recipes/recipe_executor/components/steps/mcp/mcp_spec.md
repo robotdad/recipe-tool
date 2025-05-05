@@ -18,16 +18,15 @@ The MCPStep component allows recipes to invoke tools on remote MCP servers and s
 
 - Retrieve configuration values via the step config object.
 - Use `render_template` to resolve templated configuration values before use.
-- Use `sse_client` or `stdio_client` to create `ClientSession` instance.
+- Use `mcp.client.sse.sse_client` or `mcp.client.stdio.stdio_client` to create `ClientSession` instance.
   - For `stdio_client`:
     - Use `StdioServerParameters` for `server` config parameter.
-    - Use `cwd` as the working directory for the command.
+    - Use `cwd` as the working directory in the server config.
 - Intialize session and execute session.call_tool with the tool name and arguments.
 - Wrap exceptions from the client in `ValueError` including the tool name and service.
 - Convert the `mcp.types.CallToolResult` to `Dict[str, Any]`.
 - Store converted tool result dictionary in context under `result_key`.
 - Overwrite existing context values if `result_key` already exists.
-- The `env` field in the server configuration should be merged with the system environment variables and `.env` file variables, with the configured ones taking precedence.
 
 ## Logging
 
@@ -43,7 +42,7 @@ The MCPStep component allows recipes to invoke tools on remote MCP servers and s
 
 ### External Libraries
 
-- **mcp**: Provides `sse_client`, `stdio_client`, `CallToolResult` `StdioServerParameters` and `ClientSession` for MCP server interactions.
+- **mcp**: Provides `client.sse.sse_client`, `stdio_client`, `types.CallToolResult` `StdioServerParameters` and `ClientSession` for MCP server interactions.
 - **dotenv**: For loading environment variables from `.env` files.
 
 ### Configuration Dependencies

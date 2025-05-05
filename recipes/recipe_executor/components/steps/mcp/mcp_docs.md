@@ -39,7 +39,7 @@ For stdio servers:
 - `command`: str - the command to run the MCP server.
 - `args`: List[str] - arguments to pass to the command.
 - `env`: Optional[Dict[str, str]] - environment variables to set for the command.
-  - The actual environment variables from the system (including `.env`) will also be included and for duplicates, the configured ones will take precedence.
+  - If an env var is set to "", an attempt will be made to load the variable from the system environment variables and `.env` file.
 - `working_dir`: The working directory for the command.
 
 ## Basic Usage in Recipes
