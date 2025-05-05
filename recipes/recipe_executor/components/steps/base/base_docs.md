@@ -6,6 +6,7 @@ To use the `BaseStep` and `StepConfig` classes in your custom step implementatio
 
 ```python
 from recipe_executor.steps.base import BaseStep, StepConfig
+from recipe_executor.protocols import ContextProtocol, StepProtocol
 ```
 
 ## Defining a New Step (Example)

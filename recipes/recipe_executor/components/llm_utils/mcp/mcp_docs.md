@@ -27,11 +27,26 @@ def get_mcp_server(
     """
 ```
 
+The configuration object should contain the necessary parameters for the MCP server. The function will create an instance of `MCPServer` based on the provided configuration.
+
+For HTTP servers:
+
+- `url`: str - the URL of the MCP server.
+- `headers`: Optional[Dict[str, Any]] -headers to include in the request.
+
+For stdio servers:
+
+- `command`: str - the command to run the MCP server.
+- `args`: List[str] - arguments to pass to the command.
+- `env`: Optional[Dict[str, str]] - environment variables to set for the command.
+  - If an env var is set to "", an attempt will be made to load the variable from the system environment variables and `.env` file.
+- `working_dir`: The working directory for the command.
+
 Use the provided `MCPServer` client to connect to an MCP server for external tool calls:
 
 ```python
 from recipe_executor.llm_utils.mcp import get_mcp_server
-from recipe_executor.models import MCPServerHttpConfig
+
 mcp_server = get_mcp_server(
     logger=logger,
     config={

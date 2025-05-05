@@ -2,6 +2,12 @@
 
 The Protocols component provides **interface definitions** for key parts of the Recipe Executor system. By defining formal contracts (`Protocol` classes) for the `Executor`, `Context`, and `Step`, this component decouples implementations from each other and serves as the single source of truth for how components interact. All components that implement or use these interfaces should refer to the `Protocols` component to ensure consistency. Where the concrete implementations are needed, consider importing them inside the method or class that requires them, rather than at the top of the file. This helps to prevent circular imports and keeps the code clean.
 
+## Importing
+
+```python
+from recipe_executor.protocols import ContextProtocol, StepProtocol, ExecutorProtocol
+```
+
 ## Provided Interfaces
 
 ### `ContextProtocol`
@@ -113,6 +119,22 @@ class MyCustomExecutor(ExecutorProtocol):
 ```
 
 In this example, `MyCustomExecutor` implements the `ExecutorProtocol`, ensuring it adheres to the expected interface. This allows it to be used interchangeably with any other executor that also implements `ExecutorProtocol`.
+
+```python
+from recipe_executor.protocols import ContextProtocol, StepProtocol
+from recipe_executor.models import StepConfig
+
+class MyCustomStep(StepProtocol):
+    def __init__(self, logger: logging.Logger, config: StepConfig) -> None:
+        self.logger = logger
+        self.config = config
+
+    def execute(self, context: ContextProtocol) -> None:
+        # Custom implementation
+        pass
+```
+
+In this example, `MyCustomStep` implements the `StepProtocol`, ensuring it adheres to the expected interface. This allows creation of custom steps that may be used as plugins or replacements for existing steps in the Recipe Executor system.
 
 ## Implementation Notes for Developers
 

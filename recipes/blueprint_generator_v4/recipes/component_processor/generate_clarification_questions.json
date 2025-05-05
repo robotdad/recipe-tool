@@ -1,0 +1,47 @@
+{
+  "steps": [
+    {
+      "type": "conditional",
+      "config": {
+        "condition": "file_exists('{{ output_dir }}/components/{{ component.id }}/clarification_questions.json')",
+        "if_true": {
+          "steps": [
+            {
+              "type": "read_files",
+              "config": {
+                "path": "{{ output_dir }}/components/{{ component.id }}/clarification_questions.json",
+                "content_key": "clarification_questions",
+                "merge_model": "dict"
+              }
+            }
+          ]
+        },
+        "if_false": {
+          "steps": [
+            {
+              "type": "llm_generate",
+              "config": {
+                "model": "{{ model }}",
+                "prompt": "Review the following candidate spec and generate any clarification questions that would be needed to create the spec and docs files as defined within the attached guide.\n<CANDIDATE_SPEC>\n{{ candidate_spec }}\n</CANDIDATE_SPEC>\nRespond with a JSON array of strings (questions).\n\n<COMPONENT_DOCS_SPEC_GUIDE>\n{{ component_docs_spec_guide }}\n</COMPONENT_DOCS_SPEC_GUIDE>",
+                "output_format": [{ "type": "string" }],
+                "output_key": "clarification_questions"
+              }
+            },
+            {
+              "type": "write_files",
+              "config": {
+                "files": [
+                  {
+                    "path": "{{ component.id }}/clarification_questions.json",
+                    "content_key": "clarification_questions"
+                  }
+                ],
+                "root": "{{ output_dir }}/components"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}
