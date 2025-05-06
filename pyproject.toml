@@ -37,7 +37,8 @@ python-code-tools = "python_code_tools.cli:main"
 package = true
 
 [tool.uv.sources]
-python-code-tools = { path = "mcp-servers/python-code-tools", editable = true }
+ python-code-tools = { path = "mcp-servers/python-code-tools", editable = true }
+ recipe-tool-mcp-server = { path = "mcp-servers/recipe-tool", editable = true }
 
 [tool.hatch.build.targets.wheel]
 packages = ["recipe_executor"]
