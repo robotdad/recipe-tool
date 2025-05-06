@@ -1,0 +1,219 @@
+{
+  "steps": [
+    {
+      "type": "read_files",
+      "config": {
+        "path": "{{ project_spec }}",
+        "content_key": "project_spec_content"
+      }
+    },
+    {
+      "type": "read_files",
+      "config": {
+        "path": "ai_context/COMPONENT_DOCS_SPEC_GUIDE.md",
+        "content_key": "component_docs_spec_guide"
+      }
+    },
+    {
+      "type": "read_files",
+      "config": {
+        "path": "ai_context/IMPLEMENTATION_PHILOSOPHY.md",
+        "content_key": "implementation_philosophy"
+      }
+    },
+    {
+      "type": "read_files",
+      "config": {
+        "path": "ai_context/MODULAR_DESIGN_PHILOSOPHY.md",
+        "content_key": "modular_design_philosophy"
+      }
+    },
+    {
+      "type": "conditional",
+      "config": {
+        "condition": "{% if process_review %}true{% else %}false{% endif %}",
+        "if_true": {
+          "steps": [
+            {
+              "type": "execute_recipe",
+              "config": {
+                "recipe_path": "recipes/experimental/blueprint_generator_v3/recipes/process_human_review.json",
+                "context_overrides": {
+                  "component_id": "{{ process_review }}",
+                  "updated_spec_path": "{{ review_path }}",
+                  "original_spec_path": "{{ original_spec_path | default: output_dir + '/components/' + process_review + '_spec.md' }}",
+                  "output_dir": "{{ output_dir }}",
+                  "model": "{{ model | default: 'openai/o4-mini' }}"
+                }
+              }
+            },
+            {
+              "type": "read_files",
+              "config": {
+                "path": "{{ output_dir }}/status/project_status.json",
+                "content_key": "project_status",
+                "merge_mode": "dict",
+                "optional": true
+              }
+            },
+            {
+              "type": "conditional",
+              "config": {
+                "condition": "{% if project_status %}{{ project_status.needs_human_intervention }}{% else %}true{% endif %}",
+                "if_false": {
+                  "steps": [
+                    {
+                      "type": "execute_recipe",
+                      "config": {
+                        "recipe_path": "recipes/experimental/blueprint_generator_v3/recipes/generate_blueprints.json",
+                        "context_overrides": {
+                          "output_dir": "{{ output_dir }}",
+                          "model": "{{ model | default: 'openai/o4-mini' }}"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        "if_false": {
+          "steps": [
+            {
+              "type": "llm_generate",
+              "config": {
+                "prompt": "Create necessary directories for the project in the output directory:\n\n- {{ output_dir }}/analysis - For analysis files\n- {{ output_dir }}/components - For component specifications\n- {{ output_dir }}/clarification - For clarification questions and answers\n- {{ output_dir }}/evaluation - For evaluation results\n- {{ output_dir }}/human_review - For human review files\n- {{ output_dir }}/blueprints - For blueprint files\n- {{ output_dir }}/reports - For report files\n- {{ output_dir }}/status - For status files\n\nConfirm directory structure is ready.",
+                "model": "{{ model | default: 'openai/o4-mini' }}",
+                "output_format": "text",
+                "output_key": "directory_confirmation"
+              }
+            },
+            {
+              "type": "execute_recipe",
+              "config": {
+                "recipe_path": "recipes/experimental/blueprint_generator_v3/recipes/analyze_project_flow.json",
+                "context_overrides": {
+                  "output_dir": "{{ output_dir }}",
+                  "model": "{{ model | default: 'openai/o4-mini' }}"
+                }
+              }
+            },
+            {
+              "type": "conditional",
+              "config": {
+                "condition": "{{ analysis_result.needs_splitting }}",
+                "if_true": {
+                  "steps": [
+                    {
+                      "type": "execute_recipe",
+                      "config": {
+                        "recipe_path": "recipes/experimental/blueprint_generator_v3/recipes/split_project_recursively.json",
+                        "context_overrides": {
+                          "output_dir": "{{ output_dir }}",
+                          "model": "{{ model | default: 'openai/o4-mini' }}",
+                          "complete_all_splitting": true
+                        }
+                      }
+                    },
+                    {
+                      "type": "conditional",
+                      "config": {
+                        "condition": "{% if skip_processing %}false{% else %}true{% endif %}",
+                        "if_true": {
+                          "steps": [
+                            {
+                              "type": "read_files",
+                              "config": {
+                                "path": "{{ output_dir }}/components/flattened_components_manifest.json",
+                                "content_key": "components_json",
+                                "merge_mode": "dict",
+                                "optional": true
+                              }
+                            },
+                            {
+                              "type": "conditional",
+                              "config": {
+                                "condition": "{% if components_json %}true{% else %}false{% endif %}",
+                                "if_true": {
+                                  "steps": [
+                                    {
+                                      "type": "execute_recipe",
+                                      "config": {
+                                        "recipe_path": "recipes/experimental/blueprint_generator_v3/recipes/process_components.json",
+                                        "context_overrides": {
+                                          "output_dir": "{{ output_dir }}",
+                                          "model": "{{ model | default: 'openai/o4-mini' }}"
+                                        }
+                                      }
+                                    }
+                                  ]
+                                },
+                                "if_false": {
+                                  "steps": [
+                                    {
+                                      "type": "read_files",
+                                      "config": {
+                                        "path": "{{ output_dir }}/components/components_manifest.json",
+                                        "content_key": "components_json",
+                                        "merge_mode": "dict"
+                                      }
+                                    },
+                                    {
+                                      "type": "execute_recipe",
+                                      "config": {
+                                        "recipe_path": "recipes/experimental/blueprint_generator_v3/recipes/process_components.json",
+                                        "context_overrides": {
+                                          "output_dir": "{{ output_dir }}",
+                                          "model": "{{ model | default: 'openai/o4-mini' }}"
+                                        }
+                                      }
+                                    }
+                                  ]
+                                }
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                },
+                "if_false": {
+                  "steps": [
+                    {
+                      "type": "execute_recipe",
+                      "config": {
+                        "recipe_path": "recipes/experimental/blueprint_generator_v3/recipes/process_single_component.json",
+                        "context_overrides": {
+                          "output_dir": "{{ output_dir }}",
+                          "model": "{{ model | default: 'openai/o4-mini' }}"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "llm_generate",
+      "config": {
+        "prompt": "Generate a build completion report:\n\nProject Specification: {{ project_spec }}\nOutput Directory: {{ output_dir }}\n{% if process_review %}Human Review Processed: {{ process_review }}{% endif %}\nAnalysis Result: {% if analysis_result %}{{ analysis_result.needs_splitting }}{% else %}Not available{% endif %}\n\nCreate a detailed report of what was done during this build process, including important paths and next steps.",
+        "model": "{{ model | default: 'openai/o4-mini' }}",
+        "output_format": "files",
+        "output_key": "build_report"
+      }
+    },
+    {
+      "type": "write_files",
+      "config": {
+        "files_key": "build_report",
+        "root": "{{ output_dir }}/reports"
+      }
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "steps": [
+    {
+      "type": "execute_recipe",
+      "config": {
+        "recipe_path": "recipes/experimental/blueprint_generator/recipes/split_project.json",
+        "context_overrides": {
+          "input": "recipes/experimental/recipe_lab/project_component_breakdown_analysis.md",
+          "analysis_source": "recipes/experimental/recipe_lab/docs/project_idea.md",
+          "files": "ai_context/generated/RECIPE_EXECUTOR_CODE_FILES.md,ai_context/generated/RECIPE_EXECUTOR_RECIPE_FILES.md",
+          "output_root": "recipes/experimental/recipe_lab",
+          "model": "{{model|default:'openai/gpt-4.1'}}"
+        }
+      }
+    }
+  ]
+}

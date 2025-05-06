@@ -1,0 +1,220 @@
+{
+  "steps": [
+    {
+      "type": "llm_generate",
+      "config": {
+        "prompt": "You're an expert software architect tasked with creating UML diagrams from structured specifications for a software system. Generate the following UML diagrams using PlantUML notation:\n\n1. Component Diagram - showing the high-level components and their interfaces\n2. Class Diagram - for each data model identified in the specifications\n3. Package Diagram - showing the organization of components into packages\n\nStructured Specifications:\n```\n{{ structured_specifications }}\n```\n\nFor each diagram, provide:\n- A clear title\n- The PlantUML code\n- A brief explanation of the diagram\n\nEnsure that:\n- Component diagrams show interfaces between components\n- Class diagrams include attributes, methods, and relationships\n- All diagrams follow UML best practices and notation",
+        "model": "{{ model | default: 'openai/gpt-4o' }}",
+        "output_format": {
+          "type": "object",
+          "properties": {
+            "component_diagram": {
+              "type": "object",
+              "properties": {
+                "title": { "type": "string" },
+                "plantuml": { "type": "string" },
+                "explanation": { "type": "string" }
+              }
+            },
+            "class_diagrams": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "title": { "type": "string" },
+                  "plantuml": { "type": "string" },
+                  "explanation": { "type": "string" }
+                }
+              }
+            },
+            "package_diagram": {
+              "type": "object",
+              "properties": {
+                "title": { "type": "string" },
+                "plantuml": { "type": "string" },
+                "explanation": { "type": "string" }
+              }
+            }
+          }
+        },
+        "output_key": "uml_diagrams"
+      }
+    },
+    {
+      "type": "loop",
+      "config": {
+        "items": "structured_specifications.components",
+        "item_key": "component",
+        "max_concurrency": 2,
+        "substeps": [
+          {
+            "type": "llm_generate",
+            "config": {
+              "prompt": "Create detailed sequence diagrams for the '{{ component.name }}' component based on the following specifications. Identify the key interactions and workflows this component would participate in, and create UML sequence diagrams using PlantUML notation.\n\nComponent Details:\n```\n{{ component }}\n```\n\nSystem Specifications:\n```\n{{ structured_specifications }}\n```\n\nFor each sequence diagram:\n1. Give it a clear title related to the specific workflow or use case\n2. Include all relevant actors and components involved in the interaction\n3. Show message exchanges with proper timing and sequence\n4. Include notes to explain complex logic\n5. Ensure the diagram follows UML sequence diagram best practices",
+              "model": "{{ model | default: 'openai/gpt-4o' }}",
+              "output_format": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "component_id": { "type": "string" },
+                    "title": { "type": "string" },
+                    "plantuml": { "type": "string" },
+                    "explanation": { "type": "string" }
+                  }
+                }
+              },
+              "output_key": "sequence_diagrams_{{ component.id }}"
+            }
+          }
+        ],
+        "result_key": "component_sequence_diagrams"
+      }
+    },
+    {
+      "type": "llm_generate",
+      "config": {
+        "prompt": "Based on the specifications, create state diagrams for any components or processes that have distinct states or status transitions. Identify components with state-dependent behavior and create UML state diagrams using PlantUML notation.\n\nSpecifications:\n```\n{{ structured_specifications }}\n```\n\nFor each state diagram:\n1. Give it a clear title related to the specific component or process\n2. Show all possible states\n3. Include transitions between states and their triggers\n4. Add entry/exit actions where appropriate\n5. Include notes to explain complex state logic\n6. Ensure the diagram follows UML state diagram best practices",
+        "model": "{{ model | default: 'openai/gpt-4o' }}",
+        "output_format": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "component_id": { "type": "string" },
+              "title": { "type": "string" },
+              "plantuml": { "type": "string" },
+              "explanation": { "type": "string" }
+            }
+          }
+        },
+        "output_key": "state_diagrams"
+      }
+    },
+    {
+      "type": "write_files",
+      "config": {
+        "files": [
+          {
+            "path": "uml/component_diagram.puml",
+            "content_key": "uml_diagrams.component_diagram.plantuml"
+          },
+          {
+            "path": "uml/package_diagram.puml",
+            "content_key": "uml_diagrams.package_diagram.plantuml"
+          }
+        ],
+        "root": "{{ output_dir | default: 'output' }}"
+      }
+    },
+    {
+      "type": "loop",
+      "config": {
+        "items": "uml_diagrams.class_diagrams",
+        "item_key": "diagram",
+        "substeps": [
+          {
+            "type": "write_files",
+            "config": {
+              "files": [
+                {
+                  "path": "uml/class_diagrams/{{ diagram.title | replace: ' ', '_' | downcase }}.puml",
+                  "content_key": "diagram.plantuml"
+                }
+              ],
+              "root": "{{ output_dir | default: 'output' }}"
+            }
+          }
+        ],
+        "result_key": "written_class_diagrams"
+      }
+    },
+    {
+      "type": "loop",
+      "config": {
+        "items": "component_sequence_diagrams",
+        "item_key": "sequence_diagrams",
+        "substeps": [
+          {
+            "type": "loop",
+            "config": {
+              "items": "sequence_diagrams",
+              "item_key": "diagram",
+              "substeps": [
+                {
+                  "type": "write_files",
+                  "config": {
+                    "files": [
+                      {
+                        "path": "uml/sequence_diagrams/{{ diagram.component_id }}_{{ diagram.title | replace: ' ', '_' | downcase }}.puml",
+                        "content_key": "diagram.plantuml"
+                      }
+                    ],
+                    "root": "{{ output_dir | default: 'output' }}"
+                  }
+                }
+              ],
+              "result_key": "written_component_sequence_diagrams"
+            }
+          }
+        ],
+        "result_key": "all_written_sequence_diagrams"
+      }
+    },
+    {
+      "type": "loop",
+      "config": {
+        "items": "state_diagrams",
+        "item_key": "diagram",
+        "substeps": [
+          {
+            "type": "write_files",
+            "config": {
+              "files": [
+                {
+                  "path": "uml/state_diagrams/{{ diagram.component_id }}_{{ diagram.title | replace: ' ', '_' | downcase }}.puml",
+                  "content_key": "diagram.plantuml"
+                }
+              ],
+              "root": "{{ output_dir | default: 'output' }}"
+            }
+          }
+        ],
+        "result_key": "written_state_diagrams"
+      }
+    },
+    {
+      "type": "llm_generate",
+      "config": {
+        "prompt": "Create a comprehensive UML model index markdown file that organizes and links to all the generated UML diagrams. Format it as a navigable documentation page that explains the system architecture through the diagrams.\n\nComponent Diagram: \n```\n{{ uml_diagrams.component_diagram }}\n```\n\nPackage Diagram: \n```\n{{ uml_diagrams.package_diagram }}\n```\n\nClass Diagrams: \n```\n{{ uml_diagrams.class_diagrams }}\n```\n\nSequence Diagrams: \n```\n{{ component_sequence_diagrams }}\n```\n\nState Diagrams: \n```\n{{ state_diagrams }}\n```",
+        "model": "{{ model | default: 'openai/gpt-4o' }}",
+        "output_format": "text",
+        "output_key": "uml_index_content"
+      }
+    },
+    {
+      "type": "write_files",
+      "config": {
+        "files": [
+          {
+            "path": "uml/README.md",
+            "content_key": "uml_index_content"
+          }
+        ],
+        "root": "{{ output_dir | default: 'output' }}"
+      }
+    },
+    {
+      "type": "execute_recipe",
+      "config": {
+        "recipe_path": "recipes/experimental/uml_system/evaluate_uml_models.json",
+        "context_overrides": {
+          "uml_diagrams": "{{ uml_diagrams }}",
+          "component_sequence_diagrams": "{{ component_sequence_diagrams }}",
+          "state_diagrams": "{{ state_diagrams }}",
+          "structured_specifications": "{{ structured_specifications }}"
+        }
+      }
+    }
+  ]
+}

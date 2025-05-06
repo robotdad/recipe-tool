@@ -5,7 +5,7 @@
 **Search:** ['recipe_executor']
 **Exclude:** ['.venv', 'node_modules', '.git', '__pycache__', '*.pyc', '*.ruff_cache']
 **Include:** ['README.md', 'pyproject.toml', '.env.example']
-**Date:** 5/5/2025, 6:18:45 AM
+**Date:** 5/6/2025, 10:52:16 AM
 **Files:** 25
 
 === File: .env.example ===
@@ -290,7 +290,8 @@ python-code-tools = "python_code_tools.cli:main"
 package = true
 
 [tool.uv.sources]
-python-code-tools = { path = "mcp-servers/python-code-tools", editable = true }
+ python-code-tools = { path = "mcp-servers/python-code-tools", editable = true }
+ recipe-tool-mcp-server = { path = "mcp-servers/recipe-tool", editable = true }
 
 [tool.hatch.build.targets.wheel]
 packages = ["recipe_executor"]

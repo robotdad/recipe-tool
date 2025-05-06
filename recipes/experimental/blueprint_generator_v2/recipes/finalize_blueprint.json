@@ -1,0 +1,34 @@
+{
+  "steps": [
+    {
+      "type": "llm_generate",
+      "config": {
+        "model": "{{ model | default: 'openai/o4-mini' }}",
+        "output_format": "text",
+        "output_key": "architecture_diagram",
+        "prompt": "We have the following components in our system:\n{% for comp in components %}- {{comp.name}}: {{comp.description}}\n{% endfor %}\n\nUsing these, draw a high-level architecture diagram. Use **Mermaid** syntax for a flowchart that shows all components and their interactions. Show each component as a node. Use arrows to indicate primary interactions or data flow between components (for example, which components call or depend on which). The diagram should reflect a logical arrangement (e.g., front-end -> back-end -> database, or any appropriate structure based on the component list). Only provide the Mermaid code, no additional text."
+      }
+    },
+    {
+      "type": "llm_generate",
+      "config": {
+        "model": "{{ model | default: 'openai/o4-mini' }}",
+        "output_format": "text",
+        "output_key": "blueprint_doc",
+        "prompt": "# System Architecture Blueprint\nProvide a comprehensive architecture document for the system described. Use the information from the vision and requirements and the derived components:\n\n**Introduction:** Briefly restate the system's vision and key requirements (what the system is meant to achieve).\n\n**Architecture Overview:** Describe the overall architecture approach. Mention the major components and how they interact at a high level (e.g., client-server, layered architecture, use of external services, etc.).\n\n**Components:** Summarize each component and its role in a few sentences:\n{% for comp in components %}- **{{comp.name}}:** {{comp.description}}\n{% endfor %}\n\n**Architecture Diagram:** The following diagram illustrates the system's components and their interactions.\n\n```mermaid\n{{architecture_diagram}}\n```\n\n**Assumptions and Decisions:** List any important assumptions or design decisions made (especially those affecting multiple components or the overall structure).\n\nUse clear markdown formatting with headings for each section. The tone should be professional and informative. Ensure the document is self-contained and provides a reader with an understanding of how the system is organized and why."
+      }
+    },
+    {
+      "type": "write_files",
+      "config": {
+        "files": [
+          {
+            "path": "System_Blueprint.md",
+            "content_key": "blueprint_doc"
+          }
+        ],
+        "root": "{{ output_dir }}"
+      }
+    }
+  ]
+}

@@ -5,7 +5,7 @@
 **Search:** ['recipes/recipe_executor']
 **Exclude:** ['.venv', 'node_modules', '.git', '__pycache__', '*.pyc', '*.ruff_cache']
 **Include:** []
-**Date:** 5/5/2025, 7:59:05 AM
+**Date:** 5/6/2025, 10:52:16 AM
 **Files:** 51
 
 === File: recipes/recipe_executor/README.md ===
@@ -2136,7 +2136,7 @@ The ConditionalStep allows you to branch execution paths based on evaluating exp
             {
               "type": "execute_recipe",
               "config": {
-                "recipe_path": "recipes/blueprint_generator/recipes/split_project.json"
+                "recipe_path": "recipes/experimental/blueprint_generator/recipes/split_project.json"
               }
             }
           ]
@@ -2146,7 +2146,7 @@ The ConditionalStep allows you to branch execution paths based on evaluating exp
             {
               "type": "execute_recipe",
               "config": {
-                "recipe_path": "recipes/blueprint_generator/recipes/process_single_component.json"
+                "recipe_path": "recipes/experimental/blueprint_generator/recipes/process_single_component.json"
               }
             }
           ]

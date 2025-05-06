@@ -1,0 +1,276 @@
+{
+  "steps": [
+    {
+      "type": "conditional",
+      "config": {
+        "condition": "file_exists('{{ output_dir }}/components/flattened_components_manifest.json')",
+        "if_true": {
+          "steps": [
+            {
+              "type": "read_files",
+              "config": {
+                "path": "{{ output_dir }}/components/flattened_components_manifest.json",
+                "content_key": "flattened_components",
+                "merge_mode": "dict"
+              }
+            }
+          ]
+        },
+        "if_false": {
+          "steps": [
+            {
+              "type": "llm_generate",
+              "config": {
+                "prompt": "Determine current recursion depth for component analysis:\n\nRecursion path: {{ recursion_path | default: '' }}\nMax recursion depth: {{ max_recursion_depth | default: 4 }}\n\nCurrent depth is the number of levels in the recursion path.",
+                "model": "{{ model | default: 'openai/o4-mini' }}",
+                "output_format": {
+                  "type": "object",
+                  "properties": {
+                    "current_depth": { "type": "integer" },
+                    "max_depth": { "type": "integer" },
+                    "recursion_path": { "type": "string" },
+                    "can_recurse": { "type": "boolean" }
+                  }
+                },
+                "output_key": "recursion_info"
+              }
+            },
+            {
+              "type": "conditional",
+              "config": {
+                "condition": "{% if analysis_result %}{{ analysis_result.needs_splitting }}{% else %}false{% endif %}",
+                "if_true": {
+                  "steps": [
+                    {
+                      "type": "conditional",
+                      "config": {
+                        "condition": "{{ recursion_info.can_recurse }}",
+                        "if_true": {
+                          "steps": [
+                            {
+                              "type": "execute_recipe",
+                              "config": {
+                                "recipe_path": "recipes/experimental/blueprint_generator_v3/recipes/split_project.json",
+                                "context_overrides": {
+                                  "analysis_result_json": "{{ output_dir }}/analysis/analysis_result.json",
+                                  "output_root": "{{ output_dir }}/components",
+                                  "model": "{{ model | default: 'openai/o4-mini' }}"
+                                }
+                              }
+                            },
+                            {
+                              "type": "read_files",
+                              "config": {
+                                "path": "{{ output_dir }}/components/components_manifest.json",
+                                "content_key": "components_manifest",
+                                "merge_mode": "dict"
+                              }
+                            },
+                            {
+                              "type": "loop",
+                              "config": {
+                                "items": "components_manifest",
+                                "item_key": "component",
+                                "max_concurrency": 0,
+                                "delay": 0.1,
+                                "substeps": [
+                                  {
+                                    "type": "execute_recipe",
+                                    "config": {
+                                      "recipe_path": "recipes/experimental/blueprint_generator_v3/recipes/analyze_project_flow.json",
+                                      "context_overrides": {
+                                        "component_spec": "{{ output_dir }}/components/{{ component.spec_file }}",
+                                        "output_dir": "{{ output_dir }}/components/{{ component.component_id }}",
+                                        "model": "{{ model | default: 'openai/o4-mini' }}"
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "type": "read_files",
+                                    "config": {
+                                      "path": "{{ output_dir }}/components/{{ component.component_id }}/analysis/analysis_result.json",
+                                      "content_key": "component_analysis_result",
+                                      "merge_mode": "dict"
+                                    }
+                                  },
+                                  {
+                                    "type": "conditional",
+                                    "config": {
+                                      "condition": "{{ component_analysis_result.needs_splitting }}",
+                                      "if_true": {
+                                        "steps": [
+                                          {
+                                            "type": "llm_generate",
+                                            "config": {
+                                              "prompt": "Processing component that needs further splitting: {{ component.component_id }}.\nPreparing for recursive analysis and splitting.",
+                                              "model": "{{ model | default: 'openai/o4-mini' }}",
+                                              "output_format": "text",
+                                              "output_key": "splitting_log"
+                                            }
+                                          },
+                                          {
+                                            "type": "execute_recipe",
+                                            "config": {
+                                              "recipe_path": "recipes/experimental/blueprint_generator_v3/recipes/split_project.json",
+                                              "context_overrides": {
+                                                "project_spec_content": "{{ project_spec_content }}",
+                                                "component_spec_content": "{{ component_spec_content | default: '' }}",
+                                                "analysis_result_json": "{{ output_dir }}/components/{{ component.component_id }}/analysis/analysis_result.json",
+                                                "output_root": "{{ output_dir }}/components/{{ component.component_id }}/components",
+                                                "model": "{{ model | default: 'openai/o4-mini' }}"
+                                              }
+                                            }
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  }
+                                ],
+                                "result_key": "processed_components"
+                              }
+                            }
+                          ]
+                        },
+                        "if_false": {
+                          "steps": [
+                            {
+                              "type": "llm_generate",
+                              "config": {
+                                "prompt": "Maximum recursion depth reached.\nCurrent path: {{ recursion_info.recursion_path }}\nMax depth: {{ recursion_info.max_depth }}\n\nGenerate a warning message about the recursion limit and recommend proceeding with the current component as-is.",
+                                "model": "{{ model | default: 'openai/o4-mini' }}",
+                                "output_format": "text",
+                                "output_key": "recursion_warning"
+                              }
+                            },
+                            {
+                              "type": "execute_recipe",
+                              "config": {
+                                "recipe_path": "recipes/experimental/blueprint_generator_v3/recipes/split_project.json",
+                                "context_overrides": {
+                                  "analysis_result_json": "{{ output_dir }}/analysis/analysis_result.json",
+                                  "output_root": "{{ output_dir }}/components",
+                                  "model": "{{ model | default: 'openai/o4-mini' }}"
+                                }
+                              }
+                            },
+                            {
+                              "type": "write_files",
+                              "config": {
+                                "files": [
+                                  {
+                                    "path": "{{ output_dir }}/recursion_warning.md",
+                                    "content_key": "recursion_warning"
+                                  }
+                                ]
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "type": "conditional",
+                      "config": {
+                        "condition": "{% if complete_all_splitting %}true{% else %}false{% endif %}",
+                        "if_true": {
+                          "steps": [
+                            {
+                              "type": "llm_generate",
+                              "config": {
+                                "prompt": "Create a flattened component manifest by combining all components.\n\nProject components from the primary manifest:\n{{ components_manifest }}\n\nComponents identified in the subtree analyses:\n{% for result in processed_components %}\n{% if result.component_analysis_result and result.component_analysis_result.needs_splitting %}\n- Subtree components for {{ result.component.component_id }}:\n  {% for subcomp in result.component_analysis_result.recommended_components %}\n  - ID: {{ subcomp.component_id }}\n    Name: {{ subcomp.component_name }}\n    Description: {{ subcomp.description }}\n  {% endfor %}\n{% endif %}\n{% endfor %}\n\nCombine all these components into a single flat list with unique IDs and clear parent-child relationships.",
+                                "model": "{{ model | default: 'openai/o4-mini' }}",
+                                "output_format": {
+                                  "type": "object",
+                                  "properties": {
+                                    "flattened_components": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "object",
+                                        "properties": {
+                                          "component_id": { "type": "string" },
+                                          "component_name": {
+                                            "type": "string"
+                                          },
+                                          "spec_file": { "type": "string" },
+                                          "description": { "type": "string" },
+                                          "parent_component": {
+                                            "type": "string"
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                },
+                                "output_key": "flattened_manifest"
+                              }
+                            },
+                            {
+                              "type": "write_files",
+                              "config": {
+                                "files": [
+                                  {
+                                    "path": "{{ output_dir }}/components/flattened_components_manifest.json",
+                                    "content_key": "flattened_manifest"
+                                  }
+                                ]
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                },
+                "if_false": {
+                  "steps": [
+                    {
+                      "type": "llm_generate",
+                      "config": {
+                        "prompt": "Generate a single component specification for a project that doesn't need splitting:\n\nProject spec: {{ project_spec_content }}\n\nFormat this as a JSON object with:\n- component_id: \"main_component\"\n- component_name: \"Main Component\"\n- description: \"Single component implementation\"\n- spec_file: \"main_component_spec.md\"\n- dependencies: [] (empty array)",
+                        "model": "{{ model | default: 'openai/o4-mini' }}",
+                        "output_format": "files",
+                        "output_key": "main_component_spec_json"
+                      }
+                    },
+                    {
+                      "type": "llm_generate",
+                      "config": {
+                        "prompt": "Generate the content for the main component specification file:\n\nProject spec: {{ project_spec_content }}",
+                        "model": "{{ model | default: 'openai/o4-mini' }}",
+                        "output_format": "text",
+                        "output_key": "main_component_spec_content"
+                      }
+                    },
+                    {
+                      "type": "write_files",
+                      "config": {
+                        "files": [
+                          {
+                            "path": "{{ output_dir }}/components/main_component_spec.md",
+                            "content_key": "main_component_spec_content"
+                          },
+                          {
+                            "path": "{{ output_dir }}/components/components_manifest.json",
+                            "content": "[{{ main_component_spec_json }}]"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "read_files",
+                      "config": {
+                        "path": "{{ output_dir }}/components/components_manifest.json",
+                        "content_key": "flattened_components",
+                        "merge_mode": "dict"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

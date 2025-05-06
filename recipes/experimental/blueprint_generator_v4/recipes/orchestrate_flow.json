@@ -1,0 +1,30 @@
+{
+  "steps": [
+    {
+      "type": "conditional",
+      "config": {
+        "condition": "{{ analysis_result.needs_splitting }}",
+        "if_true": {
+          "steps": [
+            {
+              "type": "execute_recipe",
+              "config": {
+                "recipe_path": "recipes/experimental/blueprint_generator_v4/recipes/process_components.json"
+              }
+            }
+          ]
+        },
+        "if_false": {
+          "steps": [
+            {
+              "type": "execute_recipe",
+              "config": {
+                "recipe_path": "recipes/experimental/blueprint_generator_v4/recipes/generate_single_component.json"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

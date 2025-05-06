@@ -1,0 +1,136 @@
+{
+  "steps": [
+    {
+      "type": "read_files",
+      "config": {
+        "path": "{{ output_dir }}/components/components_manifest.json",
+        "content_key": "components",
+        "merge_mode": "dict"
+      }
+    },
+    {
+      "type": "loop",
+      "config": {
+        "items": "components",
+        "item_key": "component",
+        "max_concurrency": 0,
+        "delay": 0.1,
+        "fail_fast": false,
+        "substeps": [
+          {
+            "type": "execute_recipe",
+            "config": {
+              "recipe_path": "recipes/experimental/blueprint_generator_v3/recipes/process_component.json",
+              "context_overrides": {
+                "component_id": "{{ component.component_id }}",
+                "spec_path": "{{ output_dir }}/components/{{ component.spec_file }}",
+                "output_dir": "{{ output_dir }}"
+              }
+            }
+          }
+        ],
+        "result_key": "processed_results"
+      }
+    },
+    {
+      "type": "llm_generate",
+      "config": {
+        "prompt": "Analyze processed components to determine overall status:\n\nProcessed Results:\n{% for result in processed_results %}\n- Component ID: {{ result.component_id | default: 'unknown' }}\n  Status: {{ result.status | default: 'unknown' }}\n{% endfor %}\n\nIdentify how many components are in each of these states:\n1. ready - ready for blueprint generation\n2. needs_human_review - requires human review\n3. other - any other status",
+        "model": "{{ model | default: 'openai/o4-mini' }}",
+        "output_format": {
+          "type": "object",
+          "properties": {
+            "ready_count": { "type": "integer" },
+            "needs_review_count": { "type": "integer" },
+            "other_count": { "type": "integer" },
+            "total_count": { "type": "integer" },
+            "all_ready": { "type": "boolean" },
+            "needs_human_intervention": { "type": "boolean" }
+          }
+        },
+        "output_key": "status_summary"
+      }
+    },
+    {
+      "type": "write_files",
+      "config": {
+        "files": [
+          {
+            "path": "{{ output_dir }}/status/project_status.json",
+            "content_key": "status_summary"
+          }
+        ]
+      }
+    },
+    {
+      "type": "conditional",
+      "config": {
+        "condition": "{{ status_summary.needs_human_intervention | default: false }}",
+        "if_true": {
+          "steps": [
+            {
+              "type": "llm_generate",
+              "config": {
+                "prompt": "Generate a human review instructions document.\n\nProject Status Summary:\n{{ status_summary }}\n\nProcessed Results:\n{% for result in processed_results %}\n- Component ID: {{ result.component_id | default: 'unknown' }}\n  Status: {{ result.status | default: 'unknown' }}\n  {% if result.human_review_path %}Review Path: {{ result.human_review_path }}{% endif %}\n{% endfor %}\n\nCreate a document that:\n1. Explains which components need human review\n2. Provides instructions on how to review and update them\n3. Explains how to feed updated specs back into the system\n\nFormat this as a markdown file named 'human_review_instructions.md'",
+                "model": "{{ model | default: 'openai/o4-mini' }}",
+                "output_format": "files",
+                "output_key": "review_instructions"
+              }
+            },
+            {
+              "type": "write_files",
+              "config": {
+                "files_key": "review_instructions",
+                "root": "{{ output_dir }}/human_review"
+              }
+            }
+          ]
+        },
+        "if_false": {
+          "steps": [
+            {
+              "type": "conditional",
+              "config": {
+                "condition": "{% if status_summary.ready_count > 0 %}true{% else %}false{% endif %}",
+                "if_true": {
+                  "steps": [
+                    {
+                      "type": "execute_recipe",
+                      "config": {
+                        "recipe_path": "recipes/experimental/blueprint_generator_v3/recipes/generate_blueprints.json",
+                        "context_overrides": {
+                          "output_dir": "{{ output_dir }}",
+                          "model": "{{ model | default: 'openai/o4-mini' }}"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "if_false": {
+                  "steps": [
+                    {
+                      "type": "llm_generate",
+                      "config": {
+                        "prompt": "Generate a status report explaining that no components are ready for blueprint generation.\n\nProject Status Summary:\n{{ status_summary }}\n\nProcessed Results:\n{% for result in processed_results %}\n- Component ID: {{ result.component_id | default: 'unknown' }}\n  Status: {{ result.status | default: 'unknown' }}\n{% endfor %}\n\nCreate a document that explains the current project status and recommends next steps.",
+                        "model": "{{ model | default: 'openai/o4-mini' }}",
+                        "output_format": "files",
+                        "output_key": "status_report"
+                      }
+                    },
+                    {
+                      "type": "write_files",
+                      "config": {
+                        "files_key": "status_report",
+                        "root": "{{ output_dir }}/reports"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

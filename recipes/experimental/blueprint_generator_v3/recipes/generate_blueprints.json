@@ -1,0 +1,171 @@
+{
+  "steps": [
+    {
+      "type": "read_files",
+      "config": {
+        "path": "{{ output_dir }}/components/components_manifest.json",
+        "content_key": "all_components",
+        "merge_mode": "dict"
+      }
+    },
+    {
+      "type": "llm_generate",
+      "config": {
+        "prompt": "Extract components that are ready for blueprint generation.\nFilter only the components with 'ready' status.\n\nComponents:\n{% for component in all_components %}\n- ID: {{ component.component_id }}\n  Name: {{ component.component_name }}\n  Status: {{ component.status | default: 'unknown' }}\n  Spec File: {{ component.spec_file | default: component.revised_spec | default: 'unknown' }}\n{% endfor %}",
+        "model": "{{ model | default: 'openai/o4-mini' }}",
+        "output_format": {
+          "type": "object",
+          "properties": {
+            "ready_components": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "component_id": { "type": "string" },
+                  "component_name": { "type": "string" },
+                  "spec_file": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "output_key": "filtered_components"
+      }
+    },
+    {
+      "type": "llm_generate",
+      "config": {
+        "prompt": "Analyze dependencies between components and create a dependency graph.\n\nComponents: {{ filtered_components.ready_components }}\nProject Spec: {{ project_spec_content }}\n\nFor each component, determine which other components it depends on based on their specifications and the overall project architecture.",
+        "model": "{{ model | default: 'openai/o4-mini' }}",
+        "output_format": {
+          "type": "object",
+          "properties": {
+            "dependency_graph": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "array",
+                "items": { "type": "string" }
+              }
+            }
+          }
+        },
+        "output_key": "dependency_analysis"
+      }
+    },
+    {
+      "type": "llm_generate",
+      "config": {
+        "prompt": "Determine the optimal generation order based on dependencies.\nComponents that are dependencies should come before components that depend on them.\n\nDependency graph: {{ dependency_analysis.dependency_graph }}\nComponents: {{ filtered_components.ready_components }}",
+        "model": "{{ model | default: 'openai/o4-mini' }}",
+        "output_format": {
+          "type": "object",
+          "properties": {
+            "generation_order": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          }
+        },
+        "output_key": "ordered_generation"
+      }
+    },
+    {
+      "type": "loop",
+      "config": {
+        "items": "ordered_generation.generation_order",
+        "item_key": "current_component_id",
+        "max_concurrency": 1,
+        "delay": 0.1,
+        "substeps": [
+          {
+            "type": "llm_generate",
+            "config": {
+              "prompt": "Find the detailed specification for component '{{ current_component_id }}':\n\nComponents: {{ filtered_components.ready_components }}",
+              "model": "{{ model | default: 'openai/o4-mini' }}",
+              "output_format": {
+                "type": "object",
+                "properties": {
+                  "component_id": { "type": "string" },
+                  "component_name": { "type": "string" },
+                  "spec_file": { "type": "string" }
+                }
+              },
+              "output_key": "component_info"
+            }
+          },
+          {
+            "type": "read_files",
+            "config": {
+              "path": "{{ output_dir }}/status/{{ current_component_id }}_status.json",
+              "content_key": "component_status",
+              "merge_mode": "dict",
+              "optional": true
+            }
+          },
+          {
+            "type": "execute_recipe",
+            "config": {
+              "recipe_path": "recipes/experimental/blueprint_generator_v3/recipes/find_component_spec.json",
+              "context_overrides": {
+                "component_id": "{{ current_component_id }}",
+                "component_info": "{{ component_info | json }}",
+                "component_status": "{{ component_status | json }}",
+                "output_dir": "{{ output_dir }}",
+                "model": "{{ model | default: 'openai/o4-mini' }}"
+              }
+            }
+          },
+          {
+            "type": "llm_generate",
+            "config": {
+              "prompt": "Generate a detailed blueprint for the component based on its specification, the project context, and our implementation philosophy guidelines:\n\n## Component ID\n{{ current_component_id }}\n\n## Component Specification\n{{ component_spec_content }}\n\n## Project Specification\n<PROJECT_SPEC>\n{{ project_spec_content }}\n</PROJECT_SPEC>\n\n## Implementation Philosophy\n<IMPLEMENTATION_PHILOSOPHY>\n{{ implementation_philosophy }}\n</IMPLEMENTATION_PHILOSOPHY>\n\n## Modular Design Philosophy\n<MODULAR_DESIGN_PHILOSOPHY>\n{{ modular_design_philosophy }}\n</MODULAR_DESIGN_PHILOSOPHY>\n\n## Component Dependencies\n{% if dependency_analysis.dependency_graph[current_component_id] %}\nThis component depends on:\n{% for dep in dependency_analysis.dependency_graph[current_component_id] %}\n- {{ dep }}\n{% endfor %}\n{% else %}\nThis component has no dependencies on other components.\n{% endif %}\n\n## Your Task\nCreate a detailed blueprint for implementing this component that includes:\n\n1. Overview and Architecture - High-level description of the component\n2. Implementation Details:\n   - Data structures and models\n   - Public API and interfaces\n   - Internal functionality\n   - Error handling approach\n3. File Structure - List of files with their purpose\n4. Implementation Plan - Step-by-step guide for development\n5. Testing Strategy - How to verify correct implementation\n\nBe specific and concrete in your recommendations. Provide actual code snippets where appropriate to illustrate key implementation aspects.\n\nProvide the blueprint as a markdown file named `{{ current_component_id }}_blueprint.md`.",
+              "model": "{{ model | default: 'openai/o4-mini' }}",
+              "output_format": "files",
+              "output_key": "blueprint"
+            }
+          },
+          {
+            "type": "write_files",
+            "config": {
+              "files_key": "blueprint",
+              "root": "{{ output_dir }}/blueprints/{{ current_component_id }}"
+            }
+          },
+          {
+            "type": "llm_generate",
+            "config": {
+              "prompt": "Generate API and component specification documentation:\n\n## Component ID\n{{ current_component_id }}\n\n## Component Specification\n{{ component_spec_content }}\n\n## Blueprint\n{{ blueprint }}\n\n## Dependency Information\n{% if dependency_analysis.dependency_graph[current_component_id] %}\nThis component depends on:\n{% for dep in dependency_analysis.dependency_graph[current_component_id] %}\n- {{ dep }}\n{% endfor %}\n{% else %}\nThis component has no dependencies on other components.\n{% endif %}\n\n## Your Task\nCreate formal API documentation that includes:\n\n1. Public interfaces and methods\n2. Data models and structures\n3. Error codes and exception handling\n4. Usage examples\n5. Integration details with dependent components\n\nProvide the documentation as a markdown file named `{{ current_component_id }}_api_spec.md`.",
+              "model": "{{ model | default: 'openai/o4-mini' }}",
+              "output_format": "files",
+              "output_key": "api_spec"
+            }
+          },
+          {
+            "type": "write_files",
+            "config": {
+              "files_key": "api_spec",
+              "root": "{{ output_dir }}/blueprints/{{ current_component_id }}"
+            }
+          }
+        ],
+        "result_key": "blueprint_results"
+      }
+    },
+    {
+      "type": "llm_generate",
+      "config": {
+        "prompt": "Generate a detailed blueprint summary report:\n\nProject: {{ project_spec_content | truncate: 500 }}\n\nGenerated Blueprints:\n{% for result in blueprint_results %}\n- Component: {{ result.component_info.component_id }}\n  Name: {{ result.component_info.component_name }}\n  Files: \n  {% for file in result.blueprint %}\n  - {{ file.path }}\n  {% endfor %}\n  {% for file in result.api_spec %}\n  - {{ file.path }}\n  {% endfor %}\n{% endfor %}\n\nDependency Graph:\n{{ dependency_analysis.dependency_graph }}\n\nCreate a comprehensive report that:\n1. Summarizes the entire project architecture\n2. Explains how components interact based on the dependency graph\n3. Provides implementation guidance for the complete system\n4. Suggests a development sequence based on dependencies\n5. Describes integration points between components\n\nFormat this as a markdown file called 'blueprint_summary_report.md'.",
+        "model": "{{ model | default: 'openai/o4-mini' }}",
+        "output_format": "files",
+        "output_key": "summary_report"
+      }
+    },
+    {
+      "type": "write_files",
+      "config": {
+        "files_key": "summary_report",
+        "root": "{{ output_dir }}/reports"
+      }
+    }
+  ]
+}

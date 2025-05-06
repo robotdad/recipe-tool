@@ -1,0 +1,48 @@
+{
+  "steps": [
+    {
+      "type": "loop",
+      "config": {
+        "items": "components",
+        "item_key": "component",
+        "result_key": "component_outputs",
+        "substeps": [
+          {
+            "type": "llm_generate",
+            "config": {
+              "model": "{{ model | default: 'openai/o4-mini' }}",
+              "output_format": "text",
+              "output_key": "component_docs",
+              "prompt": "<vision>\n{{vision_content}}\n</vision>\n\n<requirements>\n{{requirements_content}}\n</requirements>\n\n<analysis>\n{{analysis_report}}\n</analysis>\n\n{% if context_summaries %}<context>\n{{context_summaries}}\n</context>\n{% endif %}{% if reference_summaries %}<references>\n{{reference_summaries}}\n</references>\n{% endif %}\n<component>\n<name>{{component.name}}</name>\n<description>{{component.description}}</description>\n</component>\n\n<guide>\n{{component_docs_spec_guide}}\n</guide>\n\nYou are tasked with writing the **documentation** for the **{{component.name}}** component of the system. Follow the structure and best practices outlined in the guide above to create a clear, narrative documentation. The documentation should explain the component's purpose, usage, how it interacts with other components, and key design decisions or assumptions. Write for developers and stakeholders to understand how to use and integrate this component."
+            }
+          },
+          {
+            "type": "llm_generate",
+            "config": {
+              "model": "{{ model | default: 'openai/o4-mini' }}",
+              "output_format": "text",
+              "output_key": "component_spec",
+              "prompt": "<vision>\n{{vision_content}}\n</vision>\n\n<requirements>\n{{requirements_content}}\n</requirements>\n\n<analysis>\n{{analysis_report}}\n</analysis>\n\n{% if context_summaries %}<context>\n{{context_summaries}}\n</context>\n{% endif %}{% if reference_summaries %}<references>\n{{reference_summaries}}\n</references>\n{% endif %}\n<documentation>\n{{component_docs}}\n</documentation>\n\n<component>\n<name>{{component.name}}</name>\n<description>{{component.description}}</description>\n</component>\n\n<guide>\n{{component_docs_spec_guide}}\n</guide>\n\nNow produce the **technical specification** for the **{{component.name}}** component. Ensure the specification **complements** the documentation above without duplicating it. Follow the guide's structure and include all necessary sections (e.g. purpose, requirements, interface/API, internal design, dependencies, etc.), focusing on internal details and implementation guidance that the documentation does not cover. Make sure the spec aligns with what the documentation promises and uses consistent terminology."
+            }
+          },
+          {
+            "type": "write_files",
+            "config": {
+              "files": [
+                {
+                  "path": "components/{{component.name}}_spec.md",
+                  "content_key": "component_spec"
+                },
+                {
+                  "path": "components/{{component.name}}_docs.md",
+                  "content_key": "component_docs"
+                }
+              ],
+              "root": "{{ output_dir }}"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

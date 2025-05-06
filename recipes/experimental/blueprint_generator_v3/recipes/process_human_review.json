@@ -1,0 +1,235 @@
+{
+  "steps": [
+    {
+      "type": "read_files",
+      "config": {
+        "path": "{{ original_spec_path }}",
+        "content_key": "original_spec_content"
+      }
+    },
+    {
+      "type": "read_files",
+      "config": {
+        "path": "{{ updated_spec_path }}",
+        "content_key": "updated_spec_content"
+      }
+    },
+    {
+      "type": "read_files",
+      "config": {
+        "path": "{{ output_dir }}/status/{{ component_id }}_status.json",
+        "content_key": "component_status",
+        "merge_mode": "dict",
+        "optional": true
+      }
+    },
+    {
+      "type": "conditional",
+      "config": {
+        "condition": "{{ component_status }}",
+        "if_false": {
+          "steps": [
+            {
+              "type": "execute_recipe",
+              "config": {
+                "recipe_path": "recipes/experimental/blueprint_generator_v3/recipes/initialize_component_status.json",
+                "context_overrides": {
+                  "component_id": "{{ component_id }}",
+                  "spec_path": "{{ original_spec_path }}",
+                  "output_dir": "{{ output_dir }}",
+                  "model": "{{ model | default: 'openai/o4-mini' }}"
+                }
+              }
+            },
+            {
+              "type": "read_files",
+              "config": {
+                "path": "{{ output_dir }}/status/{{ component_id }}_status.json",
+                "content_key": "component_status",
+                "merge_mode": "dict"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "write_files",
+      "config": {
+        "files": [
+          {
+            "path": "{{ output_dir }}/clarification/{{ component_id }}_candidate_spec_revised.md",
+            "content_key": "updated_spec_content"
+          }
+        ]
+      }
+    },
+    {
+      "type": "execute_recipe",
+      "config": {
+        "recipe_path": "recipes/experimental/blueprint_generator_v3/recipes/evaluate_candidate_spec.json",
+        "context_overrides": {
+          "candidate_spec_path": "{{ output_dir }}/clarification/{{ component_id }}_candidate_spec_revised.md",
+          "component_id": "{{ component_id }}",
+          "output_root": "{{ output_dir }}/evaluation",
+          "model": "{{ model | default: 'openai/o4-mini' }}"
+        }
+      }
+    },
+    {
+      "type": "conditional",
+      "config": {
+        "condition": "file_exists('{{ output_dir }}/evaluation/{{ component_id }}_needs_clarification.md')",
+        "if_true": {
+          "steps": [
+            {
+              "type": "llm_generate",
+              "config": {
+                "prompt": "Generate a result indicating the component still needs review after processing human feedback:\n\nComponent ID: {{ component_id }}\nUpdated spec: {{ updated_spec_path }}\nEvaluation: {{ output_dir }}/evaluation/{{ component_id }}_needs_clarification.md\nPrevious status: {{ component_status }}",
+                "model": "{{ model | default: 'openai/o4-mini' }}",
+                "output_format": {
+                  "type": "object",
+                  "properties": {
+                    "component_id": { "type": "string" },
+                    "component_name": { "type": "string" },
+                    "status": {
+                      "type": "string",
+                      "enum": ["needs_human_review"]
+                    },
+                    "revision_count": { "type": "integer" },
+                    "current_spec_path": { "type": "string" },
+                    "human_review_path": { "type": "string" }
+                  }
+                },
+                "output_key": "updated_status"
+              }
+            },
+            {
+              "type": "write_files",
+              "config": {
+                "files": [
+                  {
+                    "path": "{{ output_dir }}/status/{{ component_id }}_status.json",
+                    "content_key": "updated_status"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "llm_generate",
+              "config": {
+                "prompt": "Generate a message indicating the component still needs review after processing human feedback:\n\nComponent ID: {{ component_id }}\nUpdated spec: {{ updated_spec_path }}\nEvaluation: {{ output_dir }}/evaluation/{{ component_id }}_needs_clarification.md\n\nCreate a document explaining what issues remain and what further clarification is needed. Include specific questions that still need to be addressed.",
+                "model": "{{ model | default: 'openai/o4-mini' }}",
+                "output_format": "files",
+                "output_key": "feedback_result"
+              }
+            },
+            {
+              "type": "write_files",
+              "config": {
+                "files_key": "feedback_result",
+                "root": "{{ output_dir }}/human_review/further_revisions"
+              }
+            }
+          ]
+        },
+        "if_false": {
+          "steps": [
+            {
+              "type": "llm_generate",
+              "config": {
+                "prompt": "Generate a result indicating the component is now ready after processing human feedback:\n\nComponent ID: {{ component_id }}\nUpdated spec: {{ updated_spec_path }}\nEvaluation: {{ output_dir }}/evaluation/{{ component_id }}_evaluation_summary.md\nPrevious status: {{ component_status }}",
+                "model": "{{ model | default: 'openai/o4-mini' }}",
+                "output_format": {
+                  "type": "object",
+                  "properties": {
+                    "component_id": { "type": "string" },
+                    "component_name": { "type": "string" },
+                    "status": { "type": "string", "enum": ["ready"] },
+                    "revision_count": { "type": "integer" },
+                    "current_spec_path": { "type": "string" }
+                  }
+                },
+                "output_key": "updated_status"
+              }
+            },
+            {
+              "type": "write_files",
+              "config": {
+                "files": [
+                  {
+                    "path": "{{ output_dir }}/status/{{ component_id }}_status.json",
+                    "content_key": "updated_status"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "llm_generate",
+              "config": {
+                "prompt": "Generate a confirmation message indicating the component is now ready:\n\nComponent ID: {{ component_id }}\nUpdated spec: {{ updated_spec_path }}\nEvaluation: {{ output_dir }}/evaluation/{{ component_id }}_evaluation_summary.md\n\nCreate a document confirming the component is ready for blueprint generation with a summary of the changes made based on human feedback.",
+                "model": "{{ model | default: 'openai/o4-mini' }}",
+                "output_format": "files",
+                "output_key": "feedback_result"
+              }
+            },
+            {
+              "type": "write_files",
+              "config": {
+                "files_key": "feedback_result",
+                "root": "{{ output_dir }}/human_review/completed"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "read_files",
+      "config": {
+        "path": "{{ output_dir }}/status/project_status.json",
+        "content_key": "project_status",
+        "merge_mode": "dict",
+        "optional": true
+      }
+    },
+    {
+      "type": "read_files",
+      "config": {
+        "path": "{{ output_dir }}/components/components_manifest.json",
+        "content_key": "components_manifest",
+        "merge_mode": "dict"
+      }
+    },
+    {
+      "type": "llm_generate",
+      "config": {
+        "prompt": "Update project status after processing human review for component {{ component_id }}.\n\nUpdate all components' status from the components_manifest with their current status in the status directory.\n\nCurrent project status: {{ project_status }}\nComponents Manifest: {{ components_manifest }}\nUpdated Component: {{ component_id }}\nComponent Status: {{ updated_status }}\n\nDetermine if all components are ready for blueprint generation or if any still need human review.",
+        "model": "{{ model | default: 'openai/o4-mini' }}",
+        "output_format": {
+          "type": "object",
+          "properties": {
+            "ready_count": { "type": "integer" },
+            "needs_review_count": { "type": "integer" },
+            "other_count": { "type": "integer" },
+            "total_count": { "type": "integer" },
+            "all_ready": { "type": "boolean" },
+            "needs_human_intervention": { "type": "boolean" }
+          }
+        },
+        "output_key": "updated_project_status"
+      }
+    },
+    {
+      "type": "write_files",
+      "config": {
+        "files": [
+          {
+            "path": "{{ output_dir }}/status/project_status.json",
+            "content_key": "updated_project_status"
+          }
+        ]
+      }
+    }
+  ]
+}
