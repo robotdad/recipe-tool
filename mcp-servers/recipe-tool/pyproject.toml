@@ -1,0 +1,19 @@
+ [project]
+ name = "recipe-tool-mcp-server"
+ version = "0.1.0"
+ description = "MCP server wrapping the recipe-tool CLI"
+ authors = [{ name = "MADE:Explorations Team" }]
+ license = "MIT"
+ readme = "README.md"
+ requires-python = ">=3.11"
+ dependencies = [
+     "mcp>=1.6.0",
+     "python-dotenv>=1.1.0",
+ ]
+
+ [project.scripts]
+ recipe-tool-mcp-server = "recipe_tool_mcp_server.cli:main"
+
+ [build-system]
+ requires = ["hatchling"]
+ build-backend = "hatchling.build"
