@@ -55,7 +55,7 @@
       "type": "set_context",
       "config": {
         "key": "document",
-        "value": "# {{ outline.title }}"
+        "value": "# {{ outline.title }}\n\n[document-generator]\n\n**Date:** {{ 'now' | date: '%-m/%-d/%Y %I:%M:%S %p' }}"
       }
     },
     {
