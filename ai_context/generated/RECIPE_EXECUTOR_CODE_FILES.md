@@ -5,8 +5,8 @@
 **Search:** ['recipe_executor']
 **Exclude:** ['.venv', 'node_modules', '.git', '__pycache__', '*.pyc', '*.ruff_cache']
 **Include:** ['README.md', 'pyproject.toml', '.env.example']
-**Date:** 5/6/2025, 10:52:16 AM
-**Files:** 25
+**Date:** 5/7/2025, 2:40:51 PM
+**Files:** 27
 
 === File: .env.example ===
 # Optional for the project
@@ -1269,8 +1269,34 @@ class ExecutorProtocol(Protocol):
 
 === File: recipe_executor/steps/__init__.py ===
 """
-Package-level imports and registration for standard recipe steps.
+Package for recipe execution steps.
+
+This module imports all standard step implementations and registers them
+in the global STEP_REGISTRY for dynamic lookup by the executor.
 """
+from recipe_executor.steps.registry import STEP_REGISTRY
+from recipe_executor.steps.conditional import ConditionalStep
+from recipe_executor.steps.execute_recipe import ExecuteRecipeStep
+from recipe_executor.steps.llm_generate import LLMGenerateStep
+from recipe_executor.steps.loop import LoopStep
+from recipe_executor.steps.mcp import MCPStep
+from recipe_executor.steps.parallel import ParallelStep
+from recipe_executor.steps.read_files import ReadFilesStep
+from recipe_executor.steps.set_context import SetContextStep
+from recipe_executor.steps.write_files import WriteFilesStep
+
+# Register standard steps by updating the registry
+STEP_REGISTRY.update({
+    "conditional": ConditionalStep,
+    "execute_recipe": ExecuteRecipeStep,
+    "llm_generate": LLMGenerateStep,
+    "loop": LoopStep,
+    "mcp": MCPStep,
+    "parallel": ParallelStep,
+    "read_files": ReadFilesStep,
+    "set_context": SetContextStep,
+    "write_files": WriteFilesStep,
+})
 
 __all__ = [
     "STEP_REGISTRY",
@@ -1281,30 +1307,9 @@ __all__ = [
     "MCPStep",
     "ParallelStep",
     "ReadFilesStep",
+    "SetContextStep",
     "WriteFilesStep",
 ]
-
-from recipe_executor.steps.registry import STEP_REGISTRY
-from recipe_executor.steps.conditional import ConditionalStep
-from recipe_executor.steps.execute_recipe import ExecuteRecipeStep
-from recipe_executor.steps.llm_generate import LLMGenerateStep
-from recipe_executor.steps.loop import LoopStep
-from recipe_executor.steps.mcp import MCPStep
-from recipe_executor.steps.parallel import ParallelStep
-from recipe_executor.steps.read_files import ReadFilesStep
-from recipe_executor.steps.write_files import WriteFilesStep
-
-# Register standard steps by updating the global registry
-STEP_REGISTRY.update({
-    "conditional": ConditionalStep,
-    "execute_recipe": ExecuteRecipeStep,
-    "llm_generate": LLMGenerateStep,
-    "loop": LoopStep,
-    "mcp": MCPStep,
-    "parallel": ParallelStep,
-    "read_files": ReadFilesStep,
-    "write_files": WriteFilesStep,
-})
 
 
 === File: recipe_executor/steps/base.py ===
@@ -1570,8 +1575,9 @@ class ConditionalStep(BaseStep[ConditionalConfig]):
             await step_instance.execute(context)
 
 
-=== File: recipe_executor/steps/execute_recipe.py ===
+=== File: recipe_executor/steps/execute_recipe-tmp.py ===
 import os
+import ast
 import logging
 from typing import Any, Dict
 
@@ -1581,14 +1587,26 @@ from recipe_executor.utils.templates import render_template
 
 __all__ = ["ExecuteRecipeConfig", "ExecuteRecipeStep"]
 
-
 def _render_override(value: Any, context: ContextProtocol) -> Any:
     """
-    Recursively render string values using the template engine.
-    Non-string values are returned as-is.
+    Recursively render and parse override values.
+
+    - Strings are template-rendered, then if the result is a valid Python literal
+      (dict or list), parsed via ast.literal_eval into Python objects and
+      processed recursively.
+    - Lists and dicts are processed recursively.
+    - Other types are returned as-is.
     """
     if isinstance(value, str):
-        return render_template(value, context)
+        rendered = render_template(value, context)
+        try:
+            parsed = ast.literal_eval(rendered)
+        except (ValueError, SyntaxError):
+            return rendered
+        else:
+            if isinstance(parsed, (dict, list)):
+                return _render_override(parsed, context)
+            return rendered
     if isinstance(value, list):  # type: ignore[type-arg]
         return [_render_override(item, context) for item in value]
     if isinstance(value, dict):  # type: ignore[type-arg]
@@ -1615,25 +1633,18 @@ class ExecuteRecipeStep(BaseStep[ExecuteRecipeConfig]):
         logger: logging.Logger,
         config: Dict[str, Any]
     ) -> None:
-        # Validate and store configuration
         validated: ExecuteRecipeConfig = ExecuteRecipeConfig.model_validate(config)
         super().__init__(logger, validated)
 
     async def execute(self, context: ContextProtocol) -> None:
-        """
-        Execute a sub-recipe located at the rendered recipe_path.
-
-        Applies context_overrides before execution, shares the same context,
-        and logs progress.
-        """
-        # Render and validate recipe path
-        rendered_path: str = render_template(self.config.recipe_path, context)
+        # Render and validate the sub-recipe path
+        rendered_path = render_template(self.config.recipe_path, context)
         if not os.path.isfile(rendered_path):
             raise FileNotFoundError(f"Sub-recipe file not found: {rendered_path}")
 
-        # Apply context overrides with templating
+        # Apply context overrides before executing the sub-recipe
         for key, override_value in self.config.context_overrides.items():
-            rendered_value: Any = _render_override(override_value, context)
+            rendered_value = _render_override(override_value, context)
             context[key] = rendered_value
 
         try:
@@ -1645,9 +1656,97 @@ class ExecuteRecipeStep(BaseStep[ExecuteRecipeConfig]):
             await executor.execute(rendered_path, context)
             self.logger.info(f"Completed sub-recipe execution: {rendered_path}")
         except Exception as exc:
-            self.logger.error(
-                f"Error executing sub-recipe '{rendered_path}': {exc}"
-            )
+            self.logger.error(f"Error executing sub-recipe '{rendered_path}': {exc}")
+            raise RuntimeError(f"Failed to execute sub-recipe '{rendered_path}': {exc}") from exc
+
+
+=== File: recipe_executor/steps/execute_recipe.py ===
+import os
+import json
+from typing import Any, Dict
+
+from recipe_executor.steps.base import BaseStep, StepConfig
+from recipe_executor.protocols import ContextProtocol
+from recipe_executor.utils.templates import render_template
+
+__all__ = ["ExecuteRecipeConfig", "ExecuteRecipeStep"]
+
+
+def _render_override(value: Any, context: ContextProtocol) -> Any:
+    """
+    Recursively render and parse override values.
+
+    - Strings are template-rendered, then if the result is valid JSON (dict or list), parsed into Python objects.
+    - Lists and dicts are processed recursively.
+    - Other types are returned as-is.
+    """
+    if isinstance(value, str):
+        rendered = render_template(value, context)
+        # Attempt to parse JSON if it represents an object or array
+        try:
+            parsed = json.loads(rendered)
+            if isinstance(parsed, (dict, list)):
+                return parsed
+        except json.JSONDecodeError:
+            pass
+        return rendered
+    if isinstance(value, list):  # type: ignore[type-arg]
+        return [_render_override(item, context) for item in value]
+    if isinstance(value, dict):  # type: ignore[type-arg]
+        return {key: _render_override(val, context) for key, val in value.items()}
+    return value
+
+
+class ExecuteRecipeConfig(StepConfig):
+    """Config for ExecuteRecipeStep.
+
+    Fields:
+        recipe_path: Path to the sub-recipe to execute (templateable).
+        context_overrides: Optional values to override in the context.
+    """
+    recipe_path: str
+    context_overrides: Dict[str, Any] = {}
+
+
+class ExecuteRecipeStep(BaseStep[ExecuteRecipeConfig]):
+    """Step to execute a sub-recipe with shared context and optional overrides."""
+
+    def __init__(
+        self,
+        logger,  # type: ignore[valid-type]
+        config: Dict[str, Any]
+    ) -> None:
+        validated: ExecuteRecipeConfig = ExecuteRecipeConfig.model_validate(config)
+        super().__init__(logger, validated)
+
+    async def execute(self, context: ContextProtocol) -> None:
+        """
+        Execute a sub-recipe located at the rendered recipe_path.
+
+        Applies context_overrides before execution, shares the same context,
+        and logs progress.
+        """
+        # Render and validate recipe path
+        rendered_path = render_template(self.config.recipe_path, context)
+        if not os.path.isfile(rendered_path):
+            raise FileNotFoundError(f"Sub-recipe file not found: {rendered_path}")
+
+        # Apply context overrides with templating and JSON parsing
+        for key, override_value in self.config.context_overrides.items():
+            rendered_value = _render_override(override_value, context)
+            context[key] = rendered_value
+
+        try:
+            # Import here to avoid circular dependencies
+            from recipe_executor.executor import Executor
+
+            self.logger.info(f"Starting sub-recipe execution: {rendered_path}")
+            executor = Executor(self.logger)
+            await executor.execute(rendered_path, context)
+            self.logger.info(f"Completed sub-recipe execution: {rendered_path}")
+        except Exception as exc:
+            # Log and propagate with context
+            self.logger.error(f"Error executing sub-recipe '{rendered_path}': {exc}")
             raise RuntimeError(
                 f"Failed to execute sub-recipe '{rendered_path}': {exc}"
             ) from exc
@@ -1841,7 +1940,7 @@ class LoopStepConfig(StepConfig):
     """
     Configuration for LoopStep.
     """
-    items: str
+    items: Union[str, List[Any], Dict[Any, Any]]
     item_key: str
     max_concurrency: int = 1
     delay: float = 0.0
@@ -1852,27 +1951,40 @@ class LoopStepConfig(StepConfig):
 
 class LoopStep(BaseStep[LoopStepConfig]):
     """
-    LoopStep: iterate over a collection, execute substeps per item.
+    LoopStep: iterate over a collection, execute substeps for each item.
     """
-    def __init__(self, logger: logging.Logger, config: Dict[str, Any]) -> None:
-        super().__init__(logger, LoopStepConfig(**config))
+    def __init__(
+        self, logger: logging.Logger, config: Dict[str, Any]
+    ) -> None:
+        # Validate configuration via Pydantic
+        validated = LoopStepConfig.model_validate(config)
+        super().__init__(logger, validated)
 
     async def execute(self, context: ContextProtocol) -> None:
         # dynamic import to avoid circular dependencies
         from recipe_executor.executor import Executor  # type: ignore
 
-        # resolve items path
-        items_path: str = render_template(self.config.items, context)
-        items_obj: Any = _resolve_path(items_path, context)
+        # Resolve items definition (could be path or direct list/dict)
+        items_def: Union[str, List[Any], Dict[Any, Any]] = self.config.items
+        if isinstance(items_def, str):
+            # Render template to get path
+            rendered_path: str = render_template(items_def, context)
+            items_obj: Any = _resolve_path(rendered_path, context)
+        else:
+            # Direct list or dict provided
+            items_obj = items_def  # type: ignore
 
+        # Validate items_obj
         if items_obj is None:
-            raise ValueError(f"LoopStep: Items collection '{items_path}' not found in context.")
+            raise ValueError(
+                f"LoopStep: Items collection '{items_def}' not found in context."
+            )
         if not isinstance(items_obj, (list, dict)):
             raise ValueError(
-                f"LoopStep: Items collection '{items_path}' must be a list or dict, got {type(items_obj).__name__}"
+                f"LoopStep: Items collection must be a list or dict, got {type(items_obj).__name__}."
             )
 
-        # build list of (key/index, value)
+        # Build list of (key/index, value)
         items_list: List[Tuple[Any, Any]] = []
         if isinstance(items_obj, list):
             for idx, value in enumerate(items_obj):
@@ -1886,23 +1998,27 @@ class LoopStep(BaseStep[LoopStepConfig]):
             f"LoopStep: Processing {total_items} items with max_concurrency={self.config.max_concurrency}."
         )
 
-        # handle empty collection
+        # Handle empty collection
         if total_items == 0:
-            empty: Union[List[Any], Dict[Any, Any]] = [] if isinstance(items_obj, list) else {}
-            context[self.config.result_key] = empty
+            # Preserve type (list or dict)
+            empty_result: Union[List[Any], Dict[Any, Any]] = [] if isinstance(items_obj, list) else {}
+            context[self.config.result_key] = empty_result
             self.logger.info("LoopStep: No items to process.")
             return
 
-        # prepare result and error containers
+        # Prepare result and error containers
         results: Union[List[Any], Dict[Any, Any]] = [] if isinstance(items_obj, list) else {}
-        errors: Union[List[Dict[str, Any]], Dict[Any, Dict[str, Any]]] = [] if isinstance(items_obj, list) else {}
+        errors: Union[List[Dict[str, Any]], Dict[Any, Dict[str, Any]]] = (
+            [] if isinstance(items_obj, list) else {}
+        )
 
-        # concurrency control
+        # Concurrency control
         semaphore: Optional[asyncio.Semaphore] = None
-        if self.config.max_concurrency and self.config.max_concurrency > 0:
-            semaphore = asyncio.Semaphore(self.config.max_concurrency)
+        max_c = self.config.max_concurrency
+        if max_c and max_c > 0:
+            semaphore = asyncio.Semaphore(max_c)
 
-        # executor for substeps
+        # Executor for substeps
         step_executor: ExecutorProtocol = Executor(self.logger)
         substeps_recipe: Dict[str, Any] = {"steps": self.config.substeps}
 
@@ -1910,34 +2026,36 @@ class LoopStep(BaseStep[LoopStepConfig]):
         tasks: List[asyncio.Task] = []
         completed_count: int = 0
 
-        async def process_single_item(idx_or_key: Any, item: Any) -> Tuple[Any, Any, Optional[str]]:
-            # isolate context
-            item_context: ContextProtocol = context.clone()
-            item_context[self.config.item_key] = item
-            # index or key in context
+        async def process_single_item(
+            key: Any, value: Any
+        ) -> Tuple[Any, Any, Optional[str]]:
+            # Clone context for isolation
+            item_ctx: ContextProtocol = context.clone()
+            item_ctx[self.config.item_key] = value
+            # Attach iteration metadata
             if isinstance(items_obj, list):
-                item_context["__index"] = idx_or_key
+                item_ctx["__index"] = key
             else:
-                item_context["__key"] = idx_or_key
+                item_ctx["__key"] = key
             try:
-                self.logger.debug(f"LoopStep: Starting item {idx_or_key}.")
-                await step_executor.execute(substeps_recipe, item_context)
-                # extract result
-                result = item_context.get(self.config.item_key, item)
-                self.logger.debug(f"LoopStep: Finished item {idx_or_key}.")
-                return idx_or_key, result, None
+                self.logger.debug(f"LoopStep: Starting item {key}.")
+                await step_executor.execute(substeps_recipe, item_ctx)
+                # Retrieve processed item result
+                result = item_ctx.get(self.config.item_key, value)
+                self.logger.debug(f"LoopStep: Finished item {key}.")
+                return key, result, None
             except Exception as exc:
-                self.logger.error(f"LoopStep: Error processing item {idx_or_key}: {exc}")
-                return idx_or_key, None, str(exc)
+                self.logger.error(f"LoopStep: Error processing item {key}: {exc}")
+                return key, None, str(exc)
 
         async def run_sequential() -> None:
             nonlocal fail_fast_triggered, completed_count
-            for idx_or_key, item in items_list:
+            for key, value in items_list:
                 if fail_fast_triggered:
                     break
-                idx, res, err = await process_single_item(idx_or_key, item)
+                idx, res, err = await process_single_item(key, value)
                 if err:
-                    # record error
+                    # Record error
                     if isinstance(errors, list):
                         errors.append({"index": idx, "error": err})
                     else:
@@ -1946,7 +2064,7 @@ class LoopStep(BaseStep[LoopStepConfig]):
                         fail_fast_triggered = True
                         break
                 else:
-                    # record success
+                    # Record success
                     if isinstance(results, list):
                         results.append(res)
                     else:
@@ -1956,31 +2074,32 @@ class LoopStep(BaseStep[LoopStepConfig]):
         async def run_parallel() -> None:
             nonlocal fail_fast_triggered, completed_count
 
-            async def worker(key: Any, value: Any) -> Tuple[Any, Any, Optional[str]]:
-                if semaphore is not None:
+            async def worker(k: Any, v: Any) -> Tuple[Any, Any, Optional[str]]:
+                if semaphore:
                     async with semaphore:
-                        return await process_single_item(key, value)
-                return await process_single_item(key, value)
+                        return await process_single_item(k, v)
+                return await process_single_item(k, v)
 
-            # launch tasks
-            for idx, (key, value) in enumerate(items_list):
+            # Launch tasks with optional delay
+            for idx, (k, v) in enumerate(items_list):  # type: ignore
                 if fail_fast_triggered:
                     break
-                task = asyncio.create_task(worker(key, value))
+                task = asyncio.create_task(worker(k, v))
                 tasks.append(task)
-                if self.config.delay and self.config.delay > 0 and idx < total_items - 1:
+                if self.config.delay and idx < total_items - 1:
                     await asyncio.sleep(self.config.delay)
-            # collect results
+
+            # Collect task results as they complete
             for fut in asyncio.as_completed(tasks):
                 if fail_fast_triggered:
                     break
                 try:
-                    idx, res, err = await fut
+                    k, res, err = await fut
                     if err:
                         if isinstance(errors, list):
-                            errors.append({"index": idx, "error": err})
+                            errors.append({"index": k, "error": err})
                         else:
-                            errors[idx] = {"error": err}
+                            errors[k] = {"error": err}
                         if self.config.fail_fast:
                             fail_fast_triggered = True
                             continue
@@ -1988,28 +2107,29 @@ class LoopStep(BaseStep[LoopStepConfig]):
                         if isinstance(results, list):
                             results.append(res)
                         else:
-                            results[idx] = res
+                            results[k] = res
                     completed_count += 1
                 except Exception as exc:
                     self.logger.error(f"LoopStep: Unexpected exception: {exc}")
                     if self.config.fail_fast:
                         fail_fast_triggered = True
-                        continue
+                        break
 
-        # choose execution mode
-        if self.config.max_concurrency == 1:
-            await run_sequential()
-        else:
+        # Execute in chosen mode
+        if self.config.max_concurrency and self.config.max_concurrency > 1:
             await run_parallel()
+        else:
+            await run_sequential()
 
-        # store results
+        # Store results and errors in parent context
         context[self.config.result_key] = results
-        # store errors if any
-        has_errors = (isinstance(errors, list) and bool(errors)) or (isinstance(errors, dict) and bool(errors))
+        has_errors = bool(errors) if isinstance(errors, list) else bool(errors)
         if has_errors:
             context[f"{self.config.result_key}__errors"] = errors
+
         self.logger.info(
-            f"LoopStep: Processed {completed_count} items. Errors: {len(errors) if has_errors else 0}."
+            f"LoopStep: Processed {completed_count} items. Errors: "
+            f"{len(errors) if has_errors else 0}."
         )
 
 
@@ -2327,7 +2447,7 @@ class ParallelStep(BaseStep[ParallelConfig]):
 import json
 import logging
 import os
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Union
 
 import yaml
 
@@ -2342,7 +2462,7 @@ class ReadFilesConfig(StepConfig):
 
     Fields:
         path (Union[str, List[str]]): Path, comma-separated string, or list of paths to the file(s) to read (may be templated).
-        content_key (str): Name under which to store file content in the context.
+        content_key (str): Name under which to store file content in the context (may be templated).
         optional (bool): Whether to continue if a file is not found (default: False).
         merge_mode (str): How to handle multiple files' content. Options:
             - "concat" (default): Concatenate all files with newlines between filename headers + content
@@ -2360,14 +2480,19 @@ class ReadFilesStep(BaseStep[ReadFilesConfig]):
     """
 
     def __init__(self, logger: logging.Logger, config: Dict[str, Any]) -> None:
-        super().__init__(logger, ReadFilesConfig(**config))
+        # Use model_validate to ensure proper pydantic validation
+        validated = ReadFilesConfig.model_validate(config)
+        super().__init__(logger, validated)
 
     async def execute(self, context: ContextProtocol) -> None:
         cfg = self.config
+        # Resolve content_key template
+        rendered_key = render_template(cfg.content_key, context)
+
         raw_path = cfg.path
         paths: List[str] = []
 
-        # Resolve and normalize paths (with template rendering)
+        # Render and normalize paths
         if isinstance(raw_path, str):
             rendered = render_template(raw_path, context)
             # Split comma-separated string into list
@@ -2418,36 +2543,33 @@ class ReadFilesStep(BaseStep[ReadFilesConfig]):
             result_map[path] = content
 
         # Merge results according to merge_mode
-        final_content: Any
         if not results:
             # No file was read
             if len(paths) <= 1:
-                final_content = ""  # Single (missing) file yields empty string
+                final_content: Any = ""
             elif cfg.merge_mode == "dict":
-                final_content = {}  # Dict of zero entries
+                final_content = {}
             else:
-                final_content = ""  # Concat yields empty string
+                final_content = ""
         elif len(results) == 1:
-            # Only one file read => return its content directly
+            # Single file => raw content
             final_content = results[0]
         else:
-            # Multiple files read
+            # Multiple files
             if cfg.merge_mode == "dict":
                 final_content = result_map
             else:
-                # Default: concat mode, include header with filename
                 segments: List[str] = []
                 for p in paths:
                     if p in result_map:
                         raw = result_map[p]
-                        # Convert raw back to text if it was structured
                         segment = raw if isinstance(raw, str) else json.dumps(raw)
                         segments.append(f"{p}\n{segment}")
                 final_content = "\n".join(segments)
 
-        # Store the merged content in context
-        context[cfg.content_key] = final_content
-        self.logger.info(f"Stored file content under key '{cfg.content_key}'")
+        # Store content in context
+        context[rendered_key] = final_content
+        self.logger.info(f"Stored file content under key '{rendered_key}'")
 
 
 === File: recipe_executor/steps/registry.py ===
@@ -2463,6 +2585,133 @@ from recipe_executor.steps.base import BaseStep
 
 # Global registry mapping step type names to their implementation classes.
 STEP_REGISTRY: Dict[str, Type[BaseStep]] = {}
+
+
+=== File: recipe_executor/steps/set_context.py ===
+from typing import Any, Dict, List, Literal, Union
+import logging
+
+from recipe_executor.steps.base import BaseStep, StepConfig
+from recipe_executor.protocols import ContextProtocol
+from recipe_executor.utils.templates import render_template
+
+
+def _has_unrendered_tags(s: str) -> bool:
+    """
+    Detect if the string still contains Liquid tags that need rendering.
+    """
+    return "{{" in s or "{%" in s
+
+
+class SetContextConfig(StepConfig):
+    """
+    Config for SetContextStep.
+
+    Fields:
+        key: Name of the artifact in the Context.
+        value: JSON-serialisable literal, list, dict or Liquid template string rendered against
+               the current context.
+        nested_render: Whether to render templates recursively until no tags remain.
+        if_exists: Strategy when the key already exists:
+                   • "overwrite" (default) – replace the existing value
+                   • "merge" – combine the existing and new values
+    """
+    key: str
+    value: Union[str, List[Any], Dict[str, Any]]
+    nested_render: bool = False
+    if_exists: Literal["overwrite", "merge"] = "overwrite"
+
+
+class SetContextStep(BaseStep[SetContextConfig]):
+    """
+    Step to set or update an artifact in the execution context.
+    """
+    def __init__(self, logger: logging.Logger, config: Dict[str, Any]) -> None:
+        super().__init__(logger, SetContextConfig.model_validate(config))
+
+    async def execute(self, context: ContextProtocol) -> None:
+        key = self.config.key
+        raw_value = self.config.value
+        nested = self.config.nested_render
+        existed = key in context
+
+        # Render the provided value (single or nested passes)
+        value = self._render_value(raw_value, context, nested)
+
+        strategy = self.config.if_exists
+        if strategy == "overwrite":
+            context[key] = value
+        elif strategy == "merge":
+            if existed:
+                old = context[key]
+                merged = self._merge(old, value)
+                context[key] = merged
+            else:
+                context[key] = value
+        else:
+            raise ValueError(f"Unknown if_exists strategy: '{strategy}'")
+
+        self.logger.info(
+            f"SetContextStep: key='{key}', strategy='{strategy}', existed={existed}"
+        )
+
+    def _render_value(
+        self, raw: Any, context: ContextProtocol, nested: bool
+    ) -> Any:
+        """
+        Recursively render Liquid templates in strings, lists, and dicts.
+
+        If nested is True, re-render strings until no tags remain or no change.
+        """
+        if isinstance(raw, str):
+            if not nested:
+                return render_template(raw, context)
+            # nested rendering loop
+            result = render_template(raw, context)
+            while _has_unrendered_tags(result):
+                prev = result
+                result = render_template(result, context)
+                if result == prev:
+                    break
+            return result
+
+        if isinstance(raw, list):
+            return [self._render_value(item, context, nested) for item in raw]
+
+        if isinstance(raw, dict):
+            return {k: self._render_value(v, context, nested) for k, v in raw.items()}
+
+        # Other JSON-serialisable types pass through
+        return raw
+
+    def _merge(self, old: Any, new: Any) -> Any:
+        """
+        Shallow merge helper for merging existing and new values.
+
+        Merge semantics:
+        - str + str => concatenate
+        - list + list or item => append
+        - dict + dict => shallow dict merge
+        - mismatched types => [old, new]
+        """
+        # String concatenation
+        if isinstance(old, str) and isinstance(new, str):
+            return old + new
+
+        # List append
+        if isinstance(old, list):  # type: ignore
+            if isinstance(new, list):  # type: ignore
+                return old + new  # type: ignore
+            return old + [new]  # type: ignore
+
+        # Dict shallow merge
+        if isinstance(old, dict) and isinstance(new, dict):  # type: ignore
+            merged = old.copy()  # type: ignore
+            merged.update(new)  # type: ignore
+            return merged
+
+        # Fallback for mismatched types
+        return [old, new]
 
 
 === File: recipe_executor/steps/write_files.py ===
@@ -2752,50 +3001,82 @@ def json_object_to_pydantic_model(
 
 === File: recipe_executor/utils/templates.py ===
 """
-Template Utility Component
+Utility functions for rendering Liquid templates using context data.
 
-Provides a simple function to render Liquid templates
-using values from a ContextProtocol.
+This module provides a `render_template` function that uses the Python Liquid templating engine
+to render strings with variables sourced from a context object implementing ContextProtocol.
+Custom filters (e.g., snakecase) and extra filters (json, datetime) are enabled via the environment.
 """
-from typing import Any, Dict
+import re
+from typing import Any
 
-import liquid
+from liquid import Environment
 from liquid.exceptions import LiquidError
 
+# Import ContextProtocol inside the module to avoid circular dependencies
 from recipe_executor.protocols import ContextProtocol
 
 __all__ = ["render_template"]
 
+# Create a module‐level Liquid environment with extra filters enabled
+_env = Environment(autoescape=False, extra=True)
+
+# Register a custom `snakecase` filter
+
+def _snakecase(value: Any) -> str:
+    """
+    Convert a string to snake_case.
+
+    Non-alphanumeric characters are replaced with underscores, camelCase
+    boundaries are separated, and result is lowercased.
+    """
+    s = str(value)
+    # Replace spaces and dashes with underscores
+    s = re.sub(r"[\s\-]+", "_", s)
+    # Insert underscore before capital letters preceded by lowercase/digits
+    s = re.sub(r"(?<=[a-z0-9])([A-Z])", r"_\1", s)
+    # Lowercase the string
+    s = s.lower()
+    # Remove any remaining invalid characters
+    s = re.sub(r"[^a-z0-9_]", "", s)
+    # Collapse multiple underscores
+    s = re.sub(r"__+", "_", s)
+    # Strip leading/trailing underscores
+    return s.strip("_")
+
+_env.filters["snakecase"] = _snakecase
+
+
 def render_template(text: str, context: ContextProtocol) -> str:
     """
-    Render the given text as a Liquid template using the provided context.
-    All values in the context are passed as-is to the template.
+    Render the given text as a Python Liquid template using the provided context.
 
     Args:
         text (str): The template text to render.
-        context (ContextProtocol): The context providing values for rendering the template.
+        context (ContextProtocol): The context providing values for rendering.
 
     Returns:
         str: The rendered text.
 
     Raises:
-        ValueError: If there is an error during template rendering.
+        ValueError: If there is an error during template rendering,
+                    includes details about the template and context.
     """
-    context_dict: Dict[str, Any] = context.dict()
     try:
-        template = liquid.Template(text)
-        return template.render(**context_dict)
-    except LiquidError as exc:
+        # Parse and render the template with all context values
+        template = _env.from_string(text)
+        rendered = template.render(**context.dict())
+        return rendered
+    except LiquidError as e:
+        # Liquid-specific errors
         raise ValueError(
-            f"Template rendering failed: {exc}\n"
-            f"Template: {text!r}\n"
-            f"Context: {context_dict!r}"
-        ) from exc
-    except Exception as exc:
+            f"Liquid template rendering error: {e}. "
+            f"Template: {text!r}. Context: {context.dict()!r}"
+        )
+    except Exception as e:
+        # Generic errors
         raise ValueError(
-            f"Unknown error during template rendering: {exc}\n"
-            f"Template: {text!r}\n"
-            f"Context: {context_dict!r}"
-        ) from exc
-
+            f"Error rendering template: {e}. "
+            f"Template: {text!r}. Context: {context.dict()!r}"
+        )
 

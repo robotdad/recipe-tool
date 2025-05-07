@@ -10,6 +10,7 @@ The **SetContextStep** component provides a declarative way for recipes to creat
 - Accept a **value** that may be:
   - Any JSON-serialisable literal, **or**
   - A Liquid template string rendered against the current context before assignment.
+- If `nested_render` is true, recursively render the `value` using context data until all variables are resolved, ignoring any template variables that are wrapped in `{% raw %}` tags
 - Support an **if_exists** strategy with the following options:
   - `"overwrite"` (default) – replace the existing value.
   - `"merge"` – combine the existing and new values using type-aware rules.
@@ -23,7 +24,11 @@ The **SetContextStep** component provides a declarative way for recipes to creat
 
 ## Implementation Considerations
 
-- **Template rendering**: When `value` is a string, call `render_template(value, context)` before assignment, mirroring behaviour in _ReadFilesStep_ and _ExecuteRecipeStep_.
+- **Template rendering**:
+  - When `value` is a string, call `render_template(value, context)` before assignment.
+  - When `value` is a list or dict, call `render_template` on each item, all the way down.
+  - If `nested_render` is true, recursively render the `value` using context data until all variables are resolved, ignoring any template variables that are wrapped in `{% raw %}` tags
+    - When `true`, after the initial `render_template` pass on `value`, repeat rendering while the string both changes **and** still contains Liquid tags (`{{` or `{%}`), ignoring `{% raw %}`. This ensures nested templates inside your `value` get fully expanded.
 - **Merge helper**: Encapsulate merge logic in a small private function to keep `execute()` readable.
 
 ## Logging

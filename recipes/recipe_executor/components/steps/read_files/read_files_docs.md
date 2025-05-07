@@ -17,7 +17,7 @@ class ReadFilesConfig(StepConfig):
 
     Fields:
         path (Union[str, List[str]]): Path, comma-separated string, or list of paths to the file(s) to read (may be templated).
-        content_key (str): Name to store the file content in context.
+        content_key (str): Name to store the file content in context (may be templated).
         optional (bool): Whether to continue if a file is not found.
         merge_mode (str): How to handle multiple files' content. Options:
             - "concat" (default): Concatenate all files with newlines between filenames + content
@@ -124,7 +124,7 @@ The `path` parameter can include template variables from the context:
     {
       "type": "read_files",
       "config": {
-        "path": "specs/{{component_id}}_spec.md",
+        "path": "specs/{{ component_id }}_spec.md",
         "content_key": "component_spec"
       }
     }
@@ -141,10 +141,10 @@ Template variables can also be used within list paths:
       "type": "read_files",
       "config": {
         "path": [
-          "specs/{{component_id}}_spec.md",
-          "specs/{{component_id}}_docs.md"
+          "specs/{{ component_id }}_spec.md",
+          "specs/{{ component_id }}_docs.md"
         ],
-        "content_key": "component_files"
+        "content_key": "{{ component_id }}_files"
       }
     }
   ]
@@ -185,8 +185,8 @@ If an optional file is not found:
   "type": "read_files",
   "config": {
     "path": [
-      "specs/{{component_id}}_spec.md",
-      "specs/{{component_id}}_docs.md"
+      "specs/{{ component_id }}_spec.md",
+      "specs/{{ component_id }}_docs.md"
     ],
     "content_key": "component_files",
     "merge_mode": "concat"
@@ -219,8 +219,8 @@ If an optional file is not found:
   "type": "read_files",
   "config": {
     "path": [
-      "docs/{{project}}/{{component}}/README.md",
-      "docs/{{project}}/{{component}}/USAGE.md"
+      "docs/{{ project }}/{{ component }}/README.md",
+      "docs/{{ project }}/{{ component }}/USAGE.md"
     ],
     "content_key": "documentation",
     "merge_mode": "dict"
@@ -244,7 +244,7 @@ Then in the recipe you can use that context value:
     {
       "type": "read_files",
       "config": {
-        "path": "{{files_to_read.split(',')|default:'specs/default.md'}}",
+        "path": "{{ files_to_read.split(',') | default: 'specs/default.md' }}",
         "content_key": "input_files"
       }
     }

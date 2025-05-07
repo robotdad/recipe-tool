@@ -5,8 +5,8 @@
 **Search:** ['recipes/recipe_executor']
 **Exclude:** ['.venv', 'node_modules', '.git', '__pycache__', '*.pyc', '*.ruff_cache']
 **Include:** []
-**Date:** 5/6/2025, 10:52:16 AM
-**Files:** 51
+**Date:** 5/7/2025, 2:40:51 PM
+**Files:** 53
 
 === File: recipes/recipe_executor/README.md ===
 # Recipe Executor Recipes
@@ -282,6 +282,11 @@ This workflow demonstrates the power of the Recipe Executor to generate its own 
   {
     "id": "steps.registry",
     "deps": [],
+    "refs": []
+  },
+  {
+    "id": "steps.set_context",
+    "deps": ["context", "protocols", "steps.base", "utils.templates"],
     "refs": []
   },
   {
@@ -2424,7 +2429,7 @@ You can override specific context values for the sub-recipe execution:
           "component_name": "Utils",
           "is_component": true,
           "revision_count": 1,
-          "sub_components": ["utils"],
+          "refs": ["utils"],
           "output_dir": "output/components/utils"
         }
       }
@@ -2443,16 +2448,19 @@ Both the `recipe_path` and `context_overrides` can include template variables:
     {
       "type": "execute_recipe",
       "config": {
-        "recipe_path": "recipes/{{recipe_type}}/{{component_id}}.json",
+        "recipe_path": "recipes/{{ recipe_type }}/{{ component_id }}.json",
         "context_overrides": {
-          "component_name": "{{component_display_name}}",
-          "output_dir": "output/components/{{component_id}}"
+          "component_name": "{{ component_display_name }}",
+          "sub_components": "{{ sub_components | json }}",
+          "output_dir": "output/components/{{ component_id }}"
         }
       }
     }
   ]
 }
 ```
+
+**NOTE**: For any **templated** values in the `context_overrides`, you can use the Python Liquid templating engine to resolve them. For example, `{{ sub_components | json }}` will convert the `sub_components` list into a JSON string so that it can be passed to the sub-recipe. This is useful for passing complex data structures or lists. This is especially important for any lists of objects as the Python Liquid engine will only pass the first element of the list if you don't use the `json` filter.
 
 ## Recipe Composition
 
@@ -2473,7 +2481,7 @@ Sub-recipes can be composed to create more complex workflows:
       "config": {
         "recipe_path": "recipes/parse_project.json",
         "context_overrides": {
-          "spec": "{{project_spec}}"
+          "spec": "{{ project_spec }}"
         }
       }
     },
@@ -2519,7 +2527,7 @@ Sub-recipes can be composed to create more complex workflows:
     "recipe_path": "recipes/component_template.json",
     "context_overrides": {
       "template_type": "create",
-      "component_id": "{{component_id}}"
+      "component_id": "{{ component_id }}"
     }
   }
 }
@@ -2531,7 +2539,7 @@ Sub-recipes can be composed to create more complex workflows:
 {
   "type": "execute_recipe",
   "config": {
-    "recipe_path": "recipes/workflow/{{workflow_name}}.json"
+    "recipe_path": "recipes/workflow/{{ workflow_name }}.json"
   }
 }
 ```
@@ -2569,6 +2577,9 @@ The ExecuteRecipeStep component enables recipes to execute other recipes as sub-
 - When processing context overrides
   - Process all **string** values (including those within lists or dictionaries) using the template engine
   - All non-string values in context overrides should be passed as-is
+  - String value may contain JSON objects or lists of JSON objects with mixed, escaped quotes, use `ast.literal_eval` to parse them
+  - If a string value is a valid JSON object, it should be parsed and passed as a dictionary
+  - If a string value is a list of valid JSON objects, it should be parsed and passed as a list of dictionaries
 - Keep the implementation simple and focused on a single responsibility
 - Log detailed information about sub-recipe execution
 
@@ -2585,11 +2596,11 @@ The ExecuteRecipeStep component enables recipes to execute other recipes as sub-
 
 ### Internal Components
 
-- **Protocols** – (Required) Leverages ContextProtocol for context sharing, ExecutorProtocol for execution, and StepProtocol for the step interface contract
-- **Step Interface** – (Required) Implements the step execution interface (via the StepProtocol)
-- **Context** – (Required) Shares data via a context object implementing the ContextProtocol between the main recipe and sub-recipes
-- **Executor** – (Required) Uses an executor implementing ExecutorProtocol to run the sub-recipe
-- **Utils/Templates** – (Required) Uses render_template for dynamic content resolution in paths and context overrides
+- **Protocols**: Leverages ContextProtocol for context sharing, ExecutorProtocol for execution, and StepProtocol for the step interface contract
+- **Step Interface**: Implements the step execution interface (via the StepProtocol)
+- **Context**: Shares data via a context object implementing the ContextProtocol between the main recipe and sub-recipes
+- **Executor**: Uses an executor implementing ExecutorProtocol to run the sub-recipe
+- **Utils/Templates**: Uses render_template for dynamic content resolution in paths and context overrides
 
 ### External Libraries
 
@@ -3076,8 +3087,10 @@ class LoopStepConfig(StepConfig):
     Configuration for LoopStep.
 
     Fields:
-        items: Key in the context containing the collection to iterate over. Supports template variable syntax
-               with dot notation for accessing nested data structures (e.g., "data.items", "response.results").
+        items: Either string that resolves to a collection in the context (e.g., "data.items") or a list/dict.
+               If a string, it is rendered using template rendering to resolve nested paths.
+               If a list/dict, it is used directly without rendering.
+               If a dict, iterate over its keys.
         item_key: Key to use when storing the current item in each iteration's context.
         max_concurrency: Maximum number of items to process concurrently.
                          Default = 1 means process items sequentially (no parallelism).
@@ -3090,7 +3103,7 @@ class LoopStepConfig(StepConfig):
         fail_fast: Whether to stop processing on the first error.
     """
 
-    items: str
+    items: Union[str, List, Dict]
     item_key: str
     max_concurrency: int = 1
     delay: float = 0.0
@@ -3404,7 +3417,8 @@ The LoopStep component enables recipes to iterate over a collection of items, ex
 
 ## Implementation Considerations
 
-- Use template rendering to resolve the `items` path before accessing data, enabling support for nested paths
+- Process `items` strings using template rendering to determine if they are collections or if it remains a string
+  - For `items` that remain a string, apply template rendering to the path before accessing data, enabling support for nested paths
 - Clone the context for each item to maintain isolation between iterations
 - Use a unique context key for each processed item to prevent collisions
 - Execute the specified steps for each item using the current executor
@@ -3798,7 +3812,7 @@ class ReadFilesConfig(StepConfig):
 
     Fields:
         path (Union[str, List[str]]): Path, comma-separated string, or list of paths to the file(s) to read (may be templated).
-        content_key (str): Name to store the file content in context.
+        content_key (str): Name to store the file content in context (may be templated).
         optional (bool): Whether to continue if a file is not found.
         merge_mode (str): How to handle multiple files' content. Options:
             - "concat" (default): Concatenate all files with newlines between filenames + content
@@ -3905,7 +3919,7 @@ The `path` parameter can include template variables from the context:
     {
       "type": "read_files",
       "config": {
-        "path": "specs/{{component_id}}_spec.md",
+        "path": "specs/{{ component_id }}_spec.md",
         "content_key": "component_spec"
       }
     }
@@ -3922,10 +3936,10 @@ Template variables can also be used within list paths:
       "type": "read_files",
       "config": {
         "path": [
-          "specs/{{component_id}}_spec.md",
-          "specs/{{component_id}}_docs.md"
+          "specs/{{ component_id }}_spec.md",
+          "specs/{{ component_id }}_docs.md"
         ],
-        "content_key": "component_files"
+        "content_key": "{{ component_id }}_files"
       }
     }
   ]
@@ -3966,8 +3980,8 @@ If an optional file is not found:
   "type": "read_files",
   "config": {
     "path": [
-      "specs/{{component_id}}_spec.md",
-      "specs/{{component_id}}_docs.md"
+      "specs/{{ component_id }}_spec.md",
+      "specs/{{ component_id }}_docs.md"
     ],
     "content_key": "component_files",
     "merge_mode": "concat"
@@ -4000,8 +4014,8 @@ If an optional file is not found:
   "type": "read_files",
   "config": {
     "path": [
-      "docs/{{project}}/{{component}}/README.md",
-      "docs/{{project}}/{{component}}/USAGE.md"
+      "docs/{{ project }}/{{ component }}/README.md",
+      "docs/{{ project }}/{{ component }}/USAGE.md"
     ],
     "content_key": "documentation",
     "merge_mode": "dict"
@@ -4025,7 +4039,7 @@ Then in the recipe you can use that context value:
     {
       "type": "read_files",
       "config": {
-        "path": "{{files_to_read.split(',')|default:'specs/default.md'}}",
+        "path": "{{ files_to_read.split(',') | default: 'specs/default.md' }}",
         "content_key": "input_files"
       }
     }
@@ -4068,6 +4082,7 @@ The ReadFilesStep component reads one or more files from the filesystem and stor
 
 - Render template strings for the `path` parameter before evaluating the input type
 - Use template rendering to support dynamic paths for single path, comma-separated paths in one string, and lists of paths
+- Render template strings for the `content_key` parameter
 - Handle missing files explicitly with meaningful error messages
 - Use consistent UTF-8 encoding for text files
 - Implement an `optional` flag to continue execution if files are missing
@@ -4137,6 +4152,7 @@ STEP_REGISTRY: Dict[str, Type[BaseStep]] = {
     "mcp": MCPStep,
     "parallel": ParallelStep,
     "read_files": ReadFilesStep,
+    "set_context": SetContextStep,
     "write_files": WriteFilesStep,
 }
 ```
@@ -4234,6 +4250,7 @@ from recipe_executor.steps.loop import LoopStep
 from recipe_executor.steps.mcp import MCPStep
 from recipe_executor.steps.parallel import ParallelStep
 from recipe_executor.steps.read_files import ReadFilesStep
+from recipe_executor.steps.set_context import SetContextStep
 from recipe_executor.steps.write_files import WriteFilesStep
 
 # Register steps by updating the registry
@@ -4245,9 +4262,220 @@ STEP_REGISTRY.update({
     "mcp": MCPStep,
     "parallel": ParallelStep,
     "read_files": ReadFilesStep,
+    "set_context": SetContextStep,
     "write_files": WriteFilesStep,
 })
 ```
+
+
+=== File: recipes/recipe_executor/components/steps/set_context/set_context_docs.md ===
+# SetContextStep Component Usage
+
+## Importing
+
+```python
+from recipe_executor.steps.set_context import SetContextStep, SetContextConfig
+```
+
+## Configuration
+
+`SetContextStep` is configured with a simple `SetContextConfig`:
+
+```python
+class SetContextConfig(StepConfig):
+    """
+    Config for SetContextStep.
+
+    Fields:
+        key: Name of the artifact in the Context.
+        value: String, list, dict **or** Liquid template string rendered against
+               the current context.
+        nested_render: Whether to render the prompt with nested context, recursively
+                       until no more templates are found. This is useful for rendering complex prompts with multiple levels of context. Wrap any sections that should not be rendered in {% raw %}...{% endraw %}.
+        if_exists: Strategy when the key already exists:
+                   • "overwrite" (default) – replace the existing value
+                   • "merge" – combine the existing and new values
+    """
+    key: str
+    value: Union[str, list, dict]
+    nested_render: bool = False
+    if_exists: Literal["overwrite", "merge"] = "overwrite"
+```
+
+### Merge semantics (when `if_exists: "merge"`)
+
+| Existing type      | New type       | Result                                                      |
+| ------------------ | -------------- | ----------------------------------------------------------- |
+| `str`              | `str`          | `old + new` (simple concatenation)                          |
+| `list`             | `list` or item | `old + new` (append)                                        |
+| `dict`             | `dict`         | Shallow merge – keys in `new` overwrite duplicates in `old` |
+| Other / mismatched | any            | `[old, new]` (both preserved in a list)                     |
+
+## Step Registration
+
+Register once (typically in `recipe_executor/steps/__init__.py`):
+
+```python
+from recipe_executor.steps.registry import STEP_REGISTRY
+from recipe_executor.steps.set_context import SetContextStep
+
+STEP_REGISTRY["set_context"] = SetContextStep
+```
+
+The executor will then recognise the `"set_context"` step type during recipe execution.
+
+## Basic Usage in Recipes
+
+**Create or append to a document artifact**
+
+```json
+{
+  "type": "set_context",
+  "config": {
+    "key": "document",
+    "value": "{{ content }}",
+    "if_exists": "merge"
+  }
+}
+```
+
+**Create a dictionary artifact**
+
+```json
+{
+  "type": "set_context",
+  "config": {
+    "key": "document",
+    "value": {
+      "title": "{{ title }}",
+      "description": "{{ description }}"
+    },
+    "if_exists": "merge"
+  }
+}
+```
+
+**Nested content rendering**
+
+Example loaded data file:
+
+```json
+{
+  "report": {
+    "prompt": "Perform sentiment analysis on the following data: {{ context.data }}"
+  }
+}
+```
+
+```json
+{
+  "steps": [
+    {
+      "type": "read_files",
+      "config": {
+        "path": "report_instruction.json",
+        "content_key": "loaded_prompts"
+      }
+    },
+    {
+      "type": "set_context",
+      "config": {
+        "key": "rendered_prompt",
+        "value": "Generate a markdown formatted document based upon: {{loaded_prompts.report.prompt}}",
+        "nested_render": true
+      }
+    }
+  ]
+}
+```
+
+**NOTE**: Anything wrapped in `{% raw %}...{% endraw %}` will not be rendered. This is useful for including template sample snippets or other content that should not be processed as a template.
+
+**Pull a section from another artifact**
+
+```json
+{
+  "type": "set_context",
+  "config": {
+    "key": "section_md",
+    "value": "{{ context[section.content_key] }}"
+  }
+}
+```
+
+After execution, the target keys (`document`, `section_md`) are available for any downstream steps in the same recipe run, just like artifacts produced by `read_files`, `llm_generate`, or other core steps.
+
+## Important Notes
+
+- `value` strings are rendered with the same Liquid templating engine used throughout the toolchain, so you can interpolate any current context values before they are stored.
+- `if_exists` defaults to `"overwrite"` to preserve backward-compatible behaviour with existing recipes.
+- Merging is intentionally **shallow** for dictionaries to keep the step lightweight; if you need deep-merge semantics, perform that in a custom step or LLM call.
+
+
+=== File: recipes/recipe_executor/components/steps/set_context/set_context_spec.md ===
+# SetContextStep Component Specification
+
+## Purpose
+
+The **SetContextStep** component provides a declarative way for recipes to create or update artifacts in the shared execution context.
+
+## Core Requirements
+
+- Accept a **key** (string) that identifies the artifact in `ContextProtocol`.
+- Accept a **value** that may be:
+  - Any JSON-serialisable literal, **or**
+  - A Liquid template string rendered against the current context before assignment.
+- If `nested_render` is true, recursively render the `value` using context data until all variables are resolved, ignoring any template variables that are wrapped in `{% raw %}` tags
+- Support an **if_exists** strategy with the following options:
+  - `"overwrite"` (default) – replace the existing value.
+  - `"merge"` – combine the existing and new values using type-aware rules.
+- Implement shallow merge semantics when `if_exists="merge"`:
+  | Existing type | New type | Result |
+  | ------------- | -------------- | --------------------------------------------------------------- |
+  | `str` | `str` | Concatenate: `old + new` |
+  | `list` | `list` or item | Append: `old + new` |
+  | `dict` | `dict` | Shallow dict merge; keys in `new` overwrite duplicates in `old` |
+  | Mismatched | any | Create a 2-item list `[old, new]` |
+
+## Implementation Considerations
+
+- **Template rendering**:
+  - When `value` is a string, call `render_template(value, context)` before assignment.
+  - When `value` is a list or dict, call `render_template` on each item, all the way down.
+  - If `nested_render` is true, recursively render the `value` using context data until all variables are resolved, ignoring any template variables that are wrapped in `{% raw %}` tags
+    - When `true`, after the initial `render_template` pass on `value`, repeat rendering while the string both changes **and** still contains Liquid tags (`{{` or `{%}`), ignoring `{% raw %}`. This ensures nested templates inside your `value` get fully expanded.
+- **Merge helper**: Encapsulate merge logic in a small private function to keep `execute()` readable.
+
+## Logging
+
+- _Info_: one-line message indicating `key`, `strategy`, and whether the key previously existed.
+
+## Component Dependencies
+
+### Internal Components
+
+- **Protocols**: Uses `ContextProtocol` for context read/write operations.
+- **Context**: Uses `Context` for storing artifacts.
+- **Step Base**: Inherits from `BaseStep` and uses `StepConfig` for validation.
+- **Utilities**: Calls `render_template` for Liquid evaluation.
+
+### External Libraries
+
+None
+
+### Configuration Dependencies
+
+None.
+
+## Error Handling
+
+- Raise `ValueError` for unknown `if_exists` values.
+- Allow merge helper to fall back to `[old, new]` to avoid hard failures on type mismatch.
+- Propagate template rendering errors unchanged for visibility.
+
+## Output Files
+
+- `recipe_executor/steps/set_context.py` – implementation of **SetContextStep**.
 
 
 === File: recipes/recipe_executor/components/steps/write_files/write_files_docs.md ===
@@ -4723,12 +4951,12 @@ from recipe_executor.utils.templates import render_template
 
 ## Template Rendering
 
-The Templates utility component provides a `render_template` function that renders Liquid templates using values from a context object implementing the ContextProtocol:
+The Templates utility component provides a `render_template` function that renders [Python Liquid](https://jg-rp.github.io/liquid/) templates using values from a context object implementing the ContextProtocol:
 
 ```python
 def render_template(text: str, context: ContextProtocol) -> str:
     """
-    Render the given text as a Liquid template using the provided context.
+    Render the given text as a Python Liquid template using the provided context.
 
     Args:
         text (str): The template text to render.
@@ -4759,7 +4987,7 @@ print(result)  # Hello, World! You have 42 messages.
 
 ## Template Syntax
 
-The template rendering uses Liquid syntax. Here are some common features:
+The template rendering uses Python Liquid syntax. Here are some common features:
 
 ### Variable Substitution
 
@@ -4782,6 +5010,37 @@ template = "{% if user_count > 0 %}Users: {{user_count}}{% else %}No users{% end
 ```python
 template = "{% for item in items %}Item: {{item}}{% endfor %}"
 ```
+
+## Custom Filters
+
+In addition to the [built-in Python Liquid filters](https://jg-rp.github.io/liquid/filter_reference/), we have provided some additional custom filters for specific use cases:
+
+- `snakecase`: Converts a string to snake_case.
+  - Syntax: `<string> | snakecase`
+  - Example: `{{ "Hello World" | snakecase }}` results in `hello_world`.
+
+The following "extra filters" are also available:
+
+- `json`: Return the input object serialized to a JSON (JavaScript Object Notation) string.
+  - Syntax: `<object> | json[: <indent>]`
+  - Example: `{{ {"name": "John", "age": 30} | json: indent: 2 }}` results in:
+    ```json
+    {
+      "name": "John",
+      "age": 30
+    }
+    ```
+- `datetime`: Date and time formatting. Return the input datetime formatted according to the current locale. If `dt` is a `datetime.datetime` object `datetime.datetime(2007, 4, 1, 15, 30)`.
+  - Syntax: `<object> | datetime[: <format>]`
+  - Valid formats:
+    - `short`: Short date format.
+    - `medium`: Medium date format.
+    - `long`: Long date format.
+    - `full`: Full date format.
+    - Custom formats using [CLDR](https://cldr.unicode.org/translation/date-time/date-time-patterns) format (e.g., `MMM d, y`).
+  - Example: `{{ dt | datetime }}` results in `Apr 1, 2007, 3:30:00 PM` (default format).
+  - Example: `{{ dt | datetime: format: 'MMM d, y' }}` results in `2007-04-01`.
+  - Example: `{{ dt | datetime: format: 'short' }}` results in `01/04/2007, 03:30`.
 
 
 === File: recipes/recipe_executor/components/utils/templates/templates_spec.md ===

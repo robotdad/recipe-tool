@@ -66,7 +66,7 @@ You can override specific context values for the sub-recipe execution:
           "component_name": "Utils",
           "is_component": true,
           "revision_count": 1,
-          "sub_components": ["utils"],
+          "refs": ["utils"],
           "output_dir": "output/components/utils"
         }
       }
@@ -85,16 +85,19 @@ Both the `recipe_path` and `context_overrides` can include template variables:
     {
       "type": "execute_recipe",
       "config": {
-        "recipe_path": "recipes/{{recipe_type}}/{{component_id}}.json",
+        "recipe_path": "recipes/{{ recipe_type }}/{{ component_id }}.json",
         "context_overrides": {
-          "component_name": "{{component_display_name}}",
-          "output_dir": "output/components/{{component_id}}"
+          "component_name": "{{ component_display_name }}",
+          "sub_components": "{{ sub_components | json }}",
+          "output_dir": "output/components/{{ component_id }}"
         }
       }
     }
   ]
 }
 ```
+
+**NOTE**: For any **templated** values in the `context_overrides`, you can use the Python Liquid templating engine to resolve them. For example, `{{ sub_components | json }}` will convert the `sub_components` list into a JSON string so that it can be passed to the sub-recipe. This is useful for passing complex data structures or lists. This is especially important for any lists of objects as the Python Liquid engine will only pass the first element of the list if you don't use the `json` filter.
 
 ## Recipe Composition
 
@@ -115,7 +118,7 @@ Sub-recipes can be composed to create more complex workflows:
       "config": {
         "recipe_path": "recipes/parse_project.json",
         "context_overrides": {
-          "spec": "{{project_spec}}"
+          "spec": "{{ project_spec }}"
         }
       }
     },
@@ -161,7 +164,7 @@ Sub-recipes can be composed to create more complex workflows:
     "recipe_path": "recipes/component_template.json",
     "context_overrides": {
       "template_type": "create",
-      "component_id": "{{component_id}}"
+      "component_id": "{{ component_id }}"
     }
   }
 }
@@ -173,7 +176,7 @@ Sub-recipes can be composed to create more complex workflows:
 {
   "type": "execute_recipe",
   "config": {
-    "recipe_path": "recipes/workflow/{{workflow_name}}.json"
+    "recipe_path": "recipes/workflow/{{ workflow_name }}.json"
   }
 }
 ```

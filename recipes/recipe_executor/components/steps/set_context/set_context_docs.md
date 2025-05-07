@@ -19,12 +19,15 @@ class SetContextConfig(StepConfig):
         key: Name of the artifact in the Context.
         value: String, list, dict **or** Liquid template string rendered against
                the current context.
+        nested_render: Whether to render the prompt with nested context, recursively
+                       until no more templates are found. This is useful for rendering complex prompts with multiple levels of context. Wrap any sections that should not be rendered in {% raw %}...{% endraw %}.
         if_exists: Strategy when the key already exists:
                    • "overwrite" (default) – replace the existing value
                    • "merge" – combine the existing and new values
     """
     key: str
     value: Union[str, list, dict]
+    nested_render: bool = False
     if_exists: Literal["overwrite", "merge"] = "overwrite"
 ```
 
@@ -64,6 +67,58 @@ The executor will then recognise the `"set_context"` step type during recipe exe
   }
 }
 ```
+
+**Create a dictionary artifact**
+
+```json
+{
+  "type": "set_context",
+  "config": {
+    "key": "document",
+    "value": {
+      "title": "{{ title }}",
+      "description": "{{ description }}"
+    },
+    "if_exists": "merge"
+  }
+}
+```
+
+**Nested content rendering**
+
+Example loaded data file:
+
+```json
+{
+  "report": {
+    "prompt": "Perform sentiment analysis on the following data: {{ context.data }}"
+  }
+}
+```
+
+```json
+{
+  "steps": [
+    {
+      "type": "read_files",
+      "config": {
+        "path": "report_instruction.json",
+        "content_key": "loaded_prompts"
+      }
+    },
+    {
+      "type": "set_context",
+      "config": {
+        "key": "rendered_prompt",
+        "value": "Generate a markdown formatted document based upon: {{loaded_prompts.report.prompt}}",
+        "nested_render": true
+      }
+    }
+  ]
+}
+```
+
+**NOTE**: Anything wrapped in `{% raw %}...{% endraw %}` will not be rendered. This is useful for including template sample snippets or other content that should not be processed as a template.
 
 **Pull a section from another artifact**
 

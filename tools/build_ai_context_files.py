@@ -100,6 +100,13 @@ def build_context_files(force=False) -> None:
             "exclude": collect_files.DEFAULT_EXCLUDE,
             "include": [],
         },
+        # Collect files from recipes/document_generator
+        {
+            "patterns": ["recipes/document_generator"],
+            "output": f"{OUTPUT_DIR}/DOCUMENT_GENERATOR_FILES.md",
+            "exclude": collect_files.DEFAULT_EXCLUDE,
+            "include": [],
+        },
         # Collect files from recipes/examples_*
         {
             "patterns": ["recipes/example_*"],

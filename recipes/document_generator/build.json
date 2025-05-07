@@ -19,39 +19,58 @@
   },
   "steps": [
     {
-      "type": "read_files",
+      "type": "set_context",
       "config": {
-        "path": "{{ outline_file }}",
-        "content_key": "outline"
+        "key": "model",
+        "value": "{{ model | default: 'openai/gpt-4o' }}"
+      }
+    },
+    {
+      "type": "set_context",
+      "config": {
+        "key": "output_root",
+        "value": "{{ output_root | default: 'output' }}"
+      }
+    },
+    {
+      "type": "set_context",
+      "config": {
+        "key": "recipe_root",
+        "value": "{{ recipe_root | default: 'recipes/document_generator' }}"
       }
     },
     {
       "type": "execute_recipe",
       "config": {
-        "recipe_path": "{{ recipe_root | default: 'recipes/document_generator' }}/recipes/read_resources.json"
+        "recipe_path": "{{ recipe_root }}/recipes/load_outline.json"
       }
     },
     {
       "type": "execute_recipe",
       "config": {
-        "recipe_path": "{{ recipe_root | default: 'recipes/document_generator' }}/recipes/walk_outline.json",
+        "recipe_path": "{{ recipe_root }}/recipes/load_resources.json"
+      }
+    },
+    {
+      "type": "set_context",
+      "config": {
+        "key": "document",
+        "value": "# {{ outline.title }}"
+      }
+    },
+    {
+      "type": "execute_recipe",
+      "config": {
+        "recipe_path": "{{ recipe_root }}/recipes/write_document.json"
+      }
+    },
+    {
+      "type": "execute_recipe",
+      "config": {
+        "recipe_path": "{{ recipe_root }}/recipes/write_sections.json",
         "context_overrides": {
-          "sections": "{{ outline.sections }}",
-          "model": "{{ model | default: 'openai/gpt-4o' }}",
-          "recipe_root": "{{ recipe_root | default: 'recipes/document_generator' }}"
+          "sections": "{{ outline.sections | json: indent: 2 }}"
         }
-      }
-    },
-    {
-      "type": "write_files",
-      "config": {
-        "files": [
-          {
-            "path": "{{outline.file_name}}.md",
-            "content_key": "outline.sections"
-          }
-        ],
-        "root": "{{ output_root | default: 'output' }}"
       }
     }
   ]
