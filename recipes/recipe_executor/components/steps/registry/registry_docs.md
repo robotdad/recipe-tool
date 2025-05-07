@@ -24,6 +24,7 @@ STEP_REGISTRY: Dict[str, Type[BaseStep]] = {
     "mcp": MCPStep,
     "parallel": ParallelStep,
     "read_files": ReadFilesStep,
+    "set_context": SetContextStep,
     "write_files": WriteFilesStep,
 }
 ```

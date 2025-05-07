@@ -1,0 +1,58 @@
+{
+  "name": "Document Generator",
+  "description": "Generates a document from an outline, using LLMs to fill in sections and assemble the final document.",
+  "inputs": {
+    "outline_file": {
+      "description": "Path to outline json file.",
+      "type": "string"
+    },
+    "model": {
+      "description": "LLM model to use for generation.",
+      "type": "string",
+      "default": "openai/gpt-4o"
+    },
+    "output_root": {
+      "description": "Directory to save the generated document.",
+      "type": "string",
+      "default": "output"
+    }
+  },
+  "steps": [
+    {
+      "type": "read_files",
+      "config": {
+        "path": "{{ outline_file }}",
+        "content_key": "outline"
+      }
+    },
+    {
+      "type": "execute_recipe",
+      "config": {
+        "recipe_path": "{{ recipe_root | default: 'recipes/document_generator' }}/recipes/read_resources.json"
+      }
+    },
+    {
+      "type": "execute_recipe",
+      "config": {
+        "recipe_path": "{{ recipe_root | default: 'recipes/document_generator' }}/recipes/walk_outline.json",
+        "context_overrides": {
+          "sections": "{{ outline.sections }}",
+          "model": "{{ model | default: 'openai/gpt-4o' }}",
+          "recipe_root": "{{ recipe_root | default: 'recipes/document_generator' }}"
+        }
+      }
+    },
+    {
+      "type": "write_files",
+      "config": {
+        "files": [
+          {
+            "path": "{{outline.file_name}}.md",
+            "content_key": "outline.sections"
+          }
+        ],
+        "root": "{{ output_root | default: 'output' }}"
+      }
+    }
+  ]
+}

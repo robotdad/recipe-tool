@@ -52,6 +52,7 @@ from recipe_executor.steps.loop import LoopStep
 from recipe_executor.steps.mcp import MCPStep
 from recipe_executor.steps.parallel import ParallelStep
 from recipe_executor.steps.read_files import ReadFilesStep
+from recipe_executor.steps.set_context import SetContextStep
 from recipe_executor.steps.write_files import WriteFilesStep
 
 # Register steps by updating the registry
@@ -63,6 +64,7 @@ STEP_REGISTRY.update({
     "mcp": MCPStep,
     "parallel": ParallelStep,
     "read_files": ReadFilesStep,
+    "set_context": SetContextStep,
     "write_files": WriteFilesStep,
 })
 ```

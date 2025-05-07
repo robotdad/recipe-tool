@@ -1,0 +1,22 @@
+{
+  "steps": [
+    {
+      "type": "loop",
+      "config": {
+        "items": "outline.refs",
+        "item_key": "resource",
+        "result_key": "read_resources",
+        "substeps": [
+          {
+            "type": "read_files",
+            "config": {
+              "path": "{{ resource.path }}",
+              "content_key": "{{ resource.context_key }}",
+              "merge_mode": "{{ resource.merge_mode }}"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

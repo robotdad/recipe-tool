@@ -1,0 +1,56 @@
+{
+  "file_name": "RECIPE_JSON_AUTHORING_GUIDE",
+  "refs": [
+    {
+      "context_key": "recipe_executor_code",
+      "path": "ai_context/generated/RECIPE_EXECUTOR_CODE_FILES.md",
+      "description": "Code files related to the recipe executor."
+    },
+    {
+      "context_key": "recipe_executor_recipes",
+      "path": "ai_context/generated/RECIPE_EXECUTOR_RECIPE_FILES.md",
+      "description": "Recipe files for the recipe executor itself, includes documentation."
+    },
+    {
+      "context_key": "sample_recipes",
+      "path": "ai_context/generated/BLUEPRINT_GENERATOR_V4_FILES.md",
+      "description": "Sample recipes and related files for the blueprint generator."
+    },
+    {
+      "context_key": "liquid_docs",
+      "path": "ai_context/git_collector/LIQUID_PYTHON_DOCS.md",
+      "description": "Liquid templating documentation."
+    }
+  ],
+  "sections": [
+    {
+      "title": "Recipe JSON Authoring Guide",
+      "sections": [
+        {
+          "title": "Basic Recipe Structure",
+          "prompt": "Explain the basic structure of a recipe JSON file. Include details about the main sections, such as 'steps', 'inputs', and 'outputs'. Provide examples of each section."
+        },
+        {
+          "title": "Working with Objects Between Recipe Steps",
+          "prompt": "Describe how to work with objects between recipe steps. Explain the concept of 'context' and how to pass data between steps. Provide examples of how to use context variables in different steps."
+        },
+        {
+          "title": "Using Liquid Templating for Dynamic Content",
+          "prompt": "Explain how to use Liquid templating in recipe JSON files. Provide examples of how to create dynamic content using Liquid syntax. Discuss common use cases for Liquid templating in recipes."
+        },
+        {
+          "title": "Common Step Types and Configuration",
+          "prompt": "List and describe common step types used in recipe JSON files. Include details about their configuration options and how to use them effectively. Provide examples of each step type."
+        },
+        {
+          "title": "Best Practices and Patterns",
+          "prompt": "Outline best practices and patterns for writing recipe JSON files. Discuss common pitfalls to avoid and tips for maintaining readability and organization. Provide examples of well-structured recipes."
+        },
+        {
+          "title": "Recipe Cookbook",
+          "prompt": "Provide a collection of example recipes that demonstrate various use cases and patterns. Include detailed explanations of each recipe's purpose and how it works. Discuss how to adapt these recipes for different scenarios."
+        }
+      ]
+    }
+  ]
+}

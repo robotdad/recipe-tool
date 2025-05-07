@@ -1,0 +1,44 @@
+{
+  "name": "Draft Section",
+  "description": "Generates a section of a document based on the provided outline and context.",
+  "inputs": {
+    "title": {
+      "description": "Title of the section.",
+      "type": "string"
+    },
+    "prompt": {
+      "description": "Prompt for the LLM to generate the section content.",
+      "type": "string"
+    },
+    "references": {
+      "description": "References to be used in the section, loaded from the context.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "model": {
+      "description": "LLM model to use for generation.",
+      "type": "string"
+    }
+  },
+  "steps": [
+    {
+      "type": "llm_generate",
+      "config": {
+        "model": "{{ model }}",
+        "prompt": "Generate a document based upon the following prompt:\n<PROMPT>\n{{ section.prompt }}\n</PROMPT>\n\nAvailable references:\n<REFERENCE_DOCS>\n{{ section.refs }}\n</REFERENCE_DOCS>",
+        "output_format": "text",
+        "output_key": "content"
+      }
+    },
+    {
+      "type": "set_context",
+      "config": {
+        "key": "document",
+        "value": "{{ content }}",
+        "if_exists": "merge"
+      }
+    }
+  ]
+}
