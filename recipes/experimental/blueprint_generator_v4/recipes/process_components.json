@@ -1,0 +1,22 @@
+{
+  "steps": [
+    {
+      "type": "loop",
+      "config": {
+        "items": "analysis_result.components",
+        "item_key": "component",
+        "max_concurrency": 0,
+        "delay": 0.1,
+        "substeps": [
+          {
+            "type": "execute_recipe",
+            "config": {
+              "recipe_path": "recipes/experimental/blueprint_generator_v4/recipes/component_processor/process_component.json"
+            }
+          }
+        ],
+        "result_key": "processed_components"
+      }
+    }
+  ]
+}

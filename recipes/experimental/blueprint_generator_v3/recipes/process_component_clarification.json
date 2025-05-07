@@ -1,0 +1,145 @@
+{
+  "steps": [
+    {
+      "type": "execute_recipe",
+      "config": {
+        "recipe_path": "recipes/experimental/blueprint_generator_v3/recipes/generate_clarification_questions.json",
+        "context_overrides": {
+          "candidate_spec_path": "{{ spec_path }}",
+          "component_id": "{{ component_id }}",
+          "output_root": "{{ output_dir }}/clarification",
+          "model": "{{ model | default: 'openai/o4-mini' }}"
+        }
+      }
+    },
+    {
+      "type": "llm_generate",
+      "config": {
+        "prompt": "Update component status after generating clarification questions:\n\nPrevious status: {{ component_status }}\nNew status: 'questions_generated'\nQuestions file: {{ output_dir }}/clarification/{{ component_id }}_component_clarification_questions.md",
+        "model": "{{ model | default: 'openai/o4-mini' }}",
+        "output_format": {
+          "type": "object",
+          "properties": {
+            "component_id": { "type": "string" },
+            "component_name": { "type": "string" },
+            "status": {
+              "type": "string",
+              "enum": [
+                "initial",
+                "questions_generated",
+                "answers_generated",
+                "evaluated",
+                "needs_human_review",
+                "ready"
+              ]
+            },
+            "revision_count": { "type": "integer" },
+            "current_spec_path": { "type": "string" },
+            "questions_path": { "type": "string" }
+          },
+          "required": [
+            "component_id",
+            "status",
+            "revision_count",
+            "current_spec_path",
+            "questions_path"
+          ]
+        },
+        "output_key": "updated_status"
+      }
+    },
+    {
+      "type": "write_files",
+      "config": {
+        "files": [
+          {
+            "path": "{{ output_dir }}/status/{{ component_id }}_status.json",
+            "content_key": "updated_status"
+          }
+        ]
+      }
+    },
+    {
+      "type": "execute_recipe",
+      "config": {
+        "recipe_path": "recipes/experimental/blueprint_generator_v3/recipes/generate_clarification_answers.json",
+        "context_overrides": {
+          "candidate_spec_path": "{{ spec_path }}",
+          "clarification_questions_path": "{{ output_dir }}/clarification/{{ component_id }}_component_clarification_questions.md",
+          "component_id": "{{ component_id }}",
+          "output_root": "{{ output_dir }}/clarification",
+          "model": "{{ model | default: 'openai/o4-mini' }}"
+        }
+      }
+    },
+    {
+      "type": "llm_generate",
+      "config": {
+        "prompt": "Update component status after generating clarification answers:\n\nPrevious status: {{ updated_status }}\nNew status: 'answers_generated'\nRevised spec: {{ output_dir }}/clarification/{{ component_id }}_candidate_spec_revised.md\nQuestions path: {{ updated_status.questions_path }}",
+        "model": "{{ model | default: 'openai/o4-mini' }}",
+        "output_format": {
+          "type": "object",
+          "properties": {
+            "component_id": { "type": "string" },
+            "component_name": { "type": "string" },
+            "status": {
+              "type": "string",
+              "enum": [
+                "initial",
+                "questions_generated",
+                "answers_generated",
+                "evaluated",
+                "needs_human_review",
+                "ready"
+              ]
+            },
+            "revision_count": { "type": "integer" },
+            "current_spec_path": { "type": "string" },
+            "questions_path": { "type": "string" }
+          },
+          "required": [
+            "component_id",
+            "status",
+            "revision_count",
+            "current_spec_path",
+            "questions_path"
+          ]
+        },
+        "output_key": "answers_status"
+      }
+    },
+    {
+      "type": "write_files",
+      "config": {
+        "files": [
+          {
+            "path": "{{ output_dir }}/status/{{ component_id }}_status.json",
+            "content_key": "answers_status"
+          }
+        ]
+      }
+    },
+    {
+      "type": "execute_recipe",
+      "config": {
+        "recipe_path": "recipes/experimental/blueprint_generator_v3/recipes/process_component_evaluation.json",
+        "context_overrides": {
+          "component_id": "{{ component_id }}",
+          "spec_path": "{{ spec_path }}",
+          "revised_spec_path": "{{ output_dir }}/clarification/{{ component_id }}_candidate_spec_revised.md",
+          "output_dir": "{{ output_dir }}",
+          "answers_status_obj": "{{ answers_status }}",
+          "model": "{{ model | default: 'openai/o4-mini' }}"
+        }
+      }
+    },
+    {
+      "type": "read_files",
+      "config": {
+        "path": "{{ output_dir }}/status/{{ component_id }}_status.json",
+        "content_key": "component_result",
+        "merge_mode": "dict"
+      }
+    }
+  ]
+}

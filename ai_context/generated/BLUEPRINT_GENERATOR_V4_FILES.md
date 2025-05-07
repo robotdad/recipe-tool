@@ -1,78 +1,89 @@
-# recipes/blueprint_generator_v4
+# recipes/experimental/blueprint_generator_v4
 
 [collect-files]
 
-**Search:** ['recipes/blueprint_generator_v4']
+**Search:** ['recipes/experimental/blueprint_generator_v4']
 **Exclude:** ['.venv', 'node_modules', '.git', '__pycache__', '*.pyc', '*.ruff_cache']
 **Include:** []
-**Date:** 5/5/2025, 7:59:05 AM
+**Date:** 5/6/2025, 10:52:16 AM
 **Files:** 16
 
-=== File: recipes/blueprint_generator_v4/README.md ===
+=== File: recipes/experimental/blueprint_generator_v4/README.md ===
 # Instructions for Testing the Blueprint Generator v4
 
 ## Run the Blueprint Generator
 
 ```bash
 # From the repo root, run the blueprint generator with the test project
-recipe-tool --execute recipes/blueprint_generator_v4/build.json \
+recipe-tool --execute recipes/experimental/blueprint_generator_v4/build.json \
    project_spec=blueprint_test/input/requirements_recipe_tool_ux.md \
    context_docs=blueprint_test/input/vision_recipe_tool_ux.md \
    output_dir=blueprint_test/output/blueprint_generator_v4 \
    model=openai/o4-mini
 ```
 
-## Generate code from the blueprint
+## Youtube Viewer Example with Code Generation
 
-````bash
-# Copy the generate code scripts from recipes/recipe_executor (TODO: move to a common location)
-cp recipes/recipe_executor/build.json blueprint_test/output/blueprint_generator_v4/
-# Copy the recipes/recipe_executor/recipes directory to the output directory
-cp -r recipes/recipe_executor/recipes blueprint_test/output/blueprint_generator_v4/
-
-# Copy the recipes/recipe_executor/components.json as a template
-cp recipes/recipe_executor/components.json blueprint_test/output/blueprint_generator_v4/
-
-# Edit the components.json file to include the components you want to generate
-nano blueprint_test/output/blueprint_generator_v4/components.json
-
-# Run the generate code script
 ```bash
+# Run the Youtube Viewer example
+recipe-tool --execute recipes/experimental/blueprint_generator_v4/build.json \
+   project_spec=blueprint_test/input/youtube_viewer.md \
+   context_docs=blueprint_test/input/videos.json \
+   output_dir=blueprint_test/output/youtube_viewer \
+   model=openai/o4-mini
+
+# TODO: Handle this in the blueprint generator recipes
+# Copy the code generation recipes from the recipe executor
+cp recipes/recipe_executor/build.json blueprint_test/output/youtube_viewer/
+cp -r recipes/recipe_executor/recipes blueprint_test/output/youtube_viewer/
+
+# Create a simple components.json file
+nano blueprint_test/output/youtube_viewer/components.json
+# Add single entry:
+[
+   {
+      "id": "main",
+      "deps": [],
+      "refs": ["blueprint_test/input/videos.json"]
+   }
+]
+
+# Run the code generation recipe
 recipe-tool --execute blueprint_test/output/youtube_viewer/build.json \
-   output_root=blueprint_test/output/blueprint_generator_v4/code \
-   output_path=blueprint_generator_v4 \
-   recipe_root=blueprint_test/output/blueprint_generator_v4 \
+   output_root=blueprint_test/output/youtube_viewer/code \
+   output_path=youtube_viewer \
+   recipe_root=blueprint_test/output/youtube_viewer \
    dev_guide_path=ai_context/DEV_GUIDE_FOR_PYTHON.md,ai_context/DEV_GUIDE_FOR_WEB.md \
    model=openai/o4-mini
-````
+```
 
 
-=== File: recipes/blueprint_generator_v4/build.json ===
+=== File: recipes/experimental/blueprint_generator_v4/build.json ===
 {
   "steps": [
     {
       "type": "execute_recipe",
       "config": {
-        "recipe_path": "recipes/blueprint_generator_v4/recipes/read_resources.json"
+        "recipe_path": "recipes/experimental/blueprint_generator_v4/recipes/read_resources.json"
       }
     },
     {
       "type": "execute_recipe",
       "config": {
-        "recipe_path": "recipes/blueprint_generator_v4/recipes/analyze_project.json"
+        "recipe_path": "recipes/experimental/blueprint_generator_v4/recipes/analyze_project.json"
       }
     },
     {
       "type": "execute_recipe",
       "config": {
-        "recipe_path": "recipes/blueprint_generator_v4/recipes/orchestrate_flow.json"
+        "recipe_path": "recipes/experimental/blueprint_generator_v4/recipes/orchestrate_flow.json"
       }
     }
   ]
 }
 
 
-=== File: recipes/blueprint_generator_v4/recipes/analyze_project.json ===
+=== File: recipes/experimental/blueprint_generator_v4/recipes/analyze_project.json ===
 {
   "steps": [
     {
@@ -145,7 +156,7 @@ recipe-tool --execute blueprint_test/output/youtube_viewer/build.json \
 }
 
 
-=== File: recipes/blueprint_generator_v4/recipes/component_processor/evaluate_refined_spec.json ===
+=== File: recipes/experimental/blueprint_generator_v4/recipes/component_processor/evaluate_refined_spec.json ===
 {
   "steps": [
     {
@@ -202,25 +213,9 @@ recipe-tool --execute blueprint_test/output/youtube_viewer/build.json \
 }
 
 
-=== File: recipes/blueprint_generator_v4/recipes/component_processor/generate_blueprint.json ===
+=== File: recipes/experimental/blueprint_generator_v4/recipes/component_processor/generate_blueprint.json ===
 {
   "steps": [
-    {
-      "type": "llm_generate",
-      "config": {
-        "model": "{{ model }}",
-        "prompt": "Using the development guide below, generate scaffold code modules for component '{{ component.id }}' based on the refined spec and diagrams.\n<REFINED_SPEC>\n{{ refined_spec }}\n</REFINED_SPEC>\n<COMPONENT>\n{{ component }}\n</COMPONENT>\n<DIAGRAMS>\n{{ diagrams }}\n</DIAGRAMS>\n<PHILOSOPHY_GUIDES>\n[IMPLEMENTATION] {{ implementation_philosophy }}\n[MODULAR] {{ modular_design_philosophy }}\n[DOCS_GUIDE] {{ component_docs_spec_guide }}\n</PHILOSOPHY_GUIDES>",
-        "output_format": "files",
-        "output_key": "scaffold_files"
-      }
-    },
-    {
-      "type": "write_files",
-      "config": {
-        "files_key": "scaffold_files",
-        "root": "{{ output_dir }}/components/{{ component.id }}/code"
-      }
-    },
     {
       "type": "llm_generate",
       "config": {
@@ -257,7 +252,7 @@ recipe-tool --execute blueprint_test/output/youtube_viewer/build.json \
 }
 
 
-=== File: recipes/blueprint_generator_v4/recipes/component_processor/generate_candidate_spec.json ===
+=== File: recipes/experimental/blueprint_generator_v4/recipes/component_processor/generate_candidate_spec.json ===
 {
   "steps": [
     {
@@ -399,7 +394,7 @@ recipe-tool --execute blueprint_test/output/youtube_viewer/build.json \
 }
 
 
-=== File: recipes/blueprint_generator_v4/recipes/component_processor/generate_clarification_questions.json ===
+=== File: recipes/experimental/blueprint_generator_v4/recipes/component_processor/generate_clarification_questions.json ===
 {
   "steps": [
     {
@@ -449,7 +444,7 @@ recipe-tool --execute blueprint_test/output/youtube_viewer/build.json \
 }
 
 
-=== File: recipes/blueprint_generator_v4/recipes/component_processor/generate_diagrams.json ===
+=== File: recipes/experimental/blueprint_generator_v4/recipes/component_processor/generate_diagrams.json ===
 {
   "steps": [
     {
@@ -508,7 +503,7 @@ recipe-tool --execute blueprint_test/output/youtube_viewer/build.json \
 }
 
 
-=== File: recipes/blueprint_generator_v4/recipes/component_processor/generate_refined_spec.json ===
+=== File: recipes/experimental/blueprint_generator_v4/recipes/component_processor/generate_refined_spec.json ===
 {
   "steps": [
     {
@@ -650,7 +645,7 @@ recipe-tool --execute blueprint_test/output/youtube_viewer/build.json \
 }
 
 
-=== File: recipes/blueprint_generator_v4/recipes/component_processor/human_review_needed.json ===
+=== File: recipes/experimental/blueprint_generator_v4/recipes/component_processor/human_review_needed.json ===
 {
   "steps": [
     {
@@ -688,19 +683,19 @@ recipe-tool --execute blueprint_test/output/youtube_viewer/build.json \
 }
 
 
-=== File: recipes/blueprint_generator_v4/recipes/component_processor/process_component.json ===
+=== File: recipes/experimental/blueprint_generator_v4/recipes/component_processor/process_component.json ===
 {
   "steps": [
     {
       "type": "execute_recipe",
       "config": {
-        "recipe_path": "recipes/blueprint_generator_v4/recipes/component_processor/generate_candidate_spec.json"
+        "recipe_path": "recipes/experimental/blueprint_generator_v4/recipes/component_processor/generate_candidate_spec.json"
       }
     },
     {
       "type": "execute_recipe",
       "config": {
-        "recipe_path": "recipes/blueprint_generator_v4/recipes/component_processor/refine_cycle.json",
+        "recipe_path": "recipes/experimental/blueprint_generator_v4/recipes/component_processor/refine_cycle.json",
         "context_overrides": {
           "candidate_spec": "{{ candidate_spec }}",
           "retry_count": 0,
@@ -717,7 +712,7 @@ recipe-tool --execute blueprint_test/output/youtube_viewer/build.json \
             {
               "type": "execute_recipe",
               "config": {
-                "recipe_path": "recipes/blueprint_generator_v4/recipes/component_processor/human_review_needed.json"
+                "recipe_path": "recipes/experimental/blueprint_generator_v4/recipes/component_processor/human_review_needed.json"
               }
             }
           ]
@@ -727,13 +722,13 @@ recipe-tool --execute blueprint_test/output/youtube_viewer/build.json \
             {
               "type": "execute_recipe",
               "config": {
-                "recipe_path": "recipes/blueprint_generator_v4/recipes/component_processor/generate_diagrams.json"
+                "recipe_path": "recipes/experimental/blueprint_generator_v4/recipes/component_processor/generate_diagrams.json"
               }
             },
             {
               "type": "execute_recipe",
               "config": {
-                "recipe_path": "recipes/blueprint_generator_v4/recipes/component_processor/generate_blueprint.json"
+                "recipe_path": "recipes/experimental/blueprint_generator_v4/recipes/component_processor/generate_blueprint.json"
               }
             }
           ]
@@ -744,13 +739,13 @@ recipe-tool --execute blueprint_test/output/youtube_viewer/build.json \
 }
 
 
-=== File: recipes/blueprint_generator_v4/recipes/component_processor/refine_cycle.json ===
+=== File: recipes/experimental/blueprint_generator_v4/recipes/component_processor/refine_cycle.json ===
 {
   "steps": [
     {
       "type": "execute_recipe",
       "config": {
-        "recipe_path": "recipes/blueprint_generator_v4/recipes/component_processor/generate_clarification_questions.json",
+        "recipe_path": "recipes/experimental/blueprint_generator_v4/recipes/component_processor/generate_clarification_questions.json",
         "context_overrides": {
           "candidate_spec": "{% assign rc = retry_count | default: 0 | plus: 0 %}{% if rc > 0 %}{{ refined_spec }}{% else %}{{ candidate_spec }}{% endif %}",
           "force_generate": "{% assign rc = retry_count | default: 0 | plus: 0 %}{% if rc > 0 %}true{% else %}false{% endif %}"
@@ -760,7 +755,7 @@ recipe-tool --execute blueprint_test/output/youtube_viewer/build.json \
     {
       "type": "execute_recipe",
       "config": {
-        "recipe_path": "recipes/blueprint_generator_v4/recipes/component_processor/generate_refined_spec.json",
+        "recipe_path": "recipes/experimental/blueprint_generator_v4/recipes/component_processor/generate_refined_spec.json",
         "context_overrides": {
           "force_generate": "{% assign rc = retry_count | default: 0 | plus: 0 %}{% if rc > 0 %}true{% else %}false{% endif %}"
         }
@@ -769,7 +764,7 @@ recipe-tool --execute blueprint_test/output/youtube_viewer/build.json \
     {
       "type": "execute_recipe",
       "config": {
-        "recipe_path": "recipes/blueprint_generator_v4/recipes/component_processor/evaluate_refined_spec.json"
+        "recipe_path": "recipes/experimental/blueprint_generator_v4/recipes/component_processor/evaluate_refined_spec.json"
       }
     },
     {
@@ -781,7 +776,7 @@ recipe-tool --execute blueprint_test/output/youtube_viewer/build.json \
             {
               "type": "execute_recipe",
               "config": {
-                "recipe_path": "recipes/blueprint_generator_v4/recipes/component_processor/refine_cycle.json",
+                "recipe_path": "recipes/experimental/blueprint_generator_v4/recipes/component_processor/refine_cycle.json",
                 "context_overrides": {
                   "candidate_spec": "{{ refined_spec }}",
                   "force_generate": true,
@@ -797,13 +792,13 @@ recipe-tool --execute blueprint_test/output/youtube_viewer/build.json \
 }
 
 
-=== File: recipes/blueprint_generator_v4/recipes/generate_single_component.json ===
+=== File: recipes/experimental/blueprint_generator_v4/recipes/generate_single_component.json ===
 {
   "steps": [
     {
       "type": "execute_recipe",
       "config": {
-        "recipe_path": "recipes/blueprint_generator_v4/recipes/component_processor/process_component.json",
+        "recipe_path": "recipes/experimental/blueprint_generator_v4/recipes/component_processor/process_component.json",
         "context_overrides": {
           "component": {
             "id": "main",
@@ -817,7 +812,7 @@ recipe-tool --execute blueprint_test/output/youtube_viewer/build.json \
 }
 
 
-=== File: recipes/blueprint_generator_v4/recipes/orchestrate_flow.json ===
+=== File: recipes/experimental/blueprint_generator_v4/recipes/orchestrate_flow.json ===
 {
   "steps": [
     {
@@ -829,7 +824,7 @@ recipe-tool --execute blueprint_test/output/youtube_viewer/build.json \
             {
               "type": "execute_recipe",
               "config": {
-                "recipe_path": "recipes/blueprint_generator_v4/recipes/process_components.json"
+                "recipe_path": "recipes/experimental/blueprint_generator_v4/recipes/process_components.json"
               }
             }
           ]
@@ -839,7 +834,7 @@ recipe-tool --execute blueprint_test/output/youtube_viewer/build.json \
             {
               "type": "execute_recipe",
               "config": {
-                "recipe_path": "recipes/blueprint_generator_v4/recipes/generate_single_component.json"
+                "recipe_path": "recipes/experimental/blueprint_generator_v4/recipes/generate_single_component.json"
               }
             }
           ]
@@ -850,7 +845,7 @@ recipe-tool --execute blueprint_test/output/youtube_viewer/build.json \
 }
 
 
-=== File: recipes/blueprint_generator_v4/recipes/process_components.json ===
+=== File: recipes/experimental/blueprint_generator_v4/recipes/process_components.json ===
 {
   "steps": [
     {
@@ -864,7 +859,7 @@ recipe-tool --execute blueprint_test/output/youtube_viewer/build.json \
           {
             "type": "execute_recipe",
             "config": {
-              "recipe_path": "recipes/blueprint_generator_v4/recipes/component_processor/process_component.json"
+              "recipe_path": "recipes/experimental/blueprint_generator_v4/recipes/component_processor/process_component.json"
             }
           }
         ],
@@ -875,7 +870,7 @@ recipe-tool --execute blueprint_test/output/youtube_viewer/build.json \
 }
 
 
-=== File: recipes/blueprint_generator_v4/recipes/read_resources.json ===
+=== File: recipes/experimental/blueprint_generator_v4/recipes/read_resources.json ===
 {
   "steps": [
     {

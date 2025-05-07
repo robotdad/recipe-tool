@@ -53,7 +53,7 @@ The ConditionalStep allows you to branch execution paths based on evaluating exp
             {
               "type": "execute_recipe",
               "config": {
-                "recipe_path": "recipes/blueprint_generator/recipes/split_project.json"
+                "recipe_path": "recipes/experimental/blueprint_generator/recipes/split_project.json"
               }
             }
           ]
@@ -63,7 +63,7 @@ The ConditionalStep allows you to branch execution paths based on evaluating exp
             {
               "type": "execute_recipe",
               "config": {
-                "recipe_path": "recipes/blueprint_generator/recipes/process_single_component.json"
+                "recipe_path": "recipes/experimental/blueprint_generator/recipes/process_single_component.json"
               }
             }
           ]

@@ -1,0 +1,17 @@
+{
+  "steps": [
+    {
+      "type": "execute_recipe",
+      "config": {
+        "recipe_path": "recipes/experimental/blueprint_generator_v4/recipes/component_processor/process_component.json",
+        "context_overrides": {
+          "component": {
+            "id": "main",
+            "name": "Main Component",
+            "description": "This is the main component of this single-component project."
+          }
+        }
+      }
+    }
+  ]
+}

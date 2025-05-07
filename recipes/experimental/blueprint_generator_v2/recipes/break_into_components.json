@@ -1,0 +1,22 @@
+{
+  "steps": [
+    {
+      "type": "llm_generate",
+      "config": {
+        "model": "{{ model | default: 'openai/o4-mini' }}",
+        "prompt": "Design Philosophy (guide your breakdown):\n\"\"\"\n{{philosophy_guidance}}\n\"\"\"\n\nThen, using the system analysis below, identify the key components (modules or subsystems) of the system:\n\n\"\"\"\n{{analysis_report}}\n\"\"\"\n\nList all major components needed to implement the system. Each component should have a **name** and a **brief description** of its role/responsibilities. Ensure the components cover all major features and concerns from the requirements. The components should be well-scoped and modular (each responsible for a distinct part of the functionality or infrastructure). Aim for a set of components that an individual developer or AI could implement one by one. Provide the output as a JSON array of objects with the structure: `{ \"name\": <component_name>, \"description\": <what it does> }`.",
+        "output_format": [
+          {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "description": { "type": "string" }
+            },
+            "required": ["name", "description"]
+          }
+        ],
+        "output_key": "components"
+      }
+    }
+  ]
+}

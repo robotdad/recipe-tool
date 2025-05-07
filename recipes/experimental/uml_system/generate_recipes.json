@@ -1,0 +1,136 @@
+{
+  "steps": [
+    {
+      "type": "llm_generate",
+      "config": {
+        "prompt": "You are an expert software architect tasked with creating implementation recipes from UML models. A recipe is a JSON configuration file that defines a sequence of steps to be executed by an automation system.\n\nYour task is to generate a recipe for implementing the system architecture defined in the UML models. The recipe should cover the following aspects:\n\n1. Component structure setup\n2. Interface definitions\n3. Class implementations\n4. Workflow implementations\n\nUML Models:\n```\n{{ uml_models }}\n```\n\nOriginal Specifications:\n```\n{{ structured_specifications }}\n```\n\nFor each component in the system, create a recipe that can be executed to generate the component's implementation. The recipe should include steps for:\n\n1. Setting up the component's directory structure\n2. Creating interface definitions\n3. Implementing the component's classes\n4. Setting up any necessary configuration files\n\nEach recipe should follow this structure:\n```json\n{\n  \"steps\": [\n    {\n      \"type\": \"<step_type>\",\n      \"config\": {\n        // Step-specific configuration\n      }\n    },\n    // More steps...\n  ]\n}\n```\n\nAvailable step types include:\n- read_files: Read files from disk\n- write_files: Write files to disk\n- llm_generate: Generate content using a language model\n- conditional: Execute steps conditionally\n- loop: Loop over a collection and execute steps for each item\n- execute_recipe: Execute another recipe\n\nCreate a main recipe that orchestrates the execution of component-specific recipes, and individual component recipes.\n\nOutput a collection of recipe definitions for implementing the entire system.",
+        "model": "{{ model | default: 'openai/gpt-4o' }}",
+        "output_format": {
+          "type": "object",
+          "properties": {
+            "main_recipe": {
+              "type": "object",
+              "properties": {
+                "name": { "type": "string" },
+                "description": { "type": "string" },
+                "recipe": { "type": "object" }
+              }
+            },
+            "component_recipes": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "component_id": { "type": "string" },
+                  "name": { "type": "string" },
+                  "description": { "type": "string" },
+                  "recipe": { "type": "object" }
+                }
+              }
+            },
+            "shared_recipes": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string" },
+                  "description": { "type": "string" },
+                  "recipe": { "type": "object" }
+                }
+              }
+            }
+          }
+        },
+        "output_key": "implementation_recipes"
+      }
+    },
+    {
+      "type": "write_files",
+      "config": {
+        "files": [
+          {
+            "path": "recipes/implementation/main.json",
+            "content_key": "implementation_recipes.main_recipe.recipe"
+          }
+        ],
+        "root": "{{ output_dir | default: 'output' }}"
+      }
+    },
+    {
+      "type": "loop",
+      "config": {
+        "items": "implementation_recipes.component_recipes",
+        "item_key": "component_recipe",
+        "substeps": [
+          {
+            "type": "write_files",
+            "config": {
+              "files": [
+                {
+                  "path": "recipes/implementation/components/{{ component_recipe.component_id }}.json",
+                  "content_key": "component_recipe.recipe"
+                }
+              ],
+              "root": "{{ output_dir | default: 'output' }}"
+            }
+          }
+        ],
+        "result_key": "written_component_recipes"
+      }
+    },
+    {
+      "type": "loop",
+      "config": {
+        "items": "implementation_recipes.shared_recipes",
+        "item_key": "shared_recipe",
+        "substeps": [
+          {
+            "type": "write_files",
+            "config": {
+              "files": [
+                {
+                  "path": "recipes/implementation/shared/{{ shared_recipe.name }}.json",
+                  "content_key": "shared_recipe.recipe"
+                }
+              ],
+              "root": "{{ output_dir | default: 'output' }}"
+            }
+          }
+        ],
+        "result_key": "written_shared_recipes"
+      }
+    },
+    {
+      "type": "llm_generate",
+      "config": {
+        "prompt": "Create a README.md file that explains the implementation recipes you've generated. Describe the purpose of each recipe, how they relate to each other, and how they should be executed. Include information about any dependencies or prerequisites needed to run the recipes.\n\nImplementation Recipes:\n```\n{{ implementation_recipes }}\n```",
+        "model": "{{ model | default: 'openai/gpt-4o' }}",
+        "output_format": "text",
+        "output_key": "recipes_readme"
+      }
+    },
+    {
+      "type": "write_files",
+      "config": {
+        "files": [
+          {
+            "path": "recipes/implementation/README.md",
+            "content_key": "recipes_readme"
+          }
+        ],
+        "root": "{{ output_dir | default: 'output' }}"
+      }
+    },
+    {
+      "type": "execute_recipe",
+      "config": {
+        "recipe_path": "recipes/experimental/uml_system/evaluate_recipes.json",
+        "context_overrides": {
+          "implementation_recipes": "{{ implementation_recipes }}",
+          "uml_models": "{{ uml_models }}",
+          "structured_specifications": "{{ structured_specifications }}"
+        }
+      }
+    }
+  ]
+}

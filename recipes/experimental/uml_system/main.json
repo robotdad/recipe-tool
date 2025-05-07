@@ -1,0 +1,277 @@
+{
+  "steps": [
+    {
+      "type": "read_files",
+      "config": {
+        "path": "{{ input_path | default: 'specs/project_vision.md' }}",
+        "content_key": "vision_document"
+      }
+    },
+    {
+      "type": "execute_recipe",
+      "config": {
+        "recipe_path": "recipes/experimental/uml_system/parse_specifications.json",
+        "context_overrides": {
+          "vision_document": "{{ vision_document }}"
+        }
+      }
+    },
+    {
+      "type": "conditional",
+      "config": {
+        "condition": "{{ needs_review_result.specifications_need_review }}",
+        "if_true": {
+          "steps": [
+            {
+              "type": "write_files",
+              "config": {
+                "files": [
+                  {
+                    "path": "review/specifications_review.md",
+                    "content": "# Specifications Review Needed\n\nThe system has identified some ambiguities or missing information in the specifications:\n\n{{ specifications_review_items }}\n\nPlease review and edit the specifications below, then save this file for the system to continue processing.\n\n## Original Vision Document\n\n{{ vision_document }}\n\n## Suggested Updated Specifications\n\n```\n{{ structured_specifications }}\n```"
+                  }
+                ],
+                "root": "{{ output_dir | default: 'output' }}"
+              }
+            },
+            {
+              "type": "llm_generate",
+              "config": {
+                "prompt": "The following specifications require human review before proceeding.\n\n{{ specifications_review_items }}\n\nPlease output instructions for how to proceed after the human has reviewed the specifications.",
+                "model": "{{ model | default: 'openai/gpt-4o' }}",
+                "output_format": "text",
+                "output_key": "human_review_instructions"
+              }
+            },
+            {
+              "type": "write_files",
+              "config": {
+                "files": [
+                  {
+                    "path": "review/NEXT_STEPS.md",
+                    "content": "# Next Steps After Review\n\n{{ human_review_instructions }}\n\nAfter you've completed the review, run the recipe again with the updated specifications file:\n\n```\nrecipe-tool --execute recipes/experimental/uml_system/main.json input_path=review/specifications_review.md continuation=true\n```"
+                  }
+                ],
+                "root": "{{ output_dir | default: 'output' }}"
+              }
+            }
+          ]
+        },
+        "if_false": {
+          "steps": [
+            {
+              "type": "execute_recipe",
+              "config": {
+                "recipe_path": "recipes/experimental/uml_system/generate_uml_models.json"
+              }
+            },
+            {
+              "type": "conditional",
+              "config": {
+                "condition": "{{ uml_evaluation.needs_review }}",
+                "if_true": {
+                  "steps": [
+                    {
+                      "type": "write_files",
+                      "config": {
+                        "files": [
+                          {
+                            "path": "review/uml_models_review.md",
+                            "content": "# UML Models Review Needed\n\nThe system has generated UML models that require review:\n\n{{ uml_review_items }}\n\nPlease review and edit the UML models as needed, then save this file for the system to continue processing."
+                          }
+                        ],
+                        "root": "{{ output_dir | default: 'output' }}"
+                      }
+                    },
+                    {
+                      "type": "llm_generate",
+                      "config": {
+                        "prompt": "The following UML models require human review before proceeding.\n\n{{ uml_review_items }}\n\nPlease output instructions for how to proceed after the human has reviewed the UML models.",
+                        "model": "{{ model | default: 'openai/gpt-4o' }}",
+                        "output_format": "text",
+                        "output_key": "uml_review_instructions"
+                      }
+                    },
+                    {
+                      "type": "write_files",
+                      "config": {
+                        "files": [
+                          {
+                            "path": "review/NEXT_STEPS.md",
+                            "content": "# Next Steps After Review\n\n{{ uml_review_instructions }}\n\nAfter you've completed the review, run the recipe again with the continuation flag:\n\n```\nrecipe-tool --execute recipes/experimental/uml_system/main.json continuation=true skip_to=recipe_generation\n```"
+                          }
+                        ],
+                        "root": "{{ output_dir | default: 'output' }}"
+                      }
+                    }
+                  ]
+                },
+                "if_false": {
+                  "steps": [
+                    {
+                      "type": "conditional",
+                      "config": {
+                        "condition": "{{ skip_to == 'recipe_generation' or continuation == true }}",
+                        "if_true": {
+                          "steps": [
+                            {
+                              "type": "execute_recipe",
+                              "config": {
+                                "recipe_path": "recipes/experimental/uml_system/generate_recipes.json"
+                              }
+                            },
+                            {
+                              "type": "conditional",
+                              "config": {
+                                "condition": "{{ recipe_evaluation.needs_review }}",
+                                "if_true": {
+                                  "steps": [
+                                    {
+                                      "type": "write_files",
+                                      "config": {
+                                        "files": [
+                                          {
+                                            "path": "review/recipes_review.md",
+                                            "content": "# Generated Recipes Review Needed\n\nThe system has generated recipes that require review:\n\n{{ recipe_review_items }}\n\nPlease review and edit the recipes as needed, then save this file for the system to continue processing."
+                                          }
+                                        ],
+                                        "root": "{{ output_dir | default: 'output' }}"
+                                      }
+                                    },
+                                    {
+                                      "type": "llm_generate",
+                                      "config": {
+                                        "prompt": "The following recipes require human review before proceeding.\n\n{{ recipe_review_items }}\n\nPlease output instructions for how to proceed after the human has reviewed the recipes.",
+                                        "model": "{{ model | default: 'openai/gpt-4o' }}",
+                                        "output_format": "text",
+                                        "output_key": "recipe_review_instructions"
+                                      }
+                                    },
+                                    {
+                                      "type": "write_files",
+                                      "config": {
+                                        "files": [
+                                          {
+                                            "path": "review/NEXT_STEPS.md",
+                                            "content": "# Next Steps After Review\n\n{{ recipe_review_instructions }}\n\nAfter you've completed the review, run the recipe again with the continuation flag:\n\n```\nrecipe-tool --execute recipes/experimental/uml_system/main.json continuation=true skip_to=code_generation\n```"
+                                          }
+                                        ],
+                                        "root": "{{ output_dir | default: 'output' }}"
+                                      }
+                                    }
+                                  ]
+                                },
+                                "if_false": {
+                                  "steps": [
+                                    {
+                                      "type": "conditional",
+                                      "config": {
+                                        "condition": "{{ skip_to == 'code_generation' or continuation == true }}",
+                                        "if_true": {
+                                          "steps": [
+                                            {
+                                              "type": "execute_recipe",
+                                              "config": {
+                                                "recipe_path": "recipes/experimental/uml_system/generate_code.json"
+                                              }
+                                            },
+                                            {
+                                              "type": "conditional",
+                                              "config": {
+                                                "condition": "{{ code_evaluation.needs_review }}",
+                                                "if_true": {
+                                                  "steps": [
+                                                    {
+                                                      "type": "write_files",
+                                                      "config": {
+                                                        "files": [
+                                                          {
+                                                            "path": "review/code_review.md",
+                                                            "content": "# Generated Code Review Needed\n\nThe system has generated code that requires review:\n\n{{ code_review_items }}\n\nPlease review and edit the code as needed, then save this file for the system to continue processing."
+                                                          }
+                                                        ],
+                                                        "root": "{{ output_dir | default: 'output' }}"
+                                                      }
+                                                    },
+                                                    {
+                                                      "type": "llm_generate",
+                                                      "config": {
+                                                        "prompt": "The following code requires human review before finalizing.\n\n{{ code_review_items }}\n\nPlease output instructions for how to proceed after the human has reviewed the code.",
+                                                        "model": "{{ model | default: 'openai/gpt-4o' }}",
+                                                        "output_format": "text",
+                                                        "output_key": "code_review_instructions"
+                                                      }
+                                                    },
+                                                    {
+                                                      "type": "write_files",
+                                                      "config": {
+                                                        "files": [
+                                                          {
+                                                            "path": "review/NEXT_STEPS.md",
+                                                            "content": "# Next Steps After Review\n\n{{ code_review_instructions }}\n\nAfter you've completed the review, run the recipe again with the continuation flag:\n\n```\nrecipe-tool --execute recipes/experimental/uml_system/main.json continuation=true skip_to=finalize\n```"
+                                                          }
+                                                        ],
+                                                        "root": "{{ output_dir | default: 'output' }}"
+                                                      }
+                                                    }
+                                                  ]
+                                                },
+                                                "if_false": {
+                                                  "steps": [
+                                                    {
+                                                      "type": "conditional",
+                                                      "config": {
+                                                        "condition": "{{ skip_to == 'finalize' or continuation == true }}",
+                                                        "if_true": {
+                                                          "steps": [
+                                                            {
+                                                              "type": "llm_generate",
+                                                              "config": {
+                                                                "prompt": "Generate a final summary report for the UML-based code generation project.\n\nSpecifications: \n```\n{{ structured_specifications }}\n```\n\nUML Models: \n```\n{{ uml_models }}\n```\n\nGenerated Code: \n```\n{{ generated_code }}\n```",
+                                                                "model": "{{ model | default: 'openai/gpt-4o' }}",
+                                                                "output_format": "text",
+                                                                "output_key": "final_summary"
+                                                              }
+                                                            },
+                                                            {
+                                                              "type": "write_files",
+                                                              "config": {
+                                                                "files": [
+                                                                  {
+                                                                    "path": "FINAL_REPORT.md",
+                                                                    "content": "# UML-Based Code Generation Project Report\n\n{{ final_summary }}"
+                                                                  }
+                                                                ],
+                                                                "root": "{{ output_dir | default: 'output' }}"
+                                                              }
+                                                            }
+                                                          ]
+                                                        }
+                                                      }
+                                                    }
+                                                  ]
+                                                }
+                                              }
+                                            }
+                                          ]
+                                        }
+                                      }
+                                    }
+                                  ]
+                                }
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

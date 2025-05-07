@@ -5,8 +5,8 @@
 **Search:** ['recipes/example_*']
 **Exclude:** ['.venv', 'node_modules', '.git', '__pycache__', '*.pyc', '*.ruff_cache']
 **Include:** []
-**Date:** 5/5/2025, 6:18:45 AM
-**Files:** 19
+**Date:** 5/7/2025, 9:46:48 AM
+**Files:** 22
 
 === File: recipes/example_brave_search/README.md ===
 # Brave Search Recipe
@@ -674,6 +674,111 @@ Print "Hello, Test!" to the console.
       "config": {
         "files_key": "generated_files",
         "root": "output"
+      }
+    }
+  ]
+}
+
+
+=== File: recipes/example_templates/README.md ===
+# Example Templates
+
+# Extras Demo
+
+This example shows how to use the `extras` feature of the Python Liquid support in `recipe_executor` to create a Markdown file for each item in a JSON array.
+
+## Run the Recipe
+
+```bash
+# From the repo root, run the recipe with the test project
+recipe-tool --execute recipes/example_templates/extras_demo.json \
+   input_file=recipes/example_templates/data/items.json \
+   output_root=output/templates \
+   model=openai/o4-mini
+```
+
+## What’s happening
+
+- **`read_files`** loads your data file and pulls in a JSON array as `items`.
+- **`loop`** iterates each `item` and:
+  - creates a `slug` via `snakecase`
+  - parses & reformats `item.timestamp` with `datetime`
+  - pretty-prints `item.metadata` with `json`
+- **`write_files`** spits out one Markdown file per item, using those context vars in both filename and body.
+
+
+=== File: recipes/example_templates/data/items.json ===
+[
+  {
+    "name": "Sample Item",
+    "timestamp": "2025-05-07T09:00:00Z",
+    "metadata": {
+      "color": "red",
+      "size": "L"
+    }
+  },
+  {
+    "name": "Another Item",
+    "timestamp": "2025-01-01T12:30:45Z",
+    "metadata": {
+      "color": "blue",
+      "size": "M"
+    }
+  }
+]
+
+
+=== File: recipes/example_templates/extras_demo.json ===
+{
+  "steps": [
+    {
+      "type": "read_files",
+      "config": {
+        "path": "{{ input_file }}",
+        "content_key": "items"
+      }
+    },
+    {
+      "type": "loop",
+      "config": {
+        "items": "items",
+        "item_key": "item",
+        "result_key": "item.content",
+        "substeps": [
+          {
+            "type": "set_context",
+            "config": {
+              "key": "slug",
+              "value": "{{ item.name | snakecase }}"
+            }
+          },
+          {
+            "type": "set_context",
+            "config": {
+              "key": "readable_date",
+              "value": "{{ item.timestamp | datetime: format: 'MMM d, y' }}"
+            }
+          },
+          {
+            "type": "set_context",
+            "config": {
+              "key": "file_content",
+              "value": "# {{ item.name }}\n\n- **Slug**: `{{ slug }}`\n- **Date**: {{ readable_date }}\n- **Metadata**:\n```json\n{{ item.metadata | json: indent: 2 }}\n```"
+            }
+          },
+          {
+            "type": "write_files",
+            "config": {
+              "files": [
+                {
+                  "path": "{{ slug }}.md",
+                  "content_key": "file_content"
+                }
+              ],
+              "root": "{{ output_root | default: 'output' }}"
+            }
+          }
+        ]
       }
     }
   ]

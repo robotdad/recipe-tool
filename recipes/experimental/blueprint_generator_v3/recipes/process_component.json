@@ -1,0 +1,98 @@
+{
+  "steps": [
+    {
+      "type": "conditional",
+      "config": {
+        "condition": "file_exists('{{ output_dir }}/status/{{ component_id }}_status.json')",
+        "if_false": {
+          "steps": [
+            {
+              "type": "execute_recipe",
+              "config": {
+                "recipe_path": "recipes/experimental/blueprint_generator_v3/recipes/initialize_component_status.json",
+                "context_overrides": {
+                  "component_id": "{{ component_id }}",
+                  "spec_path": "{{ spec_path }}",
+                  "output_dir": "{{ output_dir }}",
+                  "model": "{{ model | default: 'openai/o4-mini' }}"
+                }
+              }
+            },
+            {
+              "type": "read_files",
+              "config": {
+                "path": "{{ output_dir }}/status/{{ component_id }}_status.json",
+                "content_key": "component_status",
+                "merge_mode": "dict"
+              }
+            }
+          ]
+        },
+        "if_true": {
+          "steps": [
+            {
+              "type": "read_files",
+              "config": {
+                "path": "{{ output_dir }}/status/{{ component_id }}_status.json",
+                "content_key": "component_status",
+                "merge_mode": "dict"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "conditional",
+      "config": {
+        "condition": "{% if component_status.status == 'ready' %}true{% else %}false{% endif %}",
+        "if_true": {
+          "steps": [
+            {
+              "type": "llm_generate",
+              "config": {
+                "prompt": "Generate a result object indicating component is already ready for blueprint generation:\n\nComponent ID: {{ component_id }}\nStatus: {{ component_status.status }}\nCurrent spec: {{ component_status.current_spec_path }}",
+                "model": "{{ model | default: 'openai/o4-mini' }}",
+                "output_format": {
+                  "type": "object",
+                  "properties": {
+                    "component_id": { "type": "string" },
+                    "component_name": { "type": "string" },
+                    "status": { "type": "string", "enum": ["ready"] },
+                    "current_spec_path": { "type": "string" },
+                    "revision_count": { "type": "integer" }
+                  }
+                },
+                "output_key": "component_result"
+              }
+            }
+          ]
+        },
+        "if_false": {
+          "steps": [
+            {
+              "type": "execute_recipe",
+              "config": {
+                "recipe_path": "recipes/experimental/blueprint_generator_v3/recipes/process_component_clarification.json",
+                "context_overrides": {
+                  "component_id": "{{ component_id }}",
+                  "spec_path": "{{ spec_path }}",
+                  "output_dir": "{{ output_dir }}",
+                  "model": "{{ model | default: 'openai/o4-mini' }}"
+                }
+              }
+            },
+            {
+              "type": "read_files",
+              "config": {
+                "path": "{{ output_dir }}/status/{{ component_id }}_status.json",
+                "content_key": "component_result",
+                "merge_mode": "dict"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "steps": [
+    {
+      "type": "llm_generate",
+      "config": {
+        "prompt": "Generate a specification for the main component based on the project spec:\n\nProject spec: {{ project_spec_content }}",
+        "model": "{{ model | default: 'openai/o4-mini' }}",
+        "output_format": "text",
+        "output_key": "main_component_spec"
+      }
+    },
+    {
+      "type": "write_files",
+      "config": {
+        "files": [
+          {
+            "path": "{{ output_dir }}/components/main_component_spec.md",
+            "content_key": "main_component_spec"
+          }
+        ]
+      }
+    },
+    {
+      "type": "conditional",
+      "config": {
+        "condition": "{% if skip_processing %}false{% else %}true{% endif %}",
+        "if_true": {
+          "steps": [
+            {
+              "type": "execute_recipe",
+              "config": {
+                "recipe_path": "recipes/experimental/blueprint_generator_v3/recipes/process_component.json",
+                "context_overrides": {
+                  "component_id": "main_component",
+                  "spec_path": "{{ output_dir }}/components/main_component_spec.md"
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

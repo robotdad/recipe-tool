@@ -1,0 +1,50 @@
+{
+  "steps": [
+    {
+      "type": "execute_recipe",
+      "config": {
+        "recipe_path": "recipes/experimental/blueprint_generator_v4/recipes/component_processor/generate_clarification_questions.json",
+        "context_overrides": {
+          "candidate_spec": "{% assign rc = retry_count | default: 0 | plus: 0 %}{% if rc > 0 %}{{ refined_spec }}{% else %}{{ candidate_spec }}{% endif %}",
+          "force_generate": "{% assign rc = retry_count | default: 0 | plus: 0 %}{% if rc > 0 %}true{% else %}false{% endif %}"
+        }
+      }
+    },
+    {
+      "type": "execute_recipe",
+      "config": {
+        "recipe_path": "recipes/experimental/blueprint_generator_v4/recipes/component_processor/generate_refined_spec.json",
+        "context_overrides": {
+          "force_generate": "{% assign rc = retry_count | default: 0 | plus: 0 %}{% if rc > 0 %}true{% else %}false{% endif %}"
+        }
+      }
+    },
+    {
+      "type": "execute_recipe",
+      "config": {
+        "recipe_path": "recipes/experimental/blueprint_generator_v4/recipes/component_processor/evaluate_refined_spec.json"
+      }
+    },
+    {
+      "type": "conditional",
+      "config": {
+        "condition": "and(not({{ approval_result.approved | default: false }}), {{ retry_count }} < {{ max_retries }})",
+        "if_true": {
+          "steps": [
+            {
+              "type": "execute_recipe",
+              "config": {
+                "recipe_path": "recipes/experimental/blueprint_generator_v4/recipes/component_processor/refine_cycle.json",
+                "context_overrides": {
+                  "candidate_spec": "{{ refined_spec }}",
+                  "force_generate": true,
+                  "retry_count": "{{ retry_count | plus: 1 }}"
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

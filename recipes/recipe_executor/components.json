@@ -115,6 +115,11 @@
     "refs": []
   },
   {
+    "id": "steps.set_context",
+    "deps": ["context", "protocols", "steps.base", "utils.templates"],
+    "refs": []
+  },
+  {
     "id": "steps.write_files",
     "deps": ["context", "models", "protocols", "steps.base", "utils.templates"],
     "refs": []

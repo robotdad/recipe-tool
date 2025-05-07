@@ -20,8 +20,10 @@ class LoopStepConfig(StepConfig):
     Configuration for LoopStep.
 
     Fields:
-        items: Key in the context containing the collection to iterate over. Supports template variable syntax
-               with dot notation for accessing nested data structures (e.g., "data.items", "response.results").
+        items: Either string that resolves to a collection in the context (e.g., "data.items") or a list/dict.
+               If a string, it is rendered using template rendering to resolve nested paths.
+               If a list/dict, it is used directly without rendering.
+               If a dict, iterate over its keys.
         item_key: Key to use when storing the current item in each iteration's context.
         max_concurrency: Maximum number of items to process concurrently.
                          Default = 1 means process items sequentially (no parallelism).
@@ -34,7 +36,7 @@ class LoopStepConfig(StepConfig):
         fail_fast: Whether to stop processing on the first error.
     """
 
-    items: str
+    items: Union[str, List, Dict]
     item_key: str
     max_concurrency: int = 1
     delay: float = 0.0
