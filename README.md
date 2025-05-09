@@ -70,11 +70,12 @@ The core dependencies you need to install are:
 
 - `make` - for scripting installation steps of the various projects within this repo
 - `uv` - for managing installed versions of `python` - for installing python dependencies
+- `GitHub cli` - for `ai-context-files` manipulation tool
 
 Linux:
 
     # make is installed by default on linux
-    sudo apt update && sudo apt install pipx
+    sudo apt update && sudo apt install pipx && sudo apt install gh
     pipx ensurepath
     pipx install uv
 
@@ -82,11 +83,13 @@ macOS:
 
     brew install make
     brew install uv
+    brew install gh
 
 Windows:
 
     winget install ezwinports.make -e
     winget install astral-sh.uv  -e
+    winget install GitHub.cli -e
 
 ### Setup Steps
 
