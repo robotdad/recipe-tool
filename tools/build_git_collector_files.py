@@ -43,11 +43,30 @@ def main() -> None:
     runners: list[list[str]] = []
     if which("git-collector"):
         runners.append(["git-collector"])
+
     if which("pnpm"):
-        runners.append(["pnpm", "exec", "git-collector"])
+        try:
+            # Check if git-collector is available via pnpm by running a simple list command
+            # Redirect output to avoid cluttering the console
+            result = subprocess.run(
+                ["pnpm", "list", "git-collector"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                check=False
+            )
+
+            # If git-collector is in the output, it's installed via pnpm
+            if "git-collector" in result.stdout and "ERR" not in result.stdout:
+                 runners.append(["pnpm", "exec", "git-collector"])
+        except Exception:
+            # If any error occurs during check, move to next option
+            pass
+
     if which("npx"):
         # --yes suppresses the “Need to install?” prompt :contentReference[oaicite:0]{index=0}
         runners.append(["npx", "--yes", "git-collector"])
+
 
     if not runners:
         sys.exit(guidance())
