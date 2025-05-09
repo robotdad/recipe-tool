@@ -71,7 +71,7 @@ def main() -> None:
 
             # If git-collector is in the output, it's installed via pnpm
             if "git-collector" in result.stdout and "ERR" not in result.stdout:
-                 runners.append([pnpm_path "exec", "git-collector"])
+                 runners.append([pnpm_path, "exec", "git-collector"])
         except Exception:
             # If any error occurs during check, move to next option
             pass
