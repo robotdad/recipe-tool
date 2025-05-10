@@ -1,0 +1,349 @@
+/* static/css/style.css */
+:root {
+    --sidebar-width: 250px;
+    --toolbar-height: 60px;
+    --properties-width: 300px;
+    --primary-color: #0066cc;
+    --secondary-color: #f0f0f0;
+    --border-color: #e0e0e0;
+    --text-color: #333;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    color: var(--text-color);
+    line-height: 1.6;
+}
+
+.app-container {
+    display: grid;
+    grid-template-columns: var(--sidebar-width) 1fr var(--properties-width);
+    grid-template-rows: 100vh;
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* Sidebar */
+.sidebar {
+    background-color: var(--secondary-color);
+    border-right: 1px solid var(--border-color);
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+}
+
+.sidebar h2 {
+    margin-bottom: 15px;
+    font-size: 18px;
+}
+
+.search-box {
+    margin-bottom: 15px;
+}
+
+.search-box input {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+}
+
+.sidebar-footer {
+    margin-top: auto;
+    padding-top: 15px;
+}
+
+ul#recipe-list-container {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+ul#recipe-list-container li {
+    padding: 10px;
+    border-bottom: 1px solid var(--border-color);
+    cursor: pointer;
+}
+
+ul#recipe-list-container li:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+ul#recipe-list-container li.selected {
+    background-color: rgba(0, 102, 204, 0.1);
+    font-weight: bold;
+}
+
+/* Main Content */
+.main-content {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+}
+
+.toolbar {
+    height: var(--toolbar-height);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    padding: 0 15px;
+    justify-content: space-between;
+}
+
+.recipe-info {
+    display: flex;
+    align-items: center;
+}
+
+.recipe-info input {
+    font-size: 16px;
+    padding: 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    width: 300px;
+}
+
+.tool-actions {
+    display: flex;
+    gap: 10px;
+}
+
+#flow-editor {
+    flex: 1;
+    background-color: #f9f9f9;
+    background-image:
+        linear-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
+    background-size: 20px 20px;
+    overflow: hidden;
+}
+
+/* Properties Panel */
+.properties-panel {
+    background-color: var(--secondary-color);
+    border-left: 1px solid var(--border-color);
+    padding: 15px;
+    overflow-y: auto;
+}
+
+.properties-panel h3 {
+    margin-bottom: 15px;
+    font-size: 16px;
+}
+
+.property-group {
+    margin-bottom: 15px;
+}
+
+.property-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.property-group input,
+.property-group select,
+.property-group textarea {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+}
+
+.property-group textarea {
+    min-height: 100px;
+    resize: vertical;
+}
+
+.property-actions {
+    margin-top: 20px;
+}
+
+/* Execution Panel */
+.execution-panel {
+    padding: 15px;
+}
+
+.context-vars {
+    margin-bottom: 15px;
+}
+
+.context-vars textarea {
+    width: 100%;
+    min-height: 100px;
+    padding: 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-family: monospace;
+}
+
+.execution-status {
+    margin-bottom: 15px;
+    padding: 10px;
+    border-radius: 4px;
+    background-color: #f9f9f9;
+}
+
+.status-pending {
+    color: #f0ad4e;
+}
+
+.status-running {
+    color: #5bc0de;
+}
+
+.status-completed {
+    color: #5cb85c;
+}
+
+.status-failed {
+    color: #d9534f;
+}
+
+.execution-logs {
+    margin-top: 15px;
+}
+
+.execution-logs pre {
+    background-color: #f5f5f5;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 10px;
+    font-family: monospace;
+    font-size: 12px;
+    white-space: pre-wrap;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+/* Modal */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background-color: white;
+    padding: 20px;
+    border-radius: 4px;
+    width: 80%;
+    max-width: 800px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.modal-content h2 {
+    margin-bottom: 15px;
+}
+
+.close-btn {
+    align-self: flex-end;
+    font-size: 24px;
+    cursor: pointer;
+}
+
+#json-editor {
+    width: 100%;
+    height: 400px;
+    font-family: monospace;
+    padding: 10px;
+    margin-bottom: 15px;
+    border: 1px solid var(--border-color);
+    resize: none;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+/* Utilities */
+.hidden {
+    display: none;
+}
+
+.empty-state {
+    color: #777;
+    font-style: italic;
+    text-align: center;
+    padding: 20px;
+}
+
+button {
+    padding: 8px 16px;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+button:hover {
+    background-color: #0052a3;
+}
+
+button:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+}
+
+/* Node palette styles as floating panel */
+.node-palette {
+    position: absolute;
+    top: 70px;
+    left: 300px;
+    width: 180px;
+    background-color: white;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    z-index: 100;
+}
+
+.palette-header {
+    padding: 10px;
+    background-color: #f0f0f0;
+    border-bottom: 1px solid #ddd;
+    font-weight: bold;
+    cursor: move;
+    /* Indicate it can be moved */
+}
+
+.palette-items {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.palette-item {
+    padding: 8px 10px;
+    cursor: grab;
+    border-radius: 4px;
+    margin: 4px;
+    background-color: #f8f8f8;
+    border: 1px solid #eee;
+}
+
+.palette-item:hover {
+    background-color: #f0f0f0;
+}

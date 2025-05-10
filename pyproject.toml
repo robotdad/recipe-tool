@@ -20,12 +20,14 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "build>=1.2.2.post1",
     "debugpy>=1.8.14",
     "pyright>=1.1.389",
     "pytest>=8.3.5",
     "pytest-cov>=6.1.1",
     "pytest-mock>=3.14.0",
     "ruff>=0.11.2",
+    "twine>=6.1.0",
 ]
 
 [project.scripts]
@@ -37,8 +39,9 @@ python-code-tools = "python_code_tools.cli:main"
 package = true
 
 [tool.uv.sources]
- python-code-tools = { path = "mcp-servers/python-code-tools", editable = true }
- recipe-tool-mcp-server = { path = "mcp-servers/recipe-tool", editable = true }
+python-code-tools = { path = "mcp-servers/python-code-tools", editable = true }
+recipe-tool-mcp-server = { path = "mcp-servers/recipe-tool", editable = true }
+document-generator-ui = { path = "document_generator_ui", editable = true }
 
 [tool.hatch.build.targets.wheel]
 packages = ["recipe_executor"]

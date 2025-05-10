@@ -1,0 +1,137 @@
+<!-- templates/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recipe Flow Editor</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Left sidebar for recipe list -->
+        <div class="sidebar recipe-list">
+            <h2>Recipes</h2>
+            <div class="search-box">
+                <input type="text" id="recipe-search" placeholder="Search recipes...">
+            </div>
+            <ul id="recipe-list-container"></ul>
+            <div class="sidebar-footer">
+                <button id="new-recipe-btn">New Recipe</button>
+            </div>
+        </div>
+
+        <!-- Main content area -->
+        <div class="main-content">
+            <!-- Toolbar for flow editor -->
+            <div class="toolbar">
+                <div class="recipe-info">
+                    <input type="text" id="recipe-name" placeholder="Recipe Name">
+                </div>
+                <div class="tool-actions">
+                    <button id="save-btn">Save</button>
+                    <button id="execute-btn">Execute</button>
+                    <button id="view-json-btn">View JSON</button>
+                </div>
+            </div>
+
+            <div class="node-palette">
+                <div class="palette-header">Add Step</div>
+                <div class="palette-items">
+                    <div class="palette-item" data-type="read_files">📁 Read Files</div>
+                    <div class="palette-item" data-type="write_files">💾 Write Files</div>
+                    <div class="palette-item" data-type="set_context">🔄 Set Context</div>
+                    <div class="palette-item" data-type="llm_generate">🤖 LLM Generate</div>
+                    <div class="palette-item" data-type="execute_recipe">📋 Execute Recipe</div>
+                    <div class="palette-item" data-type="conditional">🔀 Conditional</div>
+                    <div class="palette-item" data-type="loop">🔄 Loop</div>
+                    <div class="palette-item" data-type="parallel">⚡ Parallel</div>
+                    <div class="palette-item" data-type="mcp">🔌 MCP</div>
+                </div>
+            </div>
+
+            <!-- Flow editor canvas -->
+            <div id="flow-editor">
+                <div class="editor-instructions">
+                    <p>Click on an item in the Add Step menu to add a node</p>
+                    <p>Drag from the Add Step menu to position a new node</p>
+                    <p>Right-click on a node to start creating a connection</p>
+                    <p>Click on a node to edit its properties</p>
+                </div>
+
+                <style>
+                    .editor-instructions {
+                        position: absolute;
+                        top: 10px;
+                        left: 10px;
+                        background: rgba(255, 255, 255, 0.9);
+                        padding: 10px;
+                        border-radius: 4px;
+                        border: 1px solid #ccc;
+                        z-index: 10;
+                        font-size: 12px;
+                        max-width: 280px;
+                    }
+
+                    .editor-instructions p {
+                        margin: 5px 0;
+                    }
+                </style>
+            </div>
+
+            <!-- Properties panel -->
+            <div class="properties-panel">
+                <h3>Properties</h3>
+                <div id="node-properties">
+                    <p class="empty-state">Select a node to edit its properties</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right sidebar for execution logs -->
+        <div class="sidebar execution-panel">
+            <h2>Execution</h2>
+            <div class="context-vars">
+                <h3>Context Variables</h3>
+                <textarea id="context-vars"
+                    placeholder="One per line, e.g.:&#10;model=openai/gpt-4o&#10;output_dir=output"></textarea>
+            </div>
+            <div id="execution-status" class="hidden">
+                Status: <span id="status-text"></span>
+            </div>
+            <div id="execution-logs" class="hidden">
+                <h3>Logs</h3>
+                <pre id="logs-content"></pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for JSON view/edit -->
+    <div id="json-modal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <h2>Recipe JSON</h2>
+            <textarea id="json-editor" spellcheck="false"></textarea>
+            <div class="modal-footer">
+                <button id="apply-json-btn">Apply Changes</button>
+                <button id="cancel-json-btn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+
+
+    <!-- Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.21/lodash.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.26.0/cytoscape.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dagre/0.8.5/dagre.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/cytoscape-dagre@2.5.0/cytoscape-dagre.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/cytoscape-edgehandles@4.0.1/cytoscape-edgehandles.js"></script>
+
+    <!-- Application scripts -->
+    <script type="module" src="/static/js/app.js"></script>
+</body>
+
+</html>
