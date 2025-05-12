@@ -82,28 +82,58 @@ export const ExecutionService = {
     // Close existing stream if any
     this.closeStream();
 
+    // Keep track of final status to handle delayed logs
+    let isFinalStatus = false;
+    let logReceiveTimer = null;
+
     // Create new stream
     this.currentStream = ApiService.createExecutionStream(executionId, {
       onStatus: (event) => {
+        const status = event.data;
+
         if (callbacks.onStatus) {
-          callbacks.onStatus(event.data);
+          callbacks.onStatus(status);
         }
 
-        // Auto-close stream on completion
-        if (["completed", "failed"].includes(event.data)) {
-          this.closeStream();
+        // Check if this is a final status
+        if (["completed", "failed"].includes(status)) {
+          isFinalStatus = true;
+
+          // Set a timeout to close the stream, but allow for delayed logs
+          if (logReceiveTimer) {
+            clearTimeout(logReceiveTimer);
+          }
+
+          logReceiveTimer = setTimeout(() => {
+            console.log(
+              "Closing execution stream after final status and timeout"
+            );
+            this.closeStream();
+          }, 2000); // Wait 2 seconds for any final logs
         }
       },
       onLog: (event) => {
         if (callbacks.onLog) {
           const logs = JSON.parse(event.data);
           callbacks.onLog(logs);
+
+          // If we've received logs after final status, reset the close timer
+          if (isFinalStatus && logReceiveTimer) {
+            clearTimeout(logReceiveTimer);
+            logReceiveTimer = setTimeout(() => {
+              console.log(
+                "Closing execution stream after receiving delayed logs"
+              );
+              this.closeStream();
+            }, 1000); // Wait 1 second for any more logs
+          }
         }
       },
       onError: () => {
         if (callbacks.onError) {
           callbacks.onError("Connection to execution stream lost");
         }
+        this.closeStream();
       },
     });
   },

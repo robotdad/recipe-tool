@@ -28,10 +28,15 @@ async def stream_execution(execution_id: str):
 
     async def event_generator():
         last_log_count = 0
+        final_check_count = 0
+        max_final_checks = 5  # Number of additional checks after completion
 
-        while execution["status"] in ["pending", "running"]:
-            # Send new logs
+        while True:
+            # Get current status and logs
+            current_status = execution["status"]
             current_logs = execution["logs"]
+
+            # Send new logs if any
             if len(current_logs) > last_log_count:
                 new_logs = current_logs[last_log_count:]
                 last_log_count = len(current_logs)
@@ -39,28 +44,35 @@ async def stream_execution(execution_id: str):
                     "event": "log",
                     "data": json.dumps(new_logs)
                 }
+                logger.debug(f"Sent {len(new_logs)} new log entries")
 
             # Send status update
             yield {
                 "event": "status",
-                "data": execution["status"]
+                "data": current_status
             }
 
-            await asyncio.sleep(0.5)
+            # If execution is done, make a few more checks for logs before closing
+            if current_status in ["completed", "failed"]:
+                final_check_count += 1
+                if final_check_count >= max_final_checks:
+                    logger.debug(f"Execution {execution_id} complete, closing stream after {final_check_count} final checks")
+                    break
 
-        # Final status
-        yield {
-            "event": "status",
-            "data": execution["status"]
-        }
+                # Use a shorter delay for final checks
+                await asyncio.sleep(0.2)
+            else:
+                # Normal polling during execution
+                await asyncio.sleep(0.5)
 
-        # Final logs if any remain
+        # One last check for any final logs
         current_logs = execution["logs"]
         if len(current_logs) > last_log_count:
-            new_logs = current_logs[last_log_count:]
+            final_logs = current_logs[last_log_count:]
             yield {
                 "event": "log",
-                "data": json.dumps(new_logs)
+                "data": json.dumps(final_logs)
             }
+            logger.debug(f"Sent {len(final_logs)} final log entries before closing")
 
     return EventSourceResponse(event_generator())
