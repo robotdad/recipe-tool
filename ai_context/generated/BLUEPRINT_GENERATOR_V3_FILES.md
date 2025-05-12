@@ -1,14 +1,14 @@
-# recipes/blueprint_generator_v3
+# recipes/experimental/blueprint_generator_v3
 
 [collect-files]
 
-**Search:** ['recipes/blueprint_generator_v3']
+**Search:** ['recipes/experimental/blueprint_generator_v3']
 **Exclude:** ['.venv', 'node_modules', '.git', '__pycache__', '*.pyc', '*.ruff_cache']
 **Include:** []
-**Date:** 5/1/2025, 9:25:18 AM
+**Date:** 5/6/2025, 10:52:16 AM
 **Files:** 23
 
-=== File: recipes/blueprint_generator_v3/README.md ===
+=== File: recipes/experimental/blueprint_generator_v3/README.md ===
 # Instructions for Testing the Blueprint Generator v3
 
 This version of the Blueprint Generator is patterned after a prior version that was used to create an MVP for a platform service, but was previously stitched together with a bit of glue code. The goal of this version is to create a pure recipe version that can be used to generate blueprints for various projects.
@@ -42,7 +42,7 @@ The following instructions will guide you through setting up a test project for 
 
 ```bash
 # From the repo root, run the blueprint generator with the test project
-recipe-tool --execute recipes/blueprint_generator_v3/build.json \
+recipe-tool --execute recipes/experimental/blueprint_generator_v3/build.json \
   project_spec=blueprint_test/input/task_manager_spec.md \
   output_dir=blueprint_test/output/blueprint_generator_v3 \
   model=openai/o4-mini
@@ -70,7 +70,7 @@ When a component needs human review:
 
 3. Run the process_human_review recipe:
    ```bash
-   recipe-tool --execute recipes/blueprint_generator_v3/build.json \
+   recipe-tool --execute recipes/experimental/blueprint_generator_v3/build.json \
      project_spec=blueprint_test/input/task_manager_spec.md \
      output_dir=blueprint_test/output \
      process_review=component_id \
@@ -93,7 +93,7 @@ Throughout the process, you can monitor:
 This test project is designed to exercise all parts of the blueprint generator while remaining small enough to process efficiently.
 
 
-=== File: recipes/blueprint_generator_v3/build.json ===
+=== File: recipes/experimental/blueprint_generator_v3/build.json ===
 {
   "steps": [
     {
@@ -133,7 +133,7 @@ This test project is designed to exercise all parts of the blueprint generator w
             {
               "type": "execute_recipe",
               "config": {
-                "recipe_path": "recipes/blueprint_generator_v3/recipes/process_human_review.json",
+                "recipe_path": "recipes/experimental/blueprint_generator_v3/recipes/process_human_review.json",
                 "context_overrides": {
                   "component_id": "{{ process_review }}",
                   "updated_spec_path": "{{ review_path }}",
@@ -161,7 +161,7 @@ This test project is designed to exercise all parts of the blueprint generator w
                     {
                       "type": "execute_recipe",
                       "config": {
-                        "recipe_path": "recipes/blueprint_generator_v3/recipes/generate_blueprints.json",
+                        "recipe_path": "recipes/experimental/blueprint_generator_v3/recipes/generate_blueprints.json",
                         "context_overrides": {
                           "output_dir": "{{ output_dir }}",
                           "model": "{{ model | default: 'openai/o4-mini' }}"
@@ -188,7 +188,7 @@ This test project is designed to exercise all parts of the blueprint generator w
             {
               "type": "execute_recipe",
               "config": {
-                "recipe_path": "recipes/blueprint_generator_v3/recipes/analyze_project_flow.json",
+                "recipe_path": "recipes/experimental/blueprint_generator_v3/recipes/analyze_project_flow.json",
                 "context_overrides": {
                   "output_dir": "{{ output_dir }}",
                   "model": "{{ model | default: 'openai/o4-mini' }}"
@@ -204,7 +204,7 @@ This test project is designed to exercise all parts of the blueprint generator w
                     {
                       "type": "execute_recipe",
                       "config": {
-                        "recipe_path": "recipes/blueprint_generator_v3/recipes/split_project_recursively.json",
+                        "recipe_path": "recipes/experimental/blueprint_generator_v3/recipes/split_project_recursively.json",
                         "context_overrides": {
                           "output_dir": "{{ output_dir }}",
                           "model": "{{ model | default: 'openai/o4-mini' }}",
@@ -236,7 +236,7 @@ This test project is designed to exercise all parts of the blueprint generator w
                                     {
                                       "type": "execute_recipe",
                                       "config": {
-                                        "recipe_path": "recipes/blueprint_generator_v3/recipes/process_components.json",
+                                        "recipe_path": "recipes/experimental/blueprint_generator_v3/recipes/process_components.json",
                                         "context_overrides": {
                                           "output_dir": "{{ output_dir }}",
                                           "model": "{{ model | default: 'openai/o4-mini' }}"
@@ -258,7 +258,7 @@ This test project is designed to exercise all parts of the blueprint generator w
                                     {
                                       "type": "execute_recipe",
                                       "config": {
-                                        "recipe_path": "recipes/blueprint_generator_v3/recipes/process_components.json",
+                                        "recipe_path": "recipes/experimental/blueprint_generator_v3/recipes/process_components.json",
                                         "context_overrides": {
                                           "output_dir": "{{ output_dir }}",
                                           "model": "{{ model | default: 'openai/o4-mini' }}"
@@ -280,7 +280,7 @@ This test project is designed to exercise all parts of the blueprint generator w
                     {
                       "type": "execute_recipe",
                       "config": {
-                        "recipe_path": "recipes/blueprint_generator_v3/recipes/process_single_component.json",
+                        "recipe_path": "recipes/experimental/blueprint_generator_v3/recipes/process_single_component.json",
                         "context_overrides": {
                           "output_dir": "{{ output_dir }}",
                           "model": "{{ model | default: 'openai/o4-mini' }}"
@@ -315,7 +315,7 @@ This test project is designed to exercise all parts of the blueprint generator w
 }
 
 
-=== File: recipes/blueprint_generator_v3/docs/DIAGRAM.md ===
+=== File: recipes/experimental/blueprint_generator_v3/docs/DIAGRAM.md ===
 ```mermaid
 flowchart TD
     Start([Start]) --> build[build.json]
@@ -382,7 +382,7 @@ flowchart TD
 ```
 
 
-=== File: recipes/blueprint_generator_v3/docs/OVERVIEW.md ===
+=== File: recipes/experimental/blueprint_generator_v3/docs/OVERVIEW.md ===
 # Blueprint Generation Recipe Overview
 
 The Blueprint Generation Recipe transforms abstract project specifications into concrete implementation plans through a structured, intelligent workflow. This recipe bridges the gap between high-level concepts and actionable development blueprints by methodically analyzing requirements, decomposing complex projects into manageable components, and refining specifications through iterative evaluation. By combining automated processing with targeted human intervention when necessary, the recipe ensures that even complex technical initiatives can be systematically broken down into well-defined, implementable components with clear dependencies and interfaces.
@@ -458,7 +458,7 @@ The Blueprint Generation Recipe transforms abstract project specifications into 
 This workflow ensures systematic decomposition of complex projects into well-specified components with clear implementation blueprints.
 
 
-=== File: recipes/blueprint_generator_v3/recipes/analyze_component.json ===
+=== File: recipes/experimental/blueprint_generator_v3/recipes/analyze_component.json ===
 {
   "steps": [
     {
@@ -504,7 +504,7 @@ This workflow ensures systematic decomposition of complex projects into well-spe
 }
 
 
-=== File: recipes/blueprint_generator_v3/recipes/analyze_project.json ===
+=== File: recipes/experimental/blueprint_generator_v3/recipes/analyze_project.json ===
 {
   "steps": [
     {
@@ -543,7 +543,7 @@ This workflow ensures systematic decomposition of complex projects into well-spe
 }
 
 
-=== File: recipes/blueprint_generator_v3/recipes/analyze_project_flow.json ===
+=== File: recipes/experimental/blueprint_generator_v3/recipes/analyze_project_flow.json ===
 {
   "steps": [
     {
@@ -573,7 +573,7 @@ This workflow ensures systematic decomposition of complex projects into well-spe
                     {
                       "type": "execute_recipe",
                       "config": {
-                        "recipe_path": "recipes/blueprint_generator_v3/recipes/analyze_component.json",
+                        "recipe_path": "recipes/experimental/blueprint_generator_v3/recipes/analyze_component.json",
                         "context_overrides": {
                           "component_spec": "{{ component_spec }}",
                           "output_root": "{{ output_dir }}/analysis",
@@ -588,7 +588,7 @@ This workflow ensures systematic decomposition of complex projects into well-spe
                     {
                       "type": "execute_recipe",
                       "config": {
-                        "recipe_path": "recipes/blueprint_generator_v3/recipes/analyze_project.json",
+                        "recipe_path": "recipes/experimental/blueprint_generator_v3/recipes/analyze_project.json",
                         "context_overrides": {
                           "output_root": "{{ output_dir }}/analysis",
                           "model": "{{ model | default: 'openai/o4-mini' }}"
@@ -615,7 +615,7 @@ This workflow ensures systematic decomposition of complex projects into well-spe
 }
 
 
-=== File: recipes/blueprint_generator_v3/recipes/evaluate_candidate_spec.json ===
+=== File: recipes/experimental/blueprint_generator_v3/recipes/evaluate_candidate_spec.json ===
 {
   "steps": [
     {
@@ -655,7 +655,7 @@ This workflow ensures systematic decomposition of complex projects into well-spe
 }
 
 
-=== File: recipes/blueprint_generator_v3/recipes/find_component_spec.json ===
+=== File: recipes/experimental/blueprint_generator_v3/recipes/find_component_spec.json ===
 {
   "steps": [
     {
@@ -754,7 +754,7 @@ This workflow ensures systematic decomposition of complex projects into well-spe
 }
 
 
-=== File: recipes/blueprint_generator_v3/recipes/generate_blueprints.json ===
+=== File: recipes/experimental/blueprint_generator_v3/recipes/generate_blueprints.json ===
 {
   "steps": [
     {
@@ -862,7 +862,7 @@ This workflow ensures systematic decomposition of complex projects into well-spe
           {
             "type": "execute_recipe",
             "config": {
-              "recipe_path": "recipes/blueprint_generator_v3/recipes/find_component_spec.json",
+              "recipe_path": "recipes/experimental/blueprint_generator_v3/recipes/find_component_spec.json",
               "context_overrides": {
                 "component_id": "{{ current_component_id }}",
                 "component_info": "{{ component_info | json }}",
@@ -928,7 +928,7 @@ This workflow ensures systematic decomposition of complex projects into well-spe
 }
 
 
-=== File: recipes/blueprint_generator_v3/recipes/generate_clarification_answers.json ===
+=== File: recipes/experimental/blueprint_generator_v3/recipes/generate_clarification_answers.json ===
 {
   "steps": [
     {
@@ -974,7 +974,7 @@ This workflow ensures systematic decomposition of complex projects into well-spe
 }
 
 
-=== File: recipes/blueprint_generator_v3/recipes/generate_clarification_questions.json ===
+=== File: recipes/experimental/blueprint_generator_v3/recipes/generate_clarification_questions.json ===
 {
   "steps": [
     {
@@ -1013,7 +1013,7 @@ This workflow ensures systematic decomposition of complex projects into well-spe
 }
 
 
-=== File: recipes/blueprint_generator_v3/recipes/initialize_component_status.json ===
+=== File: recipes/experimental/blueprint_generator_v3/recipes/initialize_component_status.json ===
 {
   "steps": [
     {
@@ -1066,7 +1066,7 @@ This workflow ensures systematic decomposition of complex projects into well-spe
 }
 
 
-=== File: recipes/blueprint_generator_v3/recipes/prepare_human_review.json ===
+=== File: recipes/experimental/blueprint_generator_v3/recipes/prepare_human_review.json ===
 {
   "steps": [
     {
@@ -1144,7 +1144,7 @@ This workflow ensures systematic decomposition of complex projects into well-spe
 }
 
 
-=== File: recipes/blueprint_generator_v3/recipes/process_component.json ===
+=== File: recipes/experimental/blueprint_generator_v3/recipes/process_component.json ===
 {
   "steps": [
     {
@@ -1156,7 +1156,7 @@ This workflow ensures systematic decomposition of complex projects into well-spe
             {
               "type": "execute_recipe",
               "config": {
-                "recipe_path": "recipes/blueprint_generator_v3/recipes/initialize_component_status.json",
+                "recipe_path": "recipes/experimental/blueprint_generator_v3/recipes/initialize_component_status.json",
                 "context_overrides": {
                   "component_id": "{{ component_id }}",
                   "spec_path": "{{ spec_path }}",
@@ -1220,7 +1220,7 @@ This workflow ensures systematic decomposition of complex projects into well-spe
             {
               "type": "execute_recipe",
               "config": {
-                "recipe_path": "recipes/blueprint_generator_v3/recipes/process_component_clarification.json",
+                "recipe_path": "recipes/experimental/blueprint_generator_v3/recipes/process_component_clarification.json",
                 "context_overrides": {
                   "component_id": "{{ component_id }}",
                   "spec_path": "{{ spec_path }}",
@@ -1245,13 +1245,13 @@ This workflow ensures systematic decomposition of complex projects into well-spe
 }
 
 
-=== File: recipes/blueprint_generator_v3/recipes/process_component_clarification.json ===
+=== File: recipes/experimental/blueprint_generator_v3/recipes/process_component_clarification.json ===
 {
   "steps": [
     {
       "type": "execute_recipe",
       "config": {
-        "recipe_path": "recipes/blueprint_generator_v3/recipes/generate_clarification_questions.json",
+        "recipe_path": "recipes/experimental/blueprint_generator_v3/recipes/generate_clarification_questions.json",
         "context_overrides": {
           "candidate_spec_path": "{{ spec_path }}",
           "component_id": "{{ component_id }}",
@@ -1310,7 +1310,7 @@ This workflow ensures systematic decomposition of complex projects into well-spe
     {
       "type": "execute_recipe",
       "config": {
-        "recipe_path": "recipes/blueprint_generator_v3/recipes/generate_clarification_answers.json",
+        "recipe_path": "recipes/experimental/blueprint_generator_v3/recipes/generate_clarification_answers.json",
         "context_overrides": {
           "candidate_spec_path": "{{ spec_path }}",
           "clarification_questions_path": "{{ output_dir }}/clarification/{{ component_id }}_component_clarification_questions.md",
@@ -1370,7 +1370,7 @@ This workflow ensures systematic decomposition of complex projects into well-spe
     {
       "type": "execute_recipe",
       "config": {
-        "recipe_path": "recipes/blueprint_generator_v3/recipes/process_component_evaluation.json",
+        "recipe_path": "recipes/experimental/blueprint_generator_v3/recipes/process_component_evaluation.json",
         "context_overrides": {
           "component_id": "{{ component_id }}",
           "spec_path": "{{ spec_path }}",
@@ -1393,13 +1393,13 @@ This workflow ensures systematic decomposition of complex projects into well-spe
 }
 
 
-=== File: recipes/blueprint_generator_v3/recipes/process_component_evaluation.json ===
+=== File: recipes/experimental/blueprint_generator_v3/recipes/process_component_evaluation.json ===
 {
   "steps": [
     {
       "type": "execute_recipe",
       "config": {
-        "recipe_path": "recipes/blueprint_generator_v3/recipes/evaluate_candidate_spec.json",
+        "recipe_path": "recipes/experimental/blueprint_generator_v3/recipes/evaluate_candidate_spec.json",
         "context_overrides": {
           "candidate_spec_path": "{{ revised_spec_path }}",
           "component_id": "{{ component_id }}",
@@ -1423,7 +1423,7 @@ This workflow ensures systematic decomposition of complex projects into well-spe
                     {
                       "type": "execute_recipe",
                       "config": {
-                        "recipe_path": "recipes/blueprint_generator_v3/recipes/process_component_revision.json",
+                        "recipe_path": "recipes/experimental/blueprint_generator_v3/recipes/process_component_revision.json",
                         "context_overrides": {
                           "component_id": "{{ component_id }}",
                           "spec_path": "{{ spec_path }}",
@@ -1441,7 +1441,7 @@ This workflow ensures systematic decomposition of complex projects into well-spe
                     {
                       "type": "execute_recipe",
                       "config": {
-                        "recipe_path": "recipes/blueprint_generator_v3/recipes/prepare_human_review.json",
+                        "recipe_path": "recipes/experimental/blueprint_generator_v3/recipes/prepare_human_review.json",
                         "context_overrides": {
                           "component_id": "{{ component_id }}",
                           "original_spec_path": "{{ spec_path }}",
@@ -1560,13 +1560,13 @@ This workflow ensures systematic decomposition of complex projects into well-spe
 }
 
 
-=== File: recipes/blueprint_generator_v3/recipes/process_component_revision.json ===
+=== File: recipes/experimental/blueprint_generator_v3/recipes/process_component_revision.json ===
 {
   "steps": [
     {
       "type": "execute_recipe",
       "config": {
-        "recipe_path": "recipes/blueprint_generator_v3/recipes/generate_clarification_questions.json",
+        "recipe_path": "recipes/experimental/blueprint_generator_v3/recipes/generate_clarification_questions.json",
         "context_overrides": {
           "candidate_spec_path": "{{ revised_spec_path }}",
           "component_id": "{{ component_id }}",
@@ -1578,7 +1578,7 @@ This workflow ensures systematic decomposition of complex projects into well-spe
     {
       "type": "execute_recipe",
       "config": {
-        "recipe_path": "recipes/blueprint_generator_v3/recipes/generate_clarification_answers.json",
+        "recipe_path": "recipes/experimental/blueprint_generator_v3/recipes/generate_clarification_answers.json",
         "context_overrides": {
           "candidate_spec_path": "{{ revised_spec_path }}",
           "clarification_questions_path": "{{ output_dir }}/clarification/revision_{{ answers_status.revision_count | plus: 1 }}/{{ component_id }}_component_clarification_questions.md",
@@ -1638,7 +1638,7 @@ This workflow ensures systematic decomposition of complex projects into well-spe
     {
       "type": "execute_recipe",
       "config": {
-        "recipe_path": "recipes/blueprint_generator_v3/recipes/evaluate_candidate_spec.json",
+        "recipe_path": "recipes/experimental/blueprint_generator_v3/recipes/evaluate_candidate_spec.json",
         "context_overrides": {
           "candidate_spec_path": "{{ revision_status.current_spec_path }}",
           "component_id": "{{ component_id }}",
@@ -1656,7 +1656,7 @@ This workflow ensures systematic decomposition of complex projects into well-spe
             {
               "type": "execute_recipe",
               "config": {
-                "recipe_path": "recipes/blueprint_generator_v3/recipes/prepare_human_review.json",
+                "recipe_path": "recipes/experimental/blueprint_generator_v3/recipes/prepare_human_review.json",
                 "context_overrides": {
                   "component_id": "{{ component_id }}",
                   "original_spec_path": "{{ spec_path }}",
@@ -1771,7 +1771,7 @@ This workflow ensures systematic decomposition of complex projects into well-spe
 }
 
 
-=== File: recipes/blueprint_generator_v3/recipes/process_components.json ===
+=== File: recipes/experimental/blueprint_generator_v3/recipes/process_components.json ===
 {
   "steps": [
     {
@@ -1794,7 +1794,7 @@ This workflow ensures systematic decomposition of complex projects into well-spe
           {
             "type": "execute_recipe",
             "config": {
-              "recipe_path": "recipes/blueprint_generator_v3/recipes/process_component.json",
+              "recipe_path": "recipes/experimental/blueprint_generator_v3/recipes/process_component.json",
               "context_overrides": {
                 "component_id": "{{ component.component_id }}",
                 "spec_path": "{{ output_dir }}/components/{{ component.spec_file }}",
@@ -1871,7 +1871,7 @@ This workflow ensures systematic decomposition of complex projects into well-spe
                     {
                       "type": "execute_recipe",
                       "config": {
-                        "recipe_path": "recipes/blueprint_generator_v3/recipes/generate_blueprints.json",
+                        "recipe_path": "recipes/experimental/blueprint_generator_v3/recipes/generate_blueprints.json",
                         "context_overrides": {
                           "output_dir": "{{ output_dir }}",
                           "model": "{{ model | default: 'openai/o4-mini' }}"
@@ -1910,7 +1910,7 @@ This workflow ensures systematic decomposition of complex projects into well-spe
 }
 
 
-=== File: recipes/blueprint_generator_v3/recipes/process_human_review.json ===
+=== File: recipes/experimental/blueprint_generator_v3/recipes/process_human_review.json ===
 {
   "steps": [
     {
@@ -1945,7 +1945,7 @@ This workflow ensures systematic decomposition of complex projects into well-spe
             {
               "type": "execute_recipe",
               "config": {
-                "recipe_path": "recipes/blueprint_generator_v3/recipes/initialize_component_status.json",
+                "recipe_path": "recipes/experimental/blueprint_generator_v3/recipes/initialize_component_status.json",
                 "context_overrides": {
                   "component_id": "{{ component_id }}",
                   "spec_path": "{{ original_spec_path }}",
@@ -1980,7 +1980,7 @@ This workflow ensures systematic decomposition of complex projects into well-spe
     {
       "type": "execute_recipe",
       "config": {
-        "recipe_path": "recipes/blueprint_generator_v3/recipes/evaluate_candidate_spec.json",
+        "recipe_path": "recipes/experimental/blueprint_generator_v3/recipes/evaluate_candidate_spec.json",
         "context_overrides": {
           "candidate_spec_path": "{{ output_dir }}/clarification/{{ component_id }}_candidate_spec_revised.md",
           "component_id": "{{ component_id }}",
@@ -2148,7 +2148,7 @@ This workflow ensures systematic decomposition of complex projects into well-spe
 }
 
 
-=== File: recipes/blueprint_generator_v3/recipes/process_single_component.json ===
+=== File: recipes/experimental/blueprint_generator_v3/recipes/process_single_component.json ===
 {
   "steps": [
     {
@@ -2180,7 +2180,7 @@ This workflow ensures systematic decomposition of complex projects into well-spe
             {
               "type": "execute_recipe",
               "config": {
-                "recipe_path": "recipes/blueprint_generator_v3/recipes/process_component.json",
+                "recipe_path": "recipes/experimental/blueprint_generator_v3/recipes/process_component.json",
                 "context_overrides": {
                   "component_id": "main_component",
                   "spec_path": "{{ output_dir }}/components/main_component_spec.md"
@@ -2195,7 +2195,7 @@ This workflow ensures systematic decomposition of complex projects into well-spe
 }
 
 
-=== File: recipes/blueprint_generator_v3/recipes/split_project.json ===
+=== File: recipes/experimental/blueprint_generator_v3/recipes/split_project.json ===
 {
   "steps": [
     {
@@ -2242,7 +2242,7 @@ This workflow ensures systematic decomposition of complex projects into well-spe
 }
 
 
-=== File: recipes/blueprint_generator_v3/recipes/split_project_recursively.json ===
+=== File: recipes/experimental/blueprint_generator_v3/recipes/split_project_recursively.json ===
 {
   "steps": [
     {
@@ -2295,7 +2295,7 @@ This workflow ensures systematic decomposition of complex projects into well-spe
                             {
                               "type": "execute_recipe",
                               "config": {
-                                "recipe_path": "recipes/blueprint_generator_v3/recipes/split_project.json",
+                                "recipe_path": "recipes/experimental/blueprint_generator_v3/recipes/split_project.json",
                                 "context_overrides": {
                                   "analysis_result_json": "{{ output_dir }}/analysis/analysis_result.json",
                                   "output_root": "{{ output_dir }}/components",
@@ -2322,7 +2322,7 @@ This workflow ensures systematic decomposition of complex projects into well-spe
                                   {
                                     "type": "execute_recipe",
                                     "config": {
-                                      "recipe_path": "recipes/blueprint_generator_v3/recipes/analyze_project_flow.json",
+                                      "recipe_path": "recipes/experimental/blueprint_generator_v3/recipes/analyze_project_flow.json",
                                       "context_overrides": {
                                         "component_spec": "{{ output_dir }}/components/{{ component.spec_file }}",
                                         "output_dir": "{{ output_dir }}/components/{{ component.component_id }}",
@@ -2356,7 +2356,7 @@ This workflow ensures systematic decomposition of complex projects into well-spe
                                           {
                                             "type": "execute_recipe",
                                             "config": {
-                                              "recipe_path": "recipes/blueprint_generator_v3/recipes/split_project.json",
+                                              "recipe_path": "recipes/experimental/blueprint_generator_v3/recipes/split_project.json",
                                               "context_overrides": {
                                                 "project_spec_content": "{{ project_spec_content }}",
                                                 "component_spec_content": "{{ component_spec_content | default: '' }}",
@@ -2390,7 +2390,7 @@ This workflow ensures systematic decomposition of complex projects into well-spe
                             {
                               "type": "execute_recipe",
                               "config": {
-                                "recipe_path": "recipes/blueprint_generator_v3/recipes/split_project.json",
+                                "recipe_path": "recipes/experimental/blueprint_generator_v3/recipes/split_project.json",
                                 "context_overrides": {
                                   "analysis_result_json": "{{ output_dir }}/analysis/analysis_result.json",
                                   "output_root": "{{ output_dir }}/components",

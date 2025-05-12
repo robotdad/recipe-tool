@@ -1,0 +1,69 @@
+{
+  "steps": [
+    {
+      "type": "conditional",
+      "config": {
+        "condition": "file_exists('{{ output_dir }}/analysis/analysis_result.json')",
+        "if_true": {
+          "steps": [
+            {
+              "type": "read_files",
+              "config": {
+                "path": "{{ output_dir }}/analysis/analysis_result.json",
+                "content_key": "analysis_result",
+                "merge_mode": "dict"
+              }
+            }
+          ]
+        },
+        "if_false": {
+          "steps": [
+            {
+              "type": "conditional",
+              "config": {
+                "condition": "{% if component_spec %}true{% else %}false{% endif %}",
+                "if_true": {
+                  "steps": [
+                    {
+                      "type": "execute_recipe",
+                      "config": {
+                        "recipe_path": "recipes/experimental/blueprint_generator_v3/recipes/analyze_component.json",
+                        "context_overrides": {
+                          "component_spec": "{{ component_spec }}",
+                          "output_root": "{{ output_dir }}/analysis",
+                          "model": "{{ model | default: 'openai/o4-mini' }}"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "if_false": {
+                  "steps": [
+                    {
+                      "type": "execute_recipe",
+                      "config": {
+                        "recipe_path": "recipes/experimental/blueprint_generator_v3/recipes/analyze_project.json",
+                        "context_overrides": {
+                          "output_root": "{{ output_dir }}/analysis",
+                          "model": "{{ model | default: 'openai/o4-mini' }}"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "type": "read_files",
+              "config": {
+                "path": "{{ output_dir }}/analysis/analysis_result.json",
+                "content_key": "analysis_result",
+                "merge_mode": "dict"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

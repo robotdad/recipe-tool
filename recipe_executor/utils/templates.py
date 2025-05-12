@@ -1,46 +1,79 @@
 """
-Template Utility Component
+Utility functions for rendering Liquid templates using context data.
 
-Provides a simple function to render Liquid templates
-using values from a ContextProtocol.
+This module provides a `render_template` function that uses the Python Liquid templating engine
+to render strings with variables sourced from a context object implementing ContextProtocol.
+Custom filters (e.g., snakecase) and extra filters (json, datetime) are enabled via the environment.
 """
-from typing import Any, Dict
+import re
+from typing import Any
 
-import liquid
+from liquid import Environment
 from liquid.exceptions import LiquidError
 
+# Import ContextProtocol inside the module to avoid circular dependencies
 from recipe_executor.protocols import ContextProtocol
 
 __all__ = ["render_template"]
 
+# Create a module‐level Liquid environment with extra filters enabled
+_env = Environment(autoescape=False, extra=True)
+
+# Register a custom `snakecase` filter
+
+def _snakecase(value: Any) -> str:
+    """
+    Convert a string to snake_case.
+
+    Non-alphanumeric characters are replaced with underscores, camelCase
+    boundaries are separated, and result is lowercased.
+    """
+    s = str(value)
+    # Replace spaces and dashes with underscores
+    s = re.sub(r"[\s\-]+", "_", s)
+    # Insert underscore before capital letters preceded by lowercase/digits
+    s = re.sub(r"(?<=[a-z0-9])([A-Z])", r"_\1", s)
+    # Lowercase the string
+    s = s.lower()
+    # Remove any remaining invalid characters
+    s = re.sub(r"[^a-z0-9_]", "", s)
+    # Collapse multiple underscores
+    s = re.sub(r"__+", "_", s)
+    # Strip leading/trailing underscores
+    return s.strip("_")
+
+_env.filters["snakecase"] = _snakecase
+
+
 def render_template(text: str, context: ContextProtocol) -> str:
     """
-    Render the given text as a Liquid template using the provided context.
-    All values in the context are passed as-is to the template.
+    Render the given text as a Python Liquid template using the provided context.
 
     Args:
         text (str): The template text to render.
-        context (ContextProtocol): The context providing values for rendering the template.
+        context (ContextProtocol): The context providing values for rendering.
 
     Returns:
         str: The rendered text.
 
     Raises:
-        ValueError: If there is an error during template rendering.
+        ValueError: If there is an error during template rendering,
+                    includes details about the template and context.
     """
-    context_dict: Dict[str, Any] = context.dict()
     try:
-        template = liquid.Template(text)
-        return template.render(**context_dict)
-    except LiquidError as exc:
+        # Parse and render the template with all context values
+        template = _env.from_string(text)
+        rendered = template.render(**context.dict())
+        return rendered
+    except LiquidError as e:
+        # Liquid-specific errors
         raise ValueError(
-            f"Template rendering failed: {exc}\n"
-            f"Template: {text!r}\n"
-            f"Context: {context_dict!r}"
-        ) from exc
-    except Exception as exc:
+            f"Liquid template rendering error: {e}. "
+            f"Template: {text!r}. Context: {context.dict()!r}"
+        )
+    except Exception as e:
+        # Generic errors
         raise ValueError(
-            f"Unknown error during template rendering: {exc}\n"
-            f"Template: {text!r}\n"
-            f"Context: {context_dict!r}"
-        ) from exc
+            f"Error rendering template: {e}. "
+            f"Template: {text!r}. Context: {context.dict()!r}"
+        )

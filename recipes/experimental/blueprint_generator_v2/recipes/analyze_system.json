@@ -1,0 +1,120 @@
+{
+  "steps": [
+    {
+      "type": "conditional",
+      "config": {
+        "condition": "{% if context_contents %}true{% else %}false{% endif %}",
+        "if_true": {
+          "steps": [
+            {
+              "type": "loop",
+              "config": {
+                "item_key": "doc_name",
+                "items_key": "context_contents",
+                "steps": [
+                  {
+                    "type": "llm_generate",
+                    "config": {
+                      "model": "{{ model | default: 'openai/o4-mini' }}",
+                      "prompt": "Summarize the key points of the document '{{doc_name}}' provided below, focusing on information relevant to the system design:\n\"\"\"\n{{context_contents[doc_name]}}\n\"\"\"\n\nSummarize the above document in a few concise paragraphs, highlighting any requirements, constraints, or domain details that would influence the architecture.",
+                      "output_format": "text",
+                      "output_key": "doc_summary"
+                    }
+                  },
+                  {
+                    "type": "write_files",
+                    "config": {
+                      "files": [
+                        {
+                          "path": "summaries/context_{{doc_name}}_summary.md",
+                          "content_key": "doc_summary"
+                        }
+                      ],
+                      "root": "{{ output_dir }}"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "conditional",
+      "config": {
+        "condition": "{% if reference_contents %}true{% else %}false{% endif %}",
+        "if_true": {
+          "steps": [
+            {
+              "type": "loop",
+              "config": {
+                "item_key": "ref_name",
+                "items_key": "reference_contents",
+                "steps": [
+                  {
+                    "type": "llm_generate",
+                    "config": {
+                      "model": "{{ model | default: 'openai/o4-mini' }}",
+                      "prompt": "We have an external reference document '{{ref_name}}' relevant to our system. Below is its content:\n\"\"\"\n{{reference_contents[ref_name]}}\n\"\"\"\nPlease summarize the above reference, focusing on details that might impact our system's design or integration (e.g., APIs offered, constraints, standards to follow). Provide a concise summary of the most pertinent points.",
+                      "output_format": "text",
+                      "output_key": "ref_summary"
+                    }
+                  },
+                  {
+                    "type": "write_files",
+                    "config": {
+                      "files": [
+                        {
+                          "path": "summaries/reference_{{ref_name}}_summary.md",
+                          "content_key": "ref_summary"
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "conditional",
+      "config": {
+        "condition": "file_exists('summaries')",
+        "if_true": {
+          "steps": [
+            {
+              "type": "read_files",
+              "config": {
+                "path": "summaries/context_*.md",
+                "content_key": "context_summaries",
+                "merge_mode": "concat",
+                "optional": true
+              }
+            },
+            {
+              "type": "read_files",
+              "config": {
+                "path": "summaries/reference_*.md",
+                "content_key": "reference_summaries",
+                "merge_mode": "concat",
+                "optional": true
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "llm_generate",
+      "config": {
+        "model": "{{ model | default: 'openai/o4-mini' }}",
+        "prompt": "Project Vision:\n\"\"\"\n{{vision_content}}\n\"\"\"\n\nRequirements:\n\"\"\"\n{{requirements_content}}\n\"\"\"\n\n{% if context_summaries %}Additional Context:\n{{context_summaries}}\n{% endif %}{% if reference_summaries %}Reference Docs Summary:\n{{reference_summaries}}\n{% endif %}\n\n“Design Philosophy” (follow these guidelines):\n\"\"\"\n{{philosophy_guidance}}\n\"\"\"\n\n**System Analysis:** Based on all the above information, outline the system's key objectives, major features, and constraints. Identify any implicit requirements or important assumptions. Do not yet propose a solution or architecture; instead, focus on understanding the problem. Present the analysis as a clear narrative or bullet points for easy review.",
+        "output_format": "text",
+        "output_key": "analysis_report"
+      }
+    }
+  ]
+}

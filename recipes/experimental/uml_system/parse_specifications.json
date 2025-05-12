@@ -1,0 +1,144 @@
+{
+  "steps": [
+    {
+      "type": "llm_generate",
+      "config": {
+        "prompt": "You are an expert software architect tasked with analyzing a natural language project specification and converting it into structured requirements for a UML-based code generation process.\n\n# Project Specification\n\n{{ vision_document }}\n\n# Instructions\n\nAnalyze the above project specification and extract:\n1. A list of system components/modules\n2. The purpose and responsibilities of each component\n3. Key requirements for each component\n4. System-wide requirements and constraints\n5. Interfaces between components\n6. Any data structures or models implied by the specification\n\nIf there are any ambiguities, contradictions, or missing information that would prevent you from creating a complete UML model, identify these issues explicitly.\n\nOutput a structured specification following the format in the output schema.",
+        "model": "{{ model | default: 'openai/gpt-4o' }}",
+        "output_format": {
+          "type": "object",
+          "properties": {
+            "system_name": { "type": "string" },
+            "system_description": { "type": "string" },
+            "components": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": { "type": "string" },
+                  "name": { "type": "string" },
+                  "description": { "type": "string" },
+                  "responsibilities": {
+                    "type": "array",
+                    "items": { "type": "string" }
+                  },
+                  "interfaces": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": { "type": "string" },
+                        "description": { "type": "string" },
+                        "connected_to": { "type": "string" }
+                      }
+                    }
+                  },
+                  "requirements": {
+                    "type": "array",
+                    "items": { "type": "string" }
+                  }
+                }
+              }
+            },
+            "data_models": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string" },
+                  "description": { "type": "string" },
+                  "attributes": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": { "type": "string" },
+                        "type": { "type": "string" },
+                        "description": { "type": "string" }
+                      }
+                    }
+                  },
+                  "relationships": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "related_to": { "type": "string" },
+                        "type": { "type": "string" },
+                        "description": { "type": "string" }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "system_constraints": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "identified_issues": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "issue_type": {
+                    "type": "string",
+                    "enum": [
+                      "ambiguity",
+                      "contradiction",
+                      "missing_information",
+                      "other"
+                    ]
+                  },
+                  "description": { "type": "string" },
+                  "severity": {
+                    "type": "string",
+                    "enum": ["low", "medium", "high"]
+                  },
+                  "affected_components": {
+                    "type": "array",
+                    "items": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "required": ["system_name", "system_description", "components"]
+        },
+        "output_key": "structured_specifications"
+      }
+    },
+    {
+      "type": "llm_generate",
+      "config": {
+        "prompt": "Evaluate the structured specifications that were extracted from the project vision document. Determine if there are any issues that would require human review before proceeding to UML model generation.\n\nStructured Specifications:\n```\n{{ structured_specifications }}\n```\n\nIf there are items in the 'identified_issues' array with medium or high severity, or if there are more than 3 issues of any severity, flag this for human review.\n\nAdditionally, review the specifications for these issues:\n1. Missing component interfaces where components clearly need to interact\n2. Vague component responsibilities\n3. Incomplete data models\n4. Contradictory requirements\n\nOutput a clear assessment indicating whether human review is needed before proceeding to UML modeling.",
+        "model": "{{ model | default: 'openai/gpt-4o' }}",
+        "output_format": {
+          "type": "object",
+          "properties": {
+            "needs_review": { "type": "boolean" },
+            "review_items": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "suggestions": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          }
+        },
+        "output_key": "specifications_assessment"
+      }
+    },
+    {
+      "type": "execute_recipe",
+      "config": {
+        "recipe_path": "recipes/experimental/uml_system/evaluate_specifications.json",
+        "context_overrides": {
+          "specifications_assessment": "{{ specifications_assessment }}",
+          "structured_specifications": "{{ structured_specifications }}"
+        }
+      }
+    }
+  ]
+}

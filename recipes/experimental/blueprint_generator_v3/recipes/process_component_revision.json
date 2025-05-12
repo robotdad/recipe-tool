@@ -1,0 +1,208 @@
+{
+  "steps": [
+    {
+      "type": "execute_recipe",
+      "config": {
+        "recipe_path": "recipes/experimental/blueprint_generator_v3/recipes/generate_clarification_questions.json",
+        "context_overrides": {
+          "candidate_spec_path": "{{ revised_spec_path }}",
+          "component_id": "{{ component_id }}",
+          "output_root": "{{ output_dir }}/clarification/revision_{{ answers_status.revision_count | plus: 1 }}",
+          "model": "{{ model | default: 'openai/o4-mini' }}"
+        }
+      }
+    },
+    {
+      "type": "execute_recipe",
+      "config": {
+        "recipe_path": "recipes/experimental/blueprint_generator_v3/recipes/generate_clarification_answers.json",
+        "context_overrides": {
+          "candidate_spec_path": "{{ revised_spec_path }}",
+          "clarification_questions_path": "{{ output_dir }}/clarification/revision_{{ answers_status.revision_count | plus: 1 }}/{{ component_id }}_component_clarification_questions.md",
+          "component_id": "{{ component_id }}",
+          "output_root": "{{ output_dir }}/clarification/revision_{{ answers_status.revision_count | plus: 1 }}",
+          "model": "{{ model | default: 'openai/o4-mini' }}"
+        }
+      }
+    },
+    {
+      "type": "llm_generate",
+      "config": {
+        "prompt": "Update component status after second revision attempt:\n\nPrevious status: {{ answers_status }}\nNew status: 'answers_generated'\nRevision count: {{ answers_status.revision_count | plus: 1 }}\nRevised spec: {{ output_dir }}/clarification/revision_{{ answers_status.revision_count | plus: 1 }}/{{ component_id }}_candidate_spec_revised.md\nQuestions path: {{ output_dir }}/clarification/revision_{{ answers_status.revision_count | plus: 1 }}/{{ component_id }}_component_clarification_questions.md",
+        "model": "{{ model | default: 'openai/o4-mini' }}",
+        "output_format": {
+          "type": "object",
+          "properties": {
+            "component_id": { "type": "string" },
+            "component_name": { "type": "string" },
+            "status": {
+              "type": "string",
+              "enum": [
+                "initial",
+                "questions_generated",
+                "answers_generated",
+                "evaluated",
+                "needs_human_review",
+                "ready"
+              ]
+            },
+            "revision_count": { "type": "integer" },
+            "current_spec_path": { "type": "string" },
+            "questions_path": { "type": "string" }
+          },
+          "required": [
+            "component_id",
+            "status",
+            "revision_count",
+            "current_spec_path",
+            "questions_path"
+          ]
+        },
+        "output_key": "revision_status"
+      }
+    },
+    {
+      "type": "write_files",
+      "config": {
+        "files": [
+          {
+            "path": "{{ output_dir }}/status/{{ component_id }}_status.json",
+            "content_key": "revision_status"
+          }
+        ]
+      }
+    },
+    {
+      "type": "execute_recipe",
+      "config": {
+        "recipe_path": "recipes/experimental/blueprint_generator_v3/recipes/evaluate_candidate_spec.json",
+        "context_overrides": {
+          "candidate_spec_path": "{{ revision_status.current_spec_path }}",
+          "component_id": "{{ component_id }}",
+          "output_root": "{{ output_dir }}/evaluation/revision_{{ answers_status.revision_count | plus: 1 }}",
+          "model": "{{ model | default: 'openai/o4-mini' }}"
+        }
+      }
+    },
+    {
+      "type": "conditional",
+      "config": {
+        "condition": "file_exists('{{ output_dir }}/evaluation/revision_{{ answers_status.revision_count | plus: 1 }}/{{ component_id }}_needs_clarification.md')",
+        "if_true": {
+          "steps": [
+            {
+              "type": "execute_recipe",
+              "config": {
+                "recipe_path": "recipes/experimental/blueprint_generator_v3/recipes/prepare_human_review.json",
+                "context_overrides": {
+                  "component_id": "{{ component_id }}",
+                  "original_spec_path": "{{ spec_path }}",
+                  "revised_spec_path": "{{ revision_status.current_spec_path }}",
+                  "evaluation_path": "{{ output_dir }}/evaluation/revision_{{ answers_status.revision_count | plus: 1 }}/{{ component_id }}_needs_clarification.md",
+                  "questions_path": "{{ revision_status.questions_path }}",
+                  "output_dir": "{{ output_dir }}/human_review",
+                  "model": "{{ model | default: 'openai/o4-mini' }}"
+                }
+              }
+            },
+            {
+              "type": "llm_generate",
+              "config": {
+                "prompt": "Generate a status indicating the component needs human review after second revision attempt:\n\nComponent ID: {{ component_id }}\nOriginal spec: {{ spec_path }}\nRevised spec: {{ revision_status.current_spec_path }}\nEvaluation: {{ output_dir }}/evaluation/revision_{{ answers_status.revision_count | plus: 1 }}/{{ component_id }}_needs_clarification.md",
+                "model": "{{ model | default: 'openai/o4-mini' }}",
+                "output_format": {
+                  "type": "object",
+                  "properties": {
+                    "component_id": { "type": "string" },
+                    "component_name": { "type": "string" },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "initial",
+                        "questions_generated",
+                        "answers_generated",
+                        "evaluated",
+                        "needs_human_review",
+                        "ready"
+                      ]
+                    },
+                    "revision_count": { "type": "integer" },
+                    "current_spec_path": { "type": "string" },
+                    "questions_path": { "type": "string" }
+                  },
+                  "required": [
+                    "component_id",
+                    "status",
+                    "revision_count",
+                    "current_spec_path"
+                  ]
+                },
+                "output_key": "human_review_status"
+              }
+            },
+            {
+              "type": "write_files",
+              "config": {
+                "files": [
+                  {
+                    "path": "{{ output_dir }}/status/{{ component_id }}_status.json",
+                    "content_key": "human_review_status"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "if_false": {
+          "steps": [
+            {
+              "type": "llm_generate",
+              "config": {
+                "prompt": "Generate a status indicating the component is ready for blueprint generation after second revision attempt:\n\nComponent ID: {{ component_id }}\nOriginal spec: {{ spec_path }}\nRevised spec: {{ revision_status.current_spec_path }}\nEvaluation: {{ output_dir }}/evaluation/revision_{{ answers_status.revision_count | plus: 1 }}/{{ component_id }}_evaluation_summary.md",
+                "model": "{{ model | default: 'openai/o4-mini' }}",
+                "output_format": {
+                  "type": "object",
+                  "properties": {
+                    "component_id": { "type": "string" },
+                    "component_name": { "type": "string" },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "initial",
+                        "questions_generated",
+                        "answers_generated",
+                        "evaluated",
+                        "needs_human_review",
+                        "ready"
+                      ]
+                    },
+                    "revision_count": { "type": "integer" },
+                    "current_spec_path": { "type": "string" }
+                  },
+                  "required": [
+                    "component_id",
+                    "status",
+                    "revision_count",
+                    "current_spec_path"
+                  ]
+                },
+                "output_key": "ready_status"
+              }
+            },
+            {
+              "type": "write_files",
+              "config": {
+                "files": [
+                  {
+                    "path": "{{ output_dir }}/status/{{ component_id }}_status.json",
+                    "content_key": "ready_status"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

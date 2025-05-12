@@ -1,0 +1,16 @@
+{
+  "steps": [
+    {
+      "type": "write_files",
+      "config": {
+        "files": [
+          {
+            "path": "{{ outline.title | snakecase | upcase }}.md",
+            "content_key": "document"
+          }
+        ],
+        "root": "{{ output_root }}"
+      }
+    }
+  ]
+}

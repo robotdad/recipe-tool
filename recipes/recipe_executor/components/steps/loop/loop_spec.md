@@ -22,7 +22,8 @@ The LoopStep component enables recipes to iterate over a collection of items, ex
 
 ## Implementation Considerations
 
-- Use template rendering to resolve the `items` path before accessing data, enabling support for nested paths
+- Process `items` strings using template rendering to determine if they are collections or if it remains a string
+  - For `items` that remain a string, apply template rendering to the path before accessing data, enabling support for nested paths
 - Clone the context for each item to maintain isolation between iterations
 - Use a unique context key for each processed item to prevent collisions
 - Execute the specified steps for each item using the current executor

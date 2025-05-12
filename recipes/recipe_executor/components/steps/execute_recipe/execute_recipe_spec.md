@@ -21,6 +21,9 @@ The ExecuteRecipeStep component enables recipes to execute other recipes as sub-
 - When processing context overrides
   - Process all **string** values (including those within lists or dictionaries) using the template engine
   - All non-string values in context overrides should be passed as-is
+  - String value may contain JSON objects or lists of JSON objects with mixed, escaped quotes, use `ast.literal_eval` to parse them
+  - If a string value is a valid JSON object, it should be parsed and passed as a dictionary
+  - If a string value is a list of valid JSON objects, it should be parsed and passed as a list of dictionaries
 - Keep the implementation simple and focused on a single responsibility
 - Log detailed information about sub-recipe execution
 
@@ -37,11 +40,11 @@ The ExecuteRecipeStep component enables recipes to execute other recipes as sub-
 
 ### Internal Components
 
-- **Protocols** – (Required) Leverages ContextProtocol for context sharing, ExecutorProtocol for execution, and StepProtocol for the step interface contract
-- **Step Interface** – (Required) Implements the step execution interface (via the StepProtocol)
-- **Context** – (Required) Shares data via a context object implementing the ContextProtocol between the main recipe and sub-recipes
-- **Executor** – (Required) Uses an executor implementing ExecutorProtocol to run the sub-recipe
-- **Utils/Templates** – (Required) Uses render_template for dynamic content resolution in paths and context overrides
+- **Protocols**: Leverages ContextProtocol for context sharing, ExecutorProtocol for execution, and StepProtocol for the step interface contract
+- **Step Interface**: Implements the step execution interface (via the StepProtocol)
+- **Context**: Shares data via a context object implementing the ContextProtocol between the main recipe and sub-recipes
+- **Executor**: Uses an executor implementing ExecutorProtocol to run the sub-recipe
+- **Utils/Templates**: Uses render_template for dynamic content resolution in paths and context overrides
 
 ### External Libraries
 

@@ -16,6 +16,7 @@ import os
 import sys
 import datetime
 import re
+import platform
 
 OUTPUT_DIR = "ai_context/generated"
 
@@ -100,6 +101,13 @@ def build_context_files(force=False) -> None:
             "exclude": collect_files.DEFAULT_EXCLUDE,
             "include": [],
         },
+        # Collect files from recipes/document_generator
+        {
+            "patterns": ["recipes/document_generator"],
+            "output": f"{OUTPUT_DIR}/DOCUMENT_GENERATOR_FILES.md",
+            "exclude": collect_files.DEFAULT_EXCLUDE,
+            "include": [],
+        },
         # Collect files from recipes/examples_*
         {
             "patterns": ["recipes/example_*"],
@@ -107,16 +115,16 @@ def build_context_files(force=False) -> None:
             "exclude": collect_files.DEFAULT_EXCLUDE,
             "include": [],
         },
-        # Collect files from recipes/blueprint_generator_v3
+        # Collect files from recipes/experimental/blueprint_generator_v3
         {
-            "patterns": ["recipes/blueprint_generator_v3"],
+            "patterns": ["recipes/experimental/blueprint_generator_v3"],
             "output": f"{OUTPUT_DIR}/BLUEPRINT_GENERATOR_V3_FILES.md",
             "exclude": collect_files.DEFAULT_EXCLUDE,
             "include": [],
         },
-        # Collect files from recipes/blueprint_generator_v4
+        # Collect files from recipes/experimental/blueprint_generator_v4
         {
-            "patterns": ["recipes/blueprint_generator_v4"],
+            "patterns": ["recipes/experimental/blueprint_generator_v4"],
             "output": f"{OUTPUT_DIR}/BLUEPRINT_GENERATOR_V4_FILES.md",
             "exclude": collect_files.DEFAULT_EXCLUDE,
             "include": [],
@@ -143,7 +151,11 @@ def build_context_files(force=False) -> None:
 
         # Build header
         now = datetime.datetime.now()
-        date_str = now.strftime('%-m/%-d/%Y, %-I:%M:%S %p')
+        # Use appropriate format specifiers based on the platform
+        if platform.system() == 'Windows':
+            date_str = now.strftime('%#m/%#d/%Y, %#I:%M:%S %p')  # Windows non-padding format
+        else:
+            date_str = now.strftime('%-m/%-d/%Y, %-I:%M:%S %p')  # Unix non-padding format
         header_lines = [
             f"# {' | '.join(patterns)}",
             "",

@@ -1,0 +1,54 @@
+{
+  "steps": [
+    {
+      "type": "read_files",
+      "config": {
+        "path": "{{ input_file }}",
+        "content_key": "items"
+      }
+    },
+    {
+      "type": "loop",
+      "config": {
+        "items": "items",
+        "item_key": "item",
+        "result_key": "item.content",
+        "substeps": [
+          {
+            "type": "set_context",
+            "config": {
+              "key": "slug",
+              "value": "{{ item.name | snakecase }}"
+            }
+          },
+          {
+            "type": "set_context",
+            "config": {
+              "key": "readable_date",
+              "value": "{{ item.timestamp | datetime: format: 'MMM d, y' }}"
+            }
+          },
+          {
+            "type": "set_context",
+            "config": {
+              "key": "file_content",
+              "value": "# {{ item.name }}\n\n- **Slug**: `{{ slug }}`\n- **Date**: {{ readable_date }}\n- **Metadata**:\n```json\n{{ item.metadata | json: indent: 2 }}\n```"
+            }
+          },
+          {
+            "type": "write_files",
+            "config": {
+              "files": [
+                {
+                  "path": "{{ slug }}.md",
+                  "content_key": "file_content"
+                }
+              ],
+              "root": "{{ output_root | default: 'output' }}"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

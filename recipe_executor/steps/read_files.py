@@ -1,7 +1,7 @@
 import json
 import logging
 import os
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Union
 
 import yaml
 
@@ -16,7 +16,7 @@ class ReadFilesConfig(StepConfig):
 
     Fields:
         path (Union[str, List[str]]): Path, comma-separated string, or list of paths to the file(s) to read (may be templated).
-        content_key (str): Name under which to store file content in the context.
+        content_key (str): Name under which to store file content in the context (may be templated).
         optional (bool): Whether to continue if a file is not found (default: False).
         merge_mode (str): How to handle multiple files' content. Options:
             - "concat" (default): Concatenate all files with newlines between filename headers + content
@@ -34,14 +34,19 @@ class ReadFilesStep(BaseStep[ReadFilesConfig]):
     """
 
     def __init__(self, logger: logging.Logger, config: Dict[str, Any]) -> None:
-        super().__init__(logger, ReadFilesConfig(**config))
+        # Use model_validate to ensure proper pydantic validation
+        validated = ReadFilesConfig.model_validate(config)
+        super().__init__(logger, validated)
 
     async def execute(self, context: ContextProtocol) -> None:
         cfg = self.config
+        # Resolve content_key template
+        rendered_key = render_template(cfg.content_key, context)
+
         raw_path = cfg.path
         paths: List[str] = []
 
-        # Resolve and normalize paths (with template rendering)
+        # Render and normalize paths
         if isinstance(raw_path, str):
             rendered = render_template(raw_path, context)
             # Split comma-separated string into list
@@ -92,33 +97,30 @@ class ReadFilesStep(BaseStep[ReadFilesConfig]):
             result_map[path] = content
 
         # Merge results according to merge_mode
-        final_content: Any
         if not results:
             # No file was read
             if len(paths) <= 1:
-                final_content = ""  # Single (missing) file yields empty string
+                final_content: Any = ""
             elif cfg.merge_mode == "dict":
-                final_content = {}  # Dict of zero entries
+                final_content = {}
             else:
-                final_content = ""  # Concat yields empty string
+                final_content = ""
         elif len(results) == 1:
-            # Only one file read => return its content directly
+            # Single file => raw content
             final_content = results[0]
         else:
-            # Multiple files read
+            # Multiple files
             if cfg.merge_mode == "dict":
                 final_content = result_map
             else:
-                # Default: concat mode, include header with filename
                 segments: List[str] = []
                 for p in paths:
                     if p in result_map:
                         raw = result_map[p]
-                        # Convert raw back to text if it was structured
                         segment = raw if isinstance(raw, str) else json.dumps(raw)
                         segments.append(f"{p}\n{segment}")
                 final_content = "\n".join(segments)
 
-        # Store the merged content in context
-        context[cfg.content_key] = final_content
-        self.logger.info(f"Stored file content under key '{cfg.content_key}'")
+        # Store content in context
+        context[rendered_key] = final_content
+        self.logger.info(f"Stored file content under key '{rendered_key}'")

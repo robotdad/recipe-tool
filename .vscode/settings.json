@@ -65,7 +65,10 @@
   "cSpell.words": [
     "codegen",
     "dotenv",
+    "endcapture",
+    "endcomment",
     "endfor",
+    "endwith",
     "fastmcp",
     "forloop",
     "generatecode",
@@ -77,6 +80,7 @@
     "PYDANTIC",
     "setrecursionlimit",
     "slugified",
+    "snakecase",
     "stype",
     "subschema",
     "substep",
