@@ -5,8 +5,8 @@
 **Search:** ['recipe_executor']
 **Exclude:** ['.venv', 'node_modules', '.git', '__pycache__', '*.pyc', '*.ruff_cache']
 **Include:** ['README.md', 'pyproject.toml', '.env.example']
-**Date:** 5/7/2025, 2:40:51 PM
-**Files:** 27
+**Date:** 5/13/2025, 10:23:18 AM
+**Files:** 26
 
 === File: .env.example ===
 # Optional for the project
@@ -103,11 +103,12 @@ The core dependencies you need to install are:
 
 - `make` - for scripting installation steps of the various projects within this repo
 - `uv` - for managing installed versions of `python` - for installing python dependencies
+- `GitHub cli` - for `ai-context-files` manipulation tool
 
 Linux:
 
     # make is installed by default on linux
-    sudo apt update && sudo apt install pipx
+    sudo apt update && sudo apt install pipx && sudo apt install gh
     pipx ensurepath
     pipx install uv
 
@@ -115,11 +116,13 @@ macOS:
 
     brew install make
     brew install uv
+    brew install gh
 
 Windows:
 
     winget install ezwinports.make -e
     winget install astral-sh.uv  -e
+    winget install GitHub.cli -e
 
 ### Setup Steps
 
@@ -273,12 +276,14 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "build>=1.2.2.post1",
     "debugpy>=1.8.14",
     "pyright>=1.1.389",
     "pytest>=8.3.5",
     "pytest-cov>=6.1.1",
     "pytest-mock>=3.14.0",
     "ruff>=0.11.2",
+    "twine>=6.1.0",
 ]
 
 [project.scripts]
@@ -290,8 +295,9 @@ python-code-tools = "python_code_tools.cli:main"
 package = true
 
 [tool.uv.sources]
- python-code-tools = { path = "mcp-servers/python-code-tools", editable = true }
- recipe-tool-mcp-server = { path = "mcp-servers/recipe-tool", editable = true }
+python-code-tools = { path = "mcp-servers/python-code-tools", editable = true }
+recipe-tool-mcp-server = { path = "mcp-servers/recipe-tool", editable = true }
+document-generator-ui = { path = "document_generator_ui", editable = true }
 
 [tool.hatch.build.targets.wheel]
 packages = ["recipe_executor"]
@@ -1573,91 +1579,6 @@ class ConditionalStep(BaseStep[ConditionalConfig]):
             )
             step_instance = step_cls(self.logger, step_conf)
             await step_instance.execute(context)
-
-
-=== File: recipe_executor/steps/execute_recipe-tmp.py ===
-import os
-import ast
-import logging
-from typing import Any, Dict
-
-from recipe_executor.steps.base import BaseStep, StepConfig
-from recipe_executor.protocols import ContextProtocol
-from recipe_executor.utils.templates import render_template
-
-__all__ = ["ExecuteRecipeConfig", "ExecuteRecipeStep"]
-
-def _render_override(value: Any, context: ContextProtocol) -> Any:
-    """
-    Recursively render and parse override values.
-
-    - Strings are template-rendered, then if the result is a valid Python literal
-      (dict or list), parsed via ast.literal_eval into Python objects and
-      processed recursively.
-    - Lists and dicts are processed recursively.
-    - Other types are returned as-is.
-    """
-    if isinstance(value, str):
-        rendered = render_template(value, context)
-        try:
-            parsed = ast.literal_eval(rendered)
-        except (ValueError, SyntaxError):
-            return rendered
-        else:
-            if isinstance(parsed, (dict, list)):
-                return _render_override(parsed, context)
-            return rendered
-    if isinstance(value, list):  # type: ignore[type-arg]
-        return [_render_override(item, context) for item in value]
-    if isinstance(value, dict):  # type: ignore[type-arg]
-        return {key: _render_override(val, context) for key, val in value.items()}
-    return value
-
-
-class ExecuteRecipeConfig(StepConfig):
-    """Config for ExecuteRecipeStep.
-
-    Fields:
-        recipe_path: Path to the sub-recipe to execute (templateable).
-        context_overrides: Optional values to override in the context.
-    """
-    recipe_path: str
-    context_overrides: Dict[str, Any] = {}
-
-
-class ExecuteRecipeStep(BaseStep[ExecuteRecipeConfig]):
-    """Step to execute a sub-recipe with shared context and optional overrides."""
-
-    def __init__(
-        self,
-        logger: logging.Logger,
-        config: Dict[str, Any]
-    ) -> None:
-        validated: ExecuteRecipeConfig = ExecuteRecipeConfig.model_validate(config)
-        super().__init__(logger, validated)
-
-    async def execute(self, context: ContextProtocol) -> None:
-        # Render and validate the sub-recipe path
-        rendered_path = render_template(self.config.recipe_path, context)
-        if not os.path.isfile(rendered_path):
-            raise FileNotFoundError(f"Sub-recipe file not found: {rendered_path}")
-
-        # Apply context overrides before executing the sub-recipe
-        for key, override_value in self.config.context_overrides.items():
-            rendered_value = _render_override(override_value, context)
-            context[key] = rendered_value
-
-        try:
-            # Import here to avoid circular dependencies
-            from recipe_executor.executor import Executor
-
-            self.logger.info(f"Starting sub-recipe execution: {rendered_path}")
-            executor = Executor(self.logger)
-            await executor.execute(rendered_path, context)
-            self.logger.info(f"Completed sub-recipe execution: {rendered_path}")
-        except Exception as exc:
-            self.logger.error(f"Error executing sub-recipe '{rendered_path}': {exc}")
-            raise RuntimeError(f"Failed to execute sub-recipe '{rendered_path}': {exc}") from exc
 
 
 === File: recipe_executor/steps/execute_recipe.py ===

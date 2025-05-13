@@ -3,13 +3,13 @@
     {
       "type": "conditional",
       "config": {
-        "condition": "file_exists('{{ output_dir }}/components/{{ component.id }}/clarification_questions.json')",
+        "condition": "file_exists('{{ output_dir }}/components/{{ component.id | replace: '.', '/' }}/clarification_questions.json')",
         "if_true": {
           "steps": [
             {
               "type": "read_files",
               "config": {
-                "path": "{{ output_dir }}/components/{{ component.id }}/clarification_questions.json",
+                "path": "{{ output_dir }}/components/{{ component.id | replace: '.', '/' }}/clarification_questions.json",
                 "content_key": "clarification_questions",
                 "merge_model": "dict"
               }
@@ -32,7 +32,7 @@
               "config": {
                 "files": [
                   {
-                    "path": "{{ component.id }}/clarification_questions.json",
+                    "path": "{{ component.id | replace: '.', '/' }}/clarification_questions.json",
                     "content_key": "clarification_questions"
                   }
                 ],

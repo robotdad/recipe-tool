@@ -5,7 +5,7 @@
 **Search:** ['recipes/experimental/blueprint_generator_v4']
 **Exclude:** ['.venv', 'node_modules', '.git', '__pycache__', '*.pyc', '*.ruff_cache']
 **Include:** []
-**Date:** 5/6/2025, 10:52:16 AM
+**Date:** 5/13/2025, 10:23:18 AM
 **Files:** 16
 
 === File: recipes/experimental/blueprint_generator_v4/README.md ===
@@ -107,7 +107,7 @@ recipe-tool --execute blueprint_test/output/youtube_viewer/build.json \
             {
               "type": "llm_generate",
               "config": {
-                "prompt": "System: You are an expert software architect.\nAnalyze the high-level project specification, vision/context documents, reference docs, and design philosophies.\n<PROJECT_SPEC>\n{{ project_spec_content }}\n</PROJECT_SPEC>\n<CONTEXT_DOCS>\n{% if context_docs_content %}{% for path in context_docs_content %}[{{ path }}]\n{{ context_docs_content[path] }}\n{% endfor %}{% endif %}\n</CONTEXT_DOCS>\n<REFERENCE_DOCS>\n{% if ref_docs_content %}{% for path in ref_docs_content %}[{{ path }}]\n{{ ref_docs_content[path] }}\n{% endfor %}{% endif %}\n</REFERENCE_DOCS>\n<PHILOSOPHY_GUIDES>\n[IMPLEMENTATION] {{ implementation_philosophy }}\n[MODULAR] {{ modular_design_philosophy }}\n[DOCS_GUIDE] {{ component_docs_spec_guide }}\n</PHILOSOPHY_GUIDES>\nPlease output a JSON object with properties:\n- needs_splitting (boolean)\n- components (array of component IDs as strings)\nEnsure the response is valid JSON only.",
+                "prompt": "System: You are an expert software architect.\nAnalyze the high-level project specification, vision/context documents, reference docs, and design philosophies.\n<PROJECT_SPEC>\n{{ project_spec_content }}\n</PROJECT_SPEC>\n<CONTEXT_DOCS>\n{% if context_docs_content %}{% for path in context_docs_content %}[{{ path }}]\n{{ context_docs_content[path] }}\n{% endfor %}{% endif %}\n</CONTEXT_DOCS>\n<REFERENCE_DOCS>\n{% if ref_docs_content %}{% for path in ref_docs_content %}[{{ path }}]\n{{ ref_docs_content[path] }}\n{% endfor %}{% endif %}\n</REFERENCE_DOCS>\n<PHILOSOPHY_GUIDES>\n[IMPLEMENTATION] {{ implementation_philosophy }}\n[MODULAR] {{ modular_design_philosophy }}\n[DOCS_GUIDE] {{ component_docs_spec_guide }}\n</PHILOSOPHY_GUIDES>\nPlease output a JSON object with properties:\n- needs_splitting (boolean, true if more than one component)\n- components (array of component IDs as coding language agnostic strings, using dot notation for any sub-components, ex: 'main', 'api.users', 'api.modules', etc.)\nEnsure the response is valid JSON only.",
                 "model": "{{ model }}",
                 "output_format": {
                   "type": "object",
@@ -853,7 +853,7 @@ recipe-tool --execute blueprint_test/output/youtube_viewer/build.json \
       "config": {
         "items": "analysis_result.components",
         "item_key": "component",
-        "max_concurrency": 0,
+        "max_concurrency": 10,
         "delay": 0.1,
         "substeps": [
           {

@@ -3,13 +3,13 @@
     {
       "type": "conditional",
       "config": {
-        "condition": "file_exists('{{ output_dir }}/components/{{ component.id }}/approval_result.json')",
+        "condition": "file_exists('{{ output_dir }}/components/{{ component.id | replace: '.', '/' }}/approval_result.json')",
         "if_true": {
           "steps": [
             {
               "type": "read_files",
               "config": {
-                "path": "{{ output_dir }}/components/{{ component.id }}/approval_result.json",
+                "path": "{{ output_dir }}/components/{{ component.id | replace: '.', '/' }}/approval_result.json",
                 "content_key": "approval_result",
                 "merge_model": "dict"
               }
@@ -39,7 +39,7 @@
               "config": {
                 "files": [
                   {
-                    "path": "{{ component.id }}/approval_result.json",
+                    "path": "{{ component.id | replace: '.', '/' }}/approval_result.json",
                     "content_key": "approval_result"
                   }
                 ],
