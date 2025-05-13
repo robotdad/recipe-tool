@@ -129,11 +129,16 @@ export const ExecutionService = {
           }
         }
       },
-      onError: () => {
-        if (callbacks.onError) {
+      onError: (event) => {
+        // For EventSource, the error event fires on both errors AND normal closures
+        // If we already know we're in a final state, don't report it as an error
+        if (!isFinalStatus && callbacks.onError) {
           callbacks.onError("Connection to execution stream lost");
+        } else {
+          console.log(
+            "EventSource connection closed after execution completed"
+          );
         }
-        this.closeStream();
       },
     });
   },

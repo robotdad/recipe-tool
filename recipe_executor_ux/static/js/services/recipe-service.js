@@ -152,4 +152,47 @@ export const RecipeService = {
       errors,
     };
   },
+
+  /**
+   * Upload recipe file
+   * @param {File} file - File to upload
+   * @returns {Promise<object>} - Upload result with recipe data
+   */
+  async uploadRecipe(file) {
+    try {
+      const result = await ApiService.uploadRecipe(file);
+      return result;
+    } catch (error) {
+      console.error("Failed to upload recipe:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Download current recipe
+   * @param {object} recipe - Recipe object
+   * @param {string} filename - Optional filename
+   */
+  downloadRecipe(recipe, filename) {
+    // Generate filename if not provided
+    if (!filename) {
+      if (recipe.path) {
+        // Extract filename from path
+        const pathParts = recipe.path.split("/");
+        filename = pathParts[pathParts.length - 1];
+      } else if (recipe.name) {
+        filename = `${recipe.name}.json`;
+      } else {
+        filename = "recipe.json";
+      }
+    }
+
+    // Ensure it has .json extension
+    if (!filename.toLowerCase().endsWith(".json")) {
+      filename += ".json";
+    }
+
+    // Download the file
+    ApiService.downloadRecipe(recipe, filename);
+  },
 };

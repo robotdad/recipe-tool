@@ -98,8 +98,98 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
+  // Download current recipe
+  function downloadRecipe() {
+    if (!currentRecipePath) {
+      alert("No recipe selected");
+      return;
+    }
+
+    const recipe = editor.exportRecipe();
+    recipe.path = currentRecipePath;
+
+    RecipeService.downloadRecipe(recipe);
+  }
+
+  // Handle file upload
+  function setupFileUpload() {
+    // Create hidden file input
+    const fileInput = document.createElement("input");
+    fileInput.type = "file";
+    fileInput.accept = ".json";
+    fileInput.style.display = "none";
+    document.body.appendChild(fileInput);
+
+    // Handle file selection
+    fileInput.addEventListener("change", async (e) => {
+      if (e.target.files.length > 0) {
+        const file = e.target.files[0];
+        try {
+          // Show loading indicator
+          const uploadBtn = document.getElementById("upload-btn");
+          if (uploadBtn) {
+            uploadBtn.disabled = true;
+            uploadBtn.textContent = "Uploading...";
+          }
+
+          // Upload the file
+          const result = await RecipeService.uploadRecipe(file);
+
+          // Reset file input
+          fileInput.value = "";
+
+          // Reset button
+          if (uploadBtn) {
+            uploadBtn.disabled = false;
+            uploadBtn.textContent = "Upload";
+          }
+
+          if (result.success) {
+            // Reload the recipe list
+            await recipeList.loadRecipes();
+
+            // Load the uploaded recipe
+            await loadRecipe(result.path, result.recipe);
+
+            // Show success message
+            alert(`Recipe "${result.filename}" uploaded successfully`);
+          } else {
+            alert(`Error uploading recipe: ${result.error || "Unknown error"}`);
+          }
+        } catch (error) {
+          console.error("Error uploading file:", error);
+          alert(`Error uploading file: ${error.message}`);
+
+          // Reset button
+          const uploadBtn = document.getElementById("upload-btn");
+          if (uploadBtn) {
+            uploadBtn.disabled = false;
+            uploadBtn.textContent = "Upload";
+          }
+        }
+      }
+    });
+
+    // Create the upload button
+    const uploadBtn = document.getElementById("upload-btn");
+    if (uploadBtn) {
+      uploadBtn.addEventListener("click", () => {
+        fileInput.click();
+      });
+    }
+
+    // Create the download button
+    const downloadBtn = document.getElementById("download-btn");
+    if (downloadBtn) {
+      downloadBtn.addEventListener("click", downloadRecipe);
+    }
+  }
+
   // Set up palette drag and drop
   setupPaletteDragDrop(editor);
+
+  // Set up file upload/download
+  setupFileUpload();
 
   // Event listeners
   document.getElementById("save-btn").addEventListener("click", saveRecipe);

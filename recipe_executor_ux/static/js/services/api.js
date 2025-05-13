@@ -93,15 +93,114 @@ export const ApiService = {
       eventSource.addEventListener("log", callbacks.onLog);
     }
 
-    eventSource.onerror = () => {
-      eventSource.close();
-      if (callbacks.onError) {
-        callbacks.onError();
+    // Keep track of whether we're in a final state
+    let receivedFinalStatus = false;
+
+    // Special handling for status events to track final status
+    const originalStatusHandler = callbacks.onStatus;
+    if (originalStatusHandler) {
+      eventSource.removeEventListener("status", originalStatusHandler);
+      eventSource.addEventListener("status", (event) => {
+        // Check if this is a final status
+        if (["completed", "failed"].includes(event.data)) {
+          receivedFinalStatus = true;
+        }
+        originalStatusHandler(event);
+      });
+    }
+
+    eventSource.onerror = (event) => {
+      // Only call the error handler if this wasn't an expected closure after completion
+      if (!receivedFinalStatus && callbacks.onError) {
+        callbacks.onError(event);
+      } else {
+        console.log(
+          "EventSource connection ended normally after execution completed"
+        );
       }
+      eventSource.close();
     };
 
     return {
       close: () => eventSource.close(),
+    };
+  },
+
+  /**
+   * Upload recipe file
+   * @param {File} file - File to upload
+   * @param {string} directory - Target directory
+   * @returns {Promise<object>} - Upload result
+   */
+  async uploadRecipe(file, directory = "recipes") {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("directory", directory);
+
+    const response = await fetch("/api/recipes/upload", {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error uploading recipe: ${response.statusText}`);
+    }
+
+    return response.json();
+  },
+
+  /**
+   * Download recipe as JSON file
+   * @param {object} recipe - Recipe to download
+   * @param {string} filename - Filename to use
+   */
+  downloadRecipe(recipe, filename) {
+    // Create clean copy of the recipe
+    const cleanRecipe = this._cleanRecipeForDownload(recipe);
+
+    // Convert to JSON
+    const json = JSON.stringify(cleanRecipe, null, 2);
+
+    // Create blob
+    const blob = new Blob([json], { type: "application/json" });
+
+    // Create download link
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename || "recipe.json";
+
+    // Trigger download
+    document.body.appendChild(a);
+    a.click();
+
+    // Clean up
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 100);
+  },
+
+  /**
+   * Clean recipe for download
+   * @param {object} recipe - Recipe to clean
+   * @returns {object} - Cleaned recipe
+   * @private
+   */
+  _cleanRecipeForDownload(recipe) {
+    // Make a deep copy
+    const cleanedRecipe = JSON.parse(JSON.stringify(recipe));
+
+    // Remove any UI-specific properties
+    delete cleanedRecipe.ui;
+
+    // Return only the essential properties
+    return {
+      steps: cleanedRecipe.steps,
+      ...(cleanedRecipe.description && {
+        description: cleanedRecipe.description,
+      }),
+      ...(cleanedRecipe.name && { name: cleanedRecipe.name }),
     };
   },
 };

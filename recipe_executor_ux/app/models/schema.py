@@ -33,3 +33,11 @@ class SaveRecipeResponse(BaseModel):
     success: bool
     path: str
     error: Optional[str] = None
+
+class UploadRecipeResponse(BaseModel):
+    """Response from uploading a recipe."""
+    success: bool
+    filename: str
+    path: str
+    recipe: Optional[Dict[str, Any]] = None
+    error: Optional[str] = None

@@ -167,10 +167,13 @@ async def run_generation(model: Optional[str] = None, output_root: Optional[str]
         return {"status": "error", "error": str(e), "logs": [r.getMessage() for r in log_handler.buffer]}
     # Determine output file name
     outline = ctx.get("outline", {})
-    # Use fallback when title is empty or missing
-    title = outline.get("title") or "document"
+    # Determine output filename: use outline.title if non-empty, else fallback
+    raw_title = outline.get("title", "") or ""
+    fname_base = raw_title.strip() or "document"
+    # Snake-case and uppercase
+    fname = fname_base.lower().replace(" ", "_").upper() + ".md"
     # simple snakecase to uppercase
-    fname = title.strip().lower().replace(" ", "_")
+    fname = raw_title.strip().lower().replace(" ", "_")
     fname = fname.upper() + ".md"
     download_url = f"/api/download/{fname}"
     return {"status": "ok", "logs": [r.getMessage() for r in log_handler.buffer], "download_url": download_url}

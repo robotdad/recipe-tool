@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 import json
 import logging
 from pathlib import Path
@@ -152,3 +152,79 @@ def clean_recipe_data(recipe: Dict[str, Any]) -> Dict[str, Any]:
             result[key] = value
 
     return result
+
+@router.post("/upload")
+async def upload_recipe(
+    file: UploadFile = File(...),
+    directory: str = Form("recipes")
+):
+    """Upload a JSON recipe file."""
+    logger.info(f"Uploading recipe file: {file.filename}")
+
+    try:
+        # Ensure we have a valid filename
+        if not file.filename:
+            raise HTTPException(status_code=400, detail="No filename provided")
+
+        # Ensure the file has a .json extension
+        if not file.filename.lower().endswith('.json'):
+            raise HTTPException(status_code=400, detail="File must have .json extension")
+
+        # Create directory if needed
+        dir_path = Path(directory)
+        dir_path.mkdir(parents=True, exist_ok=True)
+
+        # Create the destination path
+        file_path = dir_path / file.filename
+
+        # Check if file exists
+        if file_path.exists():
+            logger.warning(f"File already exists: {file_path}")
+            # Use a simple numbering scheme for duplicate files
+            base_name = file_path.stem
+            extension = file_path.suffix
+            counter = 1
+            while file_path.exists():
+                file_path = dir_path / f"{base_name}_{counter}{extension}"
+                counter += 1
+
+        # Read and validate the JSON content
+        content = await file.read()
+        try:
+            recipe_json = json.loads(content)
+
+            # Basic validation - check if it has steps
+            if not isinstance(recipe_json, dict):
+                raise HTTPException(status_code=400, detail="JSON must be an object")
+
+            if "steps" not in recipe_json or not isinstance(recipe_json["steps"], list):
+                raise HTTPException(status_code=400, detail="Recipe must have a steps array")
+
+            # Clean the recipe data
+            cleaned_recipe = clean_recipe_data(recipe_json)
+
+            # Make sure the path field is set correctly
+            cleaned_recipe["path"] = str(file_path)
+
+            # Write the cleaned JSON to file
+            with open(file_path, "w") as f:
+                json.dump(cleaned_recipe, f, indent=2)
+
+            logger.info(f"Recipe file uploaded and saved to: {file_path}")
+            return {
+                "success": True,
+                "filename": file.filename,
+                "path": str(file_path),
+                "recipe": cleaned_recipe
+            }
+
+        except json.JSONDecodeError:
+            raise HTTPException(status_code=400, detail="Invalid JSON content")
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error uploading recipe: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error uploading file: {str(e)}")
+    finally:
+        await file.close()
