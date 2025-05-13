@@ -1,0 +1,22 @@
+[
+  {
+    "name": "Class Diagram",
+    "description": "Shows the main classes/modules involved in registering and configuring the Read Files Node.",
+    "mermaid_code": "```mermaid\nclassDiagram\nclass Editor {\n  +registerNode type definition\n}\n\nclass ReadFiles {\n  +registerReadFiles editor\n  -html String\n  -onCreate node\n}\n\nclass NodeData {\n  +config Config\n}\n\nclass Config {\n  +path StringArray\n  +content_key String\n}\n\nEditor <.. ReadFiles : uses\nReadFiles ..> NodeData : configures\nNodeData o-- Config\n```"
+  },
+  {
+    "name": "Component Diagram",
+    "description": "Outlines the high-level components and how the read_files module integrates with the Drawflow editor.",
+    "mermaid_code": "```mermaid\nflowchart LR\n  subgraph Module\n    A[read_files.js]\n  end\n\n  subgraph Editor\n    B[Drawflow editor]\n    C[Node registry]\n  end\n\n  subgraph NodeTypeDefinition\n    D[HTML template]\n    E[onCreate logic]\n  end\n\n  A --> B\n  B --> C\n  C --> D\n  C --> E\n```"
+  },
+  {
+    "name": "Sequence Diagram",
+    "description": "Describes the runtime interaction when the application imports and initializes the Read Files Node.",
+    "mermaid_code": "```mermaid\nsequenceDiagram\nApplication ->> ReadFilesModule: import registerReadFiles\nApplication ->> ReadFilesModule: call registerReadFiles\nReadFilesModule ->> Editor: registerNode read_files\nEditor -->> Module: store html and onCreate\nUser ->> Editor: add node of type read_files\nEditor ->> onCreate: invoke with new node\nonCreate ->> Form: render HTML\nForm ->> NodeData: populate default config\n```"
+  },
+  {
+    "name": "Activity Diagram",
+    "description": "Models the user input flow: rendering the form, handling edits, and updating the node configuration.",
+    "mermaid_code": "```mermaid\nflowchart TD\n  Start --> RenderForm\n  RenderForm --> PopulateDefaults\n  PopulateDefaults --> AwaitUserInput\n\n  AwaitUserInput --> UserEntersPath\n  UserEntersPath --> UpdateConfigPath\n\n  AwaitUserInput --> UserEntersKey\n  UserEntersKey --> UpdateConfigKey\n\n  UpdateConfigPath --> PersistConfig\n  UpdateConfigKey --> PersistConfig\n  PersistConfig --> End\n```"
+  }
+]

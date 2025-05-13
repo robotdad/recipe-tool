@@ -1,0 +1,44 @@
+{
+  "component_title": "Loop Node",
+  "purpose_statement": "The Loop Node component registers a Drawflow node named \"loop\" that allows users to configure and execute loop iterations over collections with substeps in the flow editor.",
+  "core_requirements": [
+    "Export a function registerLoop(editor) to register the node with the Drawflow instance.",
+    "Call editor.registerNode(\"loop\", { html, onCreate }) to define the node behavior.",
+    "Define HTML markup including input elements for 'items', 'item_key', 'max_concurrency', 'delay', 'substeps', 'result_key', and 'fail_fast'.",
+    "Bind each form element using df-* attributes or explicit event listeners to node.data.config properties on creation.",
+    "Provide sensible default values for optional configuration properties.",
+    "Ensure the node configuration is accurately reflected in the exported Drawflow JSON."
+  ],
+  "implementation_considerations": [
+    "Use df-* attributes to streamline binding between form elements and node.data.config keys.",
+    "Choose appropriate input types: text for string values, number for numeric values, textarea for JSON arrays (substeps), and checkbox for boolean (fail_fast).",
+    "Implement the onCreate callback to initialize inputs from node.data.config and attach change listeners to update config on user interaction.",
+    "Validate the JSON entered in the substeps textarea; catch parse errors and display a clear user-facing message.",
+    "Keep the HTML markup minimal and reuse existing CSS classes to maintain consistent styling across nodes."
+  ],
+  "component_dependencies": {
+    "internal_components": [],
+    "external_libraries": [
+      "drawflow"
+    ],
+    "configuration_dependencies": []
+  },
+  "output_files": [
+    {
+      "path": "src/nodes/loop.js",
+      "description": "ES module that registers the Loop node type with the Drawflow editor"
+    }
+  ],
+  "logging_requirements": {
+    "debug": [],
+    "info": []
+  },
+  "error_handling": [
+    {
+      "error_type": "JSONParseError",
+      "error_message": "Invalid JSON in substeps configuration",
+      "recovery_action": "Notify the user to correct the JSON format in the substeps field before saving the node."
+    }
+  ],
+  "dependency_integration_considerations": []
+}

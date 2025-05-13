@@ -1,0 +1,76 @@
+{
+  "needs_splitting": true,
+  "reason": "Multiple distinct modules identified",
+  "components": [
+    {
+      "id": "core.canvas",
+      "name": "Canvas Core",
+      "description": "Module responsible for initializing and starting the Drawflow canvas."
+    },
+    {
+      "id": "nodes.read_files",
+      "name": "Read Files Node",
+      "description": "Drawflow node for reading files into the recipe context."
+    },
+    {
+      "id": "nodes.llm_generate",
+      "name": "LLM Generate Node",
+      "description": "Drawflow node for invoking an LLM and storing its output."
+    },
+    {
+      "id": "nodes.set_context",
+      "name": "Set Context Node",
+      "description": "Drawflow node for setting or merging values in the context."
+    },
+    {
+      "id": "nodes.conditional",
+      "name": "Conditional Node",
+      "description": "Drawflow node for branching execution based on conditions."
+    },
+    {
+      "id": "nodes.loop",
+      "name": "Loop Node",
+      "description": "Drawflow node for iterating over collections with substeps."
+    },
+    {
+      "id": "nodes.parallel",
+      "name": "Parallel Node",
+      "description": "Drawflow node for running substeps concurrently."
+    },
+    {
+      "id": "nodes.execute_recipe",
+      "name": "Execute Recipe Node",
+      "description": "Drawflow node for executing sub-recipes with context overrides."
+    },
+    {
+      "id": "nodes.mcp",
+      "name": "MCP Node",
+      "description": "Drawflow node for invoking tools via MCP servers."
+    },
+    {
+      "id": "modules.serialization",
+      "name": "Serialization Module",
+      "description": "Module for converting between Drawflow JSON and recipe DSL."
+    },
+    {
+      "id": "ui.toolbox_shell",
+      "name": "Toolbox Shell UI",
+      "description": "UI module rendering the node palette and import/export controls."
+    },
+    {
+      "id": "ui.chat_assistant_panel",
+      "name": "Chat Assistant Panel",
+      "description": "UI module providing an LLM-powered chat assistant panel."
+    },
+    {
+      "id": "integration.storage_service",
+      "name": "Storage Service Integration",
+      "description": "Integration module for saving and loading flows via backend API."
+    },
+    {
+      "id": "integration.execution_service",
+      "name": "Execution Service Integration",
+      "description": "Integration module for running recipes via backend execution API."
+    }
+  ]
+}

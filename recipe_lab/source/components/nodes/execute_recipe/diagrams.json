@@ -1,0 +1,27 @@
+[
+  {
+    "name": "Component Diagram",
+    "description": "Shows the Execute Recipe Node module and its dependencies in the Drawflow editor.",
+    "mermaid_code": "flowchart LR\n  subgraph ExecuteRecipeModule\n    ERN[Execute Recipe Node]\n    Reg[registerExecuteRecipe]\n  end\n  CanvasJSEditor --> Reg\n  Reg --> ERN\n  ERN --> SerializationJS\n  ERN -.-> STEP_REGISTRY"
+  },
+  {
+    "name": "Class Diagram",
+    "description": "Illustrates the core classes, their methods, and relationships for the Execute Recipe Node.",
+    "mermaid_code": "classDiagram\n  class ExecuteRecipeNode {\n    +registerExecuteRecipe editor\n    +onCreate node\n    +onUpdate node\n    +onSelect node\n    +onDelete node\n  }\n  class NodeConfig {\n    recipe_path\n    context_overrides\n  }\n  class Parser {\n    parseJSON value\n  }\n  class Editor\n  class UIForm\n\n  Editor --> ExecuteRecipeNode\n  ExecuteRecipeNode --> UIForm\n  UIForm --> NodeConfig\n  ExecuteRecipeNode ..> Parser"
+  },
+  {
+    "name": "Sequence Diagram",
+    "description": "Describes the interaction flow from registration through user edits, parsing, and error handling.",
+    "mermaid_code": "sequenceDiagram\n  participant Dev as Developer\n  participant Editor\n  participant Node\n  participant UI\n  participant Parser\n  participant Config\n\n  Dev->>Editor: call registerExecuteRecipe\n  Editor->>Editor: register node type\n  Editor->>Node: onCreate\n  Node->>UI: init form values\n  UI->>Config: update recipePath on input\n  UI->>Parser: debounce parseOverrides\n  Parser-->>Config: update contextOverrides on success\n  Parser-->>UI: show error on failure"
+  },
+  {
+    "name": "State Diagram",
+    "description": "Models JSON validation states for context overrides.",
+    "mermaid_code": "stateDiagram\n  [*] --> Idle\n  Idle --> ValidatingJson: override input\n  ValidatingJson --> Valid: parse success\n  ValidatingJson --> Error: parse failure\n  Error --> Idle: input update\n  Valid --> Idle: next input"
+  },
+  {
+    "name": "Activity Diagram",
+    "description": "Details the sequence of activities from rendering the form to handling user input and parsing JSON.",
+    "mermaid_code": "flowchart TD\n  Start --> RenderForm\n  RenderForm --> onCreate\n  onCreate --> BindListeners\n  BindListeners --> WaitingInput\n  WaitingInput --> RecipeInput: user types path\n  RecipeInput --> UpdateRecipePath\n  WaitingInput --> ContextInput: user types overrides\n  ContextInput --> Debounce\n  Debounce --> ParseJson\n  ParseJson -->|valid| UpdateOverrides\n  ParseJson -->|invalid| ShowError\n  ShowError --> WaitingInput\n  UpdateOverrides --> WaitingInput"
+  }
+]

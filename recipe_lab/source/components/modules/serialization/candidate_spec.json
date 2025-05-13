@@ -1,0 +1,71 @@
+{
+  "component_title": "Serialization Module",
+  "purpose_statement": "Provides two pure functions to convert between Drawflow editor JSON and the recipe DSL format. Ensures a lossless, side-effect-free mapping of node definitions and configurations for import and export in the flow editor. Maintains round-trip fidelity so that converting in one direction and back yields the original data.",
+  "core_requirements": [
+    "Export a function `recipeToDrawflow(recipeJson: object) → object` that maps a recipe DSL object into a Drawflow JSON structure.",
+    "Export a function `drawflowToRecipe(flowJson: object) → object` that maps a Drawflow JSON structure into a recipe DSL object.",
+    "Strip Drawflow‐specific layout and UI metadata (pos_x, pos_y, html, class, inputs, outputs) when converting to recipe DSL.",
+    "Preserve node `name` and its `data.config` as `type` and `config` in recipe steps, and vice versa.",
+    "Accept and return plain JS objects; do not perform any I/O or mutate inputs.",
+    "Validate required input properties and throw descriptive errors for malformed input.",
+    "Ensure that `drawflowToRecipe(recipeToDrawflow(recipe))` returns a semantically equivalent recipe.",
+    "Maintain the order of steps consistent with Drawflow node ordering or provided recipes."
+  ],
+  "implementation_considerations": [
+    "Implement as two pure ES module functions with no side effects.",
+    "Use deep cloning (e.g., structuredClone or JSON methods) to avoid mutating original inputs.",
+    "Define clear mapping logic: iterate over `flowJson.drawflow[moduleName].data` nodes for `drawflowToRecipe`, and assign incremental positions or default modules for `recipeToDrawflow`.",
+    "Validate presence of expected fields (`steps` array for recipes, `drawflow` object for flows) at function start.",
+    "Strip only known Drawflow metadata; preserve unknown fields if needed or log a warning.",
+    "Use a simple naming strategy for generating node IDs when converting from recipe to Drawflow (e.g., using array index).",
+    "Write comprehensive unit tests covering round-trip scenarios and edge cases (empty steps, unknown node types)."
+  ],
+  "component_dependencies": {
+    "internal_components": [],
+    "external_libraries": [],
+    "configuration_dependencies": []
+  },
+  "output_files": [
+    {
+      "path": "src/modules/serialization.js",
+      "description": "Main ES module exporting `recipeToDrawflow` and `drawflowToRecipe` functions."
+    },
+    {
+      "path": "tests/serialization.spec.js",
+      "description": "Unit tests for ensuring round-trip conversions and error cases."
+    }
+  ],
+  "logging_requirements": {
+    "debug": [
+      "Starting recipeToDrawflow with input summary",
+      "Mapped recipe step {stepIndex} of type '{type}' to Drawflow node",
+      "Completed recipeToDrawflow: generated {nodeCount} nodes",
+      "Starting drawflowToRecipe with input summary",
+      "Mapped Drawflow node {nodeId} to recipe step {stepIndex}",
+      "Completed drawflowToRecipe: generated {stepCount} steps"
+    ],
+    "info": []
+  },
+  "error_handling": [
+    {
+      "error_type": "TypeError",
+      "error_message": "Input to recipeToDrawflow must be a valid recipe object with a 'steps' array",
+      "recovery_action": "Verify that the recipe JSON conforms to the expected DSL schema and includes a 'steps' array."
+    },
+    {
+      "error_type": "TypeError",
+      "error_message": "Input to drawflowToRecipe must be a valid Drawflow object with a 'drawflow' property",
+      "recovery_action": "Ensure that the flow JSON was exported from Drawflow and contains the top-level 'drawflow' key."
+    },
+    {
+      "error_type": "Error",
+      "error_message": "Unknown node type '{nodeName}' encountered during conversion",
+      "recovery_action": "Register or map the missing node type in the serialization logic to handle this node."
+    }
+  ],
+  "dependency_integration_considerations": [
+    "Keep this module in sync with `/nodes/*` registrations: when adding new nodes, update serialization mappings accordingly.",
+    "Avoid coupling to Drawflow internals that may change; rely only on the documented export format.",
+    "Coordinate with UI import/export buttons in `toolbox_shell.js` so that serialization functions handle exactly the same JSON shape."
+  ]
+}

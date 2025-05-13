@@ -1,0 +1,84 @@
+{
+  "component_title": "Execution Service Integration",
+  "purpose_statement": "Provides a minimal ES module interface for submitting a recipe flow JSON to a backend execution API. Exposes a single runRecipe function that POSTs the recipe to a configurable endpoint, handles request customization (headers, timeout, cancellation), and returns structured execution results or throws descriptive errors.",
+  "core_requirements": [
+    "Export a runRecipe(flowJson: object, options?: RequestOptions) function that returns a Promise<ExecutionResult>",
+    "Perform an HTTP POST to a configurable endpoint (default \"/api/execute\") with Content-Type: application/json",
+    "Serialize the provided flowJson payload correctly",
+    "Accept optional parameters for custom headers, AbortSignal, timeout, and additional fetch options",
+    "Handle non-2xx HTTP responses by rejecting the Promise with an HTTPError containing status and statusText",
+    "Parse and return the JSON response body on success, resolving with an ExecutionResult containing status, headers, and data",
+    "Resolve with null data when the server responds with 204 No Content",
+    "Gracefully handle network failures by rejecting with NetworkError",
+    "Gracefully handle JSON parsing failures by rejecting with ResponseParseError",
+    "Support request cancellation via AbortSignal"
+  ],
+  "implementation_considerations": [
+    "Use the native fetch API in a browser environment with no additional dependencies",
+    "Allow the endpoint URL (baseUrl) to be configured via module-level setter or passed in options",
+    "Merge default headers with options.headers, supporting extension for authentication tokens",
+    "Wrap fetch in a timeout helper that rejects with TimeoutError after the specified timeout",
+    "Accept an AbortSignal in options to allow request cancellation",
+    "Provide an optional returnRawResponse flag in options to expose the raw Response or its ReadableStream for future streaming support",
+    "Log via console by default; allow injection of a custom logger instance through module configuration or options",
+    "Keep the module as a pure ES module with a single exported runRecipe function"
+  ],
+  "component_dependencies": {
+    "internal_components": [],
+    "external_libraries": [],
+    "configuration_dependencies": []
+  },
+  "output_files": [
+    {
+      "path": "src/integration/execution_service.js",
+      "description": "ES module implementing runRecipe with configurable endpoint, headers, timeout, and cancellation support"
+    },
+    {
+      "path": "src/integration/types.js",
+      "description": "Type definitions: RequestOptions, ExecutionResult, and custom Error classes"
+    }
+  ],
+  "logging_requirements": {
+    "debug": [
+      "Log initiation of recipe execution with URL, headers, and serialized payload",
+      "Log HTTP response status and headers upon receipt"
+    ],
+    "info": [
+      "Log start of recipe execution request",
+      "Log successful completion of recipe execution including status code"
+    ]
+  },
+  "error_handling": [
+    {
+      "error_type": "NetworkError",
+      "error_message": "Failed to send execution request due to network issues",
+      "recovery_action": "Notify the user of network failure and allow retry"
+    },
+    {
+      "error_type": "HTTPError",
+      "error_message": "Execution API returned non-OK status code",
+      "recovery_action": "Reject with status and statusText so UI can display appropriate error message"
+    },
+    {
+      "error_type": "ResponseParseError",
+      "error_message": "Failed to parse execution API JSON response",
+      "recovery_action": "Log raw response body for debugging and reject with parsing error"
+    },
+    {
+      "error_type": "TimeoutError",
+      "error_message": "Execution request timed out",
+      "recovery_action": "Allow user to retry or increase timeout setting"
+    },
+    {
+      "error_type": "AbortError",
+      "error_message": "Execution request was aborted",
+      "recovery_action": "Handle cancellation gracefully in calling code"
+    }
+  ],
+  "dependency_integration_considerations": [
+    "Ensure the backend /api/execute endpoint is CORS-enabled and supports preflight for custom headers",
+    "Coordinate with the authentication module to supply auth tokens via default or per-request headers",
+    "Match request and response JSON schemas with the serialization module output",
+    "No additional integration dependencies required beyond standard fetch compatibility"
+  ]
+}

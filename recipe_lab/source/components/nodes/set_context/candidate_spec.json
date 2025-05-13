@@ -1,0 +1,54 @@
+{
+  "component_title": "Set Context Drawflow Node",
+  "purpose_statement": "The Set Context Drawflow Node is a UI component for the Drawflow editor that lets users configure a recipe step to set or merge values in the execution context. It provides form fields for specifying the context key, the value (with optional nested rendering), and the merge strategy. These settings are bound to the node’s data.config and serialized into the recipe JSON for downstream execution.",
+  "core_requirements": [
+    "Register a Drawflow node named \"set_context\" via editor.registerNode",
+    "Render form inputs for context key (text), value (textarea), nested_render (checkbox), and if_exists (select with options \"overwrite\" and \"merge\")",
+    "Bind each df-* input element to node.data.config on node creation and update",
+    "Persist the configured values in the Drawflow JSON export under node.data.config",
+    "Ensure form updates reflect immediately in node.data.config for serialization and live editing"
+  ],
+  "implementation_considerations": [
+    "Use plain ES modules and no UI frameworks; implement in /src/nodes/set_context.js",
+    "Leverage df-* attribute conventions to synchronize input/textarea/select fields with node.data.config",
+    "Render nested_render as a checkbox defaulting to false and if_exists as a dropdown defaulting to \"overwrite\"",
+    "Validate that the context key is non-empty and show inline validation messages if missing",
+    "Support JSON-like value entries by optionally parsing or sanitizing the textarea input, but accept any string",
+    "Keep CSS scoped (e.g., .drawflow-node .box) and minimal to fit existing Drawflow styling"
+  ],
+  "component_dependencies": {
+    "internal_components": [
+      "core/canvas.js"
+    ],
+    "external_libraries": [
+      "drawflow"
+    ],
+    "configuration_dependencies": []
+  },
+  "output_files": [
+    {
+      "path": "src/nodes/set_context.js",
+      "description": "ES module that registers the Set Context node type with Drawflow, defines its HTML form, and wires df-* inputs to node.data.config"
+    }
+  ],
+  "logging_requirements": {
+    "debug": [
+      "Log initial node.data.config values in onCreate callback",
+      "Log each config field update when form inputs change"
+    ],
+    "info": []
+  },
+  "error_handling": [
+    {
+      "error_type": "ValidationError",
+      "error_message": "Context key is required",
+      "recovery_action": "Display an inline error message and disable node editing until a valid key is provided"
+    },
+    {
+      "error_type": "JSONParseError",
+      "error_message": "Value field contains invalid JSON",
+      "recovery_action": "Highlight the textarea, show a parse error tooltip, and allow user to correct or treat as raw string"
+    }
+  ],
+  "dependency_integration_considerations": []
+}

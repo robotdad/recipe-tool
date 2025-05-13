@@ -1,0 +1,77 @@
+{
+  "component_title": "Storage Service Integration",
+  "purpose_statement": "Provides functions for persisting and retrieving user-created flow definitions via the backend API, enabling the UI to save and load flow JSON by ID.",
+  "core_requirements": [
+    "Export an asynchronous saveFlow(id: string, flowJson: object) function that sends a PUT request to /api/flows/{id} with JSON payload",
+    "Export an asynchronous loadFlow(id: string) function that sends a GET request to /api/flows/{id} and returns parsed JSON",
+    "Use HTTP PUT for saving flows and HTTP GET for loading flows",
+    "Include appropriate headers (Content-Type: application/json) and handle response parsing",
+    "Validate HTTP response status and throw descriptive errors on failures",
+    "Support network error detection and recovery guidance"
+  ],
+  "implementation_considerations": [
+    "Use the browser's fetch API with method PUT for saveFlow and GET for loadFlow",
+    "Attach \"Content-Type: application/json\" header for requests with JSON bodies",
+    "Stringify flowJson when calling saveFlow",
+    "Await fetch response and check response.ok before proceeding",
+    "Call response.json() to parse the returned flow JSON in loadFlow",
+    "Throw Error instances with clear messages on network failures, non-OK statuses, or JSON parsing errors",
+    "Keep functions pure (no side effects beyond the HTTP calls) and return Promises to callers"
+  ],
+  "component_dependencies": {
+    "internal_components": [],
+    "external_libraries": [],
+    "configuration_dependencies": []
+  },
+  "output_files": [
+    {
+      "path": "src/integration/storage_service.js",
+      "description": "ES module exporting saveFlow and loadFlow functions for backend interaction"
+    }
+  ],
+  "logging_requirements": {
+    "debug": [
+      "Initiating saveFlow request for id {id} with payload: {flowJson}",
+      "Received response for saveFlow id {id}: status {status}",
+      "Initiating loadFlow request for id {id}",
+      "Received response for loadFlow id {id}: status {status}"
+    ],
+    "info": [
+      "Flow saved successfully for id {id}",
+      "Flow loaded successfully for id {id}"
+    ]
+  },
+  "error_handling": [
+    {
+      "error_type": "NetworkError",
+      "error_message": "Network error occurred while saving flow {id}: {error}",
+      "recovery_action": "Retry the request or check network connectivity"
+    },
+    {
+      "error_type": "HTTPError",
+      "error_message": "Failed to save flow {id}: received status {status}",
+      "recovery_action": "Verify flow ID and permissions, then retry"
+    },
+    {
+      "error_type": "NetworkError",
+      "error_message": "Network error occurred while loading flow {id}: {error}",
+      "recovery_action": "Retry the request or check network connectivity"
+    },
+    {
+      "error_type": "HTTPError",
+      "error_message": "Failed to load flow {id}: received status {status}",
+      "recovery_action": "Verify flow ID and endpoint availability"
+    },
+    {
+      "error_type": "ParseError",
+      "error_message": "Failed to parse flow JSON for id {id}: {error}",
+      "recovery_action": "Ensure the server returned valid JSON for the flow"
+    }
+  ],
+  "dependency_integration_considerations": [
+    "Ensure the backend /api/flows endpoints support CORS and required HTTP methods",
+    "Include authentication credentials (cookies or bearer tokens) if the API is protected",
+    "Use a configurable base URL for different environments (development, staging, production)",
+    "Coordinate with backend API schema to stay in sync with any changes to the flows endpoint"
+  ]
+}

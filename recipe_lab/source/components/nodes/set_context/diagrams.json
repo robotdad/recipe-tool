@@ -1,0 +1,27 @@
+[
+  {
+    "name": "Class Diagram",
+    "description": "Represents the main classes and their relationships for the Set Context node component",
+    "mermaid_code": "```mermaid\nclassDiagram\n  class SetContextNode {\n    +htmlTemplate\n    +onCreate(nodeElement data)\n    +onUpdate(nodeElement data)\n    +onDestroy(nodeElement data)\n    +defaultConfig key string value string nestedRender boolean ifExists string\n    +data config object\n  }\n  class JSONParseError\n  class ValidationError\n  SetContextNode ..> JSONParseError : uses\n  SetContextNode ..> ValidationError : uses\n```"
+  },
+  {
+    "name": "Sequence Diagram",
+    "description": "Shows the registration of the node and the callback flow including error handling",
+    "mermaid_code": "```mermaid\nsequenceDiagram\n  participant Dev as Developer\n  participant Editor as DrawflowEditor\n  participant Node as SetContextNode\n\n  Dev ->> Editor : registerNode set_context callbacks\n  Editor ->> Node : onCreate nodeElement data\n  Note right of Node : bind inputs to node data config\n\n  Node ->> Node : onBlur keyInput ValidateKey\n  alt key valid\n    Note right of Node : key accepted\n  else key invalid\n    Node -->> Node : throw ValidationError\n  end\n\n  Node ->> Node : onBlur valueInput if nestedRender\n  alt valid json\n    Note right of Node : value parsed\n  else invalid json\n    Node -->> Node : throw JSONParseError\n  end\n\n  Editor ->> Node : onDestroy nodeElement data\n```"
+  },
+  {
+    "name": "Component Diagram",
+    "description": "Illustrates how the Set Context node module fits into the Drawflow ecosystem",
+    "mermaid_code": "```mermaid\nflowchart LR\n  subgraph SetContextModule\n    SCN[SetContextNodeModule]\n  end\n\n  subgraph DrawflowCore\n    DF[DrawflowEditor]\n    Canvas[CanvasModule]\n  end\n\n  SCN --> DF\n  DF --> Canvas\n```"
+  },
+  {
+    "name": "State Machine Diagram",
+    "description": "Models the validation and error states for key and value inputs",
+    "mermaid_code": "```mermaid\nstateDiagram\n  [*] --> Idle\n  Idle --> ValidatingKey : blur key input\n  ValidatingKey --> KeyValid : key not empty\n  ValidatingKey --> KeyInvalid : key empty\n  KeyInvalid --> Idle : user edits key\n\n  Idle --> ParsingValue : blur value input and nestedRender true\n  ParsingValue --> ValueValid : parse success\n  ParsingValue --> ValueInvalid : parse error\n  ValueInvalid --> Idle : user toggles rawInput\n```"
+  },
+  {
+    "name": "Activity Diagram",
+    "description": "Describes user interactions from rendering the node to saving config",
+    "mermaid_code": "```mermaid\nflowchart TD\n  Start --> RenderNode\n  RenderNode --> UserInputKey\n  UserInputKey --> ValidateKey\n  ValidateKey -->|valid| UserInputValue\n  ValidateKey -->|invalid| ShowErrorDisableNode\n  ShowErrorDisableNode --> UserInputKey\n\n  UserInputValue --> CheckNestedRender\n  CheckNestedRender -->|true| ParseJSON\n  CheckNestedRender -->|false| SaveRawValue\n\n  ParseJSON -->|success| SaveValue\n  ParseJSON -->|error| ShowJSONError\n  ShowJSONError --> UserChooseRaw\n  UserChooseRaw --> SaveRawValue\n\n  SaveRawValue --> End\n```"
+  }
+]

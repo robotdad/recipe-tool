@@ -1,0 +1,27 @@
+[
+  {
+    "name": "Class Diagram",
+    "description": "Shows the main module, its relationships to Drawflow, and how NodeData holds its Config.",
+    "mermaid_code": "classDiagram\n  class ParallelRegistrar {\n    +registerParallel(editor : DrawflowInstance) : void\n  }\n  class DrawflowInstance\n  class NodeData {\n    +data.config : ConfigData\n    -data._previousValidSubsteps : string\n  }\n  class ConfigData {\n    +substeps : array\n    +max_concurrency : int\n    +delay : float\n  }\n  ParallelRegistrar --> DrawflowInstance : uses\n  DrawflowInstance --> NodeData : creates\n  NodeData o-- ConfigData : contains"
+  },
+  {
+    "name": "Sequence Diagram",
+    "description": "Flows through importing and registering the node, creation, and handling of user inputs (including valid/invalid JSON).",
+    "mermaid_code": "sequenceDiagram\n  participant Developer\n  participant Module as parallel.js\n  participant Editor as DrawflowInstance\n  participant Node as NodeData\n\n  Developer->>Module: import registerParallel\n  Developer->>Editor: registerParallel(editor)\n  Module->>Editor: registerNode parallel\n  Editor-->>Module: nodeDefinition\n  Editor->>Node: onCreate(node)\n  Node->>Node: init config and backup\n\n  Editor->>Node: user enters max_concurrency\n  Node->>Node: parse int and log debug\n\n  Editor->>Node: user enters delay\n  Node->>Node: parse float and log debug\n\n  Editor->>Node: user edits substeps\n  alt valid JSON\n    Node->>Node: update config and backup, log debug\n  else invalid JSON\n    Node->>Node: alert and log warning\n    Node->>Node: revert to backup\n  end"
+  },
+  {
+    "name": "Activity Diagram",
+    "description": "High-level workflow inside onCreate and event handlers, including parsing, validation, and error recovery.",
+    "mermaid_code": "flowchart TD\n  Start --> CreateNode\n  CreateNode --> InitConfig\n  InitConfig --> BindFields\n  BindFields --> WaitUserInput\n\n  WaitUserInput --> HandleMaxConcurrency\n  HandleMaxConcurrency --> ParseMaxConcurrency\n  ParseMaxConcurrency --> LogDebugConcurrency\n\n  LogDebugConcurrency --> HandleDelay\n  HandleDelay --> ParseDelay\n  ParseDelay --> LogDebugDelay\n\n  LogDebugDelay --> HandleSubsteps\n  HandleSubsteps --> ValidateSubsteps\n  ValidateSubsteps -->|valid| UpdateSubsteps\n  ValidateSubsteps -->|invalid| ErrorRecovery\n\n  UpdateSubsteps --> LogDebugSubsteps\n  LogDebugSubsteps --> End\n  ErrorRecovery --> AlertUser\n  AlertUser --> RevertTextarea\n  RevertTextarea --> End"
+  },
+  {
+    "name": "Component Diagram",
+    "description": "Depicts how the parallel.js module and its tests integrate with DrawflowInstance.",
+    "mermaid_code": "flowchart LR\n  subgraph nodes.parallel\n    P[parallel.js]\n    T[tests/nodes/parallel.test.js]\n  end\n  D[DrawflowInstance]\n  P --> D\n  T --> P"
+  },
+  {
+    "name": "State Machine Diagram",
+    "description": "States for the substeps textarea: idle, editing, valid, and error states.",
+    "mermaid_code": "stateDiagram\n  [*] --> Idle\n  Idle --> Editing : user focuses textarea\n  Editing --> Valid : JSON parse success\n  Editing --> Error : JSON parse failure\n  Valid --> Editing : user changes content\n  Error --> Editing : user retries\n  Valid --> [*]\n  Error --> [*]"
+  }
+]

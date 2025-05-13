@@ -1,0 +1,17 @@
+[
+  "Could you provide the exact schema or expected structure for the “server” configuration (e.g. field names, types such as host, port, headers, credentials), and clarify whether it must always be supplied as a raw JSON blob or can also be edited via separate fields?",
+  "Should the node’s UI use only <textarea> fields for both the server configuration and arguments, or do we need individual inputs for specific server parameters? If separate fields are required, please enumerate them.",
+  "What are the desired default dimensions (width and height) for the MCP node when calling editor.addNode, and are there any specific CSS classes or styling guidelines we should apply to the form inputs or node container?",
+  "How should inline validation warnings be rendered and styled in the node UI? For example, should we insert a red border around the field, display a tooltip, or add a text message below the input, and is there exact wording or iconography to use?",
+  "What precise JSON validation rules must be enforced for the arguments field (e.g. must be an object literal only, no arrays, no special key patterns)?",
+  "Are there any character constraints or naming rules for the tool_name and result_key fields (for example, disallowing spaces or punctuation), and what error messages should be shown if those constraints are violated?",
+  "On missing required fields (tool_name or result_key), should we completely block the export operation or allow export with default placeholder values? Please clarify the desired export behavior.",
+  "Which Drawflow lifecycle events (onCreate, onEdit, onUpdate) must our code hook into? Specifically, should we handle loading existing node.data.config in onEdit or only initial creation and later changes?",
+  "Although logging_requirements is currently empty, do you anticipate any debug or info logs being necessary (e.g. logging successful parses, node registration, or errors)? If so, what messages and levels are required?",
+  "Do you want the output file (src/nodes/mcp.js) to include any automated tests or example usage code, or strictly the ES module implementation?",
+  "Could you supply a sample Drawflow JSON snippet that includes an MCP node (with realistic server, tool_name, arguments, result_key) for use in the documentation examples?",
+  "Beyond registerMcpNode(editor), is there any other public API surface we need to document (e.g. helper functions to get or set a node’s config programmatically)?",
+  "Should the documentation cover how to invoke or execute the configured MCP tool at runtime, or is actual invocation logic handled elsewhere and out of scope for this component?",
+  "Is undo/redo support required for config changes via Drawflow’s history API, and if so, are there special instructions for integrating our change listeners with Drawflow’s built-in undo/redo mechanisms?",
+  "Are there any project-wide code style or formatting guidelines (for example, ESLint, Prettier, or naming conventions) that you want us to adhere to in the generated mcp.js file?"
+]

@@ -1,0 +1,62 @@
+{
+  "component_title": "Execute Recipe Node",
+  "purpose_statement": "Registers a Drawflow node type that lets users configure a sub-recipe execution step by specifying the path to a JSON recipe and optional context overrides, and stores them in the node’s configuration for serialization and downstream execution.",
+  "core_requirements": [
+    "Export a named function registerExecuteRecipe(editor) from src/nodes/execute_recipe.js",
+    "Importable via `import { registerExecuteRecipe } from './nodes/execute_recipe.js'`",
+    "Register node type 'execute_recipe' with editor.registerNode",
+    "Render HTML form under `<div class=\"node execute-recipe-node\">` containing:<ul><li><input type=\"text\" df-recipe_path placeholder=\"Enter recipe path to sub-recipe.json\"></li><li><textarea df-context_overrides placeholder=\"{}\"></textarea></li></ul>",
+    "Bind `<input df-recipe_path>` ↔ node.data.config.recipe_path and `<textarea df-context_overrides>` ↔ node.data.config.context_overrides on create and update",
+    "Persist recipe_path and context_overrides in node.data.config so that export/import round-trips correctly",
+    "Validate context_overrides as JSON on textarea blur or after debounced input; on success update config, on failure display inline error and revert",
+    "Support updating node.data.config on every user edit of recipe_path (input event) and context_overrides (debounced input)"
+  ],
+  "implementation_considerations": [
+    "Place ES module at src/nodes/execute_recipe.js exporting `export function registerExecuteRecipe(editor)`",
+    "Call `editor.registerNode('execute_recipe',{ ... })` inside registerExecuteRecipe(editor)",
+    "Define HTML template string with `<div class=\"node execute-recipe-node\">` wrapper and df-* attributes",
+    "In onCreate(node):<ul><li>Set input.value = node.data.config.recipe_path || ''</li><li>Set textarea.value = JSON.stringify(node.data.config.context_overrides || {},null,2)</li><li>Add listeners: input.on('input') → node.data.config.recipe_path update; textarea.on('input') → debounce(parseJSON)</li></ul>",
+    "In onUpdate(node): re-sync UI from node.data.config in case of programmatic update",
+    "Implement parseJSON(value): attempt JSON.parse; on success remove `.error` state and update node.data.config.context_overrides; on failure add `.error` class to textarea container and show `<div class=\"error-message\">Invalid JSON</div>`",
+    "Debounce textarea parsing by 500ms to improve UX on large payloads",
+    "Support onSelect(node): add `.selected` CSS modifier on root container",
+    "Support onDelete(node): remove event listeners and cleanup UI elements"
+  ],
+  "component_dependencies": {
+    "internal_components": [
+      "canvas.js (Drawflow editor instance)",
+      "modules/serialization.js for drawflowToRecipe mapping",
+      "STEP_REGISTRY integration for execute_recipe step type"
+    ],
+    "external_libraries": [],
+    "configuration_dependencies": []
+  },
+  "output_files": [
+    {
+      "path": "src/nodes/execute_recipe.js",
+      "description": "ES module exporting registerExecuteRecipe(editor) which registers the execute_recipe Drawflow node and binds recipe_path/context_overrides form behavior"
+    }
+  ],
+  "logging_requirements": {
+    "debug": [
+      "Log in onCreate: initial config values for recipe_path and context_overrides",
+      "Log recipe_path changes on input events",
+      "Log context_overrides parsing success and failures"
+    ],
+    "info": [
+      "Log successful registration of the execute_recipe node type"
+    ]
+  },
+  "error_handling": [
+    {
+      "error_type": "JSONParseError",
+      "error_message": "Failed to parse context_overrides JSON",
+      "recovery_action": "Display inline error message, apply `.error` style to textarea, and keep last valid overrides in config"
+    }
+  ],
+  "dependency_integration_considerations": [
+    "Ensure node type name `execute_recipe` matches the recipe DSL step type for serialization",
+    "No manual client-side STEP_REGISTRY update required; serialization.js maps node.data.config into recipe JSON",
+    "Consumers must call `registerExecuteRecipe(editor)` after creating the Drawflow instance and before loading or exporting recipes"
+  ]
+}

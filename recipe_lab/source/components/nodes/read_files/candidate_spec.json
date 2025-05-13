@@ -1,0 +1,37 @@
+{
+  "component_title": "Read Files Node",
+  "purpose_statement": "Provides a Drawflow node registration for the “read_files” step type. This node renders a simple UI with inputs for file path(s) and a content key, binds those inputs to the node’s configuration, and enables the serialization layer to pick up the correct config when exporting/importing recipes.",
+  "core_requirements": [
+    "Register a Drawflow node named \"read_files\" via editor.registerNode",
+    "Render HTML form with labelled inputs for file path (df-path) and context key (df-content_key)",
+    "Populate input fields with existing node.data.config values on creation",
+    "Bind user edits in the df-path input to node.data.config.path",
+    "Bind user edits in the df-content_key input to node.data.config.content_key"
+  ],
+  "implementation_considerations": [
+    "Use a plain ES module exporting function registerReadFiles(editor)",
+    "Invoke editor.registerNode(\"read_files\", { html: `...`, onCreate })",
+    "In the html template, include <input> elements marked with df-path and df-content_key attributes",
+    "In onCreate callback, query for elements with df-path and df-content_key, set their .value from node.data.config, and add input listeners to update node.data.config accordingly",
+    "Keep the implementation minimal, avoid extra abstractions, and rely on Drawflow’s df-* data-binding convention"
+  ],
+  "component_dependencies": {
+    "internal_components": [],
+    "external_libraries": [
+      "drawflow"
+    ],
+    "configuration_dependencies": []
+  },
+  "output_files": [
+    {
+      "path": "src/nodes/read_files.js",
+      "description": "ES module that defines and exports registerReadFiles(editor) to add the read_files node type, its HTML template, and data-binding logic."
+    }
+  ],
+  "logging_requirements": {
+    "debug": [],
+    "info": []
+  },
+  "error_handling": [],
+  "dependency_integration_considerations": []
+}

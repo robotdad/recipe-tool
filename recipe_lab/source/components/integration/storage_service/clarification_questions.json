@@ -1,0 +1,17 @@
+[
+  "How should the base URL for the backend API be configured? For example, should we read it from a specific environment variable (and if so, what is its name and default value), pass it in at runtime, or use another approach?",
+  "What authentication mechanism is required for the /api/flows endpoints? Should saveFlow and loadFlow include an Authorization header (e.g. a bearer token), rely on cookies, or use some other credential mechanism? How are credentials obtained and configured?",
+  "What exactly should saveFlow return when it succeeds? Is it Promise<void>, Promise<responseData>, or another type? Please clarify the expected return value/shape.",
+  "Do you want to use custom error classes (e.g. NetworkError, HTTPError, ParseError) for thrown errors, or should all errors be generic Error instances with the specified messages?",
+  "Should error-level log messages be emitted as part of the logging requirements? If so, please provide the exact messages and logging level for each error case.",
+  "Are there any requirements around HTTP request timeouts, retries, or backoff strategies beyond simply throwing on network failures?",
+  "Do we need to perform any client-side validation of the flowJson payload (e.g. against a JSON schema) before sending, or should validation be left entirely to the server?",
+  "Are there any constraints or patterns on the flow ID (for example, must it be a UUID)? Should we validate or sanitize the 'id' parameter on the client side?",
+  "Is there an existing JSON schema or TypeScript interface definition for the flow JSON format that we should reference or import? Should we include type hints or JSDoc comments in storage_service.js?",
+  "Do you need automated unit or integration tests for saveFlow and loadFlow? If so, which testing framework should be used and where should test files be located?",
+  "Besides exporting saveFlow and loadFlow, should storage_service.js export any additional helpers or a pre-configured fetch instance (for example, with default headers or base URL attached)?",
+  "For documentation, do you require concrete usage examples (e.g. in a React or other UI context)? If so, please describe the target environment and any patterns we should demonstrate.",
+  "Should the fetch calls include additional options (e.g. credentials: 'include', mode: 'cors') beyond method, headers, and body? If so, please specify.",
+  "How should loadFlow behave if the server returns an empty body or null? Should it resolve with null, an empty object, or throw a specific error?",
+  "Is there any planned extension for additional operations (e.g. listing available flows or deleting flows), or should this component remain strictly limited to saveFlow and loadFlow?"
+]

@@ -1,0 +1,27 @@
+[
+  {
+    "name": "Component Diagram",
+    "description": "Shows the modules.serialization component with its two exported functions and the data flow between them.",
+    "mermaid_code": "```mermaid\nflowchart TD\n  subgraph modules.serialization\n    RTD[recipeToDrawflow]\n    DTR[drawflowToRecipe]\n  end\n  RecipeJson[RecipeJson] --> RTD\n  RTD --> DrawflowJson[DrawflowJson]\n  DrawflowJson --> DTR\n  DTR --> RecipeJsonOut[RecipeJson]\n```"
+  },
+  {
+    "name": "Class Diagram",
+    "description": "Describes the core data structures used by the serialization module.",
+    "mermaid_code": "```mermaid\nclassDiagram\n  class Recipe {\n    + steps array\n  }\n  class Step {\n    + type string\n    + config object\n  }\n  class Drawflow {\n    + drawflow map\n  }\n  class Node {\n    + id int\n    + name string\n    + data object\n  }\n  Recipe o-- Step\n  Drawflow o-- Node\n```"
+  },
+  {
+    "name": "Sequence Diagram",
+    "description": "Illustrates the roundtrip conversion sequence between recipeToDrawflow and drawflowToRecipe.",
+    "mermaid_code": "```mermaid\nsequenceDiagram\n  participant U as User\n  participant RTD as recipeToDrawflow\n  participant DTR as drawflowToRecipe\n  U->>RTD: call(recipeJson)\n  RTD-->>U: return drawflowJson\n  U->>DTR: call(drawflowJson)\n  DTR-->>U: return recipeJson\n```"
+  },
+  {
+    "name": "Activity Diagram for recipeToDrawflow",
+    "description": "Outlines the main steps in the recipeToDrawflow function.",
+    "mermaid_code": "```mermaid\nflowchart TD\n  Start --> ValidateRecipe\n  ValidateRecipe --> CloneInput\n  CloneInput --> ComputePositions\n  ComputePositions --> BuildNodes\n  BuildNodes --> AssembleModule\n  AssembleModule --> ReturnDrawflow\n  ReturnDrawflow --> End\n```"
+  },
+  {
+    "name": "Activity Diagram for drawflowToRecipe",
+    "description": "Outlines the main steps in the drawflowToRecipe function.",
+    "mermaid_code": "```mermaid\nflowchart TD\n  Start --> ValidateDrawflow\n  ValidateDrawflow --> CloneInput\n  CloneInput --> IterateModules\n  IterateModules --> StripMetadata\n  StripMetadata --> BuildSteps\n  BuildSteps --> ReturnRecipe\n  ReturnRecipe --> End\n```"
+  }
+]

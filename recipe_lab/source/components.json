@@ -1,0 +1,82 @@
+[
+  {
+    "id": "core.canvas",
+    "deps": [],
+    "refs": []
+  },
+  {
+    "id": "nodes.read_files",
+    "deps": ["core.canvas"],
+    "refs": []
+  },
+  {
+    "id": "nodes.llm_generate",
+    "deps": ["core.canvas"],
+    "refs": []
+  },
+  {
+    "id": "nodes.set_context",
+    "deps": ["core.canvas"],
+    "refs": []
+  },
+  {
+    "id": "nodes.conditional",
+    "deps": ["core.canvas"],
+    "refs": []
+  },
+  {
+    "id": "nodes.loop",
+    "deps": ["core.canvas"],
+    "refs": []
+  },
+  {
+    "id": "nodes.parallel",
+    "deps": ["core.canvas"],
+    "refs": []
+  },
+  {
+    "id": "nodes.execute_recipe",
+    "deps": ["core.canvas"],
+    "refs": []
+  },
+  {
+    "id": "nodes.mcp",
+    "deps": ["core.canvas"],
+    "refs": []
+  },
+  {
+    "id": "modules.serialization",
+    "deps": ["core.canvas"],
+    "refs": []
+  },
+  {
+    "id": "ui.toolbox_shell",
+    "deps": [
+      "core.canvas",
+      "nodes.read_files",
+      "nodes.llm_generate",
+      "nodes.set_context",
+      "nodes.conditional",
+      "nodes.loop",
+      "nodes.parallel",
+      "nodes.execute_recipe",
+      "nodes.mcp"
+    ],
+    "refs": []
+  },
+  {
+    "id": "ui.chat_assistant_panel",
+    "deps": ["core.canvas", "modules.serialization"],
+    "refs": []
+  },
+  {
+    "id": "integration.storage_service",
+    "deps": ["modules.serialization"],
+    "refs": []
+  },
+  {
+    "id": "integration.execution_service",
+    "deps": ["modules.serialization"],
+    "refs": []
+  }
+]

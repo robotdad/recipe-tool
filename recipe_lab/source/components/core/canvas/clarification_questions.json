@@ -1,0 +1,14 @@
+[
+  "Should the createCanvas function be exported as a named export or as the default export, and do we need accompanying TypeScript declaration files or JSDoc type annotations?",
+  "Do we need to specify a minimum or exact version range for the \"drawflow\" NPM package to guarantee compatibility?",
+  "Is importing Drawflow’s CSS (e.g., \"drawflow/dist/style.css\") part of this module’s responsibility, or will styling be handled elsewhere?",
+  "Beyond checking that containerEl instanceof HTMLElement, must we also verify that it is attached to the DOM (for example, using document.contains)?",
+  "In the event that importing Drawflow or calling editor.start() fails, should createCanvas rethrow the error, return null, or follow another standard error-recovery approach?",
+  "What logging mechanism should the module use to emit the required debug and info messages (console, a provided logger, or a custom logging utility)?",
+  "Should createCanvas clear existing child nodes in containerEl before initializing the Drawflow canvas, or should it leave any existing content intact?",
+  "Are there any default configuration options (such as grid settings, zoom level, or background) that the module should apply to the Drawflow editor before or immediately after calling editor.start()?",
+  "Should the returned Drawflow editor instance be given explicit type information (via TypeScript or JSDoc), and what type signature should be documented for consumers?",
+  "Will this module run exclusively in a browser environment, or do we need to accommodate server-side or headless initialization contexts?",
+  "Do we need to include guidance in the consumer documentation about how to perform further Drawflow configuration (adding nodes, events, etc.), or is that outside the scope of this component’s docs?",
+  "If supporting older browsers requires polyfills or additional setup, should those requirements be documented in this spec or deferred to a separate compatibility guide?"
+]

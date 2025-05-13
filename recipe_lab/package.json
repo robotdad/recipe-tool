@@ -1,0 +1,7 @@
+{
+  "name": "recipe-lab",
+  "type": "module",
+  "dependencies": {
+    "drawflow": "^0.0.60"
+  }
+}

@@ -1,0 +1,27 @@
+[
+  {
+    "name": "Class Diagram",
+    "description": "Shows the key classes and their relationships in the llm_generate component.",
+    "mermaid_code": "classDiagram\nclass LLMGenerateNode\nclass DrawflowInstance\nclass NodeDataConfig\nclass LLMGenerateStep\nLLMGenerateNode ..> DrawflowInstance : uses\nLLMGenerateNode --> NodeDataConfig : has\nLLMGenerateStep ..> NodeDataConfig : validates"
+  },
+  {
+    "name": "Component Diagram",
+    "description": "Illustrates the high-level components and how they interact.",
+    "mermaid_code": "flowchart LR\nEditor[DrawflowInstance]\nLLMModule[llm_generate module]\nUIForm[HTML form]\nSerialization[serialization.js]\nEditor --> LLMModule\nLLMModule --> UIForm\nLLMModule --> Serialization"
+  },
+  {
+    "name": "Sequence Diagram",
+    "description": "Describes the runtime sequence for registering, creating, updating, and exporting a node.",
+    "mermaid_code": "sequenceDiagram\nparticipant U as User\nparticipant E as Editor\nparticipant M as LLMGenerateModule\nparticipant S as Serializer\nU->>E: call registerLLMGenerate\nE->>M: registerNode\nM->>M: render HTML form\nNote right of M: onCreate\nM->>M: set default config\nM->>E: nodeDataChanged\nU->>M: user input change\nM->>M: update node.data.config\nM->>E: nodeDataChanged\nE->>S: export recipe step"
+  },
+  {
+    "name": "Activity Diagram",
+    "description": "Shows the main flow for node creation and real-time config updates.",
+    "mermaid_code": "flowchart TD\nStart[Start] --> AddNode[Add node]\nAddNode --> RenderForm[Render form]\nRenderForm --> InitializeConfig[Initialize config]\nInitializeConfig --> DoneInit[Init done]\nDoneInit --> WaitInput[Wait for input]\nWaitInput -->|input event| UpdateConfig[Update config]\nUpdateConfig --> TriggerChange[Trigger nodeDataChanged]\nTriggerChange --> WaitInput"
+  },
+  {
+    "name": "State Diagram",
+    "description": "Models config validation states and transitions for error handling.",
+    "mermaid_code": "stateDiagram\n[*] --> Valid\nValid --> InvalidPrompt : prompt empty\nInvalidPrompt --> Valid : prompt filled\nValid --> InvalidMaxTokens : invalid int\nInvalidMaxTokens --> Valid : valid int\nValid --> InvalidJSON : parse error\nInvalidJSON --> Valid : valid json"
+  }
+]

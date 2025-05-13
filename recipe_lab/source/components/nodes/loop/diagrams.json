@@ -1,0 +1,22 @@
+[
+  {
+    "name": "Class Diagram",
+    "description": "Shows the LoopNode module, its configuration object, and its relationship to the Drawflow Editor.",
+    "mermaid_code": "classDiagram\nclass LoopNode {\n  +registerLoop(editor)\n}\nclass Config {\n  items: string\n  item_key: string\n  max_concurrency: number\n  delay: number\n  substeps: object[]\n  result_key: string\n  fail_fast: boolean\n}\nclass Editor {\n  +registerNode(type, config)\n  +updateNodeDataFromId(id, data)\n  +export()\n}\nLoopNode \"1\" *-- \"1\" Config : has\nLoopNode ..> Editor : uses\nConfig <.. LoopNode : initializes"
+  },
+  {
+    "name": "Component Diagram",
+    "description": "Illustrates the file organization and external dependencies of the Loop Node component.",
+    "mermaid_code": "flowchart LR\n  subgraph nodes\n    LoopJS[\"src/nodes/loop.js\"]\n  end\n  subgraph docs\n    MD[\"docs/nodes/loop_node.md\"]\n  end\n  subgraph tests\n    Test[\"tests/nodes/loop.test.js\"]\n  end\n  Drawflow[\"drawflow library\"]\n  LoopJS --> Drawflow\n  Test --> LoopJS\n  Test --> Drawflow\n  MD --> LoopJS"
+  },
+  {
+    "name": "Sequence Diagram",
+    "description": "Describes the startup and user interaction flow: from registering the node to handling user input and exporting the final config.",
+    "mermaid_code": "sequenceDiagram\n  actor User\n  participant App\n  participant Editor\n  participant LoopNode\n  participant Node\n\n  User->>App: import loop module\n  App->>Editor: start editor\n  App->>LoopNode: registerLoop editor\n  LoopNode->>Editor: registerNode loop\n  User->>Editor: add loop node\n  Editor->>LoopNode: onCreate node element\n  LoopNode->>Node: initialize fields\n  User->>LoopNode: change input\n  LoopNode->>Editor: updateNodeDataFromId\n  Editor->>App: export config"
+  },
+  {
+    "name": "Activity Diagram",
+    "description": "Shows the runtime behavior within the node UI: initialization, input listening, validation, and config updates.",
+    "mermaid_code": "flowchart TD\n  Start --> Register\n  Register[\"call registerLoop\"] --> CreateNode[\"user adds loop node\"]\n  CreateNode --> InitializeFields[\"onCreate init fields\"]\n  InitializeFields --> WaitForInput[\"await user input\"]\n  WaitForInput --> UserInput[\"input event\"]\n  UserInput --> ValidateInput[\"validate field value\"]\n  ValidateInput -->|valid| UpdateConfig[\"update node data\"]\n  ValidateInput -->|invalid| ShowError[\"display error\"]\n  UpdateConfig --> Done[\"config saved\"]\n  ShowError --> WaitForInput\n  Done --> End"
+  }
+]

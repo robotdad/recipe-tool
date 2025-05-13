@@ -1,0 +1,22 @@
+[
+  {
+    "name": "Component Diagram",
+    "description": "Shows the high-level Integration Service component with its collaborators (configuration, logger, fetch/timeouts).",
+    "mermaid_code": "```mermaid\nflowchart LR\n  subgraph integration.execution_service\n    RunRecipe[runRecipe]  \n    Config[Configuration Manager]  \n    Logger[Logger]  \n  end\n  RunRecipe --> Config\n  RunRecipe --> Logger\n  RunRecipe --> FetchAPI[Fetch API]\n  Config --> DefaultHeaders[Default Headers & Base URL]\n  Logger --> Console[Console or Custom Logger]\n```"
+  },
+  {
+    "name": "Class Diagram",
+    "description": "Defines the main module class, its input/output types, and custom error classes.",
+    "mermaid_code": "```mermaid\nclassDiagram\n  class ExecutionService {\n    +Promise\\u003cExecutionResult\\u003e runRecipe(object flowJson, RequestOptions options)\n  }\n  class RequestOptions {\n    +object headers\n    +number timeout\n    +AbortSignal signal\n    +boolean returnRawResponse\n    +object fetchOptions\n  }\n  class ExecutionResult {\n    +number status\n    +object headers\n    +any data\n  }\n  class HTTPError\n  class NetworkError\n  class ResponseParseError\n  class TimeoutError\n  class AbortError\n\n  ExecutionService --> RequestOptions\n  ExecutionService --> ExecutionResult\n  ExecutionService ..|> HTTPError\n  ExecutionService ..|> NetworkError\n  ExecutionService ..|> ResponseParseError\n  ExecutionService ..|> TimeoutError\n  ExecutionService ..|> AbortError\n```"
+  },
+  {
+    "name": "Sequence Diagram",
+    "description": "Illustrates the runRecipe call flow from the client through fetch, timeout handling, parsing and back.",
+    "mermaid_code": "```mermaid\nsequenceDiagram\n  participant Client\n  participant ExecutionService\n  participant TimeoutHelper\n  participant FetchAPI\n  participant JSONParser\n\n  Client->>ExecutionService: call runRecipe(flowJson, options)\n  ExecutionService->>TimeoutHelper: start timeout timer\n  ExecutionService->>FetchAPI: POST endpoint headers payload\n  FetchAPI-->>ExecutionService: http response or network error\n  ExecutionService->>TimeoutHelper: clear timer\n  ExecutionService->>JSONParser: parse response if needed\n  JSONParser-->>ExecutionService: parsed data or parse error\n  ExecutionService-->>Client: return ExecutionResult or throw Error\n```"
+  },
+  {
+    "name": "Activity Diagram",
+    "description": "Shows the internal workflow of runRecipe, including success, error, timeout, and abort paths.",
+    "mermaid_code": "```mermaid\nflowchart TD\n  Start --> SerializePayload[serialize flowJson]\n  SerializePayload --> SendRequest[fetch with headers and options]\n  SendRequest --> CheckStatus[check HTTP status]\n  CheckStatus -->|2xx success| ParseResponse[parse JSON]\n  CheckStatus -->|204 no content| ReturnEmpty[result = null]\n  CheckStatus -->|non2xx| ThrowHTTPError[throw HTTPError]\n  SendRequest -.->|timeout| ThrowTimeoutError\n  SendRequest -.->|abort| ThrowAbortError\n  ParseResponse -->|ok| ReturnResult[return ExecutionResult]\n  ParseResponse -->|fail| ThrowResponseParseError\n  ReturnResult --> End\n  ReturnEmpty --> End\n  ThrowHTTPError --> End\n  ThrowTimeoutError --> End\n  ThrowAbortError --> End\n  ThrowResponseParseError --> End\n```"
+  }
+]

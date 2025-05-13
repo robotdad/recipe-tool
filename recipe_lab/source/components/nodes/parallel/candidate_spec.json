@@ -1,0 +1,46 @@
+{
+  "component_title": "nodes.parallel (Parallel Node)",
+  "purpose_statement": "Provides a Drawflow UI node for the \"parallel\" step in the recipe builder, enabling end users to configure and launch multiple substeps concurrently with optional concurrency limits and launch delays.",
+  "core_requirements": [
+    "Export a `registerParallel(editor)` function that accepts a Drawflow editor instance.",
+    "Invoke `editor.registerNode('parallel', {...})` to register the node type.",
+    "Define an HTML form containing fields for `substeps`, `max_concurrency`, and `delay`.",
+    "Bind each form field (using `df-substeps`, `df-max_concurrency`, `df-delay` attributes) to `node.data.config` on creation.",
+    "Initialize `node.data.config` with sensible defaults (empty list for `substeps`, 0 for `max_concurrency`, 0.0 for `delay`).",
+    "Listen for user input changes and update `node.data.config` accordingly.",
+    "Validate and parse the `substeps` JSON; handle parse errors gracefully (e.g., show alert, revert to previous valid value)."
+  ],
+  "implementation_considerations": [
+    "Use plain ES modules and vanilla JavaScript—no frameworks or build steps.",
+    "Keep the HTML for the node self-contained and minimal; embed directly in the module as a template string.",
+    "Use `df-*` attributes to automate synchronization between form fields and `node.data.config` properties.",
+    "Parse the `substeps` field with `JSON.parse` on input blur or change, and catch exceptions to prevent invalid state.",
+    "Provide default values so that dragging a new Parallel node into the canvas yields a valid configuration object.",
+    "Maintain consistency with other `/nodes/*.js` modules: similar pattern of `registerX` export and `onCreate` handler."
+  ],
+  "component_dependencies": {
+    "internal_components": [
+      "DrawflowInstance — the Drawflow editor on which the node is registered"
+    ],
+    "external_libraries": [],
+    "configuration_dependencies": []
+  },
+  "output_files": [
+    {
+      "path": "src/nodes/parallel.js",
+      "description": "ES module that exports `registerParallel(editor)`, registers the 'parallel' Drawflow node, and implements form binding and JSON validation."
+    }
+  ],
+  "logging_requirements": {
+    "debug": [],
+    "info": []
+  },
+  "error_handling": [
+    {
+      "error_type": "JSONParseError",
+      "error_message": "Invalid JSON in Substeps field",
+      "recovery_action": "Show an alert to the user, revert the textarea to the last valid value, and leave `node.data.config.substeps` unchanged"
+    }
+  ],
+  "dependency_integration_considerations": []
+}

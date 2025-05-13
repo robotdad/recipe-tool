@@ -1,0 +1,17 @@
+[
+  "Could you provide the full HTML structure and any required CSS classes for the Loop node UI, or clarify if there are existing shared templates or styling conventions we should follow?",
+  "For the \"items\" input field: what is the expected format (e.g., JSON array, comma-separated list, variable reference), and how should invalid values be validated and handled?",
+  "Could you specify the exact schema or expected structure of the JSON entered into the \"substeps\" textarea (for example, an array of step definitions or node configurations), and any validation rules beyond catching parse errors?",
+  "Which configuration properties are required vs. optional, and what are the sensible default values for each of the following fields: items, item_key, max_concurrency, delay, substeps, result_key, and fail_fast?",
+  "How should the \"delay\" value be interpreted (milliseconds, seconds, etc.), and are there minimum or maximum allowable limits?",
+  "What input and output ports should the Loop node register with Drawflow (names, types, mapping to loop iterations and results)?",
+  "Can you clarify the intended behavior when \"fail_fast\" is enabled—should the loop immediately exit on the first substep error, and how should that be surfaced in the node’s outputs or error state?",
+  "Beyond the JSONParseError for substeps, are there other runtime error scenarios we need to handle (for example, invalid items config or concurrency failures), and what recovery or user notifications should be triggered?",
+  "Should any debug or info-level log messages be emitted during node registration or execution, and if so, could you provide examples of the log message content and context?",
+  "Which version of the Drawflow library should we target, and are there any Drawflow configuration options (themes, modes, etc.) that the Loop node must support or be compatible with?",
+  "How should registerLoop(editor) be invoked in a typical application workflow—should it automatically attach to a global editor instance or leave that integration entirely to the user?",
+  "Where should the public documentation file for the Loop node be placed (path and filename), and what sections and structure are expected in that docs file?",
+  "Do we need automated tests for the registerLoop function or the Loop node behavior (unit tests, integration tests), and if so, which testing framework and directory structure should we use?",
+  "Are there any performance considerations or enforced limits for max_concurrency that we should document or validate at runtime?",
+  "Should the Loop node definition include any metadata (icon, label, description) in its Drawflow registration, and if so, what assets and values should be used?"
+]

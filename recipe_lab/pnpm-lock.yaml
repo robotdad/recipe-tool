@@ -1,0 +1,22 @@
+lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
+importers:
+
+  .:
+    dependencies:
+      drawflow:
+        specifier: ^0.0.60
+        version: 0.0.60
+
+packages:
+
+  drawflow@0.0.60:
+    resolution: {integrity: sha512-UGj1+1DnWCVY6vJXBb6Ayt7KpPINBGqncVqpYDumVeBdIKxlBGn0tksp2yciVzQjkYsjFwMMDEdoVyWzUa2wkA==}
+
+snapshots:
+
+  drawflow@0.0.60: {}

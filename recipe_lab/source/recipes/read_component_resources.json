@@ -1,0 +1,61 @@
+{
+  "steps": [
+    {
+      "type": "read_files",
+      "config": {
+        "path": "{{ recipe_root }}/components/{{ component.id | replace: '.', '/' }}/{{ component.id | split: '.' | last }}_spec.md",
+        "content_key": "spec"
+      }
+    },
+    {
+      "type": "read_files",
+      "config": {
+        "path": "{{ recipe_root }}/components/{{ component.id | replace: '.', '/' }}/{{ component.id | split: '.' | last }}_docs.md",
+        "content_key": "docs",
+        "optional": true
+      }
+    },
+    {
+      "type": "read_files",
+      "config": {
+        "path": "{% for dep in component.deps %}{{ recipe_root }}/components/{{ dep | replace: '.', '/' }}/{{ dep | split: '.' | last }}_docs.md{% unless forloop.last %},{% endunless %}{% endfor %}",
+        "content_key": "dep_docs",
+        "merge_mode": "dict",
+        "optional": true
+      }
+    },
+    {
+      "type": "read_files",
+      "config": {
+        "path": "{% for ref in component.refs %}{{ refs_root }}/{{ ref }}{% unless forloop.last %},{% endunless %}{% endfor %}",
+        "content_key": "ref_docs",
+        "merge_mode": "dict",
+        "optional": true
+      }
+    },
+    {
+      "type": "read_files",
+      "config": {
+        "path": "ai_context/IMPLEMENTATION_PHILOSOPHY.md",
+        "content_key": "implementation_philosophy"
+      }
+    },
+    {
+      "type": "conditional",
+      "config": {
+        "condition": "{% if dev_guide_path != 'none' %}true{% else %}false{% endif %}",
+        "if_true": {
+          "steps": [
+            {
+              "type": "read_files",
+              "config": {
+                "path": "{{ dev_guide_path }}",
+                "content_key": "dev_guide"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

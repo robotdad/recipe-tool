@@ -1,0 +1,17 @@
+[
+  "What is the complete schema of the recipe DSL object? Please define all required and optional top-level properties and the exact structure of each recipe step (fields like type, config, inputs, outputs, ordering, etc.).",
+  "What is the expected full structure of the Drawflow JSON output? For example, should it include keys like 'drawflow', 'start', 'home' module wrapper, connection maps, or other top-level settings?",
+  "When converting a recipe to Drawflow, what default module name should be used for grouping nodes (e.g., 'main' or 'home')? Are multiple modules supported or should all nodes go into a single default module?",
+  "How should node positions (pos_x, pos_y) be computed in recipeToDrawflow? Do we need specific default coordinates, grid spacing, or relative offsets between nodes?",
+  "Since recipe steps have no connection information, what should the generated Drawflow JSON contain for node inputs, outputs, and connections? Should these be empty arrays/objects or omitted entirely?",
+  "Exactly which Drawflow-specific metadata fields must be stripped in drawflowToRecipe? The spec mentions pos_x, pos_y, html, class, inputs, outputs—are there others (e.g., zIndex, data.connections)?",
+  "How should unknown or custom metadata fields encountered in the Drawflow JSON be handled during drawflowToRecipe? Should they be preserved in the recipe DSL, logged as warnings, or discarded?",
+  "What logging interface or framework should the module use for debug and warning messages? Should we use console.debug, console.warn, a custom logger, or accept an injected logger instance?",
+  "The logging requirements list debug messages but no warning or error logs—should we define warning-level messages for unknown metadata or input anomalies? If so, please specify message formats and levels.",
+  "For error handling, should we throw built-in TypeError and Error classes exactly as specified, or wrap them in custom error types? Must the error messages match the spec strings verbatim (including placeholder syntax)?",
+  "What constitutes 'semantic equivalence' for round-trip fidelity when comparing the original and returned recipe DSL? Should exact JSON equality be enforced, or are ordering and non-essential metadata differences acceptable?",
+  "How should multiple Drawflow modules be handled in drawflowToRecipe? Should all nodes from every module be merged into a single ordered list of recipe steps, or maintained in separate recipe sections?",
+  "Do we need to support any Drawflow features beyond node data—such as connection lines, groups, comments, or custom UI elements—or can those be ignored or stripped?",
+  "What environment(s) must the module run in (Node, browser, both)? If using structuredClone, do we need a fallback (e.g., JSON.parse(JSON.stringify(...))) in older runtimes?",
+  "For the unit tests (tests/serialization.spec.js), are there naming conventions, test runners (e.g., Jest, Mocha), or coverage targets we need to follow? Should sample recipe and flow JSON fixtures be provided?"
+]

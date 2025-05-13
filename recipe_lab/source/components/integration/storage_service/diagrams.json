@@ -1,0 +1,37 @@
+[
+  {
+    "name": "Class Diagram",
+    "description": "Class diagram of the Storage Service Integration module with its methods and custom error classes",
+    "mermaid_code": "```mermaid\nclassDiagram\n    class StorageService {\n      <<module>>\n      +setBaseURL(url:string)\n      +saveFlow(id:string,json:object) Promise<void>\n      +loadFlow(id:string) Promise<object|null>\n    }\n    class AbortController\n    class Fetch\n    class NetworkError\n    class HTTPError\n    class TimeoutError\n    class ParseError\n\n    StorageService --|> AbortController : uses\n    StorageService -- Fetch : uses\n    StorageService ..> NetworkError : throws\n    StorageService ..> HTTPError : throws\n    StorageService ..> TimeoutError : throws\n    StorageService ..> ParseError : throws\n```"
+  },
+  {
+    "name": "Component Diagram",
+    "description": "Component interactions of the storage service with configuration and the backend API",
+    "mermaid_code": "```mermaid\nflowchart LR\n    subgraph ClientUI\n      UI[UI Component]\n    end\n    subgraph StorageServiceIntegration\n      Config[Configuration]\n      Service[Storage Service Module]\n    end\n    subgraph Backend\n      API[Backend API]\n      DB[Database]\n    end\n    UI --> Service\n    Service --> Config\n    Service --> API\n    API --> DB\n```"
+  },
+  {
+    "name": "Sequence Diagram - saveFlow",
+    "description": "Sequence of calls and responses in the saveFlow function",
+    "mermaid_code": "```mermaid\nsequenceDiagram\n    participant UI\n    participant StorageService\n    participant Fetch\n\n    UI->>StorageService: saveFlow id flowJson\n    StorageService->>StorageService: init AbortController\n    StorageService->>Fetch: PUT baseURL/flows/id with headers and body\n    Fetch-->>StorageService: response\n    alt response ok\n        StorageService-->>UI: resolve void\n    else status error\n        StorageService-->>UI: throw HTTPError\n    end\n    alt network error or timeout\n        StorageService-->>UI: throw NetworkError or TimeoutError\n    end\n```"
+  },
+  {
+    "name": "Sequence Diagram - loadFlow",
+    "description": "Sequence of calls and conditional logic in the loadFlow function",
+    "mermaid_code": "```mermaid\nsequenceDiagram\n    participant UI\n    participant StorageService\n    participant Fetch\n\n    UI->>StorageService: loadFlow id\n    StorageService->>StorageService: init AbortController\n    StorageService->>Fetch: GET baseURL/flows/id\n    Fetch-->>StorageService: response\n    alt status 204 or empty body\n        StorageService-->>UI: return null\n    else status ok\n        StorageService->>StorageService: read body text\n        alt body empty\n            StorageService-->>UI: return null\n        else body present\n            StorageService->>StorageService: parse json\n            alt parsed ok\n                StorageService-->>UI: return flowObject\n            else parse error\n                StorageService-->>UI: throw ParseError\n            end\n        end\n    end\n    alt network error or timeout\n        StorageService-->>UI: throw NetworkError or TimeoutError\n    end\n```"
+  },
+  {
+    "name": "Activity Diagram - saveFlow",
+    "description": "Activity flow for the saveFlow operation",
+    "mermaid_code": "```mermaid\nflowchart TD\n    Start --> InitController[setup controller and timeout]\n    InitController --> BuildRequest[construct url headers and body]\n    BuildRequest --> FetchRequest[execute fetch]\n    FetchRequest --> CheckStatus{response ok}\n    CheckStatus -->|yes| Success[resolve void]\n    CheckStatus -->|no| ThrowHTTPError[throw HTTPError]\n    Success --> End\n    ThrowHTTPError --> End\n```"
+  },
+  {
+    "name": "Activity Diagram - loadFlow",
+    "description": "Activity flow for the loadFlow operation with decision points",
+    "mermaid_code": "```mermaid\nflowchart TD\n    Start --> InitController[setup controller and timeout]\n    InitController --> BuildRequest[construct url and headers]\n    BuildRequest --> FetchRequest[execute fetch]\n    FetchRequest --> CheckStatus204{status 204}\n    CheckStatus204 -->|yes| ReturnNull[return null]\n    CheckStatus204 -->|no| ReadBody[read response body]\n    ReadBody --> CheckEmpty{body empty}\n    CheckEmpty -->|yes| ReturnNull\n    CheckEmpty -->|no| ParseJSON[parse json]\n    ParseJSON --> ParsingOk{parsed ok}\n    ParsingOk -->|yes| ReturnObject[return object]\n    ParsingOk -->|no| ThrowParseError[throw ParseError]\n    ReturnNull --> End\n    ReturnObject --> End\n    ThrowParseError --> End\n```"
+  },
+  {
+    "name": "Deployment Diagram",
+    "description": "Deployment of the storage service client, frontend UI, and backend API",
+    "mermaid_code": "```mermaid\nflowchart LR\n    subgraph Browser\n      UI[Frontend UI]\n      StorageClient[storage service js]\n    end\n    subgraph Server\n      BackendAPI[Backend API]\n      Database[Database]\n    end\n    UI --> StorageClient\n    StorageClient --> BackendAPI\n    BackendAPI --> Database\n```"
+  }
+]

@@ -1,0 +1,12 @@
+{
+  "steps": [
+    {
+      "type": "read_files",
+      "config": {
+        "path": "{{ recipe_root }}/components.json",
+        "content_key": "components",
+        "merge_mode": "dict"
+      }
+    }
+  ]
+}

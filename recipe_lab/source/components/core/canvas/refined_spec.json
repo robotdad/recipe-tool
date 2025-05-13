@@ -1,0 +1,85 @@
+{
+  "component_title": "Canvas Core",
+  "purpose_statement": "Canvas Core initializes and starts a Drawflow editor within a given browser container element. It exports a simple ES module function to encapsulate Drawflow setup—validating inputs, clearing the container, instantiating the editor, and returning the ready-to-use instance—without imposing any additional UI responsibilities or global state.",
+  "core_requirements": [
+    "Import Drawflow from the 'drawflow' package using ES module syntax",
+    "Export a function createCanvas(containerEl: HTMLElement) as both a named and default export",
+    "Validate that containerEl is an instance of HTMLElement",
+    "Verify that containerEl is attached to the document (DOM) before initializing",
+    "Clear all existing child nodes of containerEl to ensure a fresh canvas",
+    "Instantiate a new Drawflow editor on the provided container element",
+    "Invoke editor.start() to initialize the Drawflow canvas",
+    "Return the Drawflow editor instance to the caller",
+    "Throw errors on invalid usage or initialization failures"
+  ],
+  "implementation_considerations": [
+    "Implement as a pure ES module with no global mutable state",
+    "Use both named export (export function createCanvas) and default export for convenience",
+    "Include JSDoc type annotations in canvas.js and provide a companion TypeScript declaration file canvas.d.ts",
+    "Use console.debug and console.info for logging; do not introduce a custom logger dependency",
+    "Perform runtime checks: instanceof HTMLElement and element.isConnected",
+    "Catch and handle import or instantiation errors, logging details before rethrowing",
+    "Do not import Drawflow’s CSS; styling responsibilities lie with the consumer or higher-level UI modules",
+    "Delegate any additional Drawflow configuration (zoom, grid settings, background) to callers",
+    "Ensure the module only runs in a browser environment; detect absence of window or document and throw"
+  ],
+  "component_dependencies": {
+    "internal_components": [],
+    "external_libraries": [
+      "drawflow"
+    ],
+    "configuration_dependencies": []
+  },
+  "output_files": [
+    {
+      "path": "src/core/canvas.js",
+      "description": "Main ES module implementing createCanvas to initialize and start a Drawflow canvas."
+    },
+    {
+      "path": "src/core/canvas.d.ts",
+      "description": "TypeScript declaration file for createCanvas, exposing the correct function signature and Drawflow return type."
+    }
+  ],
+  "logging_requirements": {
+    "debug": [
+      "Validating provided container element",
+      "Container is a valid HTMLElement",
+      "Checking container is attached to the document",
+      "Clearing container children",
+      "Importing Drawflow library",
+      "Drawflow library imported successfully",
+      "Instantiating Drawflow editor",
+      "Calling editor.start()",
+      "Drawflow editor started successfully"
+    ],
+    "info": [
+      "Canvas Core: createCanvas completed and editor instance returned"
+    ]
+  },
+  "error_handling": [
+    {
+      "error_type": "InvalidContainerElement",
+      "error_message": "The provided container element is not a valid HTMLElement",
+      "recovery_action": "Throw a TypeError to signal incorrect usage"
+    },
+    {
+      "error_type": "ContainerNotInDOM",
+      "error_message": "The provided container element is not attached to document",
+      "recovery_action": "Throw an Error to signal incorrect DOM context"
+    },
+    {
+      "error_type": "DrawflowInitializationError",
+      "error_message": "Failed to import or initialize Drawflow editor",
+      "recovery_action": "Log the error for debugging and rethrow to caller"
+    }
+  ],
+  "dependency_integration_considerations": [
+    "Ensure the 'drawflow' NPM package is installed at version ^1.0.0 to maintain compatibility",
+    "Import Drawflow using ES module syntax: import Drawflow from 'drawflow'",
+    "Consumer must include Drawflow CSS (e.g., 'drawflow/dist/style.css') separately",
+    "Container must have explicit size and be visible in the DOM before calling createCanvas",
+    "Module is browser-only; unsupported in server-side or headless contexts",
+    "No adapter layers—use Drawflow API directly",
+    "Bundlers should be configured to handle ES module imports of 'drawflow'"
+  ]
+}

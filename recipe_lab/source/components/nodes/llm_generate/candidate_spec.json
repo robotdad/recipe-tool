@@ -1,0 +1,66 @@
+{
+  "component_title": "LLM Generate Node",
+  "purpose_statement": "Register a Drawflow node type “llm_generate” that provides a configuration UI for invoking a language model in the flow editor and stores the resulting settings in node.data.config for serialization and runtime execution.",
+  "core_requirements": [
+    "Export a function registerLLMGenerate(editor: DrawflowInstance)",
+    "Call editor.registerNode(\"llm_generate\", { html, onCreate, onUpdate })",
+    "Define HTML form with controls for: prompt, model, max_tokens, mcp_servers, output_format, output_key",
+    "Bind each form element via df-* attributes to corresponding node.data.config properties",
+    "Initialize node.data.config with sensible defaults on creation",
+    "Listen for form input changes to update node.data.config in real time",
+    "Include at least one input port and one output port for data flow connections",
+    "Ensure node.data.config keys align with the LLMGenerateStep config schema for proper serialization and execution"
+  ],
+  "implementation_considerations": [
+    "Use Drawflow’s registerNode API to define the node type",
+    "Compose the HTML string or element tree in plain JavaScript/ES modules, no frameworks",
+    "Apply df-* attributes on <input>, <textarea>, and <select> elements to auto-bind to node.data.config",
+    "In onCreate callback, iterate over all df-*-marked elements and initialize their values from node.data.config",
+    "In onUpdate or event listener callbacks, update node.data.config whenever a form field value changes",
+    "Set up default values (e.g. model=\"openai/gpt-4o\", output_format=\"text\", output_key=\"llm_output\") directly on node.data.config before rendering",
+    "Keep UI minimal—only the necessary inputs, labels, and layout to match the wabi-sabi and KISS principles",
+    "Avoid external dependencies aside from Drawflow; rely on built-in browser APIs and ES module imports"
+  ],
+  "component_dependencies": {
+    "internal_components": [],
+    "external_libraries": [
+      "drawflow"
+    ],
+    "configuration_dependencies": []
+  },
+  "output_files": [
+    {
+      "path": "src/nodes/llm_generate.js",
+      "description": "ES module that exports registerLLMGenerate(editor), defining the Drawflow node with its HTML form and binding logic"
+    }
+  ],
+  "logging_requirements": {
+    "debug": [
+      "Log when the node is created with its initial config",
+      "Log config updates when any df-* field changes"
+    ],
+    "info": []
+  },
+  "error_handling": [
+    {
+      "error_type": "MissingFieldError",
+      "error_message": "Required field ‘prompt’ is empty",
+      "recovery_action": "Highlight the prompt input, display a validation message, and prevent node save until populated"
+    },
+    {
+      "error_type": "InvalidTypeError",
+      "error_message": "‘max_tokens’ must be a valid integer",
+      "recovery_action": "Show inline error, reset max_tokens to default or empty state"
+    },
+    {
+      "error_type": "InvalidJSONError",
+      "error_message": "‘mcp_servers’ configuration must be valid JSON",
+      "recovery_action": "Catch JSON.parse errors, display validation feedback, and revert to last known good value"
+    }
+  ],
+  "dependency_integration_considerations": [
+    "Ensure df-* attribute names exactly match the LLMGenerateStep’s config field names used by serialization.js",
+    "Maintain consistency between UI config keys and executor step schema to guarantee correct drawflow-to-recipe mapping",
+    "Test import/export round-trip to verify that node.data.config fields serialize and deserialize correctly"
+  ]
+}
