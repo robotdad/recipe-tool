@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Recipe Lab Editor</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/jerosoler/Drawflow/dist/drawflow.min.css">
+  <style>
+    body { margin: 0; font-family: sans-serif; display: flex; height: 100vh; }
+    #toolbox { width: 200px; border-right: 1px solid #ccc; padding: 10px; box-sizing: border-box; overflow-y: auto; }
+    #canvas { flex: 1; position: relative; }
+    #drawflow { width: 100%; height: 100%; }
+    #sidebar { width: 300px; border-left: 1px solid #ccc; padding: 10px; box-sizing: border-box; }
+    button { display: block; width: 100%; margin-bottom: 5px; }
+    textarea { width: 100%; height: calc(100% - 30px); resize: none; }
+    .node-title { font-weight: bold; text-align: center; margin-bottom: 4px; }
+    .port-label { font-size: 10px; text-align: right; color: #666; margin-top: 2px; }
+  </style>
+</head>
+<body>
+  <div id="toolbox">
+    <h3>Toolbox</h3>
+    <button id="add-read-files">Read Files</button>
+    <button id="add-llm-generate">LLM Generate</button>
+    <button id="add-set-context">Set Context</button>
+    <button id="add-write-files">Write Files</button>
+    <button id="add-execute-recipe">Execute Recipe</button>
+    <button id="add-conditional">Conditional</button>
+    <button id="add-loop">Loop</button>
+    <button id="add-parallel">Parallel</button>
+    <button id="add-mcp">MCP Call</button>
+    <hr>
+    <button id="export-btn">Export</button>
+    <button id="import-btn">Import</button>
+    <input type="file" id="import-file" style="display:none" accept=".json">
+  </div>
+  <div id="canvas">
+    <div id="drawflow"></div>
+  </div>
+  <div id="sidebar">
+    <h3>Flow JSON</h3>
+    <textarea id="flow-json" readonly></textarea>
+  </div>
+  <script src="https://cdn.jsdelivr.net/gh/jerosoler/Drawflow/dist/drawflow.min.js"></script>
+  <script type="module" src="./src/index.js"></script>
+</body>
+</html>
