@@ -3,7 +3,7 @@
 [git-collector-data]
 
 **URL:** https://github.com/pydantic/pydantic-ai/tree/main/docs  
-**Date:** 4/29/2025, 5:23:39 PM  
+**Date:** 5/13/2025, 10:23:24 AM  
 **Files:** 12  
 
 === File: docs/agents.md ===
@@ -154,6 +154,13 @@ async def main():
         CallToolsNode(
             model_response=ModelResponse(
                 parts=[TextPart(content='Paris', part_kind='text')],
+                usage=Usage(
+                    requests=1,
+                    request_tokens=56,
+                    response_tokens=1,
+                    total_tokens=57,
+                    details=None,
+                ),
                 model_name='gpt-4o',
                 timestamp=datetime.datetime(...),
                 kind='response',
@@ -218,6 +225,13 @@ async def main():
             CallToolsNode(
                 model_response=ModelResponse(
                     parts=[TextPart(content='Paris', part_kind='text')],
+                    usage=Usage(
+                        requests=1,
+                        request_tokens=56,
+                        response_tokens=1,
+                        total_tokens=57,
+                        details=None,
+                    ),
                     model_name='gpt-4o',
                     timestamp=datetime.datetime(...),
                     kind='response',
@@ -814,6 +828,13 @@ with capture_run_messages() as messages:  # (2)!
                         part_kind='tool-call',
                     )
                 ],
+                usage=Usage(
+                    requests=1,
+                    request_tokens=62,
+                    response_tokens=4,
+                    total_tokens=66,
+                    details=None,
+                ),
                 model_name='gpt-4o',
                 timestamp=datetime.datetime(...),
                 kind='response',
@@ -840,6 +861,13 @@ with capture_run_messages() as messages:  # (2)!
                         part_kind='tool-call',
                     )
                 ],
+                usage=Usage(
+                    requests=1,
+                    request_tokens=72,
+                    response_tokens=8,
+                    total_tokens=80,
+                    details=None,
+                ),
                 model_name='gpt-4o',
                 timestamp=datetime.datetime(...),
                 kind='response',
@@ -1709,7 +1737,7 @@ and [`StreamedRunResult`][pydantic_ai.result.StreamedRunResult] (returned by [`A
 
 Example of accessing methods on a [`RunResult`][pydantic_ai.agent.AgentRunResult] :
 
-```python {title="run_result_messages.py" hl_lines="10 28"}
+```python {title="run_result_messages.py" hl_lines="10"}
 from pydantic_ai import Agent
 
 agent = Agent('openai:gpt-4o', system_prompt='Be a helpful assistant.')
@@ -1746,6 +1774,13 @@ print(result.all_messages())
                 part_kind='text',
             )
         ],
+        usage=Usage(
+            requests=1,
+            request_tokens=60,
+            response_tokens=12,
+            total_tokens=72,
+            details=None,
+        ),
         model_name='gpt-4o',
         timestamp=datetime.datetime(...),
         kind='response',
@@ -1757,7 +1792,7 @@ _(This example is complete, it can be run "as is")_
 
 Example of accessing methods on a [`StreamedRunResult`][pydantic_ai.result.StreamedRunResult] :
 
-```python {title="streamed_run_result_messages.py" hl_lines="9 31"}
+```python {title="streamed_run_result_messages.py" hl_lines="9 40"}
 from pydantic_ai import Agent
 
 agent = Agent('openai:gpt-4o', system_prompt='Be a helpful assistant.')
@@ -1824,6 +1859,13 @@ async def main():
                         part_kind='text',
                     )
                 ],
+                usage=Usage(
+                    requests=0,
+                    request_tokens=50,
+                    response_tokens=12,
+                    total_tokens=62,
+                    details=None,
+                ),
                 model_name='gpt-4o',
                 timestamp=datetime.datetime(...),
                 kind='response',
@@ -1883,6 +1925,13 @@ print(result2.all_messages())
                 part_kind='text',
             )
         ],
+        usage=Usage(
+            requests=1,
+            request_tokens=60,
+            response_tokens=12,
+            total_tokens=72,
+            details=None,
+        ),
         model_name='gpt-4o',
         timestamp=datetime.datetime(...),
         kind='response',
@@ -1905,6 +1954,13 @@ print(result2.all_messages())
                 part_kind='text',
             )
         ],
+        usage=Usage(
+            requests=1,
+            request_tokens=61,
+            response_tokens=26,
+            total_tokens=87,
+            details=None,
+        ),
         model_name='gpt-4o',
         timestamp=datetime.datetime(...),
         kind='response',
@@ -1967,7 +2023,7 @@ The message format is independent of the model used, so you can use messages in 
 
 In the example below, we reuse the message from the first agent run, which uses the `openai:gpt-4o` model, in a second agent run using the `google-gla:gemini-1.5-pro` model.
 
-```python {title="Reusing messages with a different model" hl_lines="11"}
+```python {title="Reusing messages with a different model" hl_lines="17"}
 from pydantic_ai import Agent
 
 agent = Agent('openai:gpt-4o', system_prompt='Be a helpful assistant.')
@@ -2011,6 +2067,13 @@ print(result2.all_messages())
                 part_kind='text',
             )
         ],
+        usage=Usage(
+            requests=1,
+            request_tokens=60,
+            response_tokens=12,
+            total_tokens=72,
+            details=None,
+        ),
         model_name='gpt-4o',
         timestamp=datetime.datetime(...),
         kind='response',
@@ -2033,6 +2096,13 @@ print(result2.all_messages())
                 part_kind='text',
             )
         ],
+        usage=Usage(
+            requests=1,
+            request_tokens=61,
+            response_tokens=26,
+            total_tokens=87,
+            details=None,
+        ),
         model_name='gemini-1.5-pro',
         timestamp=datetime.datetime(...),
         kind='response',
@@ -2938,6 +3008,13 @@ print(dice_result.all_messages())
                 part_kind='tool-call',
             )
         ],
+        usage=Usage(
+            requests=1,
+            request_tokens=90,
+            response_tokens=2,
+            total_tokens=92,
+            details=None,
+        ),
         model_name='gemini-1.5-flash',
         timestamp=datetime.datetime(...),
         kind='response',
@@ -2964,6 +3041,13 @@ print(dice_result.all_messages())
                 part_kind='tool-call',
             )
         ],
+        usage=Usage(
+            requests=1,
+            request_tokens=91,
+            response_tokens=4,
+            total_tokens=95,
+            details=None,
+        ),
         model_name='gemini-1.5-flash',
         timestamp=datetime.datetime(...),
         kind='response',
@@ -2988,6 +3072,13 @@ print(dice_result.all_messages())
                 part_kind='text',
             )
         ],
+        usage=Usage(
+            requests=1,
+            request_tokens=92,
+            response_tokens=12,
+            total_tokens=104,
+            details=None,
+        ),
         model_name='gemini-1.5-flash',
         timestamp=datetime.datetime(...),
         kind='response',

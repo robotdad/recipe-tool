@@ -19,12 +19,12 @@
     },
     {
       "key": "modular_design_philosophy",
-      "path": "ai_context/git_collector/MODULAR_DESIGN_PHILOSOPHY.md",
+      "path": "ai_context/MODULAR_DESIGN_PHILOSOPHY.md",
       "description": "The modular design philosophy document. This document describes the modular design philosophy of our work, with can be applied to how we construct recipes as well."
     },
     {
       "key": "implementation_philosophy",
-      "path": "ai_context/git_collector/IMPLEMENTATION_PHILOSOPHY.md",
+      "path": "ai_context/IMPLEMENTATION_PHILOSOPHY.md",
       "description": "The implementation philosophy document. This document describes the implementation philosophy of our work, with can be applied to how we construct recipes as well."
     },
     {

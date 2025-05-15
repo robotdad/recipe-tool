@@ -5,7 +5,7 @@
 **Search:** ['recipes/recipe_executor']
 **Exclude:** ['.venv', 'node_modules', '.git', '__pycache__', '*.pyc', '*.ruff_cache']
 **Include:** []
-**Date:** 5/7/2025, 2:40:51 PM
+**Date:** 5/15/2025, 8:40:28 AM
 **Files:** 53
 
 === File: recipes/recipe_executor/README.md ===
@@ -3409,7 +3409,7 @@ The LoopStep component enables recipes to iterate over a collection of items, ex
 - Provide consistent error handling across all iterations
 - Maintain processing state to enable resumability
 - Support various collection types (arrays, objects)
-- Support concurrent processing of items using configurable parallelism settings (max_concurrency > 1)
+- Support concurrent processing of items using configurable parallelism settings (max_concurrency > 1, or max_concurrency = 0 for no limit)
 - Provide control over the number of items processed simultaneously
 - Allow for staggered execution of parallel items via optional delay parameter
 - Prevent nested thread pool creation that could lead to deadlocks or resource exhaustion
@@ -3738,7 +3738,7 @@ The ParallelStep component enables the Recipe Executor to run multiple sub-recip
 
 - Accept a list of sub-step configurations (each sub-step is an `execute_recipe` step definition)
 - Clone the current execution context for each sub-step to ensure isolation
-- Execute sub-steps concurrently with a configurable maximum concurrency limit
+- Execute sub-steps concurrently with a configurable maximum concurrency limit (max_concurrency > 1, or max_concurrency = 0 for no limit)
 - Support an optional delay between launching each sub-step
 - Wait for all sub-steps to complete before proceeding, with appropriate timeout handling
 - Implement fail-fast behavior: if any sub-step fails, stop launching new ones and report the error

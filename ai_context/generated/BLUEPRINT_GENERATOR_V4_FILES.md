@@ -5,7 +5,7 @@
 **Search:** ['recipes/experimental/blueprint_generator_v4']
 **Exclude:** ['.venv', 'node_modules', '.git', '__pycache__', '*.pyc', '*.ruff_cache']
 **Include:** []
-**Date:** 5/6/2025, 10:52:16 AM
+**Date:** 5/15/2025, 8:40:28 AM
 **Files:** 16
 
 === File: recipes/experimental/blueprint_generator_v4/README.md ===
@@ -21,6 +21,10 @@ recipe-tool --execute recipes/experimental/blueprint_generator_v4/build.json \
    output_dir=blueprint_test/output/blueprint_generator_v4 \
    model=openai/o4-mini
 ```
+
+If any components have further details needed, a file will be created in the root of the output directory with the name of the component included as: `<component_name>_review_needed.md`.
+
+Review these files and add any additional details needed to them and then change the file name to `<component_name>_review_provided.md`. After this, re-run the blueprint generator with the same command as above. This will cause the generator to read those files and use the information in them to update the in-progress blueprint and try to continue from there.
 
 ## Youtube Viewer Example with Code Generation
 
@@ -107,7 +111,7 @@ recipe-tool --execute blueprint_test/output/youtube_viewer/build.json \
             {
               "type": "llm_generate",
               "config": {
-                "prompt": "System: You are an expert software architect.\nAnalyze the high-level project specification, vision/context documents, reference docs, and design philosophies.\n<PROJECT_SPEC>\n{{ project_spec_content }}\n</PROJECT_SPEC>\n<CONTEXT_DOCS>\n{% if context_docs_content %}{% for path in context_docs_content %}[{{ path }}]\n{{ context_docs_content[path] }}\n{% endfor %}{% endif %}\n</CONTEXT_DOCS>\n<REFERENCE_DOCS>\n{% if ref_docs_content %}{% for path in ref_docs_content %}[{{ path }}]\n{{ ref_docs_content[path] }}\n{% endfor %}{% endif %}\n</REFERENCE_DOCS>\n<PHILOSOPHY_GUIDES>\n[IMPLEMENTATION] {{ implementation_philosophy }}\n[MODULAR] {{ modular_design_philosophy }}\n[DOCS_GUIDE] {{ component_docs_spec_guide }}\n</PHILOSOPHY_GUIDES>\nPlease output a JSON object with properties:\n- needs_splitting (boolean)\n- components (array of component IDs as strings)\nEnsure the response is valid JSON only.",
+                "prompt": "System: You are an expert software architect.\nAnalyze the high-level project specification, vision/context documents, reference docs, and design philosophies.\n<PROJECT_SPEC>\n{{ project_spec_content }}\n</PROJECT_SPEC>\n<CONTEXT_DOCS>\n{% if context_docs_content %}{% for path in context_docs_content %}[{{ path }}]\n{{ context_docs_content[path] }}\n{% endfor %}{% endif %}\n</CONTEXT_DOCS>\n<REFERENCE_DOCS>\n{% if ref_docs_content %}{% for path in ref_docs_content %}[{{ path }}]\n{{ ref_docs_content[path] }}\n{% endfor %}{% endif %}\n</REFERENCE_DOCS>\n<PHILOSOPHY_GUIDES>\n[IMPLEMENTATION] {{ implementation_philosophy }}\n[MODULAR] {{ modular_design_philosophy }}\n[DOCS_GUIDE] {{ component_docs_spec_guide }}\n</PHILOSOPHY_GUIDES>\nPlease output a JSON object with properties:\n- needs_splitting (boolean, true if more than one component)\n- components (array of component IDs as coding language agnostic strings, using dot notation for any sub-components, ex: 'main', 'api.users', 'api.modules', etc.)\nEnsure the response is valid JSON only.",
                 "model": "{{ model }}",
                 "output_format": {
                   "type": "object",
@@ -162,13 +166,13 @@ recipe-tool --execute blueprint_test/output/youtube_viewer/build.json \
     {
       "type": "conditional",
       "config": {
-        "condition": "file_exists('{{ output_dir }}/components/{{ component.id }}/approval_result.json')",
+        "condition": "file_exists('{{ output_dir }}/components/{{ component.id | replace: '.', '/' }}/approval_result.json')",
         "if_true": {
           "steps": [
             {
               "type": "read_files",
               "config": {
-                "path": "{{ output_dir }}/components/{{ component.id }}/approval_result.json",
+                "path": "{{ output_dir }}/components/{{ component.id | replace: '.', '/' }}/approval_result.json",
                 "content_key": "approval_result",
                 "merge_model": "dict"
               }
@@ -198,7 +202,7 @@ recipe-tool --execute blueprint_test/output/youtube_viewer/build.json \
               "config": {
                 "files": [
                   {
-                    "path": "{{ component.id }}/approval_result.json",
+                    "path": "{{ component.id | replace: '.', '/' }}/approval_result.json",
                     "content_key": "approval_result"
                   }
                 ],
@@ -220,7 +224,7 @@ recipe-tool --execute blueprint_test/output/youtube_viewer/build.json \
       "type": "llm_generate",
       "config": {
         "model": "{{ model }}",
-        "prompt": "Generate the docs file for the component '{{ component.id }}' based on the refined spec and provided diagrams.\nWhere appropriate, include any of the diagrams that would be important for consumers/users of this component, but not the ones only needed by implementers of the component.\n<REFINED_SPEC>\n{{ refined_spec }}\n</REFINED_SPEC>\n<COMPONENT>\n{{ component }}\n</COMPONENT>\n<DIAGRAMS>\n{{ diagrams }}\n</DIAGRAMS>\n<PHILOSOPHY_GUIDES>\n[IMPLEMENTATION] {{ implementation_philosophy }}\n[MODULAR] {{ modular_design_philosophy }}\n[DOCS_GUIDE] {{ component_docs_spec_guide }}\n</PHILOSOPHY_GUIDES>\nSave as '{{ component.id }}_docs.md'.",
+        "prompt": "Generate the docs file for the component '{{ component.id }}' based on the refined spec and provided diagrams.\nWhere appropriate, include any of the diagrams that would be important for consumers/users of this component, but not the ones only needed by implementers of the component.\n<REFINED_SPEC>\n{{ refined_spec }}\n</REFINED_SPEC>\n<COMPONENT>\n{{ component }}\n</COMPONENT>\n<DIAGRAMS>\n{{ diagrams }}\n</DIAGRAMS>\n<PHILOSOPHY_GUIDES>\n[IMPLEMENTATION] {{ implementation_philosophy }}\n[MODULAR] {{ modular_design_philosophy }}\n[DOCS_GUIDE] {{ component_docs_spec_guide }}\n</PHILOSOPHY_GUIDES>\nSave as '{{ component.id | replace: '.', '/' }}_docs.md'.",
         "output_format": "files",
         "output_key": "docs_file"
       }
@@ -229,14 +233,14 @@ recipe-tool --execute blueprint_test/output/youtube_viewer/build.json \
       "type": "write_files",
       "config": {
         "files_key": "docs_file",
-        "root": "{{ output_dir }}/components/{{ component.id }}"
+        "root": "{{ output_dir }}/components"
       }
     },
     {
       "type": "llm_generate",
       "config": {
         "model": "{{ model }}",
-        "prompt": "Generate the spec file for the component '{{ component.id }}' based on the refined spec, component docs, and provided diagrams.\nInclude any of the diagrams that were not used by the docs file for this component, so that they are available to the implementer who will get both the docs and spec file for their context.\n<REFINED_SPEC>\n{{ refined_spec }}\n</REFINED_SPEC>\n<COMPONENT>\n{{ component }}\n</COMPONENT>\n<DIAGRAMS>\n{{ diagrams }}\n</DIAGRAMS>\n<COMPONENT_DOCS>\n{{ docs_file[0].content }}\n</COMPONENT_DOCS>\n<PHILOSOPHY_GUIDES>\n[IMPLEMENTATION] {{ implementation_philosophy }}\n[MODULAR] {{ modular_design_philosophy }}\n[DOCS_GUIDE] {{ component_docs_spec_guide }}\n</PHILOSOPHY_GUIDES>\nEmpty arrays should be rendered as the string **None** under their respective sections. Save as '{{ component.id }}_spec.md'.",
+        "prompt": "Generate the spec file for the component '{{ component.id }}' based on the refined spec, component docs, and provided diagrams.\nInclude any of the diagrams that were not used by the docs file for this component, so that they are available to the implementer who will get both the docs and spec file for their context.\n<REFINED_SPEC>\n{{ refined_spec }}\n</REFINED_SPEC>\n<COMPONENT>\n{{ component }}\n</COMPONENT>\n<DIAGRAMS>\n{{ diagrams }}\n</DIAGRAMS>\n<COMPONENT_DOCS>\n{{ docs_file[0].content }}\n</COMPONENT_DOCS>\n<PHILOSOPHY_GUIDES>\n[IMPLEMENTATION] {{ implementation_philosophy }}\n[MODULAR] {{ modular_design_philosophy }}\n[DOCS_GUIDE] {{ component_docs_spec_guide }}\n</PHILOSOPHY_GUIDES>\nEmpty arrays should be rendered as the string **None** under their respective sections. Save as '{{ component.id | replace: '.', '/' }}_spec.md'.",
         "output_format": "files",
         "output_key": "spec_file"
       }
@@ -245,7 +249,7 @@ recipe-tool --execute blueprint_test/output/youtube_viewer/build.json \
       "type": "write_files",
       "config": {
         "files_key": "spec_file",
-        "root": "{{ output_dir }}/components/{{ component.id }}"
+        "root": "{{ output_dir }}/components"
       }
     }
   ]
@@ -258,13 +262,13 @@ recipe-tool --execute blueprint_test/output/youtube_viewer/build.json \
     {
       "type": "conditional",
       "config": {
-        "condition": "file_exists('{{ output_dir }}/components/{{ component.id }}/candidate_spec.json')",
+        "condition": "file_exists('{{ output_dir }}/components/{{ component.id | replace: '.', '/' }}/candidate_spec.json')",
         "if_true": {
           "steps": [
             {
               "type": "read_files",
               "config": {
-                "path": "{{ output_dir }}/components/{{ component.id }}/candidate_spec.json",
+                "path": "{{ output_dir }}/components/{{ component.id | replace: '.', '/' }}/candidate_spec.json",
                 "content_key": "candidate_spec",
                 "merge_model": "dict"
               }
@@ -379,7 +383,7 @@ recipe-tool --execute blueprint_test/output/youtube_viewer/build.json \
               "config": {
                 "files": [
                   {
-                    "path": "{{ component.id }}/candidate_spec.json",
+                    "path": "{{ component.id | replace: '.', '/' }}/candidate_spec.json",
                     "content_key": "candidate_spec"
                   }
                 ],
@@ -400,13 +404,13 @@ recipe-tool --execute blueprint_test/output/youtube_viewer/build.json \
     {
       "type": "conditional",
       "config": {
-        "condition": "file_exists('{{ output_dir }}/components/{{ component.id }}/clarification_questions.json')",
+        "condition": "file_exists('{{ output_dir }}/components/{{ component.id | replace: '.', '/' }}/clarification_questions.json')",
         "if_true": {
           "steps": [
             {
               "type": "read_files",
               "config": {
-                "path": "{{ output_dir }}/components/{{ component.id }}/clarification_questions.json",
+                "path": "{{ output_dir }}/components/{{ component.id | replace: '.', '/' }}/clarification_questions.json",
                 "content_key": "clarification_questions",
                 "merge_model": "dict"
               }
@@ -429,7 +433,7 @@ recipe-tool --execute blueprint_test/output/youtube_viewer/build.json \
               "config": {
                 "files": [
                   {
-                    "path": "{{ component.id }}/clarification_questions.json",
+                    "path": "{{ component.id | replace: '.', '/' }}/clarification_questions.json",
                     "content_key": "clarification_questions"
                   }
                 ],
@@ -450,13 +454,13 @@ recipe-tool --execute blueprint_test/output/youtube_viewer/build.json \
     {
       "type": "conditional",
       "config": {
-        "condition": "file_exists('{{ output_dir }}/components/{{ component.id }}/diagrams.json')",
+        "condition": "file_exists('{{ output_dir }}/components/{{ component.id | replace: '.', '/' }}/diagrams.json')",
         "if_true": {
           "steps": [
             {
               "type": "read_files",
               "config": {
-                "path": "{{ output_dir }}/components/{{ component.id }}/diagrams.json",
+                "path": "{{ output_dir }}/components/{{ component.id | replace: '.', '/' }}/diagrams.json",
                 "content_key": "diagrams",
                 "merge_model": "dict"
               }
@@ -488,7 +492,7 @@ recipe-tool --execute blueprint_test/output/youtube_viewer/build.json \
               "config": {
                 "files": [
                   {
-                    "path": "{{ component.id }}/diagrams.json",
+                    "path": "{{ component.id | replace: '.', '/' }}/diagrams.json",
                     "content_key": "diagrams"
                   }
                 ],
@@ -509,13 +513,13 @@ recipe-tool --execute blueprint_test/output/youtube_viewer/build.json \
     {
       "type": "conditional",
       "config": {
-        "condition": "file_exists('{{ output_dir }}/components/{{ component.id }}/refined_spec.json')",
+        "condition": "file_exists('{{ output_dir }}/components/{{ component.id | replace: '.', '/' }}/refined_spec.json')",
         "if_true": {
           "steps": [
             {
               "type": "read_files",
               "config": {
-                "path": "{{ output_dir }}/components/{{ component.id }}/refined_spec.json",
+                "path": "{{ output_dir }}/components/{{ component.id | replace: '.', '/' }}/refined_spec.json",
                 "content_key": "refined_spec",
                 "merge_model": "dict"
               }
@@ -630,7 +634,7 @@ recipe-tool --execute blueprint_test/output/youtube_viewer/build.json \
               "config": {
                 "files": [
                   {
-                    "path": "{{ component.id }}/refined_spec.json",
+                    "path": "{{ component.id | replace: '.', '/' }}/refined_spec.json",
                     "content_key": "refined_spec"
                   }
                 ],
@@ -651,7 +655,7 @@ recipe-tool --execute blueprint_test/output/youtube_viewer/build.json \
     {
       "type": "conditional",
       "config": {
-        "condition": "file_exists('{{ output_dir }}/{{ component.id }}_review_needed.md')",
+        "condition": "file_exists('{{ output_dir }}/{{ component.id | replace: '.', '/' }}_review_needed.md')",
         "if_false": {
           "steps": [
             {
@@ -687,48 +691,198 @@ recipe-tool --execute blueprint_test/output/youtube_viewer/build.json \
 {
   "steps": [
     {
-      "type": "execute_recipe",
-      "config": {
-        "recipe_path": "recipes/experimental/blueprint_generator_v4/recipes/component_processor/generate_candidate_spec.json"
-      }
-    },
-    {
-      "type": "execute_recipe",
-      "config": {
-        "recipe_path": "recipes/experimental/blueprint_generator_v4/recipes/component_processor/refine_cycle.json",
-        "context_overrides": {
-          "candidate_spec": "{{ candidate_spec }}",
-          "retry_count": 0,
-          "max_retries": 2
-        }
-      }
-    },
-    {
       "type": "conditional",
       "config": {
-        "condition": "{{ approval_result.approved }}",
+        "condition": "file_exists('{{ output_dir }}/components/{{ component.id | replace: '.', '/' }}_docs.md') and file_exists('{{ output_dir }}/components/{{ component.id | replace: '.', '/' }}_spec.md')",
         "if_false": {
           "steps": [
             {
-              "type": "execute_recipe",
+              "type": "conditional",
               "config": {
-                "recipe_path": "recipes/experimental/blueprint_generator_v4/recipes/component_processor/human_review_needed.json"
-              }
-            }
-          ]
-        },
-        "if_true": {
-          "steps": [
-            {
-              "type": "execute_recipe",
-              "config": {
-                "recipe_path": "recipes/experimental/blueprint_generator_v4/recipes/component_processor/generate_diagrams.json"
+                "condition": "file_exists('{{ output_dir }}/{{ component.id }}_review_provided.md')",
+                "if_true": {
+                  "steps": [
+                    {
+                      "type": "read_files",
+                      "config": {
+                        "path": "{{ output_dir }}/{{ component.id }}_review_provided.md",
+                        "content_key": "human_review_feedback"
+                      }
+                    },
+                    {
+                      "type": "llm_generate",
+                      "config": {
+                        "model": "{{ model }}",
+                        "prompt": "Generate an improved refined spec based on the human review feedback and previous attempt.\n<PREVIOUS_REFINED_SPEC>\n{{ refined_spec }}\n</PREVIOUS_REFINED_SPEC>\n<HUMAN_FEEDBACK>\n{{ human_review_feedback }}\n</HUMAN_FEEDBACK>\n\nAdditional Context:\n\n<PROJECT_SPEC>\n{{ project_spec_content }}\n</PROJECT_SPEC>\n<CONTEXT_DOCS>\n{% if context_docs_content %}{% for path in context_docs_content %}[{{ path }}]\n{{ context_docs_content[path] }}\n{% endfor %}{% endif %}\n</CONTEXT_DOCS>\n<REFERENCE_DOCS>\n{% if ref_docs_content %}{% for path in ref_docs_content %}[{{ path }}]\n{{ ref_docs_content[path] }}\n{% endfor %}{% endif %}\n</REFERENCE_DOCS>\n<PHILOSOPHY_GUIDES>\n[IMPLEMENTATION] {{ implementation_philosophy }}\n[MODULAR] {{ modular_design_philosophy }}\n[DOCS_GUIDE] {{ component_docs_spec_guide }}\n</PHILOSOPHY_GUIDES>For any lists that would result in **None**, return an empty array.",
+                        "output_format": {
+                          "type": "object",
+                          "properties": {
+                            "component_title": { "type": "string" },
+                            "purpose_statement": { "type": "string" },
+                            "core_requirements": {
+                              "type": "array",
+                              "items": { "type": "string" }
+                            },
+                            "implementation_considerations": {
+                              "type": "array",
+                              "items": { "type": "string" }
+                            },
+                            "component_dependencies": {
+                              "type": "object",
+                              "properties": {
+                                "internal_components": {
+                                  "type": "array",
+                                  "items": { "type": "string" }
+                                },
+                                "external_libraries": {
+                                  "type": "array",
+                                  "items": { "type": "string" }
+                                },
+                                "configuration_dependencies": {
+                                  "type": "array",
+                                  "items": { "type": "string" }
+                                }
+                              },
+                              "required": [
+                                "internal_components",
+                                "external_libraries",
+                                "configuration_dependencies"
+                              ]
+                            },
+                            "output_files": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "path": { "type": "string" },
+                                  "description": { "type": "string" }
+                                },
+                                "required": ["path", "description"]
+                              }
+                            },
+                            "logging_requirements": {
+                              "type": "object",
+                              "properties": {
+                                "debug": {
+                                  "type": "array",
+                                  "items": { "type": "string" }
+                                },
+                                "info": {
+                                  "type": "array",
+                                  "items": { "type": "string" }
+                                }
+                              },
+                              "required": ["debug", "info"]
+                            },
+                            "error_handling": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "error_type": { "type": "string" },
+                                  "error_message": { "type": "string" },
+                                  "recovery_action": { "type": "string" }
+                                },
+                                "required": [
+                                  "error_type",
+                                  "error_message",
+                                  "recovery_action"
+                                ]
+                              }
+                            },
+                            "dependency_integration_considerations": {
+                              "type": "array",
+                              "items": { "type": "string" }
+                            }
+                          },
+                          "required": [
+                            "component_title",
+                            "purpose_statement",
+                            "core_requirements",
+                            "implementation_considerations",
+                            "component_dependencies",
+                            "output_files",
+                            "logging_requirements",
+                            "error_handling",
+                            "dependency_integration_considerations"
+                          ]
+                        },
+                        "output_key": "refined_spec"
+                      }
+                    },
+                    {
+                      "type": "write_files",
+                      "config": {
+                        "files": [
+                          {
+                            "path": "{{ component.id | replace: '.', '/' }}/refined_spec.json",
+                            "content_key": "refined_spec"
+                          }
+                        ],
+                        "root": "{{ output_dir }}/components"
+                      }
+                    },
+                    {
+                      "type": "execute_recipe",
+                      "config": {
+                        "recipe_path": "recipes/experimental/blueprint_generator_v4/recipes/component_processor/evaluate_refined_spec.json"
+                      }
+                    }
+                  ]
+                },
+                "if_false": {
+                  "steps": [
+                    {
+                      "type": "execute_recipe",
+                      "config": {
+                        "recipe_path": "recipes/experimental/blueprint_generator_v4/recipes/component_processor/generate_candidate_spec.json"
+                      }
+                    },
+                    {
+                      "type": "execute_recipe",
+                      "config": {
+                        "recipe_path": "recipes/experimental/blueprint_generator_v4/recipes/component_processor/refine_cycle.json",
+                        "context_overrides": {
+                          "candidate_spec": "{{ candidate_spec }}",
+                          "retry_count": 0,
+                          "max_retries": 2
+                        }
+                      }
+                    }
+                  ]
+                }
               }
             },
             {
-              "type": "execute_recipe",
+              "type": "conditional",
               "config": {
-                "recipe_path": "recipes/experimental/blueprint_generator_v4/recipes/component_processor/generate_blueprint.json"
+                "condition": "{{ approval_result.approved }}",
+                "if_false": {
+                  "steps": [
+                    {
+                      "type": "execute_recipe",
+                      "config": {
+                        "recipe_path": "recipes/experimental/blueprint_generator_v4/recipes/component_processor/human_review_needed.json"
+                      }
+                    }
+                  ]
+                },
+                "if_true": {
+                  "steps": [
+                    {
+                      "type": "execute_recipe",
+                      "config": {
+                        "recipe_path": "recipes/experimental/blueprint_generator_v4/recipes/component_processor/generate_diagrams.json"
+                      }
+                    },
+                    {
+                      "type": "execute_recipe",
+                      "config": {
+                        "recipe_path": "recipes/experimental/blueprint_generator_v4/recipes/component_processor/generate_blueprint.json"
+                      }
+                    }
+                  ]
+                }
               }
             }
           ]
@@ -853,7 +1007,7 @@ recipe-tool --execute blueprint_test/output/youtube_viewer/build.json \
       "config": {
         "items": "analysis_result.components",
         "item_key": "component",
-        "max_concurrency": 0,
+        "max_concurrency": 20,
         "delay": 0.1,
         "substeps": [
           {

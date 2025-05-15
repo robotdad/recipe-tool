@@ -8,7 +8,7 @@ The ParallelStep component enables the Recipe Executor to run multiple sub-recip
 
 - Accept a list of sub-step configurations (each sub-step is an `execute_recipe` step definition)
 - Clone the current execution context for each sub-step to ensure isolation
-- Execute sub-steps concurrently with a configurable maximum concurrency limit
+- Execute sub-steps concurrently with a configurable maximum concurrency limit (max_concurrency > 1, or max_concurrency = 0 for no limit)
 - Support an optional delay between launching each sub-step
 - Wait for all sub-steps to complete before proceeding, with appropriate timeout handling
 - Implement fail-fast behavior: if any sub-step fails, stop launching new ones and report the error

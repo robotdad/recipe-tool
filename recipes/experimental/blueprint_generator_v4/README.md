@@ -11,6 +11,10 @@ recipe-tool --execute recipes/experimental/blueprint_generator_v4/build.json \
    model=openai/o4-mini
 ```
 
+If any components have further details needed, a file will be created in the root of the output directory with the name of the component included as: `<component_name>_review_needed.md`.
+
+Review these files and add any additional details needed to them and then change the file name to `<component_name>_review_provided.md`. After this, re-run the blueprint generator with the same command as above. This will cause the generator to read those files and use the information in them to update the in-progress blueprint and try to continue from there.
+
 ## Youtube Viewer Example with Code Generation
 
 ```bash

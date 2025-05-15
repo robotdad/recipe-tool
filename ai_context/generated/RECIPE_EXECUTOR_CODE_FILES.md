@@ -5,8 +5,8 @@
 **Search:** ['recipe_executor']
 **Exclude:** ['.venv', 'node_modules', '.git', '__pycache__', '*.pyc', '*.ruff_cache']
 **Include:** ['README.md', 'pyproject.toml', '.env.example']
-**Date:** 5/7/2025, 2:40:51 PM
-**Files:** 27
+**Date:** 5/15/2025, 8:40:28 AM
+**Files:** 26
 
 === File: .env.example ===
 # Optional for the project
@@ -103,11 +103,12 @@ The core dependencies you need to install are:
 
 - `make` - for scripting installation steps of the various projects within this repo
 - `uv` - for managing installed versions of `python` - for installing python dependencies
+- `GitHub cli` - for `ai-context-files` manipulation tool
 
 Linux:
 
     # make is installed by default on linux
-    sudo apt update && sudo apt install pipx
+    sudo apt update && sudo apt install pipx && sudo apt install gh
     pipx ensurepath
     pipx install uv
 
@@ -115,11 +116,13 @@ macOS:
 
     brew install make
     brew install uv
+    brew install gh
 
 Windows:
 
     winget install ezwinports.make -e
     winget install astral-sh.uv  -e
+    winget install GitHub.cli -e
 
 ### Setup Steps
 
@@ -273,12 +276,14 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "build>=1.2.2.post1",
     "debugpy>=1.8.14",
     "pyright>=1.1.389",
     "pytest>=8.3.5",
     "pytest-cov>=6.1.1",
     "pytest-mock>=3.14.0",
     "ruff>=0.11.2",
+    "twine>=6.1.0",
 ]
 
 [project.scripts]
@@ -290,8 +295,9 @@ python-code-tools = "python_code_tools.cli:main"
 package = true
 
 [tool.uv.sources]
- python-code-tools = { path = "mcp-servers/python-code-tools", editable = true }
- recipe-tool-mcp-server = { path = "mcp-servers/recipe-tool", editable = true }
+python-code-tools = { path = "mcp-servers/python-code-tools", editable = true }
+recipe-tool-mcp-server = { path = "mcp-servers/recipe-tool", editable = true }
+document-generator-ui = { path = "document_generator_ui", editable = true }
 
 [tool.hatch.build.targets.wheel]
 packages = ["recipe_executor"]
@@ -1575,91 +1581,6 @@ class ConditionalStep(BaseStep[ConditionalConfig]):
             await step_instance.execute(context)
 
 
-=== File: recipe_executor/steps/execute_recipe-tmp.py ===
-import os
-import ast
-import logging
-from typing import Any, Dict
-
-from recipe_executor.steps.base import BaseStep, StepConfig
-from recipe_executor.protocols import ContextProtocol
-from recipe_executor.utils.templates import render_template
-
-__all__ = ["ExecuteRecipeConfig", "ExecuteRecipeStep"]
-
-def _render_override(value: Any, context: ContextProtocol) -> Any:
-    """
-    Recursively render and parse override values.
-
-    - Strings are template-rendered, then if the result is a valid Python literal
-      (dict or list), parsed via ast.literal_eval into Python objects and
-      processed recursively.
-    - Lists and dicts are processed recursively.
-    - Other types are returned as-is.
-    """
-    if isinstance(value, str):
-        rendered = render_template(value, context)
-        try:
-            parsed = ast.literal_eval(rendered)
-        except (ValueError, SyntaxError):
-            return rendered
-        else:
-            if isinstance(parsed, (dict, list)):
-                return _render_override(parsed, context)
-            return rendered
-    if isinstance(value, list):  # type: ignore[type-arg]
-        return [_render_override(item, context) for item in value]
-    if isinstance(value, dict):  # type: ignore[type-arg]
-        return {key: _render_override(val, context) for key, val in value.items()}
-    return value
-
-
-class ExecuteRecipeConfig(StepConfig):
-    """Config for ExecuteRecipeStep.
-
-    Fields:
-        recipe_path: Path to the sub-recipe to execute (templateable).
-        context_overrides: Optional values to override in the context.
-    """
-    recipe_path: str
-    context_overrides: Dict[str, Any] = {}
-
-
-class ExecuteRecipeStep(BaseStep[ExecuteRecipeConfig]):
-    """Step to execute a sub-recipe with shared context and optional overrides."""
-
-    def __init__(
-        self,
-        logger: logging.Logger,
-        config: Dict[str, Any]
-    ) -> None:
-        validated: ExecuteRecipeConfig = ExecuteRecipeConfig.model_validate(config)
-        super().__init__(logger, validated)
-
-    async def execute(self, context: ContextProtocol) -> None:
-        # Render and validate the sub-recipe path
-        rendered_path = render_template(self.config.recipe_path, context)
-        if not os.path.isfile(rendered_path):
-            raise FileNotFoundError(f"Sub-recipe file not found: {rendered_path}")
-
-        # Apply context overrides before executing the sub-recipe
-        for key, override_value in self.config.context_overrides.items():
-            rendered_value = _render_override(override_value, context)
-            context[key] = rendered_value
-
-        try:
-            # Import here to avoid circular dependencies
-            from recipe_executor.executor import Executor
-
-            self.logger.info(f"Starting sub-recipe execution: {rendered_path}")
-            executor = Executor(self.logger)
-            await executor.execute(rendered_path, context)
-            self.logger.info(f"Completed sub-recipe execution: {rendered_path}")
-        except Exception as exc:
-            self.logger.error(f"Error executing sub-recipe '{rendered_path}': {exc}")
-            raise RuntimeError(f"Failed to execute sub-recipe '{rendered_path}': {exc}") from exc
-
-
 === File: recipe_executor/steps/execute_recipe.py ===
 import os
 import json
@@ -1961,99 +1882,92 @@ class LoopStep(BaseStep[LoopStepConfig]):
         super().__init__(logger, validated)
 
     async def execute(self, context: ContextProtocol) -> None:
-        # dynamic import to avoid circular dependencies
+        # Delay import to avoid circular dependency
         from recipe_executor.executor import Executor  # type: ignore
 
-        # Resolve items definition (could be path or direct list/dict)
-        items_def: Union[str, List[Any], Dict[Any, Any]] = self.config.items
+        # Resolve the items definition
+        items_def = self.config.items
         if isinstance(items_def, str):
-            # Render template to get path
-            rendered_path: str = render_template(items_def, context)
-            items_obj: Any = _resolve_path(rendered_path, context)
+            rendered = render_template(items_def, context)
+            items_obj: Any = _resolve_path(rendered, context)
         else:
-            # Direct list or dict provided
-            items_obj = items_def  # type: ignore
+            items_obj = items_def
 
-        # Validate items_obj
+        # Validate existence and type of items
         if items_obj is None:
-            raise ValueError(
-                f"LoopStep: Items collection '{items_def}' not found in context."
-            )
+            raise ValueError(f"LoopStep: Items '{items_def}' not found in context.")
         if not isinstance(items_obj, (list, dict)):
             raise ValueError(
-                f"LoopStep: Items collection must be a list or dict, got {type(items_obj).__name__}."
+                f"LoopStep: Items must be a list or dict, got {type(items_obj).__name__}."
             )
 
-        # Build list of (key/index, value)
-        items_list: List[Tuple[Any, Any]] = []
+        # Flatten items into list of (key, value)
         if isinstance(items_obj, list):
-            for idx, value in enumerate(items_obj):
-                items_list.append((idx, value))
+            items_list: List[Tuple[Any, Any]] = [(_idx, _val) for _idx, _val in enumerate(items_obj)]
         else:
-            for key, value in items_obj.items():
-                items_list.append((key, value))
-        total_items: int = len(items_list)
+            items_list = list(items_obj.items())
 
+        total = len(items_list)
+        max_c = self.config.max_concurrency
         self.logger.info(
-            f"LoopStep: Processing {total_items} items with max_concurrency={self.config.max_concurrency}."
+            f"LoopStep: Processing {total} items with max_concurrency={max_c}."
         )
 
         # Handle empty collection
-        if total_items == 0:
-            # Preserve type (list or dict)
-            empty_result: Union[List[Any], Dict[Any, Any]] = [] if isinstance(items_obj, list) else {}
-            context[self.config.result_key] = empty_result
+        if total == 0:
+            empty: Union[List[Any], Dict[Any, Any]] = [] if isinstance(items_obj, list) else {}
+            context[self.config.result_key] = empty
             self.logger.info("LoopStep: No items to process.")
             return
 
-        # Prepare result and error containers
+        # Prepare result and error placeholders
         results: Union[List[Any], Dict[Any, Any]] = [] if isinstance(items_obj, list) else {}
         errors: Union[List[Dict[str, Any]], Dict[Any, Dict[str, Any]]] = (
             [] if isinstance(items_obj, list) else {}
         )
 
-        # Concurrency control
-        semaphore: Optional[asyncio.Semaphore] = None
-        max_c = self.config.max_concurrency
-        if max_c and max_c > 0:
-            semaphore = asyncio.Semaphore(max_c)
+        # Concurrency control: None => unlimited, else semaphore
+        semaphore: Optional[asyncio.Semaphore]
+        if max_c == 0:
+            semaphore = None
+        else:
+            semaphore = asyncio.Semaphore(max_c) if max_c > 0 else None
 
-        # Executor for substeps
+        # Executor for running sub-steps
         step_executor: ExecutorProtocol = Executor(self.logger)
-        substeps_recipe: Dict[str, Any] = {"steps": self.config.substeps}
+        recipe_body: Dict[str, Any] = {"steps": self.config.substeps}
 
-        fail_fast_triggered: bool = False
-        tasks: List[asyncio.Task] = []
-        completed_count: int = 0
+        fail_fast_triggered = False
+        completed = 0
+        tasks: List[asyncio.Task[Tuple[Any, Any, Optional[str]]]] = []
 
-        async def process_single_item(
-            key: Any, value: Any
-        ) -> Tuple[Any, Any, Optional[str]]:
+        async def process_one(key: Any, val: Any) -> Tuple[Any, Any, Optional[str]]:
             # Clone context for isolation
-            item_ctx: ContextProtocol = context.clone()
-            item_ctx[self.config.item_key] = value
-            # Attach iteration metadata
+            item_ctx = context.clone()
+            # Set current item and metadata
+            item_ctx[self.config.item_key] = val
             if isinstance(items_obj, list):
                 item_ctx["__index"] = key
             else:
                 item_ctx["__key"] = key
             try:
                 self.logger.debug(f"LoopStep: Starting item {key}.")
-                await step_executor.execute(substeps_recipe, item_ctx)
-                # Retrieve processed item result
-                result = item_ctx.get(self.config.item_key, value)
+                await step_executor.execute(recipe_body, item_ctx)
+                # Extract result: prefer updated item_key or fallback to original
+                out = item_ctx.get(self.config.item_key, val)
                 self.logger.debug(f"LoopStep: Finished item {key}.")
-                return key, result, None
-            except Exception as exc:
-                self.logger.error(f"LoopStep: Error processing item {key}: {exc}")
-                return key, None, str(exc)
+                return key, out, None
+            except Exception as e:
+                msg = str(e)
+                self.logger.error(f"LoopStep: Error on item {key}: {msg}")
+                return key, None, msg
 
-        async def run_sequential() -> None:
-            nonlocal fail_fast_triggered, completed_count
-            for key, value in items_list:
+        async def sequential() -> None:
+            nonlocal fail_fast_triggered, completed
+            for k, v in items_list:
                 if fail_fast_triggered:
                     break
-                idx, res, err = await process_single_item(key, value)
+                idx, out, err = await process_one(k, v)
                 if err:
                     # Record error
                     if isinstance(errors, list):
@@ -2066,35 +1980,34 @@ class LoopStep(BaseStep[LoopStepConfig]):
                 else:
                     # Record success
                     if isinstance(results, list):
-                        results.append(res)
+                        results.append(out)
                     else:
-                        results[idx] = res
-                completed_count += 1
+                        results[idx] = out
+                    completed += 1
 
-        async def run_parallel() -> None:
-            nonlocal fail_fast_triggered, completed_count
+        async def parallel() -> None:
+            nonlocal fail_fast_triggered, completed
 
             async def worker(k: Any, v: Any) -> Tuple[Any, Any, Optional[str]]:
                 if semaphore:
                     async with semaphore:
-                        return await process_single_item(k, v)
-                return await process_single_item(k, v)
+                        return await process_one(k, v)
+                return await process_one(k, v)
 
-            # Launch tasks with optional delay
-            for idx, (k, v) in enumerate(items_list):  # type: ignore
+            # Schedule tasks with optional delay for staggering
+            for idx, (k, v) in enumerate(items_list):
                 if fail_fast_triggered:
                     break
-                task = asyncio.create_task(worker(k, v))
-                tasks.append(task)
-                if self.config.delay and idx < total_items - 1:
+                tasks.append(asyncio.create_task(worker(k, v)))
+                if self.config.delay and idx < total - 1:
                     await asyncio.sleep(self.config.delay)
 
             # Collect task results as they complete
-            for fut in asyncio.as_completed(tasks):
+            for task in asyncio.as_completed(tasks):  # type: ignore
                 if fail_fast_triggered:
                     break
                 try:
-                    k, res, err = await fut
+                    k, out, err = await task  # type: ignore
                     if err:
                         if isinstance(errors, list):
                             errors.append({"index": k, "error": err})
@@ -2105,31 +2018,30 @@ class LoopStep(BaseStep[LoopStepConfig]):
                             continue
                     else:
                         if isinstance(results, list):
-                            results.append(res)
+                            results.append(out)
                         else:
-                            results[k] = res
-                    completed_count += 1
-                except Exception as exc:
-                    self.logger.error(f"LoopStep: Unexpected exception: {exc}")
+                            results[k] = out
+                        completed += 1
+                except Exception as e:
+                    self.logger.error(f"LoopStep: Unexpected error: {e}")
                     if self.config.fail_fast:
                         fail_fast_triggered = True
                         break
 
-        # Execute in chosen mode
-        if self.config.max_concurrency and self.config.max_concurrency > 1:
-            await run_parallel()
+        # Choose execution mode
+        if max_c == 1:
+            await sequential()
         else:
-            await run_sequential()
+            await parallel()
 
         # Store results and errors in parent context
         context[self.config.result_key] = results
-        has_errors = bool(errors) if isinstance(errors, list) else bool(errors)
-        if has_errors:
+        if errors:
             context[f"{self.config.result_key}__errors"] = errors
 
+        error_count = len(errors) if isinstance(errors, (list, dict)) else 0
         self.logger.info(
-            f"LoopStep: Processed {completed_count} items. Errors: "
-            f"{len(errors) if has_errors else 0}."
+            f"LoopStep: Completed {completed}/{total} items. Errors: {error_count}."
         )
 
 
