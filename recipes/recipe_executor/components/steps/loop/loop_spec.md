@@ -14,7 +14,7 @@ The LoopStep component enables recipes to iterate over a collection of items, ex
 - Provide consistent error handling across all iterations
 - Maintain processing state to enable resumability
 - Support various collection types (arrays, objects)
-- Support concurrent processing of items using configurable parallelism settings (max_concurrency > 1)
+- Support concurrent processing of items using configurable parallelism settings (max_concurrency > 1, or max_concurrency = 0 for no limit)
 - Provide control over the number of items processed simultaneously
 - Allow for staggered execution of parallel items via optional delay parameter
 - Prevent nested thread pool creation that could lead to deadlocks or resource exhaustion
