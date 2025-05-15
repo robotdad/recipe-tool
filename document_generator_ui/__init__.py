@@ -1,1 +1,0 @@
-# Document Generator UI package
