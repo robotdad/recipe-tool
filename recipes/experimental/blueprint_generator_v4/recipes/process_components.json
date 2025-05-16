@@ -5,7 +5,7 @@
       "config": {
         "items": "analysis_result.components",
         "item_key": "component",
-        "max_concurrency": 0,
+        "max_concurrency": 20,
         "delay": 0.1,
         "substeps": [
           {

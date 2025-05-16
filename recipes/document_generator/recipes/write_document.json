@@ -5,7 +5,7 @@
       "config": {
         "files": [
           {
-            "path": "{{ outline.title | snakecase | upcase }}.md",
+            "path": "{{ document_filename }}.md",
             "content_key": "document"
           }
         ],

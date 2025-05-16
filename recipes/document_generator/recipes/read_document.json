@@ -3,7 +3,7 @@
     {
       "type": "read_files",
       "config": {
-        "path": "{{ output_root }}/{{ outline.title | snakecase | upcase }}.md",
+        "path": "{{ output_root }}/{{ document_filename }}.md",
         "content_key": "document"
       }
     }

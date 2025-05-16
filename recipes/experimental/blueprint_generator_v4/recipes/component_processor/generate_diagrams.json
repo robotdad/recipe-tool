@@ -3,13 +3,13 @@
     {
       "type": "conditional",
       "config": {
-        "condition": "file_exists('{{ output_dir }}/components/{{ component.id }}/diagrams.json')",
+        "condition": "file_exists('{{ output_dir }}/components/{{ component.id | replace: '.', '/' }}/diagrams.json')",
         "if_true": {
           "steps": [
             {
               "type": "read_files",
               "config": {
-                "path": "{{ output_dir }}/components/{{ component.id }}/diagrams.json",
+                "path": "{{ output_dir }}/components/{{ component.id | replace: '.', '/' }}/diagrams.json",
                 "content_key": "diagrams",
                 "merge_model": "dict"
               }
@@ -41,7 +41,7 @@
               "config": {
                 "files": [
                   {
-                    "path": "{{ component.id }}/diagrams.json",
+                    "path": "{{ component.id | replace: '.', '/' }}/diagrams.json",
                     "content_key": "diagrams"
                   }
                 ],

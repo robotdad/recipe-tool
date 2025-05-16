@@ -3,13 +3,13 @@
     {
       "type": "conditional",
       "config": {
-        "condition": "file_exists('{{ output_dir }}/components/{{ component.id }}/refined_spec.json')",
+        "condition": "file_exists('{{ output_dir }}/components/{{ component.id | replace: '.', '/' }}/refined_spec.json')",
         "if_true": {
           "steps": [
             {
               "type": "read_files",
               "config": {
-                "path": "{{ output_dir }}/components/{{ component.id }}/refined_spec.json",
+                "path": "{{ output_dir }}/components/{{ component.id | replace: '.', '/' }}/refined_spec.json",
                 "content_key": "refined_spec",
                 "merge_model": "dict"
               }
@@ -124,7 +124,7 @@
               "config": {
                 "files": [
                   {
-                    "path": "{{ component.id }}/refined_spec.json",
+                    "path": "{{ component.id | replace: '.', '/' }}/refined_spec.json",
                     "content_key": "refined_spec"
                   }
                 ],

@@ -40,6 +40,13 @@
       }
     },
     {
+      "type": "set_context",
+      "config": {
+        "key": "document_filename",
+        "value": "{{ outline_file | default: 'document' | snakecase | upcase }}"
+      }
+    },
+    {
       "type": "execute_recipe",
       "config": {
         "recipe_path": "{{ recipe_root }}/recipes/load_outline.json"

@@ -64,7 +64,11 @@
   ],
   "cSpell.words": [
     "codegen",
+    "Cytoscape",
+    "dagre",
     "dotenv",
+    "edgehandles",
+    "Eles",
     "endcapture",
     "endcomment",
     "endfor",

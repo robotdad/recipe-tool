@@ -3,7 +3,7 @@
     {
       "type": "conditional",
       "config": {
-        "condition": "file_exists('{{ output_dir }}/{{ component.id }}_review_needed.md')",
+        "condition": "file_exists('{{ output_dir }}/{{ component.id | replace: '.', '/' }}_review_needed.md')",
         "if_false": {
           "steps": [
             {
