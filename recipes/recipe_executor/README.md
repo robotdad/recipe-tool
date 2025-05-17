@@ -6,6 +6,21 @@ This directory contains the recipes used for generating the Recipe Executor comp
 
 ![Recipe Executor Build Process](./docs/recipe-executor-build-flow.svg)
 
+## Generating Documentation
+
+The Recipe Executor can generate its own documentation using the `document_generator` recipe. This is useful for creating up-to-date documentation based on the current state of the codebase.
+To generate documentation, you can run the following command:
+
+```bash
+# Generate documentation for the Recipe Executor
+recipe-tool --execute recipes/document_generator/document-generator-recipe.json \
+    outline_file=recipes/recipe_executor/docs/recipe-json-authoring-guide.json \
+    output_root=output/docs \
+    model=openai/o4-mini
+```
+
+This command will create documentation from a structured outline configuration file, reading in referenced resources, including sections for each component, their specifications, and any relevant resources. The generated documentation will be saved in the specified output directory.
+
 ## Main Recipes
 
 ### `build.json`

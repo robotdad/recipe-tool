@@ -43,7 +43,7 @@
       "type": "set_context",
       "config": {
         "key": "document_filename",
-        "value": "{{ outline_file | default: 'document' | snakecase | upcase }}"
+        "value": "{{ outline_file | default: 'document' | replace: '\\', '/' | split: '/' | last | split: '.' | first | snakecase | upcase }}"
       }
     },
     {
