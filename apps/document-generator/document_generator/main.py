@@ -13,20 +13,21 @@ RECIPE_ROOT = RECIPE_PATH.parent
 DEFAULT_OUTLINE = RECIPE_ROOT / "examples" / "readme.json"
 
 
-def load_default_outline() -> str:
+def load_default_outline() -> dict:
+    """Return the default outline as a Python object."""
     try:
-        return DEFAULT_OUTLINE.read_text()
+        return json.loads(DEFAULT_OUTLINE.read_text())
     except FileNotFoundError:
-        return "{}"
+        return {}
+    except json.JSONDecodeError:
+        return {}
 
 
-async def generate_document(outline_json: str | None) -> str:
-    if not outline_json:
-        return "No outline JSON provided."
-    try:
-        json.loads(outline_json)
-    except json.JSONDecodeError as e:
-        return f"Invalid JSON provided: {e}"
+async def generate_document(outline: dict | None) -> str:
+    """Generate a document from the provided outline object."""
+    if not outline:
+        return "No outline provided."
+    outline_json = json.dumps(outline)
 
     with tempfile.TemporaryDirectory() as tmpdir:
         outline_path = Path(tmpdir) / "outline.json"
@@ -41,24 +42,28 @@ async def generate_document(outline_json: str | None) -> str:
         )
         executor = Executor(logger)
         await executor.execute(str(RECIPE_PATH), context)
-        return context.get("document", "")
+
+        output_root = Path(context.get("output_root", tmpdir))
+        filename = context.get("document_filename")
+        if not filename:
+            return context.get("document", "")
+
+        document_path = output_root / f"{filename}.md"
+        try:
+            return document_path.read_text()
+        except FileNotFoundError:
+            return f"Generated file not found: {document_path}"
 
 
 def main() -> None:
     """Launch the Gradio interface for generating documents."""
 
-    css = ".code-wrap {white-space: pre-wrap;}"
-    with gr.Blocks(css=css) as demo:
+    with gr.Blocks() as demo:
         gr.Markdown("# Document Generator")
-        outline_box = gr.Code(
-            label="Outline JSON",
-            language="json",
-            value=load_default_outline(),
-            elem_classes="code-wrap",
-        )
+        outline_editor = gr.JSON(label="Outline", value=load_default_outline())
         output = gr.Markdown()
         gen_btn = gr.Button("Generate")
-        gen_btn.click(generate_document, inputs=outline_box, outputs=output)
+        gen_btn.click(generate_document, inputs=outline_editor, outputs=output)
 
     demo.queue().launch()
 

@@ -12,6 +12,7 @@ This application provides a simple Gradio interface for running the
    ```bash
    python document_generator/main.py
    ```
-3. Edit the outline JSON in the editor and click **Generate**. The recipe
-   executes and the generated document is displayed below the editor.
 
+3. Edit the outline using the interactive JSON editor and click **Generate**.
+   The recipe executes and the generated document is displayed below the editor.
+   The content is loaded from the markdown file produced by the recipe.
