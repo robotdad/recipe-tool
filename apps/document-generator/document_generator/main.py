@@ -37,17 +37,20 @@ async def generate_document(outline_json: str) -> str:
 
 
 def main() -> None:
-    outline_editor = gr.Code(label="Outline JSON", language="json", value=load_default_outline())
-    output = gr.Markdown()
+    """Launch the Gradio interface for generating documents."""
 
-    demo = gr.Blocks()
-    with demo:
+    with gr.Blocks() as demo:
         gr.Markdown("# Document Generator")
-        outline_box = outline_editor
+        outline_box = gr.Code(
+            label="Outline JSON",
+            language="json",
+            value=load_default_outline(),
+        )
+        output = gr.Markdown()
         gen_btn = gr.Button("Generate")
         gen_btn.click(generate_document, inputs=outline_box, outputs=output)
-        output.render()
-    demo.launch()
+
+    demo.queue().launch()
 
 
 if __name__ == "__main__":
