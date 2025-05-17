@@ -9,7 +9,8 @@ from recipe_executor.logger import init_logger
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 RECIPE_PATH = REPO_ROOT / "recipes" / "document_generator" / "document-generator-recipe.json"
-DEFAULT_OUTLINE = REPO_ROOT / "recipes" / "document_generator" / "examples" / "readme.json"
+RECIPE_ROOT = RECIPE_PATH.parent
+DEFAULT_OUTLINE = RECIPE_ROOT / "examples" / "readme.json"
 
 
 def load_default_outline() -> str:
@@ -19,7 +20,9 @@ def load_default_outline() -> str:
         return "{}"
 
 
-async def generate_document(outline_json: str) -> str:
+async def generate_document(outline_json: str | None) -> str:
+    if not outline_json:
+        return "No outline JSON provided."
     try:
         json.loads(outline_json)
     except json.JSONDecodeError as e:
@@ -30,7 +33,12 @@ async def generate_document(outline_json: str) -> str:
         outline_path.write_text(outline_json)
 
         logger = init_logger(log_dir=tmpdir)
-        context = Context(artifacts={"outline_file": str(outline_path)})
+        context = Context(
+            artifacts={
+                "outline_file": str(outline_path),
+                "recipe_root": str(RECIPE_ROOT),
+            }
+        )
         executor = Executor(logger)
         await executor.execute(str(RECIPE_PATH), context)
         return context.get("document", "")
@@ -39,12 +47,14 @@ async def generate_document(outline_json: str) -> str:
 def main() -> None:
     """Launch the Gradio interface for generating documents."""
 
-    with gr.Blocks() as demo:
+    css = ".code-wrap {white-space: pre-wrap;}"
+    with gr.Blocks(css=css) as demo:
         gr.Markdown("# Document Generator")
         outline_box = gr.Code(
             label="Outline JSON",
             language="json",
             value=load_default_outline(),
+            elem_classes="code-wrap",
         )
         output = gr.Markdown()
         gen_btn = gr.Button("Generate")
