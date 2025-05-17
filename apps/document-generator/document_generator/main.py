@@ -1,14 +1,11 @@
 import json
-import asyncio
-from pathlib import Path
 import tempfile
+from pathlib import Path
 
 import gradio as gr
-
 from recipe_executor.context import Context
 from recipe_executor.executor import Executor
 from recipe_executor.logger import init_logger
-
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 RECIPE_PATH = REPO_ROOT / "recipes" / "document_generator" / "document-generator-recipe.json"
@@ -36,7 +33,7 @@ async def generate_document(outline_json: str) -> str:
         context = Context(artifacts={"outline_file": str(outline_path)})
         executor = Executor(logger)
         await executor.execute(str(RECIPE_PATH), context)
-        return context.artifacts.get("document", "")
+        return context.get("document", "")
 
 
 def main() -> None:
@@ -54,4 +51,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
