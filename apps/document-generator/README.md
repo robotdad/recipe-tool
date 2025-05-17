@@ -13,6 +13,9 @@ This application provides a simple Gradio interface for running the
    python document_generator/main.py
    ```
 
-3. Edit the outline using the interactive JSON editor and click **Generate**.
-   The recipe executes and the generated document is displayed below the editor.
+3. In the interactive interface:
+   - Edit the outline fields (title, general instructions, sections).
+   - For each resource, you can upload a file, specify a local file path, or provide a URL.
+     The application will fetch and prepare the resource automatically.
+4. Click **Generate**. The recipe executes and the generated document is displayed below the interface.
    The content is loaded from the markdown file produced by the recipe.
