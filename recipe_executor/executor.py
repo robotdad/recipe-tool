@@ -79,16 +79,16 @@ class Executor(ExecutorProtocol):
             summary = recipe_model.model_dump()
         except Exception:
             summary = {}
-        step_count = len(getattr(recipe_model, "steps", []))
+        step_count = len(getattr(recipe_model, 'steps', []))
         self.logger.debug(f"Recipe loaded: {summary}. Steps count: {step_count}")
 
         # Execute each step sequentially
         for idx, step in enumerate(recipe_model.steps):  # type: ignore
             step_type = step.type
             config = step.config or {}
-            # Surface high level progress at INFO and detailed config at DEBUG
-            self.logger.info(f"Starting step {idx}: {step_type}")
-            self.logger.debug(f"Executing step {idx} of type '{step_type}' with config: {config}")
+            self.logger.debug(
+                f"Executing step {idx} of type '{step_type}' with config: {config}"
+            )
 
             if step_type not in STEP_REGISTRY:
                 raise ValueError(f"Unknown step type '{step_type}' at index {idx}")
@@ -104,7 +104,6 @@ class Executor(ExecutorProtocol):
                 msg = f"Error executing step {idx} ('{step_type}'): {e}"
                 raise ValueError(msg) from e
 
-            self.logger.info(f"Completed step {idx}: {step_type}")
             self.logger.debug(f"Step {idx} ('{step_type}') completed successfully.")
 
-        self.logger.info("All recipe steps completed successfully.")
+        self.logger.debug("All recipe steps completed successfully.")
