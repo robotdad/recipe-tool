@@ -133,6 +133,9 @@ def main() -> None:
 
     with gr.Blocks(css=".code-wrap {white-space: pre-wrap;}") as demo:
         gr.Markdown("# Document Generator")
+        gr.Markdown("## Outline File")
+        outline_uploader = gr.File(label="Upload Outline JSON", file_types=[".json"])
+        gr.Markdown("## Metadata")
 
         gr.Markdown("## Metadata")
         title_tb = gr.Textbox(value=outline.title, label="Title")
@@ -174,11 +177,44 @@ def main() -> None:
         for section in outline.sections:
             render_section(section)
 
+        def load_outline_file(file_obj):
+            import json
+            from pathlib import Path
+
+            if not file_obj:
+                return [None] * (2 + len(resource_inputs) + len(section_inputs))
+            data = json.loads(Path(file_obj.name).read_text())
+            o = outline_from_dict(data)
+            values = [o.title, o.general_instruction]
+            for orig in outline.resources:
+                match = next((r for r in o.resources if r.key == orig.key), orig)
+                values.extend([match.key, match.description, match.path, None])
+
+            def map_sections(default_secs):
+                vals = []
+                for ds in default_secs:
+                    match = next((s for s in o.sections if s.title == ds.title), ds)
+                    vals.extend([match.title, match.prompt, match.refs])
+                    vals.extend(map_sections(ds.sections))
+                return vals
+
+            values.extend(map_sections(outline.sections))
+            return values
+
+        outline_uploader.upload(
+            load_outline_file,
+            inputs=[outline_uploader],
+            outputs=[title_tb, instruction_tb] + resource_inputs + section_inputs,
+        )
+
         output = gr.Markdown()
+
+        outline_download = gr.File(label="Download Outline JSON")
+        doc_download = gr.File(label="Download Generated Document")
 
         gen_btn = gr.Button("Generate")
 
-        async def collect_and_generate(*vals: Any) -> str:
+        async def collect_and_generate(*vals: Any):
             idx = 0
             o = Outline(title=vals[idx], general_instruction=vals[idx + 1])
             idx += 2
@@ -208,12 +244,25 @@ def main() -> None:
                 return result
 
             o.sections = build_sections(outline.sections)
-            return await generate_document(o)
+
+            outline_data = outline_to_dict(o)
+            outline_json = json.dumps(outline_data, indent=2)
+            tmp_outline = tempfile.NamedTemporaryFile(delete=False, suffix=".json", mode="w")
+            tmp_outline.write(outline_json)
+            tmp_outline.close()
+
+            doc_text = await generate_document(o)
+
+            tmp_doc = tempfile.NamedTemporaryFile(delete=False, suffix=".md", mode="w")
+            tmp_doc.write(doc_text)
+            tmp_doc.close()
+
+            return doc_text, tmp_outline.name, tmp_doc.name
 
         gen_btn.click(
             collect_and_generate,
             inputs=[title_tb, instruction_tb] + resource_inputs + section_inputs,
-            outputs=output,
+            outputs=[output, outline_download, doc_download],
         )
 
     demo.queue().launch()
