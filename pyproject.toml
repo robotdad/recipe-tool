@@ -1,6 +1,6 @@
 [project]
 name = "recipe-tool"
-version = "0.1.0"
+version = "0.1.1"
 description = "A tool for executing natural language recipe-like instructions"
 authors = [{ name = "MADE:Explorations Team" }]
 license = "MIT"
