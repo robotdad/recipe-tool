@@ -38,7 +38,6 @@
     }
   },
   "ruff.nativeServer": "on",
-  "ruff.interpreter": "${workspaceFolder:.multi-root-tools}/.venv",
   "search.exclude": {
     "**/.venv": true,
     "**/.data": true,
