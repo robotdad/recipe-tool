@@ -1,6 +1,5 @@
 import pytest
 
-import asyncio
 from document_generator.executor.runner import generate_document
 
 @pytest.mark.asyncio

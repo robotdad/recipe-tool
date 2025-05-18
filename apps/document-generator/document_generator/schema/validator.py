@@ -4,8 +4,7 @@ Schema validation utilities for outline JSON.
 import json
 from pathlib import Path
 
-import jsonschema
-from jsonschema import validate, ValidationError
+from jsonschema import validate
 
 _SCHEMA_PATH = Path(__file__).parent / "outline_schema.json"
 

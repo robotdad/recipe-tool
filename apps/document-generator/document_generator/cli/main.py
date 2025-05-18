@@ -2,7 +2,6 @@
 CLI for headless document generation.
 """
 import json
-import sys
 import asyncio
 from pathlib import Path
 

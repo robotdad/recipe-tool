@@ -1,4 +1,3 @@
-import pytest
 
 from document_generator.ui.editor import build_editor
 

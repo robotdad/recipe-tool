@@ -8,7 +8,7 @@
  - [x] CLI brick (`cli/main.py`, `__main__.py`): Typer-based CLI to run generation from an outline file (tests)
  - [x] Validator UI brick (`ui/editor.py`): minimal Gradio interface for outline validation (tests)
  - [x] Updated dependencies: added `jsonschema`, `typer`, `python-dotenv` as required
- - [x] Blocks-based editor UI (`ui/editor.py`): metadata textboxes, resources DataFrame, sections JSON placeholder, with upload, validate, download, and generate actions
+ - [x] Blocks-based editor UI (`ui/editor.py`): metadata textboxes, resources DataFrame, flat sections DataFrame, with upload, validate, download, and generate actions
  - [x] Comprehensive test suite under `tests/` covers models, schema, CLI, UI, and executor stubs
 
  ## 1. Purpose

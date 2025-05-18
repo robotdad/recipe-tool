@@ -1,16 +1,13 @@
 """
-Configuration management for Document Generator.
-"""
-"""
-Simple environment-based settings for Document Generator.
+Configuration and environment-based settings for Document Generator.
 """
 import os
 from pathlib import Path
+from dotenv import load_dotenv
 
 # Load environment variables from .env in current directory if present
 env_path = Path(__file__).parents[2] / ".env"
 if env_path.exists():
-    from dotenv import load_dotenv
     load_dotenv(dotenv_path=env_path)
 
 class Settings:

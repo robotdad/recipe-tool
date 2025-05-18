@@ -1,7 +1,6 @@
 """
 Reusable UI components for the Document Generator editor.
 """
-import gradio as gr
 
 def resource_entry(key: str = "", description: str = "", path: str = "", merge_mode: str = "concat"):
     """

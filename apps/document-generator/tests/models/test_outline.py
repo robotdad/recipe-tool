@@ -1,4 +1,3 @@
-import pytest
 
 from document_generator.models.outline import Resource, Section, Outline
 

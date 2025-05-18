@@ -1,4 +1,3 @@
-import pytest
 
 from document_generator.ui.components import resource_entry, section_entry
 
