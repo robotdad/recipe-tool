@@ -11,10 +11,13 @@ Welcome to the Recipe Executor App documentation. This directory contains compre
 ### Developer Documentation
 - [Development Guide](development.md): Information for developers working on the app
 - [Reuse as Component](reuse_as_component.md): How to reuse the app as a component in other Gradio apps
+- [Implementation Report](implementation_report.md): Report on recent code improvements and philosophy alignment
+- [Implementation Summary](implementation_summary.md): Comprehensive summary of all improvements and fixes
 
 ### Troubleshooting and Maintenance
 - [Current Work Status](current_work.md): Details on recent changes and ongoing work
 - [Debugging Guide](debugging.md): Comprehensive guide to debugging issues with the app
+- [Code Review](code_review.md): Detailed review of the codebase with recommendations
 
 ### Technical Notes
 - [Technical Notes](technical_notes/README.md): In-depth documentation on specific implementation aspects
@@ -27,8 +30,32 @@ The app has been recently updated with:
 2. Improved context variable handling
 3. Enhanced debugging features
 4. More robust recipe format handling
+5. New utility functions for common operations
+6. Simplified error handling with decorators
+7. Improved path resolution and file finding
+8. Direct use of async functions with Gradio
 
-See the [Current Work Status](current_work.md) document for details on the most recent changes and known issues.
+See the [Implementation Report](implementation_report.md) for a comprehensive overview of recent improvements and the [Current Work Status](current_work.md) document for details on ongoing work and known issues.
+
+## Code Organization
+
+The app follows a modular design with these main components:
+
+1. `app.py`: The main application with the Gradio UI and core functionality
+2. `config.py`: Application configuration using Pydantic settings
+3. `utils.py`: Utility functions for common operations (context preparation, path handling, etc.)
+
+## Philosophy
+
+The code follows these key principles:
+
+1. **Ruthless Simplicity**: Keep everything as simple as possible
+2. **Minimal Abstractions**: Every layer of abstraction must justify its existence
+3. **Direct Integration**: Avoid unnecessary adapter layers
+4. **End-to-End Thinking**: Focus on complete flows rather than perfect components
+5. **Clarity Over Cleverness**: Favor readable, straightforward code
+
+See the [Implementation Report](implementation_report.md) for details on how these principles are applied.
 
 ## Getting Help
 

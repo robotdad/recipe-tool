@@ -22,14 +22,15 @@ class Settings(BaseSettings):
     mcp_server: bool = True
 
     # Recipe executor settings
-    recipe_creator_path: str = "../../recipes/recipe_creator/create.json"
+    recipe_creator_path: str = "../../../recipes/recipe_creator/create.json"
     log_dir: str = "logs"
+    log_level: str = "DEBUG"  # Use DEBUG, INFO, WARNING, ERROR, or CRITICAL - Set to DEBUG for detailed path information
 
     # Example recipes paths
     example_recipes: List[str] = [
-        "../../recipes/example_simple/test_recipe.json",
-        "../../recipes/example_content_writer/generate_content.json",
-        "../../recipes/example_brave_search/search.json",
+        "../../../recipes/example_simple/test_recipe.json",
+        "../../../recipes/example_content_writer/generate_content.json",
+        "../../../recipes/example_brave_search/search.json",
     ]
 
     # Theme settings

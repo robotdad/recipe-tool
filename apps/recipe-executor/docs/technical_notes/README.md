@@ -5,6 +5,8 @@ This directory contains technical notes on specific aspects of the Recipe Execut
 ## Available Notes
 
 - [Recipe Format Handling](recipe_format_handling.md): Details on how the app processes different recipe formats and extracts content from the context.
+- [Fixes and Improvements](fixes_and_improvements.md): Information about recent fixes and improvements, including path resolution and Gradio integration.
+- [Path Resolution Fixes](path_resolution_fixes.md): Comprehensive guide to fixes for path resolution issues in the app.
 
 ## Purpose
 

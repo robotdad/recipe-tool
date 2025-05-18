@@ -7,16 +7,19 @@ This document captures the current status of work on the Recipe Executor Gradio 
 ## Recent Changes
 
 1. **API Improvements**
+
    - Added proper API endpoint names using `api_name` parameter to support Gradio's API options
    - Changed return types from tuples to dictionaries for more readable API outputs
    - Enhanced MCP function docstrings for better descriptions
 
 2. **Configuration Enhancements**
+
    - Removed hardcoded ports in favor of letting Gradio auto-select available ports
    - Added support for recipe_root and ai_context_root context variables
    - Improved path handling for file operations
 
 3. **Debugging Features**
+
    - Added "Debug Context" tab to show the full context after recipe execution/creation
    - Enhanced logging with more detailed information
    - Added better error handling and more informative error messages
@@ -31,6 +34,7 @@ This document captures the current status of work on the Recipe Executor Gradio 
 We're currently troubleshooting an issue where recipes are being created successfully but not showing in the UI. The problem involves the handling of the `generated_recipe` field in the context, which contains the recipe data in a specific format (a list containing a dictionary with 'path' and 'content' keys).
 
 Changes made to address this issue:
+
 1. Enhanced the processing of the `generated_recipe` field to properly handle different formats
 2. Added extensive logging to track the recipe data at each step
 3. Improved error handling and reporting
@@ -39,6 +43,7 @@ Changes made to address this issue:
 ## Known Issues
 
 1. **Recipe Display Issue**
+
    - Problem: Recipes are being created (visible in output/analyze_codebase.json) but not displaying in the UI
    - Root cause: The `generated_recipe` field in the context is stored as a list with a dictionary containing 'path' and 'content' keys, and the code wasn't correctly extracting this format
    - Status: Fix implemented, needs testing
@@ -50,11 +55,13 @@ Changes made to address this issue:
 ## Next Steps
 
 1. **Test the Recipe Display Fix**
+
    - Run the app and create a recipe
    - Verify that the generated recipe appears correctly in the UI
    - Check the logs for any issues or warnings
 
 2. **Additional Improvements**
+
    - Add more file format validations for recipe input/output
    - Enhance error messages to be more user-friendly and actionable
    - Consider adding more debugging tools for complex recipes
@@ -67,7 +74,8 @@ Changes made to address this issue:
 ## Technical Implementation Details
 
 The main implementation changes are in:
-- `/home/brkrabac/repos/alt-1/recipe-tool/apps/recipe-executor/recipe_executor_app/app.py`
+
+- `recipe-tool/apps/recipe-executor/recipe_executor_app/app.py`
 
 The key section handling recipe extraction is around line 233-263:
 
@@ -76,14 +84,14 @@ The key section handling recipe extraction is around line 233-263:
 if "generated_recipe" in context_dict:
     generated_recipe = context_dict["generated_recipe"]
     logger.info(f"Found generated_recipe in context: {type(generated_recipe)}")
-    
+
     # Handle different possible formats of generated_recipe
     # Format 1: List with dict containing path and content
     if isinstance(generated_recipe, list) and len(generated_recipe) > 0:
         item = generated_recipe[0]
         # Log the item structure for debugging
         logger.debug(f"First item in generated_recipe list: {item}")
-        
+
         if isinstance(item, dict):
             # Found a dictionary in the list
             if "content" in item:
