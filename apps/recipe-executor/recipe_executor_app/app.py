@@ -2,7 +2,7 @@
 
 import gradio as gr
 import gradio.themes
-from typing import List, Optional
+from typing import List, Optional, Dict, Tuple, Any
 import asyncio
 import os
 import tempfile
@@ -20,6 +20,8 @@ from recipe_executor_app.config import settings
 
 # Set up logging
 logger = init_logger(settings.log_dir)
+# Set logger level to DEBUG
+logger.setLevel("DEBUG")
 
 
 class RecipeExecutorApp:
@@ -30,7 +32,7 @@ class RecipeExecutorApp:
 
     async def execute_recipe(
         self, recipe_file: Optional[str], recipe_text: Optional[str], context_vars: Optional[str]
-    ) -> tuple[str, str]:
+    ) -> dict:
         """
         Execute a recipe from a file upload or text input.
 
@@ -40,7 +42,7 @@ class RecipeExecutorApp:
             context_vars: Optional context variables as comma-separated key=value pairs
 
         Returns:
-            tuple[str, str]: Formatted results markdown, Raw JSON results
+            dict: Contains formatted_results (markdown) and raw_json keys
         """
         try:
             # Parse context variables from string (format: key1=value1,key2=value2)
@@ -51,6 +53,15 @@ class RecipeExecutorApp:
                         key, value = item.split("=", 1)
                         context_dict[key.strip()] = value.strip()
 
+            # Add standard paths to context
+            repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+            context_dict["recipe_root"] = os.path.join(repo_root, "recipes")
+            context_dict["ai_context_root"] = os.path.join(repo_root, "ai_context") 
+            context_dict["output_root"] = os.path.join(repo_root, "output")
+            
+            # Ensure output directory exists
+            os.makedirs(context_dict["output_root"], exist_ok=True)
+            
             # Create context
             context = Context(artifacts=context_dict)
 
@@ -63,7 +74,10 @@ class RecipeExecutorApp:
                 recipe_source = recipe_text
                 logger.info("Executing recipe from text input")
             else:
-                return "### Error\nNo recipe provided. Please upload a file or paste the recipe JSON.", "{}"
+                return {
+                    "formatted_results": "### Error\nNo recipe provided. Please upload a file or paste the recipe JSON.",
+                    "raw_json": "{}",
+                }
 
             # Execute the recipe
             start_time = time.time()
@@ -72,6 +86,9 @@ class RecipeExecutorApp:
 
             # Get all artifacts from context to display in raw tab
             all_artifacts = context.dict()
+            
+            # Log the full context for debugging
+            logger.debug(f"Final context: {json.dumps(all_artifacts, default=str)}")
 
             # Prepare formatted results
 
@@ -105,12 +122,20 @@ class RecipeExecutorApp:
             # Format raw JSON output using a simple default function to handle non-serializable types
             raw_json = json.dumps(all_artifacts, indent=2, default=lambda o: str(o))
 
-            return markdown_output, raw_json
+            return {
+                "formatted_results": markdown_output, 
+                "raw_json": raw_json,
+                "debug_context": all_artifacts
+            }
 
         except Exception as e:
             logger.error(f"Recipe execution failed: {e}")
             error_msg = f"### Error\n\n```\n{str(e)}\n```"
-            return error_msg, "{}"
+            return {
+                "formatted_results": error_msg, 
+                "raw_json": "{}",
+                "debug_context": {"error": str(e)}
+            }
 
     async def create_recipe(
         self,
@@ -118,7 +143,7 @@ class RecipeExecutorApp:
         idea_file: Optional[str],
         reference_files: Optional[List[str]],
         context_vars: Optional[str],
-    ) -> tuple[str, str]:
+    ) -> dict:
         """
         Create a recipe from an idea text or file.
 
@@ -129,7 +154,7 @@ class RecipeExecutorApp:
             context_vars: Optional context variables as comma-separated key=value pairs
 
         Returns:
-            tuple[str, str]: Generated recipe JSON, Recipe structure preview in markdown
+            dict: Contains recipe_json and structure_preview keys
         """
         try:
             # Parse context variables
@@ -156,7 +181,11 @@ class RecipeExecutorApp:
                 temp_file = temp_path
                 logger.info(f"Creating recipe from idea text (saved to {temp_path})")
             else:
-                return "", "### Error\nNo idea provided. Please upload a file or enter idea text."
+                return {
+                    "recipe_json": "",
+                    "structure_preview": "### Error\nNo idea provided. Please upload a file or enter idea text.",
+                    "debug_context": {"error": "No idea provided"}
+                }
 
             # Add reference files to context if provided
             if reference_files:
@@ -166,6 +195,15 @@ class RecipeExecutorApp:
             # Add the idea path as the input context variable
             context_dict["input"] = idea_source
 
+            # Add standard paths to context
+            repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+            context_dict["recipe_root"] = os.path.join(repo_root, "recipes")
+            context_dict["ai_context_root"] = os.path.join(repo_root, "ai_context") 
+            context_dict["output_root"] = os.path.join(repo_root, "output")
+            
+            # Ensure output directory exists
+            os.makedirs(context_dict["output_root"], exist_ok=True)
+            
             # Create context and executor
             context = Context(artifacts=context_dict)
 
@@ -174,26 +212,143 @@ class RecipeExecutorApp:
 
             # Make sure the recipe creator recipe exists
             if not os.path.exists(creator_recipe_path):
-                return "", f"### Error\nRecipe creator recipe not found: {creator_recipe_path}"
+                return {
+                    "recipe_json": "",
+                    "structure_preview": f"### Error\nRecipe creator recipe not found: {creator_recipe_path}",
+                    "debug_context": {"error": f"Recipe creator recipe not found: {creator_recipe_path}"}
+                }
 
             # Execute the recipe creator
             start_time = time.time()
             await self.executor.execute(creator_recipe_path, context)
             execution_time = time.time() - start_time
 
-            # Get the output recipe
+            # Get the output recipe 
             output_recipe = None
             context_dict = context.dict()
-            for key, value in context_dict.items():
-                if key == "output" and isinstance(value, str):
-                    output_recipe = value
+            
+            # Log the full context for debugging
+            logger.debug(f"Final context after recipe creation: {json.dumps(context_dict, default=str)}")
+            
+            # Check if generated_recipe is in context
+            if "generated_recipe" in context_dict:
+                generated_recipe = context_dict["generated_recipe"]
+                logger.info(f"Found generated_recipe in context: {type(generated_recipe)}")
+                
+                # Handle different possible formats of generated_recipe
+                # Format 1: List with dict containing path and content
+                if isinstance(generated_recipe, list) and len(generated_recipe) > 0:
+                    item = generated_recipe[0]
+                    # Log the item structure for debugging
+                    logger.debug(f"First item in generated_recipe list: {item}")
+                    
+                    if isinstance(item, dict):
+                        # Found a dictionary in the list
+                        if "content" in item:
+                            # Extract the content directly
+                            output_recipe = item["content"]
+                            logger.info(f"Using recipe from generated_recipe list item with content key: {item.get('path', 'unknown')}")
+                
+                # Format 2: String containing JSON directly
+                elif isinstance(generated_recipe, str):
+                    output_recipe = generated_recipe
+                    logger.info("Using recipe from generated_recipe string")
+                
+                # Format 3: Dictionary with path and content
+                elif isinstance(generated_recipe, dict):
+                    if "content" in generated_recipe:
+                        output_recipe = generated_recipe["content"]
+                        logger.info(f"Using recipe from generated_recipe dict with content key: {generated_recipe.get('path', 'unknown')}")
+                
+                # Log the extracted recipe for debugging
+                if output_recipe:
+                    logger.info(f"Successfully extracted recipe from generated_recipe: {output_recipe[:100]}...")
+            
+            # If not found in generated_recipe, try looking for target file in output directory
+            if not output_recipe:
+                output_root = context_dict.get("output_root", "output")
+                target_file = context_dict.get("target_file", "generated_recipe.json")
+                
+                # Log what we're looking for
+                logger.info(f"Looking for recipe file. output_root={output_root}, target_file={target_file}")
+                
+                # Check if it's an absolute path or needs to be joined with output_root
+                if not os.path.isabs(target_file):
+                    if not os.path.isabs(output_root):
+                        # If output_root is relative, make it absolute from the repo root
+                        output_root = os.path.join(repo_root, output_root)
+                    file_path = os.path.join(output_root, target_file)
+                else:
+                    file_path = target_file
+                
+                if os.path.exists(file_path):
+                    try:
+                        with open(file_path, "r") as f:
+                            output_recipe = f.read()
+                            logger.info(f"Read recipe from output file: {file_path}")
+                    except Exception as e:
+                        logger.warning(f"Failed to read output file {file_path}: {e}")
+                else:
+                    logger.warning(f"Output file not found at: {file_path}")
+                    
+                # Look for recently modified files in the output directory
+                try:
+                    if os.path.exists(output_root):
+                        json_files = [f for f in os.listdir(output_root) if f.endswith(".json")]
+                        if json_files:
+                            # Sort by modification time (newest first)
+                            json_files_with_paths = [os.path.join(output_root, f) for f in json_files]
+                            newest_file = max(json_files_with_paths, key=os.path.getmtime)
+                            
+                            # Only use if created in the last 30 seconds (to avoid using unrelated files)
+                            if time.time() - os.path.getmtime(newest_file) < 30:
+                                logger.info(f"Found recent JSON file in output directory: {newest_file}")
+                                with open(newest_file, "r") as f:
+                                    output_recipe = f.read()
+                                    logger.info(f"Read recipe from newest file: {newest_file}")
+                            else:
+                                time_diff = time.time() - os.path.getmtime(newest_file)
+                                logger.warning(f"Most recent JSON file {newest_file} is {time_diff:.2f} seconds old, skipping")
+                        else:
+                            logger.warning(f"No JSON files found in {output_root}")
+                    else:
+                        logger.warning(f"Output directory not found: {output_root}")
+                except Exception as e:
+                    logger.warning(f"Error while searching for recent files: {e}")
 
             # Clean up temporary file if created
             if temp_file and os.path.exists(temp_file):
                 os.unlink(temp_file)
 
             if not output_recipe:
-                return "", "### Recipe created successfully\nBut no output was found in the context."
+                logger.warning("No output recipe found in any location")
+                return {
+                    "recipe_json": "",
+                    "structure_preview": "### Recipe created successfully\nBut no output recipe was found. Check the output directory for generated files.",
+                    "debug_context": context_dict
+                }
+                
+            # Log the recipe content for debugging
+            logger.info(f"Output recipe found, length: {len(output_recipe)}")
+            logger.debug(f"Recipe content: {output_recipe[:500]}...")
+            
+            # Make sure it's a string
+            if not isinstance(output_recipe, str):
+                logger.warning(f"Output recipe is not a string, converting from: {type(output_recipe)}")
+                
+                # Try to convert to string if it's a dictionary or other JSON-serializable object
+                try:
+                    if isinstance(output_recipe, (dict, list)):
+                        output_recipe = json.dumps(output_recipe, indent=2)
+                    else:
+                        output_recipe = str(output_recipe)
+                except Exception as e:
+                    logger.error(f"Failed to convert output_recipe to string: {e}")
+                    return {
+                        "recipe_json": "",
+                        "structure_preview": f"### Error\nFailed to process recipe: {str(e)}",
+                        "debug_context": context_dict
+                    }
 
             # Generate a preview for the recipe structure
             try:
@@ -224,19 +379,31 @@ class RecipeExecutorApp:
 
                         preview += f"| {i + 1} | {step_type} | {step_desc} |\n"
 
-                return output_recipe, preview
+                return {
+                    "recipe_json": output_recipe, 
+                    "structure_preview": preview,
+                    "debug_context": context_dict
+                }
 
-            except (json.JSONDecodeError, TypeError):
-                # In case of any issues with JSON processing 
-                return (
-                    output_recipe,
-                    f"### Recipe Created\n\n**Execution Time**: {execution_time:.2f} seconds\n\nWarning: Output is not valid JSON format or contains non-serializable objects.",
-                )
+            except (json.JSONDecodeError, TypeError) as e:
+                # In case of any issues with JSON processing
+                logger.error(f"Error parsing recipe JSON: {e}")
+                logger.error(f"Recipe content causing error: {output_recipe[:500]}...")
+                
+                return {
+                    "recipe_json": output_recipe,
+                    "structure_preview": f"### Recipe Created\n\n**Execution Time**: {execution_time:.2f} seconds\n\nWarning: Output is not valid JSON format or contains non-serializable objects. Error: {str(e)}",
+                    "debug_context": context_dict
+                }
 
         except Exception as e:
             logger.error(f"Recipe creation failed: {e}")
             error_msg = f"### Error\n\n```\n{str(e)}\n```"
-            return "", error_msg
+            return {
+                "recipe_json": "", 
+                "structure_preview": error_msg,
+                "debug_context": {"error": str(e)}
+            }
 
     def build_ui(self) -> gr.Blocks:
         """Build the Gradio UI."""
@@ -270,6 +437,8 @@ class RecipeExecutorApp:
                                     result_output = gr.Markdown(label="Results")
                                 with gr.TabItem("Raw Output"):
                                     raw_result = gr.Code(language="json", label="Raw JSON")
+                                with gr.TabItem("Debug Context"):
+                                    debug_context = gr.Code(language="json", label="Full Context Variables")
 
                 # Create Recipe Tab
                 with gr.TabItem("Create Recipe"):
@@ -307,6 +476,8 @@ class RecipeExecutorApp:
                                     create_output = gr.Code(language="json", label="Recipe JSON", lines=20)
                                 with gr.TabItem("Preview"):
                                     preview_md = gr.Markdown(label="Recipe Structure")
+                                with gr.TabItem("Debug Context"):
+                                    create_debug_context = gr.Code(language="json", label="Full Context Variables")
 
                 # Examples Tab
                 with gr.TabItem("Examples"):
@@ -321,23 +492,62 @@ class RecipeExecutorApp:
                         example_desc = gr.Markdown()
 
             # Connect components for Execute Recipe tab
+            def execute_recipe_wrapper(file: Optional[str], text: Optional[str], ctx: Optional[str]):
+                """Execute a recipe from a file or text input.
+                
+                Args:
+                    file (str, optional): Path to a recipe JSON file to execute
+                    text (str, optional): Recipe JSON content as text
+                    ctx (str, optional): Context variables as comma-separated key=value pairs (e.g., "key1=value1,key2=value2")
+                
+                Returns:
+                    tuple: (formatted_results, raw_json, debug_context) containing the execution results
+                """
+                result = asyncio.run(self.execute_recipe(file, text, ctx))
+                
+                # Format the debug context with nice indentation and better handling of complex objects
+                debug_json = json.dumps(result.get("debug_context", {}), indent=2, default=lambda o: str(o))
+                
+                return result["formatted_results"], result["raw_json"], debug_json
+
             execute_btn.click(
-                fn=lambda file, text, ctx: asyncio.run(self.execute_recipe(file, text, ctx)),
+                fn=execute_recipe_wrapper,
                 inputs=[recipe_file, recipe_text, context_vars],
-                outputs=[result_output, raw_result],
+                outputs=[result_output, raw_result, debug_context],
+                api_name="execute_recipe",
             )
 
             # Connect components for Create Recipe tab
+            def create_recipe_wrapper(text: str, file: Optional[str], refs: Optional[List[str]], ctx: Optional[str]):
+                """Create a new recipe from an idea description.
+                
+                Args:
+                    text (str): Text describing the recipe idea
+                    file (str, optional): Path to an idea file (.md or .txt)
+                    refs (list, optional): List of reference file paths to include
+                    ctx (str, optional): Context variables as comma-separated key=value pairs
+                
+                Returns:
+                    tuple: (recipe_json, structure_preview, debug_context) containing the generated recipe
+                """
+                result = asyncio.run(self.create_recipe(text, file, refs, ctx))
+                
+                # Format the debug context with nice indentation and better handling of complex objects
+                debug_json = json.dumps(result.get("debug_context", {}), indent=2, default=lambda o: str(o))
+                
+                return result["recipe_json"], result["structure_preview"], debug_json
+
             create_btn.click(
-                fn=lambda text, file, refs, ctx: asyncio.run(self.create_recipe(text, file, refs, ctx)),
+                fn=create_recipe_wrapper,
                 inputs=[idea_text, idea_file, reference_files, create_context_vars],
-                outputs=[create_output, preview_md],
+                outputs=[create_output, preview_md, create_debug_context],
+                api_name="create_recipe",
             )
 
             # Example handling logic
-            async def load_example(example_path):
+            async def load_example(example_path: str) -> dict:
                 if not example_path:
-                    return "", "No example selected."
+                    return {"recipe_content": "", "description": "No example selected."}
 
                 try:
                     with open(example_path, "r") as f:
@@ -351,14 +561,30 @@ class RecipeExecutorApp:
                         with open(readme_path, "r") as f:
                             desc = f.read()
 
-                    return content, desc or "No description available for this example."
+                    return {
+                        "recipe_content": content,
+                        "description": desc or "No description available for this example.",
+                    }
                 except Exception as e:
-                    return "", f"Error loading example: {str(e)}"
+                    return {"recipe_content": "", "description": f"Error loading example: {str(e)}"}
+
+            def load_example_wrapper(path: str):
+                """Load an example recipe from the examples directory.
+                
+                Args:
+                    path (str): Path to the example recipe file
+                
+                Returns:
+                    tuple: (recipe_content, description) with the recipe JSON and its description
+                """
+                result = asyncio.run(load_example(path))
+                return result["recipe_content"], result["description"]
 
             load_example_btn.click(
-                fn=lambda path: asyncio.run(load_example(path)),
+                fn=load_example_wrapper,
                 inputs=[example_paths],
                 outputs=[recipe_text, example_desc],
+                api_name="load_example",
             )
 
         return app

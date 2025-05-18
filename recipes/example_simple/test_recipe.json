@@ -3,15 +3,15 @@
     {
       "type": "read_files",
       "config": {
-        "path": "recipes/example_simple/specs/sample_spec.txt",
+        "path": "{{ recipe_root | default: 'recipes/example_simple'}}/specs/sample_spec.txt",
         "content_key": "spec_text"
       }
     },
     {
       "type": "llm_generate",
       "config": {
-        "prompt": "Using the following specification, generate a Python script:\n\n{{spec_text}}",
-        "model": "{{model|default:'openai/o4-mini'}}",
+        "prompt": "Using the following specification, generate a Python script:\n\n{{ spec_text }}",
+        "model": "{{ model | default: 'openai/o4-mini' }}",
         "output_format": "files",
         "output_key": "generated_files"
       }
@@ -20,7 +20,7 @@
       "type": "write_files",
       "config": {
         "files_key": "generated_files",
-        "root": "output"
+        "root": "{{ output_root | default: 'output' }}"
       }
     }
   ]

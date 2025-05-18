@@ -1,6 +1,6 @@
 """Configuration settings for the Recipe Executor app."""
 
-from typing import List, Dict, Any
+from typing import Any, Dict, List, Optional
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -15,21 +15,21 @@ class Settings(BaseSettings):
 
     # Server settings
     host: str = "0.0.0.0"
-    port: int = 7861
+    port: Optional[int] = None  # Let Gradio find an available port
     # Queue is enabled by default in Gradio
 
     # MCP settings
     mcp_server: bool = True
 
     # Recipe executor settings
-    recipe_creator_path: str = "recipes/recipe_creator/create.json"
+    recipe_creator_path: str = "../../recipes/recipe_creator/create.json"
     log_dir: str = "logs"
 
     # Example recipes paths
     example_recipes: List[str] = [
-        "recipes/example_simple/test_recipe.json",
-        "recipes/example_content_writer/generate_content.json",
-        "recipes/example_brave_search/search.json",
+        "../../recipes/example_simple/test_recipe.json",
+        "../../recipes/example_content_writer/generate_content.json",
+        "../../recipes/example_brave_search/search.json",
     ]
 
     # Theme settings
