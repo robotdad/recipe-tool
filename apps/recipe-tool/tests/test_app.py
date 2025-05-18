@@ -1,11 +1,11 @@
-"""Tests for the recipe_executor_app package."""
+"""Tests for the recipe_tool_app package."""
 
 import json
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 
-@patch("recipe_executor_app.app.Executor")
-@patch("recipe_executor_app.app.init_logger")
+@patch("recipe_tool_app.app.Executor")
+@patch("recipe_tool_app.app.init_logger")
 def test_create_app(mock_logger, mock_executor):
     """Test that the app is created successfully."""
     # Setup mocks
@@ -13,7 +13,7 @@ def test_create_app(mock_logger, mock_executor):
     mock_executor.return_value = MagicMock()
 
     # Import here to use the patched modules
-    from recipe_executor_app.app import create_app
+    from recipe_tool_app.app import create_app
 
     app = create_app()
     assert app is not None

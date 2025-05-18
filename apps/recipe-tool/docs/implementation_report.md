@@ -1,8 +1,8 @@
-# Implementation Report: Recipe Executor App
+# Implementation Report: Recipe Tool App
 
 ## Overview
 
-This report documents the changes made to the Recipe Executor App to align it with our implementation philosophy of ruthless simplicity, minimal abstractions, and clarity. The improvements focus on reducing complexity, removing redundancy, and making the code more maintainable.
+This report documents the changes made to the Recipe Tool App to align it with our implementation philosophy of ruthless simplicity, minimal abstractions, and clarity. The improvements focus on reducing complexity, removing redundancy, and making the code more maintainable.
 
 ## Changes Implemented
 
@@ -14,16 +14,16 @@ A new `utils.py` module was created to contain common utilities used throughout 
 # Key utilities added:
 def prepare_context(context_vars: Optional[str] = None) -> Tuple[Dict[str, Any], Context]:
     """Prepare recipe context from context variables string."""
-    
+
 def extract_recipe_content(generated_recipe: Any) -> Optional[str]:
     """Extract recipe content from various formats."""
-    
+
 def find_recent_json_file(directory: str, max_age_seconds: int = 30) -> Tuple[Optional[str], Optional[str]]:
     """Find the most recently modified JSON file in a directory."""
 
 def resolve_path(path: str, root: Optional[str] = None) -> str:
     """Resolve a path to an absolute path, optionally relative to a root."""
-    
+
 def handle_recipe_error(func):
     """Decorator to standardize error handling for recipe operations."""
 ```
@@ -201,4 +201,4 @@ The improvements should result in:
 
 ## Conclusion
 
-The Recipe Executor App has been significantly improved by applying our implementation philosophy. The changes reduce complexity while maintaining functionality, making the code more maintainable and aligned with our principles of simplicity, clarity, and focus on end-to-end flows.
+The Recipe Tool App has been significantly improved by applying our implementation philosophy. The changes reduce complexity while maintaining functionality, making the code more maintainable and aligned with our principles of simplicity, clarity, and focus on end-to-end flows.

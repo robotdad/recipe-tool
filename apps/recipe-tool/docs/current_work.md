@@ -1,8 +1,8 @@
-# Current Work Status - Recipe Executor App
+# Current Work Status - Recipe Tool App
 
 ## Overview
 
-This document captures the current status of work on the Recipe Executor Gradio app, focusing on recent changes, known issues, and planned improvements. It's intended to help anyone continuing this work to understand the context and pick up where we left off.
+This document captures the current status of work on the Recipe Tool Gradio app, focusing on recent changes, known issues, and planned improvements. It's intended to help anyone continuing this work to understand the context and pick up where we left off.
 
 ## Recent Changes
 
@@ -75,7 +75,7 @@ Changes made to address this issue:
 
 The main implementation changes are in:
 
-- `recipe-tool/apps/recipe-executor/recipe_executor_app/app.py`
+- `recipe-tool/apps/recipe-tool/recipe_tool_app/app.py`
 
 The key section handling recipe extraction is around line 233-263:
 

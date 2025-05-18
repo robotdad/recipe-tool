@@ -1,6 +1,6 @@
-# Recipe Executor App Usage Guide
+# Recipe Tool App Usage Guide
 
-This guide provides detailed information on how to use the Recipe Executor Gradio app.
+This guide provides detailed information on how to use the Recipe Tool Gradio app.
 
 ## Table of Contents
 
@@ -15,7 +15,7 @@ This guide provides detailed information on how to use the Recipe Executor Gradi
 
 ## Introduction
 
-The Recipe Executor App is a web interface for the Recipe Executor library, providing a user-friendly way to execute and create recipes. It is built with Gradio and provides easy access to all the functionality of the Recipe Executor.
+The Recipe Tool App is a web interface for the Recipe Tool library, providing a user-friendly way to execute and create recipes. It is built with Gradio and provides easy access to all the functionality of the Recipe Tool.
 
 ## Getting Started
 
@@ -24,7 +24,7 @@ The Recipe Executor App is a web interface for the Recipe Executor library, prov
 1. Make sure you have Python 3.11 or higher installed.
 2. Navigate to the app directory:
    ```bash
-   cd apps/recipe-executor
+   cd apps/recipe-tool
    ```
 3. Install dependencies:
    ```bash
@@ -128,7 +128,7 @@ You can configure the app through environment variables or a `.env` file:
 
 | Environment Variable           | Description                   | Default Value                              |
 | ------------------------------ | ----------------------------- | ------------------------------------------ |
-| RECIPE_APP_APP_TITLE           | Title of the application      | "Recipe Executor"                          |
+| RECIPE_APP_APP_TITLE           | Title of the application      | "Recipe Tool"                              |
 | RECIPE_APP_DEBUG               | Enable debug mode             | false                                      |
 | RECIPE_APP_HOST                | Host to listen on             | "0.0.0.0"                                  |
 | RECIPE_APP_PORT                | Port to listen on             | None (auto-selected)                       |
@@ -141,16 +141,16 @@ Override settings with command-line options:
 
 ```bash
 # Show help
-python -m recipe_executor_app.app --help
+python -m recipe_tool_app.app --help
 
 # Run on a specific host and port
-python -m recipe_executor_app.app --host 127.0.0.1 --port 8000
+python -m recipe_tool_app.app --host 127.0.0.1 --port 8000
 
 # Disable MCP server functionality
-python -m recipe_executor_app.app --no-mcp
+python -m recipe_tool_app.app --no-mcp
 
 # Enable debug mode
-python -m recipe_executor_app.app --debug
+python -m recipe_tool_app.app --debug
 ```
 
 ## API Integration

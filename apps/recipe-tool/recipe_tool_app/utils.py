@@ -1,4 +1,4 @@
-"""Utility functions for the Recipe Executor app."""
+"""Utility functions for the Recipe Tool app."""
 
 import logging
 import os
@@ -26,25 +26,25 @@ def resolve_path(path: str, root: Optional[str] = None, attempt_fixes: bool = Tr
     """
     logger = logging.getLogger(__name__)
     logger.debug(f"Resolving path: '{path}' (root: '{root}')")
-    
+
     # Get repo root for reference
     repo_root = get_repo_root()
     logger.debug(f"Repository root: {repo_root}")
-    
+
     # First, check if it's already an absolute path
     if os.path.isabs(path):
         logger.debug(f"Path is already absolute: {path}")
         return path
-    
+
     # Normal case: relative to specified root or repo root
     resolved_path = None
-    
+
     # Handle paths that are relative to repo root with ../ prefix
     if path.startswith("../") or path.startswith("../../"):
         # Start from repo root and navigate up as needed
         current_path = repo_root
         parts = path.split("/")
-        
+
         # Count initial "../" parts to determine how many levels up to go
         up_levels = 0
         for part in parts:
@@ -52,11 +52,11 @@ def resolve_path(path: str, root: Optional[str] = None, attempt_fixes: bool = Tr
                 up_levels += 1
             else:
                 break
-                
+
         # Go up the required number of levels from repo root
         for _ in range(up_levels):
             current_path = os.path.dirname(current_path)
-            
+
         # Join with the remainder of the path (excluding the "../" parts)
         resolved_path = os.path.join(current_path, *parts[up_levels:])
         logger.debug(f"Resolved ../ path to: {resolved_path}")
@@ -70,49 +70,49 @@ def resolve_path(path: str, root: Optional[str] = None, attempt_fixes: bool = Tr
         # Default: relative to repo root
         resolved_path = os.path.join(repo_root, path)
         logger.debug(f"Resolved path relative to repo root: {resolved_path}")
-    
+
     # Check if the resolved path exists and attempt fixes if not
     if attempt_fixes and not os.path.exists(resolved_path):
         logger.debug(f"Resolved path does not exist, attempting fixes: {resolved_path}")
-        
+
         # Prepare potential alternatives
         alternatives = []
-        
+
         # If path contains "recipes", try to resolve relative to the recipes directory
         if "recipes" in path:
             recipes_dir = os.path.join(repo_root, "recipes")
-            
+
             # Get the part after "recipes/"
             if "recipes/" in path:
                 after_recipes = path.split("recipes/", 1)[1]
                 alternatives.append(os.path.join(recipes_dir, after_recipes))
                 logger.debug(f"Added alternative from recipes/ split: {alternatives[-1]}")
-                
+
             # Try with just the basename
             basename = os.path.basename(path)
-            
+
             # Try finding the file recursively in the recipes directory
             for root, _, files in os.walk(recipes_dir):
                 if basename in files:
                     alternatives.append(os.path.join(root, basename))
                     logger.debug(f"Found file by basename in recipes dir: {alternatives[-1]}")
-        
+
         # If nothing found, try some common paths
         if not alternatives:
             # Try joining with recipes directory
             alternatives.append(os.path.join(repo_root, "recipes", path))
             logger.debug(f"Added recipes fallback: {alternatives[-1]}")
-            
-            # Try joining with recipe-executor directory
-            alternatives.append(os.path.join(repo_root, "apps", "recipe-executor", path))
-            logger.debug(f"Added recipe-executor fallback: {alternatives[-1]}")
-        
+
+            # Try joining with recipe-tool directory
+            alternatives.append(os.path.join(repo_root, "apps", "recipe-tool", path))
+            logger.debug(f"Added recipe-tool fallback: {alternatives[-1]}")
+
         # Check alternatives
         for alt_path in alternatives:
             if os.path.exists(alt_path):
                 logger.debug(f"Found existing alternative path: {alt_path}")
                 return alt_path
-    
+
     # Return the originally resolved path
     return resolved_path
 
@@ -127,7 +127,7 @@ def prepare_context(context_vars: Optional[str] = None) -> Tuple[Dict[str, Any],
         tuple: (context_dict, Context object)
     """
     logger = logging.getLogger(__name__)
-    
+
     # Start with empty dictionary
     context_dict = {}
 
@@ -136,12 +136,12 @@ def prepare_context(context_vars: Optional[str] = None) -> Tuple[Dict[str, Any],
     default_paths = {
         "recipe_root": os.path.join(repo_root, "recipes"),
         "ai_context_root": os.path.join(repo_root, "ai_context"),
-        "output_root": os.path.join(repo_root, "output")
+        "output_root": os.path.join(repo_root, "output"),
     }
-    
+
     # Add default paths first
     context_dict.update(default_paths)
-    
+
     # Parse user-provided context variables (these will override defaults)
     if context_vars:
         logger.debug(f"Parsing context variables: {context_vars}")
@@ -150,16 +150,16 @@ def prepare_context(context_vars: Optional[str] = None) -> Tuple[Dict[str, Any],
                 key, value = item.split("=", 1)
                 key = key.strip()
                 value = value.strip()
-                
+
                 # Log if we're overriding a default path
                 if key in default_paths:
                     logger.debug(f"Overriding default path {key}: {default_paths[key]} -> {value}")
-                
+
                 context_dict[key] = value
 
     # Ensure output directory exists
     os.makedirs(context_dict["output_root"], exist_ok=True)
-    
+
     # Log all context variables for debugging
     logger.debug(f"Final context variables: {context_dict}")
 

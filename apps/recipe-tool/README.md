@@ -1,6 +1,6 @@
-# Recipe Executor Gradio App
+# Recipe Tool Gradio App
 
-A Gradio web interface for the Recipe Executor library, providing a user-friendly way to execute and create recipes.
+A Gradio web interface for the Recipe Tool library, providing a user-friendly way to execute and create recipes.
 
 ## Features
 
@@ -18,7 +18,7 @@ A Gradio web interface for the Recipe Executor library, providing a user-friendl
 1. Clone the repository (if you haven't already)
 2. Navigate to the app directory:
    ```bash
-   cd apps/recipe-executor
+   cd apps/recipe-tool
    ```
 3. Create and activate a virtual environment:
    ```bash
@@ -44,16 +44,16 @@ The application supports several command-line options to override configuration:
 
 ```bash
 # Show help
-python -m recipe_executor_app.app --help
+python -m recipe_tool_app.app --help
 
 # Run on a specific host and port
-python -m recipe_executor_app.app --host 127.0.0.1 --port 8000
+python -m recipe_tool_app.app --host 127.0.0.1 --port 8000
 
 # Disable MCP server functionality
-python -m recipe_executor_app.app --no-mcp
+python -m recipe_tool_app.app --no-mcp
 
 # Enable debug mode
-python -m recipe_executor_app.app --debug
+python -m recipe_tool_app.app --debug
 ```
 
 ### Configuration
@@ -70,7 +70,7 @@ The app can be configured through environment variables or a `.env` file:
 
 | Environment Variable           | Description                    | Default Value                                        |
 | ------------------------------ | ------------------------------ | ---------------------------------------------------- |
-| RECIPE_APP_APP_TITLE           | Title of the application       | "Recipe Executor"                                    |
+| RECIPE_APP_APP_TITLE           | Title of the application       | "Recipe Tool"                                        |
 | RECIPE_APP_APP_DESCRIPTION     | Description of the application | "A web interface for executing and creating recipes" |
 | RECIPE_APP_DEBUG               | Enable debug mode              | false                                                |
 | RECIPE_APP_HOST                | Host to listen on              | "0.0.0.0"                                            |

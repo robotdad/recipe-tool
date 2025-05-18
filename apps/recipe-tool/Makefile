@@ -5,5 +5,5 @@ include $(repo_root)/tools/makefiles/python.mk
 
 # Run the Gradio app
 run:
-	@echo "Starting Recipe Executor Gradio app..."
-	@uv run python -m recipe_executor_app.app --host 127.0.0.1
+	@echo "Starting Recipe Tool Gradio app..."
+	@uv run python -m recipe_tool_app.app

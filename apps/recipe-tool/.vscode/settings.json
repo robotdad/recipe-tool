@@ -81,6 +81,7 @@
     "levelname",
     "levelno",
     "msecs",
+    "nonserializable",
     "oaicite",
     "ollama",
     "PYDANTIC",

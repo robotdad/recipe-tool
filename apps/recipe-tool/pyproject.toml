@@ -1,16 +1,12 @@
 [project]
-name = "recipe-executor-app"
+name = "recipe-tool-app"
 version = "0.1.0"
-description = "Gradio web app for the Recipe Executor"
-authors = [{ name = "Recipe Tool Team" }]
+description = "Gradio web app for the Recipe Tool"
+authors = [{ name = "MADE:Explorations Team" }]
 license = "MIT"
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = [
-    "gradio[mcp]>=4.0.0",
-    "python-dotenv>=1.1.0",
-    "recipe-tool",
-]
+dependencies = ["gradio[mcp]>=4.0.0", "python-dotenv>=1.1.0", "recipe-tool"]
 
 [dependency-groups]
 dev = [
@@ -21,7 +17,7 @@ dev = [
 ]
 
 [tool.pyright]
-include = ["recipe_executor_app"]
+include = ["recipe_tool_app"]
 exclude = ["**/__pycache__", "tests"]
 reportMissingImports = true
 pythonVersion = "3.11"
@@ -33,7 +29,7 @@ package = true
 recipe-tool = { path = "../..", editable = true }
 
 [project.scripts]
-recipe-executor-app = "recipe_executor_app.app:main"
+recipe-tool-app = "recipe_tool_app.app:main"
 
 [build-system]
 requires = ["hatchling"]
