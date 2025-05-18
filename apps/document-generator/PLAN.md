@@ -7,7 +7,8 @@
  - [x] Executor brick (`executor/runner.py`): `generate_document` wired to recipe executor for headless usage
  - [x] CLI brick (`cli/main.py`, `__main__.py`): Typer-based CLI to run generation from an outline file (tests)
  - [x] Validator UI brick (`ui/editor.py`): minimal Gradio interface for outline validation (tests)
- - [x] Updated dependencies: added `jsonschema`, `typer`, `pydantic`, `python-dotenv` as required
+ - [x] Updated dependencies: added `jsonschema`, `typer`, `python-dotenv` as required
+ - [x] Blocks-based editor UI (`ui/editor.py`): metadata textboxes, resources DataFrame, sections JSON placeholder, with upload, validate, download, and generate actions
  - [x] Comprehensive test suite under `tests/` covers models, schema, CLI, UI, and executor stubs
 
  ## 1. Purpose
@@ -106,7 +107,9 @@
  ## 9. Next Steps
  1. Review and refine this plan with stakeholders.
  2. Define schema validations and UI constraints.
- 3. Implement detailed UI improvements and error handling (blank outline, dynamic resources/sections, outline upload, ref syncing).
+ 3. Implement detailed UI improvements and error handling:
+    - Replace sections JSON placeholder with a full Blocks-based section editor (add/remove nested sections, Prompt vs Static Resource modes, refs linked to resource keys)
+    - Ensure generate button is disabled until minimum schema requirements are met (e.g., at least one section)
  4. Add tests for core functions (`outline_from_dict`, `generate_document`) and editor components.
  5. Iterate on user experience and deployment.
  6. Sketch and prototype a two-column UI layout with a log/progress panel for generation steps.
