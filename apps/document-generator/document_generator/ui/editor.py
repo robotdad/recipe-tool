@@ -5,8 +5,9 @@ Editor UI builder for the Document Generator app, using Gradio Blocks.
 # flake8: noqa
 import json
 from pathlib import Path
-import gradio as gr
+import gradio as gr  # type: ignore
 from document_generator.ui.components import resource_entry, section_entry
+
 
 def make_resource_choices(res_list):
     """
@@ -19,6 +20,7 @@ def make_resource_choices(res_list):
         label = key.strip() or str(idx)
         choices.append(label)
     return choices
+
 
 def make_section_choices(sec_list):
     """
@@ -129,7 +131,7 @@ def build_editor() -> gr.Blocks:
                             idx = i
                             break
             res_list = res_list or []
-            if 0 <= idx < len(res_list):
+            if isinstance(idx, int) and 0 <= idx < len(res_list):
                 res_list[idx]["key"] = val
             return res_list
 
@@ -146,7 +148,7 @@ def build_editor() -> gr.Blocks:
                             idx = i
                             break
             res_list = res_list or []
-            if 0 <= idx < len(res_list):
+            if isinstance(idx, int) and 0 <= idx < len(res_list):
                 res_list[idx]["description"] = val
             return res_list
 
@@ -163,7 +165,7 @@ def build_editor() -> gr.Blocks:
                             idx = i
                             break
             res_list = res_list or []
-            if 0 <= idx < len(res_list):
+            if isinstance(idx, int) and 0 <= idx < len(res_list):
                 res_list[idx]["path"] = val
             return res_list
 
@@ -180,7 +182,7 @@ def build_editor() -> gr.Blocks:
                             idx = i
                             break
             res_list = res_list or []
-            if 0 <= idx < len(res_list):
+            if isinstance(idx, int) and 0 <= idx < len(res_list):
                 res_list[idx]["path"] = file_obj.name
             return res_list
 
@@ -197,7 +199,7 @@ def build_editor() -> gr.Blocks:
                             idx = i
                             break
             res_list = res_list or []
-            if 0 <= idx < len(res_list):
+            if isinstance(idx, int) and 0 <= idx < len(res_list):
                 res_list[idx]["merge_mode"] = val
             return res_list
 
@@ -243,7 +245,7 @@ def build_editor() -> gr.Blocks:
         def update_section_key_choices(res_list):
             # Extract resource keys from state entries (dict or list)
             keys = []
-            for r in (res_list or []):
+            for r in res_list or []:
                 if isinstance(r, dict):
                     keys.append(r.get("key", ""))
                 elif isinstance(r, (list, tuple)) and r:
@@ -324,7 +326,7 @@ def build_editor() -> gr.Blocks:
             except Exception:
                 return sec_list
             sec_list = sec_list or []
-            if 0 <= idx < len(sec_list):
+            if isinstance(idx, int) and 0 <= idx < len(sec_list):
                 sec_list[idx]["title"] = val
             return sec_list
 
@@ -336,7 +338,7 @@ def build_editor() -> gr.Blocks:
             except Exception:
                 return sec_list
             sec_list = sec_list or []
-            if 0 <= idx < len(sec_list):
+            if isinstance(idx, int) and 0 <= idx < len(sec_list):
                 if val == "prompt":
                     sec_list[idx].pop("resource_key", None)
                 else:
@@ -352,7 +354,7 @@ def build_editor() -> gr.Blocks:
             except Exception:
                 return sec_list
             sec_list = sec_list or []
-            if 0 <= idx < len(sec_list):
+            if isinstance(idx, int) and 0 <= idx < len(sec_list):
                 sec_list[idx]["prompt"] = val
             return sec_list
 
@@ -364,7 +366,7 @@ def build_editor() -> gr.Blocks:
             except Exception:
                 return sec_list
             sec_list = sec_list or []
-            if 0 <= idx < len(sec_list):
+            if isinstance(idx, int) and 0 <= idx < len(sec_list):
                 sec_list[idx]["refs"] = val
             return sec_list
 
@@ -376,7 +378,7 @@ def build_editor() -> gr.Blocks:
             except Exception:
                 return sec_list
             sec_list = sec_list or []
-            if 0 <= idx < len(sec_list):
+            if isinstance(idx, int) and 0 <= idx < len(sec_list):
                 sec_list[idx]["resource_key"] = val
             return sec_list
 
@@ -384,12 +386,14 @@ def build_editor() -> gr.Blocks:
         remove_sec_btn.click(
             sec_remove, inputs=[sections_state, sections_list], outputs=[sections_state, sections_list]
         )
+
         # Refresh section list when titles change
         def update_section_list(sec_list):
             choices = make_section_choices(sec_list)
             # Select last choice by label
             value = choices[-1] if choices else None
             return gr.update(choices=choices, value=value)
+
         sections_state.change(
             update_section_list,
             inputs=[sections_state],
@@ -424,9 +428,7 @@ def build_editor() -> gr.Blocks:
             # Build resource state as list of dicts
             res_list = []
             for r in data.get("resources", []):
-                item = {"key": r.get("key", ""),
-                        "description": r.get("description", ""),
-                        "path": r.get("path", "")}
+                item = {"key": r.get("key", ""), "description": r.get("description", ""), "path": r.get("path", "")}
                 if r.get("merge_mode"):
                     item["merge_mode"] = r.get("merge_mode")
                 res_list.append(item)
@@ -451,10 +453,8 @@ def build_editor() -> gr.Blocks:
                 res_list,
                 sec_list,
                 nested,
-                gr.update(choices=res_choices,
-                          value=res_choices[-1] if res_choices else ""),
-                gr.update(choices=sec_choices,
-                          value=sec_choices[-1] if sec_choices else ""),
+                gr.update(choices=res_choices, value=res_choices[-1] if res_choices else ""),
+                gr.update(choices=sec_choices, value=sec_choices[-1] if sec_choices else ""),
             ]
 
         upload.upload(

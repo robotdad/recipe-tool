@@ -2,8 +2,10 @@
 Data models for the Document Generator app.
 Defines Resource, Section, and Outline dataclasses with serialization utilities.
 """
+
 from dataclasses import dataclass, field, asdict
 from typing import List, Optional, Dict, Any
+
 
 @dataclass
 class Resource:
@@ -12,6 +14,7 @@ class Resource:
     description: str
     merge_mode: str
 
+
 @dataclass
 class Section:
     title: str
@@ -19,7 +22,8 @@ class Section:
     refs: List[str] = field(default_factory=list)
     resource_key: Optional[str] = None
     sections: List["Section"] = field(default_factory=list)
-    
+
+
 def section_from_dict(data: Dict[str, Any]) -> Section:
     return Section(
         title=data.get("title", ""),
@@ -28,6 +32,7 @@ def section_from_dict(data: Dict[str, Any]) -> Section:
         resource_key=data.get("resource_key"),
         sections=[section_from_dict(s) for s in data.get("sections", [])],
     )
+
 
 @dataclass
 class Outline:
@@ -43,12 +48,14 @@ class Outline:
     def from_dict(cls, data: Dict[str, Any]) -> "Outline":
         res_list: List[Resource] = []
         for r in data.get("resources", []):
-            res_list.append(Resource(
-                key=r.get("key", ""),
-                path=r.get("path", ""),
-                description=r.get("description", ""),
-                merge_mode=r.get("merge_mode", "concat"),
-            ))
+            res_list.append(
+                Resource(
+                    key=r.get("key", ""),
+                    path=r.get("path", ""),
+                    description=r.get("description", ""),
+                    merge_mode=r.get("merge_mode", "concat"),
+                )
+            )
         sec_list: List[Section] = [section_from_dict(s) for s in data.get("sections", [])]
         return cls(
             title=data.get("title", ""),

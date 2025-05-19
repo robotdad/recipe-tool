@@ -1,21 +1,23 @@
 """
 CLI for headless document generation.
 """
+
 import json
 import asyncio
 from pathlib import Path
 
-import typer
+import typer  # type: ignore
 
 from ..models.outline import Outline
 from ..executor.runner import generate_document
 
 app = typer.Typer(no_args_is_help=False)
 
+
 @app.command()
 def generate(
     outline_file: str = typer.Option(..., "--outline", "-o", help="Path to outline JSON file"),
-    output_file: str = typer.Option(None, "--output", "-O", help="Path to write generated Markdown")
+    output_file: str = typer.Option(None, "--output", "-O", help="Path to write generated Markdown"),
 ):
     """
     Generate a document from the given outline JSON.
@@ -45,6 +47,7 @@ def generate(
     else:
         typer.echo(doc_text)
     raise typer.Exit(code=0)
+
 
 if __name__ == "__main__":
     # Entry point for CLI

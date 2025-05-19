@@ -1,6 +1,7 @@
 """
 Headless generation runner: invoke the document-generator recipe.
 """
+
 import json
 import tempfile
 from pathlib import Path
@@ -11,7 +12,11 @@ from recipe_executor.logger import init_logger
 
 from ..models.outline import Outline
 
-async def generate_document(outline: Outline) -> str:
+
+from typing import Optional
+
+
+async def generate_document(outline: Optional[Outline]) -> str:
     """
     Run the document-generator recipe with the given outline and return the generated Markdown.
     """

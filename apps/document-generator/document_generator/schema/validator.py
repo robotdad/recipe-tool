@@ -1,12 +1,14 @@
 """
 Schema validation utilities for outline JSON.
 """
+
 import json
 from pathlib import Path
 
 from jsonschema import validate
 
 _SCHEMA_PATH = Path(__file__).parent / "outline_schema.json"
+
 
 def validate_outline(data: dict) -> None:
     """

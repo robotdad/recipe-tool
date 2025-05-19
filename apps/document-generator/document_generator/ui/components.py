@@ -2,7 +2,8 @@
 Reusable UI components for the Document Generator editor.
 """
 
-import gradio as gr
+import gradio as gr  # type: ignore
+
 
 def resource_entry(key: str = "", description: str = "", path: str = "", merge_mode: str = "concat"):
     """
@@ -15,6 +16,7 @@ def resource_entry(key: str = "", description: str = "", path: str = "", merge_m
     # Allow empty merge_mode selection
     mm_dd = gr.Dropdown(choices=["", "concat", "dict"], label="Merge Mode", value=merge_mode)
     return [key_tb, desc_tb, path_tb, file_upl, mm_dd]
+
 
 def section_entry(section=None):
     """
