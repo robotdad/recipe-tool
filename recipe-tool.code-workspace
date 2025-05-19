@@ -1,0 +1,12 @@
+{
+  "folders": [
+    {
+      "name": "recipe-executor",
+      "path": "apps/recipe-executor"
+    },
+    {
+      "name": "recipe-tool",
+      "path": "apps/recipe-tool"
+    }
+  ]
+}

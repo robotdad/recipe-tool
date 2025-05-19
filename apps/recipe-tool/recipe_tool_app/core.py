@@ -3,20 +3,34 @@
 import json
 import logging
 import os
-import tempfile
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from recipe_executor.context import Context
 from recipe_executor.executor import Executor
 
 from recipe_tool_app.config import settings
-from recipe_tool_app.utils import (
-    extract_recipe_content,
-    find_recent_json_file,
-    handle_recipe_error,
-    parse_recipe_json,
+from recipe_tool_app.context_manager import (
+    log_context_paths,
     prepare_context,
+    update_context_with_files,
+    update_context_with_input,
+)
+from recipe_tool_app.error_handler import handle_recipe_error
+from recipe_tool_app.file_operations import (
+    create_temp_file,
+    find_recent_json_file,
+    read_file,
+)
+from recipe_tool_app.path_resolver import (
+    get_repo_root,
     resolve_path,
+)
+from recipe_tool_app.recipe_processor import (
+    extract_recipe_content,
+    format_context_for_display,
+    format_recipe_results,
+    generate_recipe_preview,
+    parse_recipe_json,
 )
 
 # Initialize logger
@@ -76,34 +90,20 @@ class RecipeToolCore:
         all_artifacts = context.dict()
 
         # Log the full context for debugging
-        logger.debug(f"Final context: {json.dumps(all_artifacts, default=str)}")
+        logger.debug(f"Final context: {context.dict()}")
 
-        # Get only output artifacts for the main results view
+        # Extract result entries from context
         results = {}
         for key, value in all_artifacts.items():
             # Only include string results or keys that look like outputs
             if isinstance(value, str) and (key.startswith("output") or key.startswith("result")):
                 results[key] = value
 
-        # Format markdown output
-        if results:
-            markdown_output = f"### Recipe Execution Successful\n\n**Execution Time**: {execution_time:.2f} seconds\n\n"
-            markdown_output += "#### Results\n\n"
+        # Format the results for display
+        markdown_output = format_recipe_results(results, execution_time)
 
-            for key, value in results.items():
-                markdown_output += f"**{key}**:\n"
-                # Check if value is JSON
-                try:
-                    json_obj = json.loads(value)
-                    markdown_output += f"```json\n{json.dumps(json_obj, indent=2)}\n```\n\n"
-                except json.JSONDecodeError:
-                    # Not JSON, treat as regular text
-                    markdown_output += f"```\n{value}\n```\n\n"
-        else:
-            markdown_output = f"### Recipe Execution Successful\n\n**Execution Time**: {execution_time:.2f} seconds\n\nNo string results were found in the context."
-
-        # Format raw JSON output using a simple default function to handle non-serializable types
-        raw_json = json.dumps(all_artifacts, indent=2, default=lambda o: str(o))
+        # Format the raw JSON for display
+        raw_json = format_context_for_display(all_artifacts)
 
         return {"formatted_results": markdown_output, "raw_json": raw_json, "debug_context": all_artifacts}
 
@@ -129,19 +129,15 @@ class RecipeToolCore:
         """
         # Determine idea source
         idea_source = None
-        temp_file = None
+        cleanup_fn = None
 
         if idea_file:
             idea_source = idea_file
             logger.info(f"Creating recipe from idea file: {idea_file}")
         elif idea_text:
             # Create a temporary file to store the idea text
-            fd, temp_path = tempfile.mkstemp(suffix=".md", prefix="idea_")
-            with os.fdopen(fd, "w") as f:
-                f.write(idea_text)
-            idea_source = temp_path
-            temp_file = temp_path
-            logger.info(f"Creating recipe from idea text (saved to {temp_path})")
+            idea_source, cleanup_fn = create_temp_file(idea_text, prefix="idea_", suffix=".md")
+            logger.info(f"Creating recipe from idea text (saved to {idea_source})")
         else:
             return {
                 "recipe_json": "",
@@ -149,181 +145,142 @@ class RecipeToolCore:
                 "debug_context": {"error": "No idea provided"},
             }
 
-        # Prepare base context
-        context_dict, context = prepare_context(context_vars)
+        try:
+            # Prepare base context
+            context_dict, context = prepare_context(context_vars)
 
-        # Add additional context variables
-        # Add reference files to context if provided
-        if reference_files:
-            # Join with commas to match CLI format
-            context_dict["files"] = ",".join(reference_files)
+            # Update context with reference files and input path
+            if reference_files:
+                context_dict = update_context_with_files(context_dict, reference_files)
 
-        # Add the idea path as the input context variable
-        context_dict["input"] = idea_source
+            # Add the idea path as input
+            context_dict = update_context_with_input(context_dict, idea_source)
 
-        # Update the context with our new variables
-        context = Context(artifacts=context_dict)
+            # Update the context with our new variables
+            context = Context(artifacts=context_dict)
 
-        # Path to the recipe creator recipe
-        creator_recipe_path = os.path.join(os.path.dirname(__file__), settings.recipe_creator_path)
-        creator_recipe_path = os.path.normpath(creator_recipe_path)
+            # Path to the recipe creator recipe
+            creator_recipe_path = os.path.join(os.path.dirname(__file__), settings.recipe_creator_path)
+            creator_recipe_path = os.path.normpath(creator_recipe_path)
 
-        logger.info(f"Looking for recipe creator at: {creator_recipe_path}")
+            logger.info(f"Looking for recipe creator at: {creator_recipe_path}")
 
-        # Resolve the recipe creator path
-        from recipe_tool_app.utils import get_repo_root
+            # Make sure the recipe creator recipe exists
+            if not os.path.exists(creator_recipe_path):
+                # Try a fallback approach - relative to repo root
+                repo_root = get_repo_root()
+                fallback_path = os.path.join(repo_root, "recipes/recipe_creator/create.json")
+                logger.info(f"First path failed, trying fallback: {fallback_path}")
 
-        repo_root = get_repo_root()
+                if os.path.exists(fallback_path):
+                    creator_recipe_path = fallback_path
+                    logger.info(f"Found recipe creator at fallback path: {creator_recipe_path}")
+                else:
+                    return {
+                        "recipe_json": "",
+                        "structure_preview": f"### Error\nRecipe creator recipe not found at: {creator_recipe_path} or {fallback_path}",
+                        "debug_context": {
+                            "error": f"Recipe creator recipe not found: {creator_recipe_path} or {fallback_path}"
+                        },
+                    }
 
-        # Make sure the recipe creator recipe exists
-        if not os.path.exists(creator_recipe_path):
-            # Try a fallback approach - relative to repo root
-            fallback_path = os.path.join(repo_root, "recipes/recipe_creator/create.json")
-            logger.info(f"First path failed, trying fallback: {fallback_path}")
+            # Log important paths for debugging
+            log_context_paths(context_dict)
 
-            if os.path.exists(fallback_path):
-                creator_recipe_path = fallback_path
-                logger.info(f"Found recipe creator at fallback path: {creator_recipe_path}")
-            else:
+            # Execute the recipe creator
+            start_time = os.times().elapsed
+            await self.executor.execute(creator_recipe_path, context)
+            execution_time = os.times().elapsed - start_time
+
+            # Get the context dictionary after execution
+            context_dict = context.dict()
+
+            # Log the full context for debugging
+            logger.debug(f"Final context after recipe creation: {context_dict}")
+
+            # Try to extract recipe from context or find in files
+            output_recipe = self._find_recipe_output(context_dict)
+
+            # If no recipe found after all attempts
+            if not output_recipe:
+                logger.warning("No output recipe found in any location")
                 return {
                     "recipe_json": "",
-                    "structure_preview": f"### Error\nRecipe creator recipe not found at: {creator_recipe_path} or {fallback_path}",
-                    "debug_context": {
-                        "error": f"Recipe creator recipe not found: {creator_recipe_path} or {fallback_path}"
-                    },
+                    "structure_preview": "### Recipe created successfully\nBut no output recipe was found. Check the output directory for generated files.",
+                    "debug_context": context_dict,
                 }
 
-        # Log important paths to help with debugging
-        logger.info("Recipe Tool paths:")
-        logger.info(f"  - Current working directory: {os.getcwd()}")
-        logger.info(f"  - Repository root: {get_repo_root()}")
-        logger.info(f"  - Recipe creator path: {creator_recipe_path}")
-        logger.info("  - Context paths:")
-        logger.info(f"    - recipe_root: {context.dict().get('recipe_root', 'Not set')}")
-        logger.info(f"    - ai_context_root: {context.dict().get('ai_context_root', 'Not set')}")
-        logger.info(f"    - output_root: {context.dict().get('output_root', 'Not set')}")
+            # Log the recipe content for debugging
+            logger.info(f"Output recipe found, length: {len(output_recipe)}")
+            logger.debug(f"Recipe content: {output_recipe[:500]}...")
 
-        # Execute the recipe creator
-        start_time = os.times().elapsed
-        await self.executor.execute(creator_recipe_path, context)
-        execution_time = os.times().elapsed - start_time
+            # Parse the recipe JSON
+            try:
+                recipe_json = parse_recipe_json(output_recipe)
 
-        # Get the output recipe
+                # Generate a preview of the recipe structure
+                preview = generate_recipe_preview(recipe_json, execution_time)
+
+                return {"recipe_json": output_recipe, "structure_preview": preview, "debug_context": context_dict}
+
+            except (json.JSONDecodeError, TypeError) as e:
+                # In case of any issues with JSON processing
+                logger.error(f"Error parsing recipe JSON: {e}")
+                logger.error(f"Recipe content causing error: {output_recipe[:500]}...")
+
+                return {
+                    "recipe_json": output_recipe,
+                    "structure_preview": f"### Recipe Created\n\n**Execution Time**: {execution_time:.2f} seconds\n\nWarning: Output is not valid JSON format or contains non-serializable objects. Error: {str(e)}",
+                    "debug_context": context_dict,
+                }
+
+        finally:
+            # Clean up temporary file if created
+            if cleanup_fn:
+                cleanup_fn()
+
+    def _find_recipe_output(self, context_dict: Dict[str, Any]) -> Optional[str]:
+        """Find the recipe output from context or files.
+
+        Args:
+            context_dict: Context dictionary after recipe execution
+
+        Returns:
+            Optional[str]: Recipe content if found, None otherwise
+        """
         output_recipe = None
-        context_dict = context.dict()
-
-        # Log the full context for debugging
-        logger.debug(f"Final context after recipe creation: {json.dumps(context_dict, default=str)}")
-
-        # Try to extract recipe from context or find in files
 
         # 1. Check if generated_recipe is in context
         if "generated_recipe" in context_dict:
             output_recipe = extract_recipe_content(context_dict["generated_recipe"])
             if output_recipe:
                 logger.info("Successfully extracted recipe from generated_recipe context variable")
+                return output_recipe
 
         # 2. If not found in context, try looking for target file
-        if not output_recipe:
-            output_root = context_dict.get("output_root", "output")
-            target_file = context_dict.get("target_file", "generated_recipe.json")
+        output_root = context_dict.get("output_root", "output")
+        target_file = context_dict.get("target_file", "generated_recipe.json")
 
-            # Log what we're looking for
-            logger.info(f"Looking for recipe file. output_root={output_root}, target_file={target_file}")
+        # Log what we're looking for
+        logger.info(f"Looking for recipe file. output_root={output_root}, target_file={target_file}")
 
-            # Check specific target file first
-            file_path = resolve_path(target_file, output_root)
+        # Check specific target file first
+        file_path = resolve_path(target_file, output_root)
 
-            if os.path.exists(file_path):
-                try:
-                    with open(file_path, "r") as f:
-                        output_recipe = f.read()
-                        logger.info(f"Read recipe from output file: {file_path}")
-                except Exception as e:
-                    logger.warning(f"Failed to read output file {file_path}: {e}")
-            else:
-                logger.warning(f"Output file not found at: {file_path}")
-
-            # 3. If still not found, look for recently modified files
-            if not output_recipe:
-                content, path = find_recent_json_file(output_root)
-                if content:
-                    output_recipe = content
-                    logger.info(f"Using recipe from recent file: {path}")
-
-        # Clean up temporary file if created
-        if temp_file and os.path.exists(temp_file):
-            os.unlink(temp_file)
-
-        # If no recipe found after all attempts
-        if not output_recipe:
-            logger.warning("No output recipe found in any location")
-            return {
-                "recipe_json": "",
-                "structure_preview": "### Recipe created successfully\nBut no output recipe was found. Check the output directory for generated files.",
-                "debug_context": context_dict,
-            }
-
-        # Log the recipe content for debugging
-        logger.info(f"Output recipe found, length: {len(output_recipe)}")
-        logger.debug(f"Recipe content: {output_recipe[:500]}...")
-
-        # Make sure it's a string
-        if not isinstance(output_recipe, str):
-            logger.warning(f"Output recipe is not a string, converting from: {type(output_recipe)}")
-
-            # Try to convert to string if it's a dictionary or other JSON-serializable object
+        if os.path.exists(file_path):
             try:
-                if isinstance(output_recipe, (dict, list)):
-                    output_recipe = json.dumps(output_recipe, indent=2)
-                else:
-                    output_recipe = str(output_recipe)
+                output_recipe = read_file(file_path)
+                logger.info(f"Read recipe from output file: {file_path}")
+                return output_recipe
             except Exception as e:
-                logger.error(f"Failed to convert output_recipe to string: {e}")
-                return {
-                    "recipe_json": "",
-                    "structure_preview": f"### Error\nFailed to process recipe: {str(e)}",
-                    "debug_context": context_dict,
-                }
+                logger.warning(f"Failed to read output file {file_path}: {e}")
+        else:
+            logger.warning(f"Output file not found at: {file_path}")
 
-        # Generate a preview for the recipe structure
-        try:
-            recipe_json = parse_recipe_json(output_recipe)
+        # 3. If still not found, look for recently modified files
+        content, path = find_recent_json_file(output_root)
+        if content:
+            logger.info(f"Using recipe from recent file: {path}")
+            return content
 
-            # Create a markdown preview of the recipe structure
-            preview = f"### Recipe Structure\n\n**Execution Time**: {execution_time:.2f} seconds\n\n"
-
-            if "name" in recipe_json:
-                preview += f"**Name**: {recipe_json['name']}\n\n"
-
-            if "description" in recipe_json:
-                preview += f"**Description**: {recipe_json['description']}\n\n"
-
-            if "steps" in recipe_json and isinstance(recipe_json["steps"], list):
-                preview += f"**Steps**: {len(recipe_json['steps'])}\n\n"
-                preview += "| # | Type | Description |\n"
-                preview += "|---|------|-------------|\n"
-
-                for i, step in enumerate(recipe_json["steps"]):
-                    step_type = step.get("type", "unknown")
-                    step_desc = ""
-
-                    if "config" in step and "description" in step["config"]:
-                        step_desc = step["config"]["description"]
-                    elif "description" in step:
-                        step_desc = step["description"]
-
-                    preview += f"| {i + 1} | {step_type} | {step_desc} |\n"
-
-            return {"recipe_json": output_recipe, "structure_preview": preview, "debug_context": context_dict}
-
-        except (json.JSONDecodeError, TypeError) as e:
-            # In case of any issues with JSON processing
-            logger.error(f"Error parsing recipe JSON: {e}")
-            logger.error(f"Recipe content causing error: {output_recipe[:500]}...")
-
-            return {
-                "recipe_json": output_recipe,
-                "structure_preview": f"### Recipe Created\n\n**Execution Time**: {execution_time:.2f} seconds\n\nWarning: Output is not valid JSON format or contains non-serializable objects. Error: {str(e)}",
-                "debug_context": context_dict,
-            }
+        return None

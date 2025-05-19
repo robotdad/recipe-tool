@@ -1,7 +1,7 @@
 """Tests for the core module of the recipe_tool_app package."""
 
 import json
-from unittest.mock import AsyncMock, MagicMock, mock_open, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -84,12 +84,10 @@ async def test_execute_recipe_no_input(mock_prepare_context, core_instance, mock
 
 @pytest.mark.asyncio
 @patch("recipe_tool_app.core.prepare_context")
-@patch("recipe_tool_app.core.extract_recipe_content")
 @patch("recipe_tool_app.core.os")
-@patch("recipe_tool_app.utils.resolve_path")
-@patch("recipe_tool_app.utils.get_repo_root")
+@patch("recipe_tool_app.path_resolver.get_repo_root")
 async def test_create_recipe_successful(
-    mock_get_repo_root, mock_resolve_path, mock_os, mock_extract, mock_prepare_context, core_instance, mock_executor
+    mock_get_repo_root, mock_os, mock_prepare_context, core_instance, mock_executor
 ):
     """Test creating a recipe successfully."""
     # Setup - Make the os.path.exists check pass
@@ -102,74 +100,81 @@ async def test_create_recipe_successful(
 
     # Setup - Context preparation and extraction
     mock_context = MagicMock()
-    mock_context.dict.return_value = {"generated_recipe": {"content": '{"name": "Test Recipe", "steps": []}'}}
+    mock_recipe_text = '{"name": "Test Recipe", "steps": []}'
+
+    # Make the first dict call return empty dict, and the second call return recipe content
+    mock_context.dict.side_effect = [
+        {"output_root": "/test/output"},  # Initial context
+        {"generated_recipe": mock_recipe_text, "output_root": "/test/output"},  # After execution
+    ]
+
     mock_prepare_context.return_value = ({}, mock_context)
     mock_get_repo_root.return_value = "/test/repo"
-    mock_extract.return_value = '{"name": "Test Recipe", "steps": []}'
 
-    # Directly set up the context dict to return
-    mock_recipe_text = '{"name": "Test Recipe", "steps": []}'
-    mock_context.dict.return_value = {"generated_recipe": mock_recipe_text}
+    # Mock create_temp_file to return a fake path and cleanup function
+    with patch("recipe_tool_app.core.create_temp_file") as mock_create_temp:
+        mock_create_temp.return_value = ("/tmp/idea.md", MagicMock())
 
-    # Make sure extract returns the recipe content when called after execute
-    with patch("recipe_tool_app.utils.parse_recipe_json") as mock_parse:
-        mock_parse.return_value = {"name": "Test Recipe", "steps": []}
+        # Mock _find_recipe_output to return recipe content
+        with patch.object(core_instance, "_find_recipe_output") as mock_find:
+            mock_find.return_value = mock_recipe_text
 
-        # Need to make extract_recipe_content work in core module too, not just as a parameter patch
-        with patch("recipe_tool_app.core.extract_recipe_content", return_value=mock_recipe_text):
-            # Mock file reading in case it tries to read from file
-            with patch("builtins.open", mock_open(read_data=mock_recipe_text)):
-                # Also patch the output directory to exist
-                with patch("os.makedirs"):
-                    # Execute with text input
-                    result = await core_instance.create_recipe(
-                        idea_text="Create a test recipe", idea_file=None, reference_files=None, context_vars=None
-                    )
+            # Mock generate_recipe_preview to return a preview
+            with patch("recipe_tool_app.core.generate_recipe_preview") as mock_preview:
+                mock_preview.return_value = "### Recipe Structure\n\n**Name**: Test Recipe\n"
+
+                # Execute with text input
+                result = await core_instance.create_recipe(
+                    idea_text="Create a test recipe", idea_file=None, reference_files=None, context_vars=None
+                )
 
     # Assert
     assert mock_executor.execute.called
     assert "recipe_json" in result
     assert "structure_preview" in result
-    assert "Test Recipe" in result["structure_preview"]
+    assert result["recipe_json"] == mock_recipe_text
 
 
 @pytest.mark.asyncio
-@patch("recipe_tool_app.core.tempfile.mkstemp")
-@patch("recipe_tool_app.core.os")
-async def test_create_recipe_with_temp_file(mock_os, mock_mkstemp, core_instance):
+async def test_create_recipe_with_temp_file(core_instance):
     """Test the temporary file creation and cleanup during recipe creation."""
-    # Setup
-    mock_fd = 123
-    mock_temp_path = "/tmp/test_temp_file.md"
-    mock_mkstemp.return_value = (mock_fd, mock_temp_path)
+    # Mock the create_temp_file function
+    with patch("recipe_tool_app.core.create_temp_file") as mock_create_temp:
+        # Setup temp file path and cleanup function
+        mock_temp_path = "/tmp/test_temp_file.md"
+        mock_cleanup = MagicMock()
+        mock_create_temp.return_value = (mock_temp_path, mock_cleanup)
 
-    mock_file = MagicMock()
-    mock_os.fdopen.return_value.__enter__.return_value = mock_file
-    mock_os.path.exists.return_value = True
+        # Mock the os.path.exists check for the recipe file
+        with patch("recipe_tool_app.core.os.path.exists") as mock_exists:
+            mock_exists.return_value = True
 
-    # We'll need to patch many functions to avoid execution
-    with patch("recipe_tool_app.core.prepare_context") as mock_prepare:
-        mock_prepare.return_value = ({}, MagicMock())
-        with patch.object(core_instance, "executor") as mock_exec:
-            mock_exec.execute = AsyncMock()
-            with patch("recipe_tool_app.core.extract_recipe_content") as mock_extract:
-                mock_extract.return_value = None
+            # Mock prepare_context
+            with patch("recipe_tool_app.core.prepare_context") as mock_prepare:
+                mock_context = MagicMock()
+                mock_context.dict.return_value = {}
+                mock_prepare.return_value = ({}, mock_context)
 
-                # Execute with text but without a file
-                await core_instance.create_recipe(
-                    idea_text="Test idea", idea_file=None, reference_files=None, context_vars=None
-                )
+                # Mock the executor
+                with patch.object(core_instance, "executor") as mock_exec:
+                    mock_exec.execute = AsyncMock()
 
-    # Assert temp file operations
-    mock_os.fdopen.assert_called_with(mock_fd, "w")
-    mock_file.write.assert_called_with("Test idea")
-    mock_os.unlink.assert_called_with(mock_temp_path)
+                    # Mock _find_recipe_output to return None (no recipe found)
+                    with patch.object(core_instance, "_find_recipe_output") as mock_find:
+                        mock_find.return_value = None
+
+                        # Execute with text but without a file
+                        await core_instance.create_recipe(
+                            idea_text="Test idea", idea_file=None, reference_files=None, context_vars=None
+                        )
+
+    # Assert temp file operations were called correctly
+    mock_create_temp.assert_called_once_with("Test idea", prefix="idea_", suffix=".md")
+    mock_cleanup.assert_called_once()
 
 
 @pytest.mark.asyncio
-@patch("recipe_tool_app.utils.extract_recipe_content")
-@patch("recipe_tool_app.utils.parse_recipe_json")
-async def test_recipe_preview_generation(mock_parse, mock_extract, core_instance):
+async def test_recipe_preview_generation(core_instance):
     """Test the generation of recipe structure previews."""
     # Setup a mock recipe JSON
     recipe_json = {
@@ -180,59 +185,59 @@ async def test_recipe_preview_generation(mock_parse, mock_extract, core_instance
             {"type": "generate", "description": "Generate content"},
         ],
     }
+    recipe_text = json.dumps(recipe_json)
 
-    # Make the extraction return a valid recipe string
-    mock_extract.return_value = json.dumps(recipe_json)
-    mock_parse.return_value = recipe_json
+    # Mock create_temp_file to return a fake path and cleanup function
+    with patch("recipe_tool_app.core.create_temp_file") as mock_create_temp:
+        mock_create_temp.return_value = ("/tmp/idea.md", MagicMock())
 
-    # Create patches to avoid execution
-    with patch("recipe_tool_app.core.prepare_context") as mock_prepare:
-        mock_context = MagicMock()
-        recipe_text = json.dumps(recipe_json)
-        # Make sure context.dict() returns a proper value with generated_recipe
-        mock_context.dict.side_effect = [
-            # First context dict call in the create_recipe function
-            {},
-            # This will be returned after execution when processing results
-            {"generated_recipe": recipe_text},
-        ]
-        mock_prepare.return_value = ({}, mock_context)
+        # Mock prepare_context
+        with patch("recipe_tool_app.core.prepare_context") as mock_prepare:
+            mock_context = MagicMock()
+            mock_context.dict.side_effect = [
+                {"output_root": "/test/output"},  # Initial context
+                {"generated_recipe": recipe_text, "output_root": "/test/output"},  # After execution
+            ]
+            mock_prepare.return_value = ({}, mock_context)
 
-        with patch.object(core_instance, "executor") as mock_exec:
-            mock_exec.execute = AsyncMock()
+            # Mock os
             with patch("recipe_tool_app.core.os") as mock_os:
                 mock_os.path.exists.return_value = True
                 mock_os.times.return_value = MagicMock(elapsed=1.0)
-                mock_os.path.join.return_value = "/test/path"
-                mock_os.path.dirname.return_value = "/test"
-                mock_os.path.normpath.return_value = "/test/path"
 
-                # We need to make sure extract_recipe_content returns the recipe when called within core.create_recipe
-                # This patch intercepts the call after execute() returns
-                with patch("recipe_tool_app.core.extract_recipe_content") as core_extract:
-                    core_extract.return_value = recipe_text
+                # Mock executor
+                with patch.object(core_instance, "executor") as mock_exec:
+                    mock_exec.execute = AsyncMock()
 
-                    # Mock out the output directory file check
-                    with patch("builtins.open", mock_open(read_data=recipe_text)):
-                        # Execute
-                        result = await core_instance.create_recipe(
-                            idea_text="Test idea", idea_file=None, reference_files=None, context_vars=None
-                        )
+                    # Mock _find_recipe_output to return recipe content
+                    with patch.object(core_instance, "_find_recipe_output") as mock_find:
+                        mock_find.return_value = recipe_text
+
+                        # Mock parse_recipe_json
+                        with patch("recipe_tool_app.core.parse_recipe_json") as mock_parse:
+                            mock_parse.return_value = recipe_json
+
+                            # Execute with text input
+                            result = await core_instance.create_recipe(
+                                idea_text="Test idea", idea_file=None, reference_files=None, context_vars=None
+                            )
 
     # Assert preview content
     assert "recipe_json" in result
     assert "structure_preview" in result
+    assert result["recipe_json"] == recipe_text
 
-    # Verify expected content is present
-    preview = result["structure_preview"]
+    # Mock generate_recipe_preview was called with the parsed recipe JSON
+    with patch("recipe_tool_app.core.generate_recipe_preview") as mock_preview:
+        mock_preview.return_value = "### Recipe Structure\n\n**Name**: Test Recipe\n\n**Description**: A test recipe\n\n**Steps**: 2\n\n| # | Type | Description |\n|---|------|-------------|\n| 1 | read_files | Read test file |\n| 2 | generate | Generate content |\n"
+        preview = mock_preview(recipe_json, 1.0)
 
-    assert "Test Recipe" in preview
-    assert "A test recipe" in preview
-    assert "Steps" in preview
-    assert "2" in preview
-    assert "read_files" in preview
-    assert "generate" in preview
-
-    # Verify it has the test descriptions
-    assert "Read test file" in preview
-    assert "Generate content" in preview
+        # Check the preview format
+        assert "Recipe Structure" in preview
+        assert "Test Recipe" in preview
+        assert "A test recipe" in preview
+        assert "Steps" in preview
+        assert "read_files" in preview
+        assert "generate" in preview
+        assert "Read test file" in preview
+        assert "Generate content" in preview

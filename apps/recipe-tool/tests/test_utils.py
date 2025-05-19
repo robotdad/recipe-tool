@@ -246,6 +246,7 @@ def test_parse_recipe_json_dict_input():
     dict_input = {"name": "Test Recipe", "steps": []}
     # Convert dict to JSON string since parse_recipe_json expects a string
     import json
+
     json_input = json.dumps(dict_input)
     result = parse_recipe_json(json_input)
 

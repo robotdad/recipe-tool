@@ -7,55 +7,15 @@ from typing import List, Optional, Tuple
 import gradio as gr
 import gradio.themes
 
+# Import recipe-executor components
+from recipe_executor_app.app import create_executor_block
+from recipe_executor_app.core import RecipeExecutorCore
+
 from recipe_tool_app.config import settings
 from recipe_tool_app.core import RecipeToolCore
 
 # Initialize logger
 logger = logging.getLogger(__name__)
-
-
-def build_execute_recipe_tab() -> Tuple[gr.File, gr.Code, gr.Textbox, gr.Button, gr.Markdown, gr.Code, gr.Code]:
-    """Build the Execute Recipe tab UI components.
-
-    Returns:
-        Tuple: (recipe_file, recipe_text, context_vars, execute_btn,
-               result_output, raw_result, debug_context)
-    """
-    with gr.TabItem("Execute Recipe"):
-        with gr.Row():
-            with gr.Column(scale=1):
-                gr.Markdown("### Input")
-                recipe_file = gr.File(label="Recipe JSON File", file_types=[".json"])
-                recipe_text = gr.Code(label="Recipe JSON", language="json", lines=15)
-
-                with gr.Accordion("Context Variables", open=False):
-                    context_vars = gr.Textbox(
-                        label="Context Variables",
-                        placeholder="key1=value1,key2=value2",
-                        info="Add context variables as key=value pairs, separated by commas",
-                    )
-
-                execute_btn = gr.Button("Execute Recipe", variant="primary")
-
-            with gr.Column(scale=1):
-                gr.Markdown("### Output")
-                with gr.Tabs():
-                    with gr.TabItem("Results"):
-                        result_output = gr.Markdown(label="Results")
-                    with gr.TabItem("Raw Output"):
-                        raw_result = gr.Code(language="json", label="Raw JSON")
-                    with gr.TabItem("Debug Context"):
-                        debug_context = gr.Code(language="json", label="Full Context Variables")
-
-    return (
-        recipe_file,
-        recipe_text,
-        context_vars,
-        execute_btn,
-        result_output,
-        raw_result,
-        debug_context,
-    )
 
 
 def build_create_recipe_tab() -> Tuple[
@@ -114,69 +74,6 @@ def build_create_recipe_tab() -> Tuple[
         create_output,
         preview_md,
         create_debug_context,
-    )
-
-
-def build_examples_tab() -> Tuple[gr.Dropdown, gr.Button, gr.Markdown]:
-    """Build the Examples tab UI components.
-
-    Returns:
-        Tuple: (example_paths, load_example_btn, example_desc)
-    """
-    with gr.TabItem("Examples"):
-        gr.Markdown("### Recipe Examples")
-        example_paths = gr.Dropdown(
-            settings.example_recipes,
-            label="Example Recipes",
-        )
-        load_example_btn = gr.Button("Load Example")
-
-        with gr.Accordion("Example Description", open=False):
-            example_desc = gr.Markdown()
-
-    return example_paths, load_example_btn, example_desc
-
-
-def setup_execute_recipe_events(
-    recipe_core: RecipeToolCore,
-    recipe_file: gr.File,
-    recipe_text: gr.Code,
-    context_vars: gr.Textbox,
-    execute_btn: gr.Button,
-    result_output: gr.Markdown,
-    raw_result: gr.Code,
-    debug_context: gr.Code,
-) -> None:
-    """Set up event handlers for execute recipe tab.
-
-    Args:
-        recipe_core: RecipeToolCore instance
-        recipe_file: File upload component
-        recipe_text: Recipe text code component
-        context_vars: Context variables textbox
-        execute_btn: Execute button
-        result_output: Results markdown output
-        raw_result: Raw JSON output code component
-        debug_context: Debug context code component
-    """
-
-    async def execute_recipe_formatted(
-        file: Optional[str], text: Optional[str], ctx: Optional[str]
-    ) -> Tuple[str, str, str]:
-        """Format execute_recipe output for Gradio UI."""
-        result = await recipe_core.execute_recipe(file, text, ctx)
-        # Extract the individual fields for Gradio UI
-        formatted_results = result.get("formatted_results", "")
-        raw_json = result.get("raw_json", "{}")
-        # Format debug context as JSON string
-        debug_context = json.dumps(result.get("debug_context", {}), indent=2, default=lambda o: str(o))
-        return formatted_results, raw_json, debug_context
-
-    execute_btn.click(
-        fn=execute_recipe_formatted,
-        inputs=[recipe_file, recipe_text, context_vars],
-        outputs=[result_output, raw_result, debug_context],
-        api_name="execute_recipe",
     )
 
 
@@ -242,40 +139,31 @@ def build_ui(recipe_core: RecipeToolCore) -> gr.Blocks:
         gr.Markdown("A web interface for executing and creating recipes.")
 
         with gr.Tabs():
-            # Execute Recipe Tab
-            execute_components = build_execute_recipe_tab()
-            recipe_file, recipe_text, context_vars, execute_btn, result_output, raw_result, debug_context = (
-                execute_components
-            )
+            # Use the dedicated recipe-executor component
+            with gr.TabItem("Execute Recipe"):
+                # Create a standalone recipe executor core
+                executor_core = RecipeExecutorCore()
+
+                # Create the executor block with no header (since we're in a tab)
+                # We're using the block directly in the UI, so no need to assign it to a variable
+                create_executor_block(executor_core, include_header=False)
+
+                # Log success
+                logger.info("Successfully created Recipe Executor component")
 
             # Create Recipe Tab
-            create_components = build_create_recipe_tab()
-            (
-                idea_text,
-                idea_file,
-                reference_files,
-                create_context_vars,
-                create_btn,
-                create_output,
-                preview_md,
-                create_debug_context,
-            ) = create_components
-
-            # Examples Tab
-            examples_components = build_examples_tab()
-            example_paths, load_example_btn, example_desc = examples_components
-
-        # Set up event handlers for execute recipe tab
-        setup_execute_recipe_events(
-            recipe_core,
-            recipe_file,
-            recipe_text,
-            context_vars,
-            execute_btn,
-            result_output,
-            raw_result,
-            debug_context,
-        )
+            with gr.TabItem("Create Recipe"):
+                create_components = build_create_recipe_tab()
+                (
+                    idea_text,
+                    idea_file,
+                    reference_files,
+                    create_context_vars,
+                    create_btn,
+                    create_output,
+                    preview_md,
+                    create_debug_context,
+                ) = create_components
 
         # Set up event handlers for create recipe tab
         setup_create_recipe_events(
@@ -288,16 +176,6 @@ def build_ui(recipe_core: RecipeToolCore) -> gr.Blocks:
             create_output,
             preview_md,
             create_debug_context,
-        )
-
-        # Set up example loading events
-        from recipe_tool_app.example_handler import load_example_formatted
-
-        load_example_btn.click(
-            fn=load_example_formatted,
-            inputs=[example_paths],
-            outputs=[recipe_text, example_desc],
-            api_name="load_example",
         )
 
     return app
