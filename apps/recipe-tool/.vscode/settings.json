@@ -23,9 +23,7 @@
   "python.analysis.diagnosticMode": "workspace",
   "python.analysis.fixAll": ["source.unusedImports"],
   // Project specific paths
-  "python.analysis.ignore": ["output", "apps"],
   "python.analysis.inlayHints.functionReturnTypes": true,
-  "python.analysis.typeCheckingMode": "standard",
   "python.defaultInterpreterPath": "${workspaceFolder}/.venv",
   "python.testing.pytestArgs": ["tests"],
   "python.testing.unittestEnabled": false,

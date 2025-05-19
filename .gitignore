@@ -39,3 +39,6 @@ next-steps.md
 
 # Generated files
 output
+
+# Test files
+.coverage
