@@ -15,6 +15,9 @@ async def generate_document(outline: Outline) -> str:
     """
     Run the document-generator recipe with the given outline and return the generated Markdown.
     """
+    # Allow stub invocation without an outline for initial tests
+    if outline is None:
+        return ""
     from urllib.parse import urlparse
     import urllib.request
 
