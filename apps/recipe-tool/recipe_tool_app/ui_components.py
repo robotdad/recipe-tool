@@ -27,43 +27,40 @@ def build_create_recipe_tab() -> Tuple[
         Tuple: (idea_text, idea_file, reference_files, create_context_vars, create_btn,
                create_output, preview_md, create_debug_context)
     """
-    with gr.TabItem("Create Recipe"):
-        with gr.Row():
-            with gr.Column(scale=1):
-                gr.Markdown("### Input")
+    with gr.Row():
+        with gr.Column(scale=1):
+            gr.Markdown("### Input")
 
-                with gr.Tabs():
-                    with gr.TabItem("Text Input"):
-                        idea_text = gr.TextArea(
-                            label="Idea Text", placeholder="Enter your recipe idea here...", lines=10
-                        )
+            with gr.Tabs():
+                with gr.TabItem("Text Input"):
+                    idea_text = gr.TextArea(label="Idea Text", placeholder="Enter your recipe idea here...", lines=10)
 
-                    with gr.TabItem("File Input"):
-                        idea_file = gr.File(label="Idea File", file_types=[".md", ".txt"])
+                with gr.TabItem("File Input"):
+                    idea_file = gr.File(label="Idea File", file_types=[".md", ".txt"])
 
-                with gr.Accordion("Additional Options", open=False):
-                    reference_files = gr.File(
-                        label="Reference Files",
-                        file_types=[".md", ".txt", ".py", ".json"],
-                        file_count="multiple",
-                    )
-                    create_context_vars = gr.Textbox(
-                        label="Context Variables",
-                        placeholder="key1=value1,key2=value2",
-                        info="Add context variables as key=value pairs, separated by commas",
-                    )
+            with gr.Accordion("Additional Options", open=False):
+                reference_files = gr.File(
+                    label="Reference Files",
+                    file_types=[".md", ".txt", ".py", ".json"],
+                    file_count="multiple",
+                )
+                create_context_vars = gr.Textbox(
+                    label="Context Variables",
+                    placeholder="key1=value1,key2=value2",
+                    info="Add context variables as key=value pairs, separated by commas",
+                )
 
-                create_btn = gr.Button("Create Recipe", variant="primary")
+            create_btn = gr.Button("Create Recipe", variant="primary")
 
-            with gr.Column(scale=1):
-                gr.Markdown("### Output")
-                with gr.Tabs():
-                    with gr.TabItem("Generated Recipe"):
-                        create_output = gr.Code(language="json", label="Recipe JSON", lines=20)
-                    with gr.TabItem("Preview"):
-                        preview_md = gr.Markdown(label="Recipe Structure")
-                    with gr.TabItem("Debug Context"):
-                        create_debug_context = gr.Code(language="json", label="Full Context Variables")
+        with gr.Column(scale=1):
+            gr.Markdown("### Output")
+            with gr.Tabs():
+                with gr.TabItem("Generated Recipe"):
+                    create_output = gr.Code(language="json", label="Recipe JSON", lines=20, wrap_lines=True)
+                with gr.TabItem("Preview"):
+                    preview_md = gr.Markdown(label="Recipe Structure")
+                with gr.TabItem("Context"):
+                    create_debug_context = gr.Code(language="json", label="Context Variables", max_lines=30)
 
     return (
         idea_text,
