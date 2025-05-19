@@ -15,6 +15,8 @@ The Models component defines the core data structures used throughout the Recipe
 ## Implementation Considerations
 
 - Use Pydantic `BaseModel` for all data structures
+- Ensure all models are serializable to JSON
+- Use type hints for all fields
 - Keep models focused and minimal
 - Provide sensible defaults where appropriate
 - Use descriptive field names and docstrings
