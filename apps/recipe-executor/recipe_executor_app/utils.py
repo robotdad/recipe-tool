@@ -249,6 +249,42 @@ def parse_context_vars(context_str: Optional[str]) -> Dict[str, Any]:
     return context_dict
 
 
+def safe_json_serialize(obj: Any) -> Dict[str, Any]:
+    """Convert a potentially complex object to a JSON-serializable dictionary.
+    
+    Args:
+        obj: Object to serialize
+        
+    Returns:
+        Dict[str, Any]: JSON-serializable dictionary
+    """
+    if isinstance(obj, dict):
+        result = {}
+        for key, value in obj.items():
+            # Handle non-string keys
+            safe_key = str(key)
+            try:
+                # Try normal JSON serialization
+                json.dumps(value)
+                result[safe_key] = value
+            except (TypeError, OverflowError):
+                # Fall back to string representation
+                result[safe_key] = str(value)
+        return result
+    else:
+        # For non-dict objects, convert to a dict with limited attributes
+        try:
+            # First try direct serialization
+            json.dumps(obj)
+            return obj
+        except (TypeError, OverflowError):
+            # Fall back to string representation
+            if hasattr(obj, "__dict__"):
+                return {"__str__": str(obj), "__type__": type(obj).__name__, "__attrs__": safe_json_serialize(obj.__dict__)}
+            else:
+                return {"__str__": str(obj), "__type__": type(obj).__name__}
+
+
 def parse_recipe_json(recipe_text: str) -> Dict[str, Any]:
     """Parse recipe JSON from text.
 

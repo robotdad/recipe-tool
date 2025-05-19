@@ -48,6 +48,7 @@ class Settings(BaseSettings):
             "server_name": self.host,
             "server_port": self.port,
             "share": False,
+            "pwa": True,
             "debug": self.debug,
             "mcp_server": self.mcp_server,
         }

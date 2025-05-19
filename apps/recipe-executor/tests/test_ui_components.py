@@ -112,9 +112,8 @@ class TestBuildExecuteRecipeTab:
     @patch("gradio.Column")
     @patch("gradio.Markdown")
     @patch("gradio.File")
-    @patch("gradio.Code")
     @patch("gradio.Progress")
-    @patch("gradio.JSON")
+    @patch("gradio.Code")
     @patch("gradio.Accordion")
     @patch("gradio.Textbox")
     @patch("gradio.Button")
@@ -126,9 +125,8 @@ class TestBuildExecuteRecipeTab:
         mock_button,
         mock_textbox,
         mock_accordion,
-        mock_json,
-        mock_progress,
         mock_code,
+        mock_progress,
         mock_file,
         mock_markdown,
         mock_column,
@@ -156,9 +154,8 @@ class TestBuildExecuteRecipeTab:
 
         # Set up mock returns for components
         mock_file.return_value = "file"
-        mock_code.return_value = "text"
         mock_progress.return_value = "progress"
-        mock_json.side_effect = ["context", "debug"]
+        mock_code.side_effect = ["text", "logs", "context"]  # recipe_text, logs_output, context_json
         mock_textbox.return_value = "vars"
         mock_button.return_value = "btn"
         # Need 6 markdown instances for: headers (2), indicator, result, context title, logs
@@ -211,13 +208,18 @@ class TestSetupExecuteRecipeEvents:
         """Test that setup_execute_recipe_events sets up the expected event handlers."""
         # Create mock UI components
         recipe_file = MagicMock()
+        recipe_file.change = MagicMock()
         recipe_text = MagicMock()
         context_vars = MagicMock()
         execute_btn = MagicMock()
+        execute_btn.click = MagicMock()
+        recipe_text.change = MagicMock()
         progress = MagicMock()
         result_output = MagicMock()
         logs_output = MagicMock()
+        logs_output.__class__.__name__ = "Textbox"  # For type checking
         context_json = MagicMock()
+        context_json.__class__.__name__ = "Code"  # For type checking
 
         # Mock the parent relationship for result_output to find execution_indicator
         execution_indicator = MagicMock()
@@ -254,6 +256,12 @@ class TestSetupExecuteRecipeEvents:
         assert kwargs["inputs"] == [recipe_file, recipe_text, context_vars]
         assert kwargs["outputs"] == [result_output, logs_output, context_json]
         assert kwargs["show_progress"] == "full"
+        
+        # Verify that the change event was set up for recipe_text
+        recipe_text.change.assert_called_once()
+        
+        # Verify that the change event was set up for recipe_file
+        recipe_file.change.assert_called_once()
 
 
 class TestSetupExampleEvents:

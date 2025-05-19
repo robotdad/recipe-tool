@@ -3,7 +3,7 @@
 import json
 import logging
 import os
-from typing import Dict, Optional
+from typing import Dict, Optional, Union, Any
 
 from recipe_executor.context import Context
 from recipe_executor.executor import Executor
@@ -41,8 +41,8 @@ class RecipeExecutorCore:
         self.executor = executor if executor is not None else Executor(logger)
 
     async def execute_recipe(
-        self, recipe_file: Optional[str], recipe_text: Optional[str], context_vars: Optional[str]
-    ) -> Dict:
+        self, recipe_file: Optional[str], recipe_text: Optional[Union[Dict[str, Any], str]], context_vars: Optional[str]
+    ) -> Dict[str, Any]:
         """
         Execute a recipe from a file upload or text input.
 
@@ -67,8 +67,10 @@ class RecipeExecutorCore:
                 recipe_source = recipe_file
                 logger.info(f"Executing recipe from file: {recipe_file}")
             elif recipe_text:
+                # Convert recipe_text to string if it's a dictionary
+                recipe_content = json.dumps(recipe_text) if isinstance(recipe_text, dict) else recipe_text
                 # Create a temporary file for the recipe text
-                recipe_source, cleanup_fn = create_temp_file(recipe_text, prefix="recipe_", suffix=".json")
+                recipe_source, cleanup_fn = create_temp_file(recipe_content, prefix="recipe_", suffix=".json")
                 logger.info(f"Executing recipe from text input (saved to {recipe_source})")
             else:
                 return {
