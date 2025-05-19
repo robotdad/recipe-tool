@@ -87,6 +87,12 @@ The app can be configured through environment variables or a `.env` file:
 - Check linting: `make lint`
 - Type check: `make type-check`
 
+### Known Issues
+
+#### Websockets Legacy Deprecation Warnings
+
+The application filters out deprecation warnings from the websockets.legacy module. These warnings come from Gradio's internal dependencies using an older websockets API. Since we don't directly use the websockets library in our code, and the issue needs to be fixed within Gradio's dependencies, we've filtered these warnings in the pytest configuration.
+
 ## API & MCP Server Integration
 
 ### API Endpoints

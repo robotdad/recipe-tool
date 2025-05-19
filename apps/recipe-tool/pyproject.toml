@@ -27,7 +27,10 @@ pythonVersion = "3.11"
 asyncio_mode = "strict"
 asyncio_default_fixture_loop_scope = "function"
 asyncio_default_test_loop_scope = "function"
-filterwarnings = ["ignore::DeprecationWarning:websockets.legacy:"]
+filterwarnings = [
+    # Ignore websockets.legacy deprecation warnings from Gradio's internals
+    "ignore::DeprecationWarning:websockets.legacy:"
+]
 
 [tool.uv]
 package = true
