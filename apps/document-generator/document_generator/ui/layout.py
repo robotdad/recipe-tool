@@ -2,7 +2,8 @@
 Two-column layout for the Document Generator editor using Gradio Blocks.
 """
 
-import gradio as gr  # type: ignore
+import gradio as gr
+import gradio.themes
 
 from document_generator.ui.callbacks import (
     add_resource,
@@ -36,7 +37,7 @@ def build_editor() -> gr.Blocks:
     """
     Build and return the full Gradio Blocks interface with a two-column layout.
     """
-    with gr.Blocks() as demo:
+    with gr.Blocks(theme=gradio.themes.Citrus()) as demo:
         # Persistent state for resources and sections
         initial_resources = []
         initial_sections = []
@@ -44,9 +45,9 @@ def build_editor() -> gr.Blocks:
         sections_state = gr.State(initial_sections)
         nested_state = gr.State(initial_sections)
 
+        gr.Markdown("# Document Generator")
         with gr.Row():
             with gr.Column():
-                gr.Markdown("# Document Generator")
                 gr.Markdown("## Outline Editor")
                 # Metadata
                 title_tb = gr.Textbox(label="Title", placeholder="Document title")
@@ -73,6 +74,7 @@ def build_editor() -> gr.Blocks:
                         sec_title_tb, mode_radio, sec_prompt_tb, sec_refs, sec_res_dd, nested_acc = section_entry()
 
             with gr.Column():
+                gr.Markdown("## Document Generation")
                 # Upload, Validate, Preview, Download Outline
                 upload_outline_button = gr.File(label="Upload Outline JSON", file_types=[".json"])
                 validate_btn = gr.Button("Validate Outline")
