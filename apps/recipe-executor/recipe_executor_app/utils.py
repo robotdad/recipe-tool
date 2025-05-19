@@ -167,9 +167,12 @@ def read_file(path: str) -> str:
     Returns:
         str: Content of the file
     """
+    logger.info(f"Reading file: {path}")
     try:
         with open(path, "r", encoding="utf-8") as f:
-            return f.read()
+            content = f.read()
+            logger.info(f"Successfully read {len(content)} bytes from {path}")
+            return content
     except Exception as e:
         logger.error(f"Error reading file {path}: {e}")
         raise
@@ -186,19 +189,27 @@ def create_temp_file(content: str, prefix: str = "temp_", suffix: str = ".txt") 
     Returns:
         Tuple[str, callable]: Path to the temporary file and a cleanup function
     """
-    temp_file = tempfile.NamedTemporaryFile(mode="w+", prefix=prefix, suffix=suffix, delete=False, encoding="utf-8")
-    temp_file.write(content)
-    temp_file.close()
+    logger.info(f"Creating temporary file with prefix='{prefix}', suffix='{suffix}'")
+    try:
+        temp_file = tempfile.NamedTemporaryFile(mode="w+", prefix=prefix, suffix=suffix, delete=False, encoding="utf-8")
+        temp_file.write(content)
+        temp_file.close()
+        logger.info(f"Created temporary file: {temp_file.name}")
 
-    # Return the path and a cleanup function
-    def cleanup_fn():
-        try:
-            os.unlink(temp_file.name)
-        except OSError:
-            # Ignore errors when trying to remove the file
-            pass
+        # Return the path and a cleanup function
+        def cleanup_fn():
+            try:
+                os.unlink(temp_file.name)
+                logger.info(f"Removed temporary file: {temp_file.name}")
+            except OSError as e:
+                logger.warning(f"Failed to remove temporary file {temp_file.name}: {e}")
+                # Ignore errors when trying to remove the file
+                pass
 
-    return temp_file.name, cleanup_fn
+        return temp_file.name, cleanup_fn
+    except Exception as e:
+        logger.error(f"Error creating temporary file: {e}")
+        raise
 
 
 def parse_context_vars(context_str: Optional[str]) -> Dict[str, Any]:
@@ -254,7 +265,7 @@ def parse_recipe_json(recipe_text: str) -> Dict[str, Any]:
         raise ValueError(f"Invalid recipe JSON: {e}")
 
 
-def extract_recipe_content(content: Union[str, List, Dict]) -> Optional[str]:
+def extract_recipe_content(content: Union[str, List[Any], Dict[str, Any]]) -> Optional[str]:
     """Extract recipe content from various formats.
 
     Args:
@@ -334,7 +345,7 @@ def format_recipe_results(results: Dict[str, str], execution_time: float = 0.0) 
         markdown.append(f"**output_root**: {results['output_root']}\n")
 
     if not results:
-        markdown.append("*No results were produced.*")
+        # Just show the execution time if no results were produced
         return "\n".join(markdown)
 
     # Add results

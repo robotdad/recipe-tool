@@ -1,9 +1,9 @@
 """UI components for the Recipe Executor Gradio app."""
 
-import json
 import logging
 import os
-from typing import Optional, Tuple
+import io
+from typing import Dict, Optional, Tuple
 
 import gradio as gr
 import gradio.themes
@@ -15,47 +15,59 @@ from recipe_executor_app.core import RecipeExecutorCore
 logger = logging.getLogger(__name__)
 
 
-def build_execute_recipe_tab() -> Tuple[gr.File, gr.Code, gr.Textbox, gr.Button, gr.Markdown, gr.Code, gr.Code]:
+def build_execute_recipe_tab() -> Tuple[
+    gr.File, gr.Code, gr.Textbox, gr.Button, gr.Progress, gr.Markdown, gr.Markdown, gr.JSON
+]:
     """Build the Execute Recipe tab UI components.
 
     Returns:
         Tuple: (recipe_file, recipe_text, context_vars, execute_btn,
                result_output, raw_result, debug_context)
     """
-    with gr.TabItem("Execute Recipe"):
-        with gr.Row():
-            with gr.Column(scale=1):
-                gr.Markdown("### Input")
-                recipe_file = gr.File(label="Recipe JSON File", file_types=[".json"])
-                recipe_text = gr.Code(label="Recipe JSON", language="json", lines=15)
+    # Create a progress bar first to ensure it's properly initialized
+    progress = gr.Progress(track_tqdm=True)
 
-                with gr.Accordion("Context Variables", open=False):
-                    context_vars = gr.Textbox(
-                        label="Context Variables",
-                        placeholder="key1=value1,key2=value2",
-                        info="Add context variables as key=value pairs, separated by commas",
-                    )
+    # No tab needed since this is the only component
+    with gr.Row():
+        with gr.Column(scale=1):
+            gr.Markdown("### Input")
+            recipe_file = gr.File(label="Recipe JSON File", file_types=[".json"])
+            recipe_text = gr.Code(label="Recipe JSON", language="json", lines=15)
 
-                execute_btn = gr.Button("Execute Recipe", variant="primary")
+            with gr.Accordion("Context Variables", open=False):
+                context_vars = gr.Textbox(
+                    label="Context Variables",
+                    placeholder="key1=value1,key2=value2",
+                    info="Add context variables as key=value pairs, separated by commas",
+                )
 
-            with gr.Column(scale=1):
-                gr.Markdown("### Output")
-                with gr.Tabs():
-                    with gr.TabItem("Results"):
-                        result_output = gr.Markdown(label="Results")
-                    with gr.TabItem("Raw Output"):
-                        raw_result = gr.Code(language="json", label="Raw JSON")
-                    with gr.TabItem("Debug Context"):
-                        debug_context = gr.Code(language="json", label="Full Context Variables")
+            execute_btn = gr.Button("Execute Recipe", variant="primary")
+
+        with gr.Column(scale=1):
+            gr.Markdown("### Output")
+            # No status indicator needed here
+
+            with gr.Tabs():
+                with gr.TabItem("Results"):
+                    # The main results output
+                    result_output = gr.Markdown(label="Results")
+
+                    # Add context variables below the results
+                    gr.Markdown("### Context Variables", visible=True)
+                    context_json = gr.JSON(label="Context", visible=True)
+
+                with gr.TabItem("Logs"):
+                    logs_output = gr.Markdown(label="Execution Logs")
 
     return (
         recipe_file,
         recipe_text,
         context_vars,
         execute_btn,
+        progress,
         result_output,
-        raw_result,
-        debug_context,
+        logs_output,
+        context_json,
     )
 
 
@@ -82,9 +94,10 @@ def setup_execute_recipe_events(
     recipe_text: gr.Code,
     context_vars: gr.Textbox,
     execute_btn: gr.Button,
+    progress: gr.Progress,
     result_output: gr.Markdown,
-    raw_result: gr.Code,
-    debug_context: gr.Code,
+    logs_output: gr.Markdown,
+    context_json: gr.JSON,
 ) -> None:
     """Set up event handlers for execute recipe tab.
 
@@ -95,27 +108,63 @@ def setup_execute_recipe_events(
         context_vars: Context variables textbox
         execute_btn: Execute button
         result_output: Results markdown output
-        raw_result: Raw JSON output code component
-        debug_context: Debug context code component
+        raw_result: Raw JSON output JSON component
+        debug_context: Debug context JSON component
     """
 
     async def execute_recipe_formatted(
-        file: Optional[str], text: Optional[str], ctx: Optional[str]
-    ) -> Tuple[str, str, str]:
+        file: Optional[str], text: Optional[str], ctx: Optional[str], progress=gr.Progress()
+    ) -> Tuple[str, str, Dict]:
         """Format execute_recipe output for Gradio UI."""
-        result = await recipe_core.execute_recipe(file, text, ctx)
-        # Extract the individual fields for Gradio UI
-        formatted_results = result.get("formatted_results", "")
-        raw_json = result.get("raw_json", "{}")
-        # Format debug context as JSON string
-        debug_context = json.dumps(result.get("debug_context", {}), indent=2, default=lambda o: str(o))
-        return formatted_results, raw_json, debug_context
+        # Create a log capture handler
+        log_capture = io.StringIO()
+        log_handler = logging.StreamHandler(log_capture)
+        log_formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+        log_handler.setFormatter(log_formatter)
+        log_handler.setLevel(logging.INFO)  # Capture INFO level and above
 
+        # Add the handler to root logger
+        root_logger = logging.getLogger()
+        root_logger.addHandler(log_handler)
+
+        try:
+            # Update progress bar
+            progress(0, desc="Starting recipe execution...")
+
+            # Execute the recipe with log capturing
+            result = await recipe_core.execute_recipe(file, text, ctx)
+
+            # Update progress to indicate completion
+            progress(1, desc="Recipe execution complete!")
+
+            # Extract the individual fields for Gradio UI
+            formatted_results = result.get("formatted_results", "")
+
+            # Get the captured logs
+            log_handler.flush()
+            log_content = log_capture.getvalue()
+
+            # Format logs as markdown code block for better readability
+            logs_formatted = f"```log\n{log_content}\n```"
+
+            # Debug context is already a dict
+            debug_context_dict = result.get("debug_context", {})
+
+            return formatted_results, logs_formatted, debug_context_dict
+        finally:
+            # Remove our handler to avoid duplication and memory leaks
+            root_logger.removeHandler(log_handler)
+            log_capture.close()
+
+    # Using the global progress bar instead of a local indicator
+
+    # Set up event handler for recipe execution
     execute_btn.click(
         fn=execute_recipe_formatted,
         inputs=[recipe_file, recipe_text, context_vars],
-        outputs=[result_output, raw_result, debug_context],
+        outputs=[result_output, logs_output, context_json],
         api_name="execute_recipe",
+        show_progress="full",  # Show the progress bar during execution
     )
 
 
@@ -144,20 +193,20 @@ def setup_example_events(
         # Extract the individual fields for Gradio UI
         recipe_content = result.get("recipe_content", "")
         structure_preview = result.get("structure_preview", "")
-        
+
         # Set recipe_root context variable for examples
         recipe_context_vars = None
         if context_vars is not None and path:
             # Get the directory containing the recipe
             recipe_dir = os.path.dirname(path)
             recipe_context_vars = f"recipe_root={recipe_dir}"
-            
+
         return recipe_content, structure_preview, recipe_context_vars
 
     outputs = [recipe_text, example_desc]
     if context_vars is not None:
         outputs.append(context_vars)
-        
+
     load_example_btn.click(
         fn=load_example_formatted,
         inputs=[example_paths],

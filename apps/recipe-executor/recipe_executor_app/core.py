@@ -33,6 +33,11 @@ class RecipeExecutorCore:
         Args:
             executor: Optional Executor instance. If None, a new one will be created.
         """
+        # Ensure logger is properly configured
+        self.logger = logger
+        self.logger.info("Initializing RecipeExecutorCore")
+
+        # Create executor with logger
         self.executor = executor if executor is not None else Executor(logger)
 
     async def execute_recipe(

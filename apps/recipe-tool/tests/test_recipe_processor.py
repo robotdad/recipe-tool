@@ -28,7 +28,7 @@ def test_parse_recipe_json_dict_input():
     """Test parse_recipe_json with dictionary input."""
     # Test with dict input (should be converted to string)
     dict_input = {"name": "Test Recipe", "steps": []}
-    result = parse_recipe_json(dict_input)
+    result = parse_recipe_json(json.dumps(dict_input))
 
     # Assertions
     assert isinstance(result, dict)

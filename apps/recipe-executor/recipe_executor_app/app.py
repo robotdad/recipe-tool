@@ -49,11 +49,18 @@ def create_executor_block(recipe_core: Optional[RecipeExecutorCore] = None, incl
             examples_components = build_examples_tab()
             example_paths, load_example_btn, example_desc = examples_components
 
-        # Execute Recipe Tab - since this is a component, no tabs needed
+        # Execute Recipe components
         execute_components = build_execute_recipe_tab()
-        recipe_file, recipe_text, context_vars, execute_btn, result_output, raw_result, debug_context = (
-            execute_components
-        )
+        (
+            recipe_file,
+            recipe_text,
+            context_vars,
+            execute_btn,
+            progress,
+            result_output,
+            logs_output,
+            context_json,
+        ) = execute_components
 
         # Set up event handlers for execute recipe
         setup_execute_recipe_events(
@@ -62,9 +69,10 @@ def create_executor_block(recipe_core: Optional[RecipeExecutorCore] = None, incl
             recipe_text,
             context_vars,
             execute_btn,
+            progress,
             result_output,
-            raw_result,
-            debug_context,
+            logs_output,
+            context_json,
         )
 
         # Set up example loading events

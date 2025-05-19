@@ -64,13 +64,14 @@ class TestCreateExecutorBlock:
 
         # Mock the UI components
         mock_execute_components = (
-            MagicMock(),
-            MagicMock(),
-            MagicMock(),
-            MagicMock(),
-            MagicMock(),
-            MagicMock(),
-            MagicMock(),
+            MagicMock(),  # recipe_file
+            MagicMock(),  # recipe_text
+            MagicMock(),  # context_vars
+            MagicMock(),  # execute_btn
+            MagicMock(),  # progress
+            MagicMock(),  # result_output
+            MagicMock(),  # raw_result
+            MagicMock(),  # debug_context
         )
         mock_examples_components = (MagicMock(), MagicMock(), MagicMock())
 
@@ -94,10 +95,10 @@ class TestCreateExecutorBlock:
         # Verify that event handlers were set up
         mock_setup_execute.assert_called_once_with(mock_recipe_core, *mock_execute_components)
         mock_setup_example.assert_called_once_with(
-            mock_recipe_core, 
-            *mock_examples_components[:3], 
+            mock_recipe_core,
+            *mock_examples_components[:3],
             mock_execute_components[1],
-            mock_execute_components[2]  # context_vars
+            mock_execute_components[2],  # context_vars
         )
 
         # Verify the result
@@ -107,34 +108,34 @@ class TestCreateExecutorBlock:
 class TestBuildExecuteRecipeTab:
     """Tests for the build_execute_recipe_tab function."""
 
-    @patch("gradio.TabItem")
     @patch("gradio.Row")
     @patch("gradio.Column")
     @patch("gradio.Markdown")
     @patch("gradio.File")
     @patch("gradio.Code")
+    @patch("gradio.Progress")
+    @patch("gradio.JSON")
     @patch("gradio.Accordion")
     @patch("gradio.Textbox")
     @patch("gradio.Button")
     @patch("gradio.Tabs")
+    # Test with the updated UI structure
     def test_build_execute_recipe_tab(
         self,
         mock_tabs,
         mock_button,
         mock_textbox,
         mock_accordion,
+        mock_json,
+        mock_progress,
         mock_code,
         mock_file,
         mock_markdown,
         mock_column,
         mock_row,
-        mock_tab_item,
     ):
         """Test that build_execute_recipe_tab creates the expected UI components."""
         # Setup context managers properly
-        mock_tab_item_instance = mock_tab_item.return_value
-        mock_tab_item_instance.__enter__.return_value = mock_tab_item_instance
-
         mock_row_instance = mock_row.return_value
         mock_row_instance.__enter__.return_value = mock_row_instance
 
@@ -147,19 +148,28 @@ class TestBuildExecuteRecipeTab:
         mock_tabs_instance = mock_tabs.return_value
         mock_tabs_instance.__enter__.return_value = mock_tabs_instance
 
+        # Mock Row instances
+        mock_execution_indicator = MagicMock()
+        # First call to Row creates the main row, second creates progress indicator row
+        mock_row.side_effect = [mock_row_instance, mock_execution_indicator]
+        mock_execution_indicator.__enter__.return_value = mock_execution_indicator
+
         # Set up mock returns for components
         mock_file.return_value = "file"
-        mock_code.side_effect = ["text", "raw", "debug"]
+        mock_code.return_value = "text"
+        mock_progress.return_value = "progress"
+        mock_json.side_effect = ["context", "debug"]
         mock_textbox.return_value = "vars"
         mock_button.return_value = "btn"
-        mock_markdown.return_value = "result"
+        # Need 6 markdown instances for: headers (2), indicator, result, context title, logs
+        mock_markdown.side_effect = ["header1", "header2", "indicator", "result", "context_title", "logs"]
 
         # Call the function
         result = build_execute_recipe_tab()
 
-        # Verify the result is a 7-tuple with the expected components
+        # Verify the result is an 8-tuple with the expected components
         assert isinstance(result, tuple)
-        assert len(result) == 7
+        assert len(result) == 8
 
         # We don't need to check specific assertions for each component call count
         # since the function itself is not being tested for implementation details,
@@ -196,6 +206,7 @@ class TestBuildExamplesTab:
 class TestSetupExecuteRecipeEvents:
     """Tests for the setup_execute_recipe_events function."""
 
+    # Test with support for chained events
     def test_setup_execute_recipe_events(self, mock_recipe_core):
         """Test that setup_execute_recipe_events sets up the expected event handlers."""
         # Create mock UI components
@@ -203,9 +214,23 @@ class TestSetupExecuteRecipeEvents:
         recipe_text = MagicMock()
         context_vars = MagicMock()
         execute_btn = MagicMock()
+        progress = MagicMock()
         result_output = MagicMock()
-        raw_result = MagicMock()
-        debug_context = MagicMock()
+        logs_output = MagicMock()
+        context_json = MagicMock()
+
+        # Mock the parent relationship for result_output to find execution_indicator
+        execution_indicator = MagicMock()
+        mock_parent = MagicMock()
+        mock_parent.children = [execution_indicator]
+        # Ensure isinstance works for the Row check
+        mock_parent.children[0].__class__.__name__ = "Row"
+        result_output.parent = mock_parent
+
+        # Mock the click.then method for chained events
+        mock_click = MagicMock()
+        execute_btn.click.return_value = mock_click
+        mock_click.then.return_value = mock_click
 
         # Call the function
         setup_execute_recipe_events(
@@ -214,25 +239,21 @@ class TestSetupExecuteRecipeEvents:
             recipe_text,
             context_vars,
             execute_btn,
+            progress,
             result_output,
-            raw_result,
-            debug_context,
+            logs_output,
+            context_json,
         )
 
         # Verify that the click event was set up
         execute_btn.click.assert_called_once()
 
-        # Get the arguments from the call
+        # Check the event setup
         args, kwargs = execute_btn.click.call_args
-
-        # Verify the arguments
-        assert "fn" in kwargs
-        assert "inputs" in kwargs
-        assert "outputs" in kwargs
-        assert "api_name" in kwargs
         assert kwargs["api_name"] == "execute_recipe"
         assert kwargs["inputs"] == [recipe_file, recipe_text, context_vars]
-        assert kwargs["outputs"] == [result_output, raw_result, debug_context]
+        assert kwargs["outputs"] == [result_output, logs_output, context_json]
+        assert kwargs["show_progress"] == "full"
 
 
 class TestSetupExampleEvents:
@@ -271,10 +292,10 @@ class TestSetupExampleEvents:
         assert kwargs["api_name"] == "load_example"
         assert kwargs["inputs"] == [example_paths]
         assert kwargs["outputs"] == [recipe_text, example_desc, context_vars]
-        
+
         # Reset the mock
         load_example_btn.reset_mock()
-        
+
         # Test without context_vars
         setup_example_events(
             mock_recipe_core,
@@ -283,7 +304,7 @@ class TestSetupExampleEvents:
             example_desc,
             recipe_text,
         )
-        
+
         # Verify click event setup again
         load_example_btn.click.assert_called_once()
         args, kwargs = load_example_btn.click.call_args
