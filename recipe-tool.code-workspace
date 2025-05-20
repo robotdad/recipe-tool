@@ -1,0 +1,24 @@
+{
+  "folders": [
+    {
+      "name": "apps/document-generator",
+      "path": "apps/document-generator"
+    },
+    {
+      "name": "apps/recipe-executor",
+      "path": "apps/recipe-executor"
+    },
+    {
+      "name": "apps/recipe-tool",
+      "path": "apps/recipe-tool"
+    },
+    {
+      "name": "mcp-servers/python-code-tools",
+      "path": "mcp-servers/python-code-tools"
+    },
+    {
+      "name": "root",
+      "path": "."
+    }
+  ]
+}

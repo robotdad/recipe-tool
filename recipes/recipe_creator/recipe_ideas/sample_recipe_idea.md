@@ -17,7 +17,7 @@ Create a new recipe for analyzing a codebase from a file roll-up, named `analyze
 2. Use the LLM (default set to use `openai/o4-mini`) to generate the analysis:
 
 ```markdown
-Anayze the codebase from the following roll-up file(s):
+Analyze the codebase from the following roll-up file(s):
 
 - Codebase Roll-up: {{codebase_rollup}}
 

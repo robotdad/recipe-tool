@@ -1,0 +1,60 @@
+[project]
+name = "recipe_executor_app"
+version = "0.1.0"
+description = "Gradio web app for Recipe Executor"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { file = "../../LICENSE" }
+authors = [{ name = "MADE:Explorations Team" }]
+dependencies = [
+    "gradio>=4.12.0",
+    "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
+    "python-dotenv>=1.0.0",
+    "recipe-tool",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.1",
+    "pytest-cov>=4.1.0",
+    "ruff>=0.1.6",
+    "pyright>=1.1.348",
+]
+
+[tool.pyright]
+include = ["recipe_executor_app"]
+exclude = ["**/__pycache__", "tests"]
+reportMissingImports = true
+pythonVersion = "3.11"
+
+[tool.pytest.ini_options]
+asyncio_mode = "strict"
+asyncio_default_fixture_loop_scope = "function"
+asyncio_default_test_loop_scope = "function"
+filterwarnings = [
+    # Ignore websockets.legacy deprecation warnings from Gradio's internals
+    "ignore::DeprecationWarning:websockets.legacy:",
+    # Ignore other gradio-related warnings
+    "ignore::ResourceWarning",
+    "ignore::DeprecationWarning:gradio:",
+    # Ignore httpx warnings
+    "ignore::Warning:httpx:",
+]
+# Capture log during test execution to avoid printing log errors
+log_cli = false
+log_level = "ERROR"
+
+[tool.uv]
+package = true
+
+[tool.uv.sources]
+recipe-tool = { path = "../..", editable = true }
+
+[project.scripts]
+recipe-executor-app = "recipe_executor_app.app:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

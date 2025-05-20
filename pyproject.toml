@@ -1,6 +1,6 @@
 [project]
 name = "recipe-tool"
-version = "0.1.0"
+version = "0.1.1"
 description = "A tool for executing natural language recipe-like instructions"
 authors = [{ name = "MADE:Explorations Team" }]
 license = "MIT"
@@ -41,7 +41,6 @@ package = true
 [tool.uv.sources]
 python-code-tools = { path = "mcp-servers/python-code-tools", editable = true }
 recipe-tool-mcp-server = { path = "mcp-servers/recipe-tool", editable = true }
-document-generator-ui = { path = "document_generator_ui", editable = true }
 
 [tool.hatch.build.targets.wheel]
 packages = ["recipe_executor"]
