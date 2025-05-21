@@ -119,15 +119,15 @@ def build_editor() -> gr.Blocks:
             inputs=[merge_mode_dd, resources_list, resources_state],
             outputs=[resources_state],
         )
-        resources_state.change(update_resource_list, inputs=[resources_state], outputs=[resources_list])
-        resources_state.change(update_section_key_choices, inputs=[resources_state], outputs=[sec_refs, sec_res_dd])
+        resources_state.change(update_resource_list, inputs=[resources_state, resources_list], outputs=[resources_list])
+        resources_state.change(update_section_key_choices, inputs=[resources_state, sec_refs, sec_res_dd], outputs=[sec_refs, sec_res_dd])
 
         # Hook up section callbacks
         add_sec_btn.click(add_section, inputs=[sections_state], outputs=[sections_state, sections_list])
         remove_sec_btn.click(
             remove_section, inputs=[sections_state, sections_list], outputs=[sections_state, sections_list]
         )
-        sections_state.change(update_section_list, inputs=[sections_state], outputs=[sections_list])
+        sections_state.change(update_section_list, inputs=[sections_state, sections_list], outputs=[sections_list])
         sections_list.change(
             select_section,
             inputs=[sections_list, sections_state],

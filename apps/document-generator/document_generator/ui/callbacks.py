@@ -22,6 +22,7 @@ def add_resource(res_list):
     res_list = res_list or []
     res_list.append({"key": "", "description": "", "path": "", "merge_mode": ""})
     choices = make_resource_choices(res_list)
+    # When adding a new resource, we want to select it
     value = choices[-1] if choices else ""
     return res_list, gr.update(choices=choices, value=value)
 
@@ -41,7 +42,7 @@ def remove_resource(res_list, selection):
     if isinstance(idx, int) and 0 <= idx < len(res_list):
         res_list.pop(idx)
     choices = make_resource_choices(res_list)
-    value = choices[-1] if choices else ""
+    value = choices[0] if choices else ""  # Select first item after removal
     return res_list, gr.update(choices=choices, value=value)
 
 
@@ -146,23 +147,40 @@ def update_resource_merge_mode(value, selection, res_list):
     return res_list
 
 
-def update_resource_list(res_list):
+def update_resource_list(res_list, current_selection=None):
     choices = make_resource_choices(res_list)
-    value = choices[-1] if choices else None
+    # Keep current selection if it exists in the new choices
+    if current_selection in choices:
+        value = current_selection
+    else:
+        value = choices[-1] if choices else None
     return gr.update(choices=choices, value=value)
 
 
-def update_section_key_choices(res_list):
+def update_section_key_choices(res_list, current_refs=None, current_resource_key=None):
     # Update refs and resource key dropdowns
     keys = make_resource_choices(res_list)
-    # Don't set a value, only update choices
-    return gr.update(choices=keys), gr.update(choices=keys)
+    
+    # For refs, preserve the current selection if possible
+    refs_update = gr.update(choices=keys)
+    if current_refs is not None:
+        # Filter to keep only values that exist in new keys
+        preserved_refs = [ref for ref in current_refs if ref in keys]
+        refs_update = gr.update(choices=keys, value=preserved_refs)
+    
+    # For resource key, preserve the current selection if it exists in the new choices
+    res_key_update = gr.update(choices=keys)
+    if current_resource_key is not None and current_resource_key in keys:
+        res_key_update = gr.update(choices=keys, value=current_resource_key)
+    
+    return refs_update, res_key_update
 
 
 def add_section(sec_list):
     sec_list = sec_list or []
     sec_list.append({"title": "", "prompt": "", "refs": [], "resource_key": None, "sections": []})
     choices = make_section_choices(sec_list)
+    # When adding a new section, we want to select it
     value = choices[-1] if choices else ""
     return sec_list, gr.update(choices=choices, value=value)
 
@@ -181,7 +199,7 @@ def remove_section(sec_list, selection):
     if isinstance(idx, int) and 0 <= idx < len(sec_list):
         sec_list.pop(idx)
     choices = make_section_choices(sec_list)
-    value = choices[-1] if choices else ""
+    value = choices[0] if choices else ""  # Select first item after removal
     return sec_list, gr.update(choices=choices, value=value)
 
 
@@ -296,9 +314,13 @@ def update_section_resource_key(value, selection, sec_list):
     return sec_list
 
 
-def update_section_list(sec_list):
+def update_section_list(sec_list, current_selection=None):
     choices = make_section_choices(sec_list)
-    value = choices[-1] if choices else None
+    # Keep current selection if it exists in the new choices
+    if current_selection in choices:
+        value = current_selection
+    else:
+        value = choices[-1] if choices else None
     return gr.update(choices=choices, value=value)
 
 
@@ -316,9 +338,9 @@ def get_uploaded_outline(file_obj):
     res_choices = make_resource_choices(res_list)
     sec_choices = make_section_choices(sec_list)
     
-    # Fix: Only set values if there are valid choices
-    res_value = res_choices[-1] if res_choices else None
-    sec_value = sec_choices[-1] if sec_choices else None
+    # Select the first item when uploading an outline (instead of the last)
+    res_value = res_choices[0] if res_choices else None
+    sec_value = sec_choices[0] if sec_choices else None
     
     return [
         title,
