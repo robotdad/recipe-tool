@@ -12,37 +12,69 @@ def build_outline_data(title, instr, res_table, secs_table, nested):
     """
     title_val = (title or "").strip()
     instr_val = (instr or "").strip()
+    
     # Resources
     resources = []
-    for row in res_table or []:
-        cells = list(row) if isinstance(row, (list, tuple)) else []
-        cells += [""] * (4 - len(cells))
-        key, desc, path, mm = [c.strip() for c in cells[:4]]
+    for r in res_table or []:
+        key = r.get("key", "").strip()
+        desc = r.get("description", "").strip()
+        path = r.get("path", "").strip()
+        mm = r.get("merge_mode", "")
+        
+        # Skip completely empty resources
         if not key and not desc and not path:
             continue
-        r = {"key": key, "description": desc, "path": path}
-        if mm:
-            r["merge_mode"] = mm
-        resources.append(r)
+            
+        resource = {"key": key, "description": desc, "path": path}
+        if mm and mm.strip():
+            resource["merge_mode"] = mm.strip()
+        resources.append(resource)
+    
     # Sections
     sections = []
-    for idx, row in enumerate(secs_table or []):
-        cells = list(row) if isinstance(row, (list, tuple)) else []
-        cells += [""] * (4 - len(cells))
-        title_s, prompt_s, refs_s, rk = [c.strip() for c in cells[:4]]
-        subs = nested[idx] if nested and idx < len(nested) else []
-        if not title_s and not prompt_s and not refs_s and not rk and not subs:
+    for idx, s in enumerate(secs_table or []):
+        title_s = s.get("title", "").strip()
+        prompt_s = s.get("prompt", "")
+        refs_list = s.get("refs", [])
+        rk = s.get("resource_key", "")
+        
+        # Convert values to proper types and strip whitespace
+        if prompt_s is not None:
+            prompt_s = str(prompt_s).strip()
+        if rk is not None:
+            rk = str(rk).strip()
+        
+        # Get subsections from nested state if available
+        subs = []
+        if nested and idx < len(nested):
+            subs = nested[idx]
+        
+        # Skip completely empty sections
+        if not title_s and not prompt_s and not refs_list and not rk and not subs:
             continue
+            
         sec = {"title": title_s}
+        
+        # Add prompt and refs if in prompt mode
         if prompt_s:
             sec["prompt"] = prompt_s
-            refs = [r.strip() for r in refs_s.split(",") if r.strip()]
-            sec["refs"] = refs
+            if refs_list:
+                # Ensure refs is a list of strings
+                if isinstance(refs_list, str):
+                    refs = [r.strip() for r in refs_list.split(",") if r.strip()]
+                else:
+                    refs = [str(r).strip() for r in refs_list if r]
+                sec["refs"] = refs
+        # Add resource_key if in static mode
         elif rk:
             sec["resource_key"] = rk
+        
+        # Add subsections if present
         if subs:
             sec["sections"] = subs
+            
         sections.append(sec)
+    
     return {
         "title": title_val,
         "general_instruction": instr_val,
