@@ -33,7 +33,20 @@ def section_entry(section=None):
     mode_radio = gr.Radio(choices=["prompt", "static"], label="Mode", value=mode)
     prompt_tb = gr.TextArea(label="Prompt", value=prompt)
     refs_ch = gr.CheckboxGroup(choices=refs, label="Refs", value=refs)
+    
+    # Build dropdown choices, ensuring it includes the resource_key if present
+    dropdown_choices = [""]
+    if refs:
+        dropdown_choices.extend(refs)
+    if resource_key and resource_key not in dropdown_choices:
+        dropdown_choices.append(resource_key)
+    
     # Allow empty resource key if none selected
-    res_dd = gr.Dropdown(choices=[""] + refs, label="Resource Key", value=resource_key)
+    res_dd = gr.Dropdown(
+        choices=dropdown_choices, 
+        label="Resource Key", 
+        value=resource_key,
+        allow_custom_value=True  # Allow custom values to avoid warnings
+    )
     nested_acc = gr.Accordion(label="Subsections", open=False)
     return [title_tb, mode_radio, prompt_tb, refs_ch, res_dd, nested_acc]

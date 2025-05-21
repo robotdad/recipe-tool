@@ -155,6 +155,7 @@ def update_resource_list(res_list):
 def update_section_key_choices(res_list):
     # Update refs and resource key dropdowns
     keys = make_resource_choices(res_list)
+    # Don't set a value, only update choices
     return gr.update(choices=keys), gr.update(choices=keys)
 
 
@@ -196,15 +197,22 @@ def select_section(selection, sec_list):
                     idx = i
                     break
     if idx is None or idx < 0 or idx >= len(sec_list):
-        return "", "prompt", [], "", "", sec_list
+        return "", "prompt", "", [], "", sec_list
     s = sec_list[idx]
     mode = "static" if s.get("resource_key") else "prompt"
+    
+    # Get section values, with safe defaults
+    title = s.get("title", "")
+    prompt = s.get("prompt", "")
+    refs = s.get("refs", [])
+    resource_key = s.get("resource_key", "")
+    
     return (
-        s.get("title", ""),
+        title,
         mode,
-        s.get("prompt", ""),
-        s.get("refs", []),
-        s.get("resource_key", ""),
+        prompt,
+        refs,
+        resource_key,
         sec_list,
     )
 
@@ -307,14 +315,19 @@ def get_uploaded_outline(file_obj):
     nested = [s.get("sections", []) for s in sec_list]
     res_choices = make_resource_choices(res_list)
     sec_choices = make_section_choices(sec_list)
+    
+    # Fix: Only set values if there are valid choices
+    res_value = res_choices[-1] if res_choices else None
+    sec_value = sec_choices[-1] if sec_choices else None
+    
     return [
         title,
         instr,
         res_list,
         sec_list,
         nested,
-        gr.update(choices=res_choices, value=res_choices[-1] if res_choices else ""),
-        gr.update(choices=sec_choices, value=sec_choices[-1] if sec_choices else ""),
+        gr.update(choices=res_choices, value=res_value),
+        gr.update(choices=sec_choices, value=sec_value),
     ]
 
 
