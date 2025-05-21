@@ -5,7 +5,7 @@
 **Search:** ['blueprints/recipe_executor']
 **Exclude:** ['.venv', 'node_modules', '.git', '__pycache__', '*.pyc', '*.ruff_cache']
 **Include:** []
-**Date:** 5/20/2025, 12:10:46 PM
+**Date:** 5/21/2025, 1:51:47 PM
 **Files:** 49
 
 === File: blueprints/recipe_executor/README.md ===
@@ -5024,6 +5024,13 @@ None
     {
       "type": "set_context",
       "config": {
+        "key": "project_blueprints_root",
+        "value": "{{ project_blueprints_root | default: 'blueprints/recipe_executor' }}"
+      }
+    },
+    {
+      "type": "set_context",
+      "config": {
         "key": "edit",
         "value": "{{ edit | default: false }}"
       }
@@ -5062,7 +5069,7 @@ None
     },
     {
       "key": "codebase_generator_recipes",
-      "path": "ai_context/generated/CODEBASE_GENERATOR_RECIPE_FILES.md",
+      "path": "ai_context/generated/CODEBASE_GENERATOR_FILES.md",
       "description": "Recipe files used to generate code from blueprint files (component manifest and then per-component 'docs' and 'spec' files)."
     },
     {
@@ -5113,7 +5120,7 @@ None
     },
     {
       "title": "Built-in Step Types and Configuration",
-      "prompt": "Give a concise overview (≤ 2 short paragraphs) of the Recipe Executor's built-in step types: why they matter, how the reference entries below are structured, and when to consult them. Finish with a bulleted list of all current step type names pulled from the resource code, so readers know what's covered in the subsections.",
+      "prompt": "Give a concise overview (≤ 2 short paragraphs) of the Recipe Executor's built-in step types: why they matter, how the reference entries below are structured, and when to consult them. Finish with a simple table list of all current step type pulled from the resource code, so readers know what is going to be covered in the subsections.",
       "refs": [
         "recipe_executor_code",
         "recipe_executor_blueprints",

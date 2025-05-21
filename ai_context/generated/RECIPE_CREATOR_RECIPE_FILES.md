@@ -5,7 +5,7 @@
 **Search:** ['recipes/recipe_creator']
 **Exclude:** ['.venv', 'node_modules', '.git', '__pycache__', '*.pyc', '*.ruff_cache']
 **Include:** []
-**Date:** 5/20/2025, 12:10:46 PM
+**Date:** 5/21/2025, 1:51:47 PM
 **Files:** 3
 
 === File: recipes/recipe_creator/create.json ===
@@ -64,7 +64,7 @@
     {
       "type": "read_files",
       "config": {
-        "path": "{{ ai_context_root }}/generated/RECIPE_EXECUTOR_CODE_FILES.md,{{ ai_context_root }}/generated/RECIPE_EXECUTOR_BLUEPRINT_FILES.md,{{ ai_context_root }}/generated/CODEBASE_GENERATOR_RECIPE_FILES.md,{{ ai_context_root }}/generated/RECIPE_JSON_AUTHORING_GUIDE.md,{{ ai_context_root }}/IMPLEMENTATION_PHILOSOPHY.md,{{ ai_context_root }}/MODULAR_DESIGN_PHILOSOPHY.md,{{ ai_context_root }}/git_collector/LIQUID_PYTHON_DOCS.md",
+        "path": "{{ ai_context_root }}/generated/RECIPE_EXECUTOR_CODE_FILES.md,{{ ai_context_root }}/generated/RECIPE_EXECUTOR_BLUEPRINT_FILES.md,{{ ai_context_root }}/generated/CODEBASE_GENERATOR_FILES.md,{{ ai_context_root }}/generated/RECIPE_JSON_AUTHORING_GUIDE.md,{{ ai_context_root }}/IMPLEMENTATION_PHILOSOPHY.md,{{ ai_context_root }}/MODULAR_DESIGN_PHILOSOPHY.md,{{ ai_context_root }}/git_collector/LIQUID_PYTHON_DOCS.md",
         "content_key": "context_files"
       }
     },
@@ -72,7 +72,7 @@
       "type": "llm_generate",
       "config": {
         "model": "{{ model }}",
-        "prompt": "Create a new JSON recipe file for use with recipe executor based on the following Recipe Idea:\n\n<RECIPE_IDEA>\n{{ recipe_idea }}\n</RECIPE_IDEA>\n\n{% if additional_files %}In addition, here are some additional files for reference (DO NOT INCLUDE THEM IN THE RECIPE ITSELF):\n\n<ADDITIONAL_FILES>\n{{ additional_files }}\n</ADDITIONAL_FILES>\n\n{% endif %}Here is some documentation, code, examples, and guides for the recipes concept for additional context when writing a recipe for the requested recipe idea (DO NOT INCLUDE THEM IN THE RECIPE ITSELF):\n\n<CONTEXT_FILES>\n{{ context_files }}\n</CONTEXT_FILES>\n\nThe output MUST be valid JSON: no comments, all strings should be on a single line within the file (use escape characters for newlines), etc.\n\nSave the generated recipe file as {{ target_file }} unless a different name is specified in the recipe idea.",
+        "prompt": "Create a new JSON recipe file for use with recipe executor based on the following Recipe Idea:\n\n<RECIPE_IDEA>\n{{ recipe_idea }}\n</RECIPE_IDEA>\n\n{% if additional_files %}In addition, here are some additional files for reference (DO NOT INCLUDE THEM IN THE RECIPE ITSELF):\n\n<ADDITIONAL_FILES>\n{{ additional_files }}\n</ADDITIONAL_FILES>\n\n{% endif %}Here is some documentation, code, examples, and guides for the recipes concept for additional context when writing a recipe for the requested recipe idea (DO NOT INCLUDE THEM IN THE RECIPE ITSELF):\n\n<CONTEXT_FILES>\n{{ context_files }}\n</CONTEXT_FILES>\n\nThe output MUST be valid JSON: no comments, all strings should be on a single line within the file (use escape characters for newlines), but pretty-print with 2-space indents, etc.\n\nSave the generated recipe file as {{ target_file }} unless a different name is specified in the recipe idea.",
         "output_format": "files",
         "output_key": "generated_recipe"
       }
@@ -111,7 +111,7 @@ Create a new JSON recipe file for creating new JSON recipe files, named `create_
 
 - `ai_context/generated/RECIPE_EXECUTOR_CODE_FILES.md`
 - `ai_context/generated/RECIPE_EXECUTOR_BLUEPRINT_FILES.md`
-- `ai_context/generated/CODEBASE_GENERATOR_RECIPE_FILES.md`
+- `ai_context/generated/CODEBASE_GENERATOR_FILES.md`
 - `ai_context/RECIPE_JSON_AUTHORING_GUIDE.md`
 - `ai_context/IMPLEMENTATION_PHILOSOPHY.md`
 - `ai_context/MODULAR_DESIGN_PHILOSOPHY.md`

@@ -5,8 +5,8 @@
 **Search:** ['recipes/document_generator']
 **Exclude:** ['.venv', 'node_modules', '.git', '__pycache__', '*.pyc', '*.ruff_cache']
 **Include:** []
-**Date:** 5/20/2025, 12:10:46 PM
-**Files:** 10
+**Date:** 5/21/2025, 2:39:28 PM
+**Files:** 11
 
 === File: recipes/document_generator/README.md ===
 # Instructions for Testing the Document Generator Recipe
@@ -19,6 +19,76 @@ recipe-tool --execute recipes/document_generator/document_generator_recipe.json 
    outline_file=recipes/document_generator/examples/readme.json \
    output_root=output/docs \
    model=openai/o4-mini
+```
+
+
+=== File: recipes/document_generator/docs/diagram.md ===
+```mermaid
+flowchart TD
+  %% ── class palette ───────────────────────────────────────────────────────────
+  classDef ctx  fill:#e7f0ff,stroke:#5b8ff9
+  classDef io   fill:#fff5e6,stroke:#f5a623
+  classDef exec fill:#fef7f7,stroke:#d9534f
+  classDef llm  fill:#fff1b1,stroke:#d4aa00
+  classDef loop fill:#f0fff4,stroke:#2e8540,stroke-dasharray:5 5
+  classDef cond fill:#fafafa,stroke:#999
+
+  %% ── top-level recipe ────────────────────────────────────────────────────────
+  subgraph collapse::DOCUMENT_GENERATOR
+    DG_S0[set_context model]:::ctx --> DG_S1[set_context output_root]:::ctx
+    DG_S1 --> DG_S2[set_context recipe_root]:::ctx
+    DG_S2 --> DG_S3[set_context document_filename]:::ctx
+
+    DG_S3 --> LO_START
+
+    %% ── load_outline (nested) ────────────────────────────────────────────────
+    subgraph collapse::LOAD_OUTLINE
+      LO_S0[read_files outline]:::io --> LO_S1[set_context toc]:::ctx
+    end
+    LO_S1 --> LR_START
+
+    %% ── load_resources (nested) ──────────────────────────────────────────────
+    subgraph collapse::LOAD_RESOURCES
+      LR_S0(loop resources):::loop --> LR_S1[read_files resource]:::io --> LR_S2[set_context resource]:::ctx
+    end
+    LR_S2 --> DG_S4[set_context document_stub]:::ctx
+
+    %% ── write_document (nested) ──────────────────────────────────────────────
+    DG_S4 --> WD_START
+    subgraph collapse::WRITE_DOCUMENT
+      WD_S0[write_files → document.md]:::io
+    end
+    WD_S0 --> WS_START
+
+    %% ── write_sections (recursive nested) ────────────────────────────────────
+    subgraph collapse::WRITE_SECTIONS
+      WS_S0(loop sections):::loop --> WS_C1{resource_key?}:::cond
+      WS_C1 --yes--> WC_START
+      WS_C1 --no --> WSEC_START
+
+        subgraph collapse::WRITE_CONTENT
+          WC_S0[execute read_document]:::exec --> WC_S1[set_context merge section.content]:::ctx --> WC_S2[execute write_document]:::exec
+        end
+
+        subgraph collapse::WRITE_SECTION
+          WSEC_S0[execute read_document]:::exec --> WSEC_S1[set_context rendered_prompt]:::ctx --> WSEC_S2[llm_generate section]:::llm --> WSEC_S3[set_context merge generated.content]:::ctx --> WSEC_S4[execute write_document]:::exec
+        end
+
+      WS_C2{has_children?}:::cond
+      WC_S2 --> WS_C2
+      WSEC_S4 --> WS_C2
+      WS_C2 --true--> WS_S0
+    end
+  end
+
+  %% ── VS Code click-throughs (adjust paths to taste) ─────────────────────────
+  click DG_S0 "vscode://file/document_generator_recipe.json"
+  click LO_S0 "vscode://file/recipes/load_outline.json"
+  click LR_S0 "vscode://file/recipes/load_resources.json"
+  click WD_S0 "vscode://file/recipes/write_document.json"
+  click WS_S0 "vscode://file/recipes/write_sections.json"
+  click WC_S0 "vscode://file/recipes/write_content.json"
+  click WSEC_S0 "vscode://file/recipes/write_section.json"
 ```
 
 

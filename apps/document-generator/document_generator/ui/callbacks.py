@@ -355,10 +355,21 @@ def get_uploaded_outline(file_obj):
 
 def get_download_outline(title, instr, res_table, secs_table, nested):
     outline = build_outline_data(title, instr, res_table, secs_table, nested)
+    
+    # Create a filename based on the title
+    filename = title.lower().replace(" ", "-")
+    # Remove any non-alphanumeric or dash characters
+    filename = "".join(c for c in filename if c.isalnum() or c == "-")
+    # Ensure we have a valid filename
+    if not filename:
+        filename = "outline"
+    
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".json", mode="w")
     json.dump(outline, tmp, indent=2)
     tmp.close()
-    return tmp.name
+    
+    # Return the file path with custom filename for DownloadButton
+    return {"name": f"{filename}.json", "path": tmp.name}
 
 
 def generate_document_callback(title, instr, res_table, secs_table, nested):
@@ -366,7 +377,18 @@ def generate_document_callback(title, instr, res_table, secs_table, nested):
     outline = Outline.from_dict(outline_dict)
     # Run async generation in a blocking context
     doc_text = asyncio.run(generate_document(outline))
+    
+    # Create a filename based on the title
+    filename = title.lower().replace(" ", "-")
+    # Remove any non-alphanumeric or dash characters
+    filename = "".join(c for c in filename if c.isalnum() or c == "-")
+    # Ensure we have a valid filename
+    if not filename:
+        filename = "document"
+    
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".md", mode="w")
     tmp.write(doc_text)
     tmp.close()
-    return doc_text, tmp.name
+    
+    # Return the document text and file path for the DownloadButton with visibility update
+    return doc_text, gr.update(value={"name": f"{filename}.md", "path": tmp.name}, visible=True)

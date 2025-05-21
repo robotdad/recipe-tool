@@ -80,13 +80,24 @@ def build_editor() -> gr.Blocks:
                 validate_btn = gr.Button("Validate Outline")
                 validate_output = gr.Textbox(label="Validation Result")
                 json_preview = gr.JSON(label="Outline JSON Preview")
-                download_outline_button = gr.Button("Download Outline JSON")
-                download_outline_file = gr.File(label="Download Outline JSON")
+                
+                # Use DownloadButton for direct downloads
+                download_outline_button = gr.DownloadButton(
+                    "Download Outline JSON", 
+                    variant="primary"
+                )
+                
                 # Generate button after validation
                 generate_btn = gr.Button("Generate Document")
                 # Generation output controls
                 output_md = gr.Markdown(label="Generated Document")
-                download_doc_button = gr.File(label="Download Generated Document")
+                
+                # Use DownloadButton for document download
+                download_doc_button = gr.DownloadButton(
+                    "Download Generated Document", 
+                    variant="primary",
+                    visible=False
+                )
 
         # Hook up resource callbacks
         add_res_btn.click(add_resource, inputs=[resources_state], outputs=[resources_state, resources_list])
@@ -172,10 +183,18 @@ def build_editor() -> gr.Blocks:
             inputs=[title_tb, instruction_tb, resources_state, sections_state, nested_state],
             outputs=[validate_output, json_preview],
         )
+        # Connect validate button to also update the download button with the file path
+        validate_btn.click(
+            get_download_outline,
+            inputs=[title_tb, instruction_tb, resources_state, sections_state, nested_state],
+            outputs=[download_outline_button],
+        )
+        
+        # Also connect the download button directly so users can click it without validating first
         download_outline_button.click(
             get_download_outline,
             inputs=[title_tb, instruction_tb, resources_state, sections_state, nested_state],
-            outputs=[download_outline_file],
+            outputs=[download_outline_button],
         )
 
         # Generate document callback
@@ -184,4 +203,6 @@ def build_editor() -> gr.Blocks:
             inputs=[title_tb, instruction_tb, resources_state, sections_state, nested_state],
             outputs=[output_md, download_doc_button],
         )
+
+        # No need to add handlers for the DownloadButton - they work automatically when value is set
     return demo
