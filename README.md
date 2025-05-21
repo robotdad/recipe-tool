@@ -158,7 +158,8 @@ This will generate a new recipe file based on the provided idea.
 You can also pass additional files for context:
 
 ```bash
-recipe-tool --create path/to/your/recipe_idea.txt files=path/to/other_file.txt,path/to/another_file.txt
+recipe-tool --create path/to/your/recipe_idea.txt \
+   files=path/to/other_file.txt,path/to/another_file.txt
 ```
 
 Example:
@@ -167,7 +168,8 @@ Example:
 recipe-tool --create recipes/recipe_creator/prompts/sample_recipe_idea.md
 
 # Test it out
-recipe-tool --execute output/analyze_codebase.json input=ai_context/generated/RECIPE_EXECUTOR_CODE_FILES.md,ai_context/generated/RECIPE_EXECUTOR_RECIPE_FILES.md
+recipe-tool --execute output/analyze_codebase.json \
+   input=ai_context/generated/RECIPE_EXECUTOR_CODE_FILES.md,ai_context/generated/RECIPE_EXECUTOR_BLUEPRINT_FILES.md
 ```
 
 ## Project Structure

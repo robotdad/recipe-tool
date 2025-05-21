@@ -3,14 +3,14 @@
     {
       "type": "read_files",
       "config": {
-        "path": "{{ recipe_root }}/components/{{ component.id | replace: '.', '/' }}/{{ component.id | split: '.' | last }}_spec.md",
+        "path": "{{ project_blueprints_root }}/components/{{ component.id | replace: '.', '/' }}/{{ component.id | split: '.' | last }}_spec.md",
         "content_key": "spec"
       }
     },
     {
       "type": "read_files",
       "config": {
-        "path": "{{ recipe_root }}/components/{{ component.id | replace: '.', '/' }}/{{ component.id | split: '.' | last }}_docs.md",
+        "path": "{{ project_blueprints_root }}/components/{{ component.id | replace: '.', '/' }}/{{ component.id | split: '.' | last }}_docs.md",
         "content_key": "docs",
         "optional": true
       }
@@ -18,7 +18,7 @@
     {
       "type": "read_files",
       "config": {
-        "path": "{% for dep in component.deps %}{{ recipe_root }}/components/{{ dep | replace: '.', '/' }}/{{ dep | split: '.' | last }}_docs.md{% unless forloop.last %},{% endunless %}{% endfor %}",
+        "path": "{% for dep in component.deps %}{{ project_blueprints_root }}/components/{{ dep | replace: '.', '/' }}/{{ dep | split: '.' | last }}_docs.md{% unless forloop.last %},{% endunless %}{% endfor %}",
         "content_key": "dep_docs",
         "merge_mode": "dict",
         "optional": true

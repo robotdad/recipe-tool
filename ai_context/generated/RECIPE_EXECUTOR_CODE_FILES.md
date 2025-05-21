@@ -5,7 +5,7 @@
 **Search:** ['recipe_executor']
 **Exclude:** ['.venv', 'node_modules', '.git', '__pycache__', '*.pyc', '*.ruff_cache']
 **Include:** ['README.md', 'pyproject.toml', '.env.example']
-**Date:** 5/15/2025, 8:40:28 AM
+**Date:** 5/20/2025, 12:10:46 PM
 **Files:** 26
 
 === File: .env.example ===
@@ -191,7 +191,8 @@ This will generate a new recipe file based on the provided idea.
 You can also pass additional files for context:
 
 ```bash
-recipe-tool --create path/to/your/recipe_idea.txt files=path/to/other_file.txt,path/to/another_file.txt
+recipe-tool --create path/to/your/recipe_idea.txt \
+   files=path/to/other_file.txt,path/to/another_file.txt
 ```
 
 Example:
@@ -200,7 +201,8 @@ Example:
 recipe-tool --create recipes/recipe_creator/prompts/sample_recipe_idea.md
 
 # Test it out
-recipe-tool --execute output/analyze_codebase.json input=ai_context/generated/RECIPE_EXECUTOR_CODE_FILES.md,ai_context/generated/RECIPE_EXECUTOR_RECIPE_FILES.md
+recipe-tool --execute output/analyze_codebase.json \
+   input=ai_context/generated/RECIPE_EXECUTOR_CODE_FILES.md,ai_context/generated/RECIPE_EXECUTOR_BLUEPRINT_FILES.md
 ```
 
 ## Project Structure
@@ -256,7 +258,7 @@ Any use of third-party trademarks or logos are subject to those third-party's po
 === File: pyproject.toml ===
 [project]
 name = "recipe-tool"
-version = "0.1.0"
+version = "0.1.1"
 description = "A tool for executing natural language recipe-like instructions"
 authors = [{ name = "MADE:Explorations Team" }]
 license = "MIT"
@@ -297,7 +299,6 @@ package = true
 [tool.uv.sources]
 python-code-tools = { path = "mcp-servers/python-code-tools", editable = true }
 recipe-tool-mcp-server = { path = "mcp-servers/recipe-tool", editable = true }
-document-generator-ui = { path = "document_generator_ui", editable = true }
 
 [tool.hatch.build.targets.wheel]
 packages = ["recipe_executor"]

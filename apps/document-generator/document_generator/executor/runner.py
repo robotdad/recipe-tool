@@ -27,7 +27,7 @@ async def generate_document(outline: Optional[Outline]) -> str:
     import urllib.request
 
     REPO_ROOT = Path(__file__).resolve().parents[4]
-    RECIPE_PATH = REPO_ROOT / "recipes" / "document_generator" / "document-generator-recipe.json"
+    RECIPE_PATH = REPO_ROOT / "recipes" / "document_generator" / "document_generator_recipe.json"
     RECIPE_ROOT = RECIPE_PATH.parent
 
     with tempfile.TemporaryDirectory() as tmpdir:

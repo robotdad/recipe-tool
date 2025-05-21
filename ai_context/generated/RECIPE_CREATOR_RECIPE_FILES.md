@@ -5,41 +5,74 @@
 **Search:** ['recipes/recipe_creator']
 **Exclude:** ['.venv', 'node_modules', '.git', '__pycache__', '*.pyc', '*.ruff_cache']
 **Include:** []
-**Date:** 5/6/2025, 10:52:16 AM
+**Date:** 5/20/2025, 12:10:46 PM
 **Files:** 3
 
 === File: recipes/recipe_creator/create.json ===
 {
   "steps": [
     {
+      "type": "set_context",
+      "config": {
+        "key": "recipe_root",
+        "value": "{{ recipe_root | default: 'recipes/recipe_creator' }}"
+      }
+    },
+    {
+      "type": "set_context",
+      "config": {
+        "key": "ai_context_root",
+        "value": "{{ ai_context_root | default: 'ai_context' }}"
+      }
+    },
+    {
+      "type": "set_context",
+      "config": {
+        "key": "model",
+        "value": "{{ model | default: 'openai/o4-mini' }}"
+      }
+    },
+    {
+      "type": "set_context",
+      "config": {
+        "key": "target_file",
+        "value": "{{ target_file | default: 'generated_recipe.json' }}"
+      }
+    },
+    {
+      "type": "set_context",
+      "config": {
+        "key": "output_root",
+        "value": "{{ output_root | default: 'output' }}"
+      }
+    },
+    {
       "type": "read_files",
       "config": {
-        "path": "{{input}}",
+        "path": "{{ input }}",
         "content_key": "recipe_idea"
       }
     },
     {
       "type": "read_files",
       "config": {
-        "path": "{{files}}",
+        "path": "{{ files }}",
         "content_key": "additional_files",
-        "optional": true,
-        "merge_mode": "concat"
+        "optional": true
       }
     },
     {
       "type": "read_files",
       "config": {
-        "path": "ai_context/generated/RECIPE_EXECUTOR_CODE_FILES.md,ai_context/generated/RECIPE_EXECUTOR_RECIPE_FILES.md,ai_context/RECIPE_JSON_AUTHORING_GUIDE.md,ai_context/IMPLEMENTATION_PHILOSOPHY.md,ai_context/MODULAR_DESIGN_PHILOSOPHY.md,ai_context/git_collector/LIQUID_PYTHON_DOCS.md,ai_context/RECIPE_JSON_AUTHORING_GUIDE.md",
-        "content_key": "context_files",
-        "merge_mode": "concat"
+        "path": "{{ ai_context_root }}/generated/RECIPE_EXECUTOR_CODE_FILES.md,{{ ai_context_root }}/generated/RECIPE_EXECUTOR_BLUEPRINT_FILES.md,{{ ai_context_root }}/generated/CODEBASE_GENERATOR_RECIPE_FILES.md,{{ ai_context_root }}/generated/RECIPE_JSON_AUTHORING_GUIDE.md,{{ ai_context_root }}/IMPLEMENTATION_PHILOSOPHY.md,{{ ai_context_root }}/MODULAR_DESIGN_PHILOSOPHY.md,{{ ai_context_root }}/git_collector/LIQUID_PYTHON_DOCS.md",
+        "content_key": "context_files"
       }
     },
     {
       "type": "llm_generate",
       "config": {
-        "prompt": "Create a new JSON recipe file for use with recipe executor based on the following Recipe Idea:\n\n<RECIPE_IDEA>\n{{recipe_idea}}\n</RECIPE_IDEA>\n\n{% if additional_files %}In addition, here are some additional files for reference (DO NOT INCLUDE THEM IN THE RECIPE ITSELF):\n\n<ADDITIONAL_FILES>\n{{additional_files}}\n</ADDITIONAL_FILES>\n\n{% endif %}Here is some documentation, code, examples, and guides for the recipes concept for additional context when writing a recipe for the requested recipe idea (DO NOT INCLUDE THEM IN THE RECIPE ITSELF):\n\n<CONTEXT_FILES>\n{{context_files}}\n</CONTEXT_FILES>\n\nThe output MUST be valid JSON: no comments, all strings should be on a single line within the file (use escape characters for newlines), etc.\n\nSave the generated recipe file as {{target_file | default:'generated_recipe.json'}} unless a different name is specified in the recipe idea.",
-        "model": "{{model | default:'openai/o4-mini'}}",
+        "model": "{{ model }}",
+        "prompt": "Create a new JSON recipe file for use with recipe executor based on the following Recipe Idea:\n\n<RECIPE_IDEA>\n{{ recipe_idea }}\n</RECIPE_IDEA>\n\n{% if additional_files %}In addition, here are some additional files for reference (DO NOT INCLUDE THEM IN THE RECIPE ITSELF):\n\n<ADDITIONAL_FILES>\n{{ additional_files }}\n</ADDITIONAL_FILES>\n\n{% endif %}Here is some documentation, code, examples, and guides for the recipes concept for additional context when writing a recipe for the requested recipe idea (DO NOT INCLUDE THEM IN THE RECIPE ITSELF):\n\n<CONTEXT_FILES>\n{{ context_files }}\n</CONTEXT_FILES>\n\nThe output MUST be valid JSON: no comments, all strings should be on a single line within the file (use escape characters for newlines), etc.\n\nSave the generated recipe file as {{ target_file }} unless a different name is specified in the recipe idea.",
         "output_format": "files",
         "output_key": "generated_recipe"
       }
@@ -48,7 +81,7 @@
       "type": "write_files",
       "config": {
         "files_key": "generated_recipe",
-        "root": "{{output_root | default:'output'}}"
+        "root": "{{ output_root }}"
       }
     }
   ]
@@ -77,7 +110,8 @@ Create a new JSON recipe file for creating new JSON recipe files, named `create_
 2. Always load the following files into context as `context_files`:
 
 - `ai_context/generated/RECIPE_EXECUTOR_CODE_FILES.md`
-- `ai_context/generated/RECIPE_EXECUTOR_RECIPE_FILES.md`
+- `ai_context/generated/RECIPE_EXECUTOR_BLUEPRINT_FILES.md`
+- `ai_context/generated/CODEBASE_GENERATOR_RECIPE_FILES.md`
 - `ai_context/RECIPE_JSON_AUTHORING_GUIDE.md`
 - `ai_context/IMPLEMENTATION_PHILOSOPHY.md`
 - `ai_context/MODULAR_DESIGN_PHILOSOPHY.md`
@@ -139,7 +173,7 @@ Create a new recipe for analyzing a codebase from a file roll-up, named `analyze
 2. Use the LLM (default set to use `openai/o4-mini`) to generate the analysis:
 
 ```markdown
-Anayze the codebase from the following roll-up file(s):
+Analyze the codebase from the following roll-up file(s):
 
 - Codebase Roll-up: {{codebase_rollup}}
 

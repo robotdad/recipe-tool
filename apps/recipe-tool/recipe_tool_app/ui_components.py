@@ -136,18 +136,6 @@ def build_ui(recipe_core: RecipeToolCore) -> gr.Blocks:
         gr.Markdown("A web interface for executing and creating recipes.")
 
         with gr.Tabs():
-            # Use the dedicated recipe-executor component
-            with gr.TabItem("Execute Recipe"):
-                # Create a standalone recipe executor core
-                executor_core = RecipeExecutorCore()
-
-                # Create the executor block with no header (since we're in a tab)
-                # We're using the block directly in the UI, so no need to assign it to a variable
-                create_executor_block(executor_core, include_header=False)
-
-                # Log success
-                logger.info("Successfully created Recipe Executor component")
-
             # Create Recipe Tab
             with gr.TabItem("Create Recipe"):
                 create_components = build_create_recipe_tab()
@@ -161,6 +149,18 @@ def build_ui(recipe_core: RecipeToolCore) -> gr.Blocks:
                     preview_md,
                     create_debug_context,
                 ) = create_components
+
+            # Use the dedicated recipe-executor component
+            with gr.TabItem("Execute Recipe"):
+                # Create a standalone recipe executor core
+                executor_core = RecipeExecutorCore()
+
+                # Create the executor block with no header (since we're in a tab)
+                # We're using the block directly in the UI, so no need to assign it to a variable
+                create_executor_block(executor_core, include_header=False)
+
+                # Log success
+                logger.info("Successfully created Recipe Executor component")
 
         # Set up event handlers for create recipe tab
         setup_create_recipe_events(

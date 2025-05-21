@@ -4,7 +4,7 @@
   "resources": [
     {
       "key": "codebase_docs",
-      "path": "ai_context/generated/RECIPE_EXECUTOR_RECIPE_FILES.md",
+      "path": "ai_context/generated/RECIPE_EXECUTOR_BLUEPRINT_FILES.md",
       "description": "In-repo design docs, examples, etc."
     },
     {

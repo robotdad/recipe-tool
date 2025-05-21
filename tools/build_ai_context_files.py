@@ -73,10 +73,10 @@ def build_context_files(force=False) -> None:
             "exclude": collect_files.DEFAULT_EXCLUDE,
             "include": ["README.md", "pyproject.toml", ".env.example"],
         },
-        # Collect files from recipes/recipe_executor
+        # Collect files from blueprints/recipe_executor
         {
-            "patterns": ["recipes/recipe_executor"],
-            "output": f"{OUTPUT_DIR}/RECIPE_EXECUTOR_RECIPE_FILES.md",
+            "patterns": ["blueprints/recipe_executor"],
+            "output": f"{OUTPUT_DIR}/RECIPE_EXECUTOR_BLUEPRINT_FILES.md",
             "exclude": collect_files.DEFAULT_EXCLUDE,
             "include": [],
         },
@@ -98,6 +98,13 @@ def build_context_files(force=False) -> None:
         {
             "patterns": ["mcp-servers/python-code-tools"],
             "output": f"{OUTPUT_DIR}/PYTHON_CODE_TOOLS_FILES.md",
+            "exclude": collect_files.DEFAULT_EXCLUDE,
+            "include": [],
+        },
+        # Collect files from recipes/codebase_generator
+        {
+            "patterns": ["recipes/codebase_generator"],
+            "output": f"{OUTPUT_DIR}/CODEBASE_GENERATOR_FILES.md",
             "exclude": collect_files.DEFAULT_EXCLUDE,
             "include": [],
         },

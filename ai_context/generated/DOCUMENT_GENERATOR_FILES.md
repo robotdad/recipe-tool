@@ -5,7 +5,7 @@
 **Search:** ['recipes/document_generator']
 **Exclude:** ['.venv', 'node_modules', '.git', '__pycache__', '*.pyc', '*.ruff_cache']
 **Include:** []
-**Date:** 5/16/2025, 5:28:59 PM
+**Date:** 5/20/2025, 12:10:46 PM
 **Files:** 10
 
 === File: recipes/document_generator/README.md ===
@@ -15,14 +15,14 @@
 
 ```bash
 # From the repo root, run the document generator recipe to create a readme for the codebase.
-recipe-tool --execute recipes/document_generator/document-generator-recipe.json \
+recipe-tool --execute recipes/document_generator/document_generator_recipe.json \
    outline_file=recipes/document_generator/examples/readme.json \
    output_root=output/docs \
    model=openai/o4-mini
 ```
 
 
-=== File: recipes/document_generator/document-generator-recipe.json ===
+=== File: recipes/document_generator/document_generator_recipe.json ===
 {
   "name": "Document Generator",
   "description": "Generates a document from an outline, using LLMs to fill in sections and assemble the final document.",
@@ -116,7 +116,7 @@ recipe-tool --execute recipes/document_generator/document-generator-recipe.json 
   "resources": [
     {
       "key": "codebase_docs",
-      "path": "ai_context/generated/RECIPE_EXECUTOR_RECIPE_FILES.md",
+      "path": "ai_context/generated/RECIPE_EXECUTOR_BLUEPRINT_FILES.md",
       "description": "In-repo design docs, examples, etc."
     },
     {
@@ -129,50 +129,32 @@ recipe-tool --execute recipes/document_generator/document-generator-recipe.json 
     {
       "title": "Header",
       "prompt": "Produce an H1 title using the repository name. Optionally add shields.io badges for build status, license, or published package version if the information exists.\nWrite a single-sentence summary of what the project does and who it is for, based on the highest-level documentation.",
-      "refs": [
-        "codebase_docs",
-        "code_files"
-      ]
+      "refs": ["codebase_docs", "code_files"]
     },
     {
       "title": "Key Features",
       "prompt": "List the main capabilities or selling points, one bullet per feature, drawing facts from design docs or API specs.",
-      "refs": [
-        "codebase_docs",
-        "api_docs"
-      ]
+      "refs": ["codebase_docs", "code_files"]
     },
     {
       "title": "Installation",
       "prompt": "Provide copy-paste installation instructions, including package-manager commands, build steps, and environment variables, using exact data from configuration files.",
-      "refs": [
-        "codebase_docs",
-        "code_files"
-      ]
+      "refs": ["codebase_docs", "code_files"]
     },
     {
       "title": "Usage",
       "prompt": "Show the simplest runnable example pulled from tests, docs, or API specs. If multiple language clients exist, include one example per language.",
-      "refs": [
-        "codebase_docs",
-        "code_files"
-      ]
+      "refs": ["codebase_docs", "code_files"]
     },
     {
       "title": "API Reference",
       "prompt": "If formal API specs exist, generate a short table of endpoints with method, path, and one-line description; otherwise keep the heading with a note indicating N/A.",
-      "refs": [
-        "codebase_docs",
-        "code_files"
-      ]
+      "refs": ["codebase_docs", "code_files"]
     },
     {
       "title": "Architecture Overview",
       "prompt": "Describe the high-level architecture in two or three short paragraphs. If diagrams are available, embed image links and reference major components.",
-      "refs": [
-        "codebase_docs",
-        "code_files"
-      ]
+      "refs": ["codebase_docs", "code_files"]
     }
   ]
 }

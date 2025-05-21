@@ -1,0 +1,28 @@
+{
+  "steps": [
+    {
+      "type": "read_files",
+      "config": {
+        "path": "{{ spec_file | default:'examples/simple_spec.md' }}",
+        "content_key": "spec",
+        "optional": false
+      }
+    },
+    {
+      "type": "llm_generate",
+      "config": {
+        "prompt": "Generate a Python script that implements the following specification:\n\n{{ spec }}",
+        "model": "{{ model | default:'openai/o4-mini' }}",
+        "output_format": "files",
+        "output_key": "generated_files"
+      }
+    },
+    {
+      "type": "write_files",
+      "config": {
+        "files_key": "generated_files",
+        "root": "{{ output_root | default:'output' }}"
+      }
+    }
+  ]
+}

@@ -37,7 +37,7 @@ def build_editor() -> gr.Blocks:
     """
     Build and return the full Gradio Blocks interface with a two-column layout.
     """
-    with gr.Blocks(theme=gradio.themes.Citrus()) as demo:
+    with gr.Blocks(title="Document Generator", theme=gradio.themes.Citrus()) as demo:
         # Persistent state for resources and sections
         initial_resources = []
         initial_sections = []

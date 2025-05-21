@@ -4,7 +4,7 @@
 
 ```bash
 # From the repo root, run the document generator recipe to create a readme for the codebase.
-recipe-tool --execute recipes/document_generator/document-generator-recipe.json \
+recipe-tool --execute recipes/document_generator/document_generator_recipe.json \
    outline_file=recipes/document_generator/examples/readme.json \
    output_root=output/docs \
    model=openai/o4-mini

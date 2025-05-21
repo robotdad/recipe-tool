@@ -5,7 +5,7 @@
 **Search:** ['recipes/example_*']
 **Exclude:** ['.venv', 'node_modules', '.git', '__pycache__', '*.pyc', '*.ruff_cache']
 **Include:** []
-**Date:** 5/7/2025, 9:46:48 AM
+**Date:** 5/20/2025, 11:55:22 AM
 **Files:** 22
 
 === File: recipes/example_brave_search/README.md ===
@@ -656,15 +656,15 @@ Print "Hello, Test!" to the console.
     {
       "type": "read_files",
       "config": {
-        "path": "recipes/example_simple/specs/sample_spec.txt",
+        "path": "{{ recipe_root | default: 'recipes/example_simple' }}/specs/sample_spec.txt",
         "content_key": "spec_text"
       }
     },
     {
       "type": "llm_generate",
       "config": {
-        "prompt": "Using the following specification, generate a Python script:\n\n{{spec_text}}",
-        "model": "{{model|default:'openai/o4-mini'}}",
+        "prompt": "Using the following specification, generate a Python script:\n\n{{ spec_text }}",
+        "model": "{{ model | default: 'openai/o4-mini' }}",
         "output_format": "files",
         "output_key": "generated_files"
       }
@@ -673,7 +673,7 @@ Print "Hello, Test!" to the console.
       "type": "write_files",
       "config": {
         "files_key": "generated_files",
-        "root": "output"
+        "root": "{{ output_root | default: 'output' }}"
       }
     }
   ]
