@@ -6,7 +6,7 @@ authors = [{ name = "MADE:Explorations Team" }]
 license = "MIT"
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = ["gradio[mcp]>=4.0.0", "python-dotenv>=1.1.0", "recipe-tool"]
+dependencies = ["gradio[mcp]>=5.30.0", "python-dotenv>=1.1.0", "recipe-tool"]
 
 [dependency-groups]
 dev = [
