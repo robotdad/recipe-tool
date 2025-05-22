@@ -12,7 +12,7 @@ def build_outline_data(title, instr, res_table, secs_table, nested):
     """
     title_val = (title or "").strip()
     instr_val = (instr or "").strip()
-    
+
     # Resources
     resources = []
     for r in res_table or []:
@@ -20,16 +20,16 @@ def build_outline_data(title, instr, res_table, secs_table, nested):
         desc = r.get("description", "").strip()
         path = r.get("path", "").strip()
         mm = r.get("merge_mode", "")
-        
+
         # Skip completely empty resources
         if not key and not desc and not path:
             continue
-            
+
         resource = {"key": key, "description": desc, "path": path}
         if mm and mm.strip():
             resource["merge_mode"] = mm.strip()
         resources.append(resource)
-    
+
     # Sections
     sections = []
     for idx, s in enumerate(secs_table or []):
@@ -37,24 +37,24 @@ def build_outline_data(title, instr, res_table, secs_table, nested):
         prompt_s = s.get("prompt", "")
         refs_list = s.get("refs", [])
         rk = s.get("resource_key", "")
-        
+
         # Convert values to proper types and strip whitespace
         if prompt_s is not None:
             prompt_s = str(prompt_s).strip()
         if rk is not None:
             rk = str(rk).strip()
-        
+
         # Get subsections from nested state if available
         subs = []
         if nested and idx < len(nested):
             subs = nested[idx]
-        
+
         # Skip completely empty sections
         if not title_s and not prompt_s and not refs_list and not rk and not subs:
             continue
-            
+
         sec = {"title": title_s}
-        
+
         # Add prompt and refs if in prompt mode
         if prompt_s:
             sec["prompt"] = prompt_s
@@ -68,13 +68,13 @@ def build_outline_data(title, instr, res_table, secs_table, nested):
         # Add resource_key if in static mode
         elif rk:
             sec["resource_key"] = rk
-        
+
         # Add subsections if present
         if subs:
             sec["sections"] = subs
-            
+
         sections.append(sec)
-    
+
     return {
         "title": title_val,
         "general_instruction": instr_val,

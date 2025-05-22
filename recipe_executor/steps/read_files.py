@@ -22,6 +22,7 @@ class ReadFilesConfig(StepConfig):
             - "concat" (default): Concatenate all files with newlines between filename headers + content
             - "dict": Store a dictionary with file paths as keys and content as values
     """
+
     path: Union[str, List[str]]
     content_key: str
     optional: bool = False

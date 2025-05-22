@@ -4,6 +4,7 @@ Package for recipe execution steps.
 This module imports all standard step implementations and registers them
 in the global STEP_REGISTRY for dynamic lookup by the executor.
 """
+
 from recipe_executor.steps.registry import STEP_REGISTRY
 from recipe_executor.steps.conditional import ConditionalStep
 from recipe_executor.steps.execute_recipe import ExecuteRecipeStep

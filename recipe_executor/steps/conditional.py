@@ -18,12 +18,14 @@ class ConditionalConfig(StepConfig):
         if_true: Optional branch configuration when condition is true.
         if_false: Optional branch configuration when condition is false.
     """
+
     condition: Any
     if_true: Optional[Dict[str, Any]] = None
     if_false: Optional[Dict[str, Any]] = None
 
 
 # Utility functions for condition evaluation
+
 
 def file_exists(path: Any) -> bool:
     """Check if a given path exists on the filesystem."""
@@ -70,9 +72,7 @@ def not_(val: Any) -> bool:
     return not bool(val)
 
 
-def evaluate_condition(
-    expr: Any, context: ContextProtocol, logger: logging.Logger
-) -> bool:
+def evaluate_condition(expr: Any, context: ContextProtocol, logger: logging.Logger) -> bool:
     """
     Render and evaluate a condition expression against the context.
     Supports boolean literals, file checks, comparisons, and logical operations.
@@ -96,7 +96,7 @@ def evaluate_condition(
 
     # Boolean literal handling
     if lowered in ("true", "false"):
-        result = (lowered == "true")
+        result = lowered == "true"
         logger.debug("Interpreted boolean literal '%s' as %s", text, result)
         return result
 
@@ -137,9 +137,7 @@ class ConditionalStep(BaseStep[ConditionalConfig]):
     Step that branches execution based on a boolean condition.
     """
 
-    def __init__(
-        self, logger: logging.Logger, config: Dict[str, Any]
-    ) -> None:
+    def __init__(self, logger: logging.Logger, config: Dict[str, Any]) -> None:
         config_model = ConditionalConfig.model_validate(config)
         super().__init__(logger, config_model)
 
@@ -165,9 +163,7 @@ class ConditionalStep(BaseStep[ConditionalConfig]):
         else:
             self.logger.debug("No branch to execute for this condition result")
 
-    async def _execute_branch(
-        self, branch: Dict[str, Any], context: ContextProtocol
-    ) -> None:
+    async def _execute_branch(self, branch: Dict[str, Any], context: ContextProtocol) -> None:
         steps: List[Any] = branch.get("steps") or []
         if not isinstance(steps, list):
             self.logger.debug("Branch 'steps' is not a list, skipping execution")
@@ -185,12 +181,8 @@ class ConditionalStep(BaseStep[ConditionalConfig]):
 
             step_cls = STEP_REGISTRY.get(step_type)
             if step_cls is None:
-                raise RuntimeError(
-                    f"Unknown step type in conditional branch: {step_type}"
-                )
+                raise RuntimeError(f"Unknown step type in conditional branch: {step_type}")
 
-            self.logger.debug(
-                "Executing step '%s' in conditional branch", step_type
-            )
+            self.logger.debug("Executing step '%s' in conditional branch", step_type)
             step_instance = step_cls(self.logger, step_conf)
             await step_instance.execute(context)

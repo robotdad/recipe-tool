@@ -1,6 +1,7 @@
 """
 Utility functions for generating Pydantic models from JSON-Schema object definitions.
 """
+
 from typing import Any, Dict, List, Optional, Tuple, Type
 
 from pydantic import BaseModel, create_model
@@ -8,9 +9,7 @@ from pydantic import BaseModel, create_model
 __all__ = ["json_object_to_pydantic_model"]
 
 
-def json_object_to_pydantic_model(
-    schema: Dict[str, Any], model_name: str = "SchemaModel"
-) -> Type[BaseModel]:
+def json_object_to_pydantic_model(schema: Dict[str, Any], model_name: str = "SchemaModel") -> Type[BaseModel]:
     """
     Convert a JSON-Schema object fragment into a Pydantic BaseModel subclass.
 
@@ -50,9 +49,7 @@ def json_object_to_pydantic_model(
 
     counter = _Counter()
 
-    def _parse_field(
-        field_schema: Dict[str, Any], field_name: str, parent_name: str
-    ) -> Tuple[Any, Any]:
+    def _parse_field(field_schema: Dict[str, Any], field_name: str, parent_name: str) -> Tuple[Any, Any]:
         # Ensure valid schema fragment
         if not isinstance(field_schema, dict):
             raise ValueError(f"Schema for field '{field_name}' must be a dictionary.")
@@ -78,9 +75,7 @@ def json_object_to_pydantic_model(
         if ftype in ("array", "list"):
             items = field_schema.get("items")
             if not isinstance(items, dict):
-                raise ValueError(
-                    f"Array field '{field_name}' missing valid 'items' schema."
-                )
+                raise ValueError(f"Array field '{field_name}' missing valid 'items' schema.")
             item_type, _ = _parse_field(items, f"{field_name}_item", parent_name)
             return List[item_type], ...
         # Fallback

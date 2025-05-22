@@ -13,10 +13,7 @@ except ImportError:
 __all__ = ["get_mcp_server"]
 
 
-def get_mcp_server(
-    logger: logging.Logger,
-    config: Dict[str, Any]
-) -> MCPServer:
+def get_mcp_server(logger: logging.Logger, config: Dict[str, Any]) -> MCPServer:
     """
     Create an MCP server client based on the provided configuration.
 
@@ -45,11 +42,11 @@ def get_mcp_server(
     logger.debug("MCP server configuration: %s", masked)
 
     # HTTP transport
-    if 'url' in config:
-        url = config.get('url')
+    if "url" in config:
+        url = config.get("url")
         if not isinstance(url, str) or not url:
             raise ValueError("HTTP MCP server requires a non-empty 'url' string")
-        headers = config.get('headers')
+        headers = config.get("headers")
         if headers is not None and not isinstance(headers, dict):
             raise ValueError("HTTP MCP server 'headers' must be a dict if provided")
 
@@ -62,16 +59,16 @@ def get_mcp_server(
         return server
 
     # Stdio transport
-    if 'command' in config:
-        command = config.get('command')
+    if "command" in config:
+        command = config.get("command")
         if not isinstance(command, str) or not command:
             raise ValueError("Stdio MCP server requires a non-empty 'command' string")
 
-        args = config.get('args')
+        args = config.get("args")
         if not isinstance(args, list) or not all(isinstance(a, str) for a in args):
             raise ValueError("Stdio MCP server 'args' must be a list of strings")
 
-        env_cfg = config.get('env')
+        env_cfg = config.get("env")
         env: Optional[Dict[str, str]] = None
         if env_cfg is not None:
             if not isinstance(env_cfg, dict):
@@ -91,18 +88,13 @@ def get_mcp_server(
                 else:
                     env[k] = v
 
-        working_dir = config.get('working_dir')
+        working_dir = config.get("working_dir")
         if working_dir is not None and not isinstance(working_dir, str):
             raise ValueError("Stdio MCP server 'working_dir' must be a string if provided")
 
         logger.info("Creating stdio MCP server with command: %s %s", command, args)
         try:
-            server = MCPServerStdio(
-                command=command,
-                args=args,
-                cwd=working_dir,
-                env=env
-            )
+            server = MCPServerStdio(command=command, args=args, cwd=working_dir, env=env)
         except Exception as exc:
             raise RuntimeError(f"Failed to create stdio MCP server: {exc}") from exc
         return server

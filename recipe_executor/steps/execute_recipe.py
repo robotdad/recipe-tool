@@ -41,6 +41,7 @@ class ExecuteRecipeConfig(StepConfig):
         recipe_path: Path to the sub-recipe to execute (templateable).
         context_overrides: Optional values to override in the context.
     """
+
     recipe_path: str
     context_overrides: Dict[str, Any] = {}
 
@@ -51,7 +52,7 @@ class ExecuteRecipeStep(BaseStep[ExecuteRecipeConfig]):
     def __init__(
         self,
         logger,  # type: ignore[valid-type]
-        config: Dict[str, Any]
+        config: Dict[str, Any],
     ) -> None:
         validated: ExecuteRecipeConfig = ExecuteRecipeConfig.model_validate(config)
         super().__init__(logger, validated)
@@ -84,6 +85,4 @@ class ExecuteRecipeStep(BaseStep[ExecuteRecipeConfig]):
         except Exception as exc:
             # Log and propagate with context
             self.logger.error(f"Error executing sub-recipe '{rendered_path}': {exc}")
-            raise RuntimeError(
-                f"Failed to execute sub-recipe '{rendered_path}': {exc}"
-            ) from exc
+            raise RuntimeError(f"Failed to execute sub-recipe '{rendered_path}': {exc}") from exc

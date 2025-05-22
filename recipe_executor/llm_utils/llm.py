@@ -20,20 +20,20 @@ def get_model(model_id: str, logger: logging.Logger) -> Union[OpenAIModel, Anthr
     Expected format: 'provider/model_name' or 'provider/model_name/deployment_name'.
     Supported providers: openai, azure, anthropic, ollama.
     """
-    parts = model_id.split('/')
+    parts = model_id.split("/")
     if len(parts) < 2:
         raise ValueError(f"Invalid model_id format: '{model_id}'")
     provider = parts[0].lower()
 
     # OpenAI provider
-    if provider == 'openai':
+    if provider == "openai":
         if len(parts) != 2:
             raise ValueError(f"Invalid OpenAI model_id: '{model_id}'")
         model_name = parts[1]
         return OpenAIModel(model_name)
 
     # Azure OpenAI provider
-    if provider == 'azure':
+    if provider == "azure":
         if len(parts) == 2:
             model_name = parts[1]
             deployment_name = None
@@ -42,23 +42,21 @@ def get_model(model_id: str, logger: logging.Logger) -> Union[OpenAIModel, Anthr
             deployment_name = parts[2]
         else:
             raise ValueError(f"Invalid Azure model_id: '{model_id}'")
-        return get_azure_openai_model(
-            logger=logger, model_name=model_name, deployment_name=deployment_name
-        )
+        return get_azure_openai_model(logger=logger, model_name=model_name, deployment_name=deployment_name)
 
     # Anthropic provider
-    if provider == 'anthropic':
+    if provider == "anthropic":
         if len(parts) != 2:
             raise ValueError(f"Invalid Anthropic model_id: '{model_id}'")
         model_name = parts[1]
         return AnthropicModel(model_name)
 
     # Ollama provider (uses OpenAIModel with custom provider URL)
-    if provider == 'ollama':
+    if provider == "ollama":
         if len(parts) != 2:
             raise ValueError(f"Invalid Ollama model_id: '{model_id}'")
         model_name = parts[1]
-        base_url = os.getenv('OLLAMA_BASE_URL', 'http://localhost:11434')
+        base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
         provider_obj = OpenAIProvider(base_url=f"{base_url}/v1")
         return OpenAIModel(model_name=model_name, provider=provider_obj)
 
@@ -70,6 +68,7 @@ class LLM:
     Unified interface for interacting with various LLM providers
     and optional MCP servers.
     """
+
     def __init__(
         self,
         logger: logging.Logger,
@@ -99,18 +98,19 @@ class LLM:
 
         # Info log: model selection
         try:
-            provider = model_id.split('/', 1)[0]
+            provider = model_id.split("/", 1)[0]
         except Exception:
-            provider = 'unknown'
-        self.logger.info(
-            "LLM generate using provider=%s model_id=%s", provider, model_id
-        )
+            provider = "unknown"
+        self.logger.info("LLM generate using provider=%s model_id=%s", provider, model_id)
 
         # Debug log: request details
-        output_name = getattr(output_type, '__name__', str(output_type))
+        output_name = getattr(output_type, "__name__", str(output_type))
         self.logger.debug(
             "LLM request payload prompt=%r model_id=%s max_tokens=%s output_type=%s",
-            prompt, model_id, tokens, output_name
+            prompt,
+            model_id,
+            tokens,
+            output_name,
         )
 
         # Initialize model
@@ -122,12 +122,12 @@ class LLM:
 
         # Prepare agent
         agent_kwargs = {
-            'model': model_instance,
-            'output_type': output_type,
-            'mcp_servers': servers,
+            "model": model_instance,
+            "output_type": output_type,
+            "mcp_servers": servers,
         }
         if tokens is not None:
-            agent_kwargs['model_settings'] = ModelSettings(max_tokens=tokens)
+            agent_kwargs["model_settings"] = ModelSettings(max_tokens=tokens)
 
         agent: Agent = Agent(**agent_kwargs)  # type: ignore
 
@@ -137,9 +137,7 @@ class LLM:
             async with agent.run_mcp_servers():
                 result = await agent.run(prompt)
         except Exception as e:
-            self.logger.error(
-                "LLM call failed for model_id=%s error=%s", model_id, str(e)
-            )
+            self.logger.error("LLM call failed for model_id=%s error=%s", model_id, str(e))
             raise
         end_time = time.time()
 
@@ -160,9 +158,7 @@ class LLM:
                 usage.response_tokens,
             )
         else:
-            self.logger.info(
-                "LLM result time=%.3f sec (usage unavailable)", duration
-            )
+            self.logger.info("LLM result time=%.3f sec (usage unavailable)", duration)
 
         # Debug log: raw result
         self.logger.debug("LLM raw result: %r", result)

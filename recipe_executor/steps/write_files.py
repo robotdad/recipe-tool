@@ -18,6 +18,7 @@ class WriteFilesConfig(StepConfig):
         files: Optional direct list of dicts with 'path'/'content' or their key references.
         root: Base directory for output files.
     """
+
     files_key: Optional[str] = None
     files: Optional[List[Dict[str, Any]]] = None
     root: str = "."
@@ -130,9 +131,7 @@ class WriteFilesStep(BaseStep[WriteFilesConfig]):
                     try:
                         text = json.dumps(content, ensure_ascii=False, indent=2)
                     except Exception as err:
-                        raise ValueError(
-                            f"Failed to serialize content for '{final_path}': {err}"
-                        )
+                        raise ValueError(f"Failed to serialize content for '{final_path}': {err}")
                 else:
                     # Convert None to empty string, others to string if not already
                     if content is None:

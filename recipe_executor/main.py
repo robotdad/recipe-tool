@@ -36,29 +36,10 @@ async def main_async() -> None:
 
     # Parse command-line arguments
     parser = argparse.ArgumentParser(description="Recipe Executor CLI")
-    parser.add_argument(
-        "recipe_path",
-        type=str,
-        help="Path to the recipe file to execute"
-    )
-    parser.add_argument(
-        "--log-dir",
-        type=str,
-        default="logs",
-        help="Directory for log files"
-    )
-    parser.add_argument(
-        "--context",
-        action="append",
-        default=[],
-        help="Context artifact values as key=value pairs"
-    )
-    parser.add_argument(
-        "--config",
-        action="append",
-        default=[],
-        help="Static configuration values as key=value pairs"
-    )
+    parser.add_argument("recipe_path", type=str, help="Path to the recipe file to execute")
+    parser.add_argument("--log-dir", type=str, default="logs", help="Directory for log files")
+    parser.add_argument("--context", action="append", default=[], help="Context artifact values as key=value pairs")
+    parser.add_argument("--config", action="append", default=[], help="Static configuration values as key=value pairs")
     args = parser.parse_args()
 
     # Ensure log directory exists
@@ -99,17 +80,11 @@ async def main_async() -> None:
     try:
         await executor.execute(args.recipe_path, context)
     except Exception as exec_err:
-        logger.error(
-            "An error occurred during recipe execution: %s", exec_err,
-            exc_info=True
-        )
+        logger.error("An error occurred during recipe execution: %s", exec_err, exc_info=True)
         raise
     duration = time.time() - start_time
 
-    logger.info(
-        "Recipe execution completed successfully in %.2f seconds",
-        duration
-    )
+    logger.info("Recipe execution completed successfully in %.2f seconds", duration)
 
 
 def main() -> None:

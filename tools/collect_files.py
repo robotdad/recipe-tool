@@ -247,7 +247,7 @@ def format_output(
 
     # Add metadata header
     now = datetime.datetime.now()
-    date_str = now.strftime('%-m/%-d/%Y, %-I:%M:%S %p')
+    date_str = now.strftime("%-m/%-d/%Y, %-I:%M:%S %p")
     output_lines.append(f"# {patterns}")
     output_lines.append("")
     output_lines.append("[collect-files]")

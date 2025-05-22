@@ -4,6 +4,7 @@ Registry for mapping step type names to their implementation classes.
 This registry is a simple global dictionary. Steps register themselves by
 updating this mapping, allowing dynamic lookup based on the step type name.
 """
+
 from typing import Dict, Type
 
 from recipe_executor.steps.base import BaseStep

@@ -1,0 +1,53 @@
+{
+  "steps": [
+    {
+      "type": "set_context",
+      "config": {
+        "key": "output_path",
+        "value": "{{ output_path | default: 'output' }}"
+      }
+    },
+    {
+      "type": "set_context",
+      "config": {
+        "key": "diagram_filename",
+        "value": "{{ recipe_path | split: '/' | last | replace: '.json', '.md' }}"
+      }
+    },
+    {
+      "type": "set_context",
+      "config": {
+        "key": "model",
+        "value": "{{ model | default: 'openai/o4-mini' }}"
+      }
+    },
+    {
+      "type": "read_files",
+      "config": {
+        "path": "{{ recipe_path }}",
+        "content_key": "recipe_src",
+        "merge_mode": "concat"
+      }
+    },
+    {
+      "type": "llm_generate",
+      "config": {
+        "model": "{{ model }}",
+        "prompt": "You are an expert in the Recipe-Executor JSON format. Output only a Mermaid flow-chart that follows these rules:\n• Each `execute_recipe` becomes its own collapsed subgraph named after the file.\n• Insert an entry node (💬) at the call site and an exit node (⬆︎) when the sub-recipe returns.\n• Use unique IDs like `<STEM>_S0`, `<STEM>_S1`, etc.\n• For loops, render a `loop` node followed by an indented subgraph for its sub-steps.\n• For conditionals, draw a diamond and separate IF_TRUE and IF_FALSE subgraphs.\n• Do not include comments or Liquid templates in the output.\nHere is the recipe JSON you must transform (between `<JSON>` tags):\n<JSON>{{ recipe_src | json }}</JSON>",
+        "output_format": "text",
+        "output_key": "mermaid_diagram"
+      }
+    },
+    {
+      "type": "write_files",
+      "config": {
+        "files": [
+          {
+            "path": "{{ output_path }}/{{ diagram_filename }}",
+            "content_key": "mermaid_diagram"
+          }
+        ]
+      }
+    }
+  ]
+}

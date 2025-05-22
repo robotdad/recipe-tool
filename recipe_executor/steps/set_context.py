@@ -26,6 +26,7 @@ class SetContextConfig(StepConfig):
                    • "overwrite" (default) – replace the existing value
                    • "merge" – combine the existing and new values
     """
+
     key: str
     value: Union[str, List[Any], Dict[str, Any]]
     nested_render: bool = False
@@ -36,6 +37,7 @@ class SetContextStep(BaseStep[SetContextConfig]):
     """
     Step to set or update an artifact in the execution context.
     """
+
     def __init__(self, logger: logging.Logger, config: Dict[str, Any]) -> None:
         super().__init__(logger, SetContextConfig.model_validate(config))
 
@@ -61,13 +63,9 @@ class SetContextStep(BaseStep[SetContextConfig]):
         else:
             raise ValueError(f"Unknown if_exists strategy: '{strategy}'")
 
-        self.logger.info(
-            f"SetContextStep: key='{key}', strategy='{strategy}', existed={existed}"
-        )
+        self.logger.info(f"SetContextStep: key='{key}', strategy='{strategy}', existed={existed}")
 
-    def _render_value(
-        self, raw: Any, context: ContextProtocol, nested: bool
-    ) -> Any:
+    def _render_value(self, raw: Any, context: ContextProtocol, nested: bool) -> Any:
         """
         Recursively render Liquid templates in strings, lists, and dicts.
 

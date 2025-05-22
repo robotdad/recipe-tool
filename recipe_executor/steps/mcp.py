@@ -1,6 +1,7 @@
 """
 MCPStep component for invoking tools on remote MCP servers and storing results in context.
 """
+
 import logging
 import os
 from typing import Any, Dict, List, Optional
@@ -25,6 +26,7 @@ class MCPConfig(StepConfig):  # type: ignore
         arguments: Arguments to pass to the tool as a dictionary.
         result_key: Context key under which to store the tool result.
     """
+
     server: Dict[str, Any]
     tool_name: str
     arguments: Dict[str, Any]
@@ -35,6 +37,7 @@ class MCPStep(BaseStep[MCPConfig]):  # type: ignore
     """
     Step that connects to an MCP server, invokes a tool, and stores the result in the context.
     """
+
     def __init__(self, logger: logging.Logger, config: Dict[str, Any]) -> None:
         cfg = MCPConfig.model_validate(config)  # type: ignore
         super().__init__(logger, cfg)
@@ -120,35 +123,25 @@ class MCPStep(BaseStep[MCPConfig]):  # type: ignore
             async with client_cm as (read_stream, write_stream):
                 async with ClientSession(read_stream, write_stream) as session:
                     await session.initialize()
-                    self.logger.debug(
-                        f"Invoking tool '{tool_name}' with arguments {arguments}"
-                    )
+                    self.logger.debug(f"Invoking tool '{tool_name}' with arguments {arguments}")
                     try:
                         result: CallToolResult = await session.call_tool(
                             name=tool_name,
                             arguments=arguments,
                         )
                     except Exception as e:
-                        raise ValueError(
-                            f"Tool invocation failed for '{tool_name}' on {service_desc}: {e}"
-                        ) from e
+                        raise ValueError(f"Tool invocation failed for '{tool_name}' on {service_desc}: {e}") from e
         except ValueError:
             # Propagate invocation errors
             raise
         except Exception as e:
-            raise ValueError(
-                f"Failed to call tool '{tool_name}' on {service_desc}: {e}"
-            ) from e
+            raise ValueError(f"Failed to call tool '{tool_name}' on {service_desc}: {e}") from e
 
         # Convert result to a dictionary
         try:
             result_dict: Dict[str, Any] = result.__dict__  # type: ignore
         except Exception:
-            result_dict = {
-                attr: getattr(result, attr)
-                for attr in dir(result)
-                if not attr.startswith("_")
-            }
+            result_dict = {attr: getattr(result, attr) for attr in dir(result) if not attr.startswith("_")}
 
         # Store result in context
         context[self.config.result_key] = result_dict

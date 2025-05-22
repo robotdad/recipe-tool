@@ -13,6 +13,7 @@ class LoopStepConfig(StepConfig):
     """
     Configuration for LoopStep.
     """
+
     items: Union[str, List[Any], Dict[Any, Any]]
     item_key: str
     max_concurrency: int = 1
@@ -26,9 +27,8 @@ class LoopStep(BaseStep[LoopStepConfig]):
     """
     LoopStep: iterate over a collection, execute substeps for each item.
     """
-    def __init__(
-        self, logger: logging.Logger, config: Dict[str, Any]
-    ) -> None:
+
+    def __init__(self, logger: logging.Logger, config: Dict[str, Any]) -> None:
         # Validate configuration via Pydantic
         validated = LoopStepConfig.model_validate(config)
         super().__init__(logger, validated)
@@ -49,9 +49,7 @@ class LoopStep(BaseStep[LoopStepConfig]):
         if items_obj is None:
             raise ValueError(f"LoopStep: Items '{items_def}' not found in context.")
         if not isinstance(items_obj, (list, dict)):
-            raise ValueError(
-                f"LoopStep: Items must be a list or dict, got {type(items_obj).__name__}."
-            )
+            raise ValueError(f"LoopStep: Items must be a list or dict, got {type(items_obj).__name__}.")
 
         # Flatten items into list of (key, value)
         if isinstance(items_obj, list):
@@ -61,9 +59,7 @@ class LoopStep(BaseStep[LoopStepConfig]):
 
         total = len(items_list)
         max_c = self.config.max_concurrency
-        self.logger.info(
-            f"LoopStep: Processing {total} items with max_concurrency={max_c}."
-        )
+        self.logger.info(f"LoopStep: Processing {total} items with max_concurrency={max_c}.")
 
         # Handle empty collection
         if total == 0:
@@ -74,9 +70,7 @@ class LoopStep(BaseStep[LoopStepConfig]):
 
         # Prepare result and error placeholders
         results: Union[List[Any], Dict[Any, Any]] = [] if isinstance(items_obj, list) else {}
-        errors: Union[List[Dict[str, Any]], Dict[Any, Dict[str, Any]]] = (
-            [] if isinstance(items_obj, list) else {}
-        )
+        errors: Union[List[Dict[str, Any]], Dict[Any, Dict[str, Any]]] = [] if isinstance(items_obj, list) else {}
 
         # Concurrency control: None => unlimited, else semaphore
         semaphore: Optional[asyncio.Semaphore]
@@ -192,9 +186,7 @@ class LoopStep(BaseStep[LoopStepConfig]):
             context[f"{self.config.result_key}__errors"] = errors
 
         error_count = len(errors) if isinstance(errors, (list, dict)) else 0
-        self.logger.info(
-            f"LoopStep: Completed {completed}/{total} items. Errors: {error_count}."
-        )
+        self.logger.info(f"LoopStep: Completed {completed}/{total} items. Errors: {error_count}.")
 
 
 def _resolve_path(path: str, context: ContextProtocol) -> Any:
@@ -202,7 +194,7 @@ def _resolve_path(path: str, context: ContextProtocol) -> Any:
     Resolve a dot-notated path against the context or nested dicts.
     """
     current: Any = context
-    for part in path.split('.'):
+    for part in path.split("."):
         if isinstance(current, ContextProtocol):
             current = current.get(part, None)
         elif isinstance(current, dict):

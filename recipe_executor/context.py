@@ -20,12 +20,8 @@ class Context(ContextProtocol):
         config: Optional[Dict[str, Any]] = None,
     ) -> None:
         # Deep copy initial data to avoid side effects from external modifications
-        self._artifacts: Dict[str, Any] = (
-            copy.deepcopy(artifacts) if artifacts is not None else {}
-        )
-        self._config: Dict[str, Any] = (
-            copy.deepcopy(config) if config is not None else {}
-        )
+        self._artifacts: Dict[str, Any] = copy.deepcopy(artifacts) if artifacts is not None else {}
+        self._config: Dict[str, Any] = copy.deepcopy(config) if config is not None else {}
 
     def __getitem__(self, key: str) -> Any:
         try:

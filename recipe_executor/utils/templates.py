@@ -5,6 +5,7 @@ This module provides a `render_template` function that uses the Python Liquid te
 to render strings with variables sourced from a context object implementing ContextProtocol.
 Custom filters (e.g., snakecase) and extra filters (json, datetime) are enabled via the environment.
 """
+
 import re
 from typing import Any
 
@@ -20,6 +21,7 @@ __all__ = ["render_template"]
 _env = Environment(autoescape=False, extra=True)
 
 # Register a custom `snakecase` filter
+
 
 def _snakecase(value: Any) -> str:
     """
@@ -41,6 +43,7 @@ def _snakecase(value: Any) -> str:
     s = re.sub(r"__+", "_", s)
     # Strip leading/trailing underscores
     return s.strip("_")
+
 
 _env.filters["snakecase"] = _snakecase
 
@@ -67,13 +70,7 @@ def render_template(text: str, context: ContextProtocol) -> str:
         return rendered
     except LiquidError as e:
         # Liquid-specific errors
-        raise ValueError(
-            f"Liquid template rendering error: {e}. "
-            f"Template: {text!r}. Context: {context.dict()!r}"
-        )
+        raise ValueError(f"Liquid template rendering error: {e}. Template: {text!r}. Context: {context.dict()!r}")
     except Exception as e:
         # Generic errors
-        raise ValueError(
-            f"Error rendering template: {e}. "
-            f"Template: {text!r}. Context: {context.dict()!r}"
-        )
+        raise ValueError(f"Error rendering template: {e}. Template: {text!r}. Context: {context.dict()!r}")

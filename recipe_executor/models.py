@@ -3,6 +3,7 @@ Models for Recipe Executor system.
 
 Defines Pydantic models for file specifications and recipe structures.
 """
+
 from typing import Any, Dict, List, Union
 
 from pydantic import BaseModel
@@ -16,6 +17,7 @@ class FileSpec(BaseModel):
         content: The content of the file, which can be a string,
                  a mapping, or a list of mappings for structured outputs.
     """
+
     path: str
     content: Union[str, Dict[str, Any], List[Dict[str, Any]]]
 
@@ -27,6 +29,7 @@ class RecipeStep(BaseModel):
         type: The type of the recipe step.
         config: Dictionary containing configuration for the step.
     """
+
     type: str
     config: Dict[str, Any]
 
@@ -37,4 +40,5 @@ class Recipe(BaseModel):
     Attributes:
         steps: A list of steps defining the recipe.
     """
+
     steps: List[RecipeStep]

@@ -160,19 +160,19 @@ def update_resource_list(res_list, current_selection=None):
 def update_section_key_choices(res_list, current_refs=None, current_resource_key=None):
     # Update refs and resource key dropdowns
     keys = make_resource_choices(res_list)
-    
+
     # For refs, preserve the current selection if possible
     refs_update = gr.update(choices=keys)
     if current_refs is not None:
         # Filter to keep only values that exist in new keys
         preserved_refs = [ref for ref in current_refs if ref in keys]
         refs_update = gr.update(choices=keys, value=preserved_refs)
-    
+
     # For resource key, preserve the current selection if it exists in the new choices
     res_key_update = gr.update(choices=keys)
     if current_resource_key is not None and current_resource_key in keys:
         res_key_update = gr.update(choices=keys, value=current_resource_key)
-    
+
     return refs_update, res_key_update
 
 
@@ -218,13 +218,13 @@ def select_section(selection, sec_list):
         return "", "prompt", "", [], "", sec_list
     s = sec_list[idx]
     mode = "static" if s.get("resource_key") else "prompt"
-    
+
     # Get section values, with safe defaults
     title = s.get("title", "")
     prompt = s.get("prompt", "")
     refs = s.get("refs", [])
     resource_key = s.get("resource_key", "")
-    
+
     return (
         title,
         mode,
@@ -337,11 +337,11 @@ def get_uploaded_outline(file_obj):
     nested = [s.get("sections", []) for s in sec_list]
     res_choices = make_resource_choices(res_list)
     sec_choices = make_section_choices(sec_list)
-    
+
     # Select the first item when uploading an outline (instead of the last)
     res_value = res_choices[0] if res_choices else None
     sec_value = sec_choices[0] if sec_choices else None
-    
+
     return [
         title,
         instr,
@@ -355,7 +355,7 @@ def get_uploaded_outline(file_obj):
 
 def get_download_outline(title, instr, res_table, secs_table, nested):
     outline = build_outline_data(title, instr, res_table, secs_table, nested)
-    
+
     # Create a filename based on the title
     filename = title.lower().replace(" ", "-")
     # Remove any non-alphanumeric or dash characters
@@ -363,11 +363,11 @@ def get_download_outline(title, instr, res_table, secs_table, nested):
     # Ensure we have a valid filename
     if not filename:
         filename = "outline"
-    
+
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".json", mode="w")
     json.dump(outline, tmp, indent=2)
     tmp.close()
-    
+
     # Return the file path with custom filename for DownloadButton
     return {"name": f"{filename}.json", "path": tmp.name}
 
@@ -377,7 +377,7 @@ def generate_document_callback(title, instr, res_table, secs_table, nested):
     outline = Outline.from_dict(outline_dict)
     # Run async generation in a blocking context
     doc_text = asyncio.run(generate_document(outline))
-    
+
     # Create a filename based on the title
     filename = title.lower().replace(" ", "-")
     # Remove any non-alphanumeric or dash characters
@@ -385,10 +385,10 @@ def generate_document_callback(title, instr, res_table, secs_table, nested):
     # Ensure we have a valid filename
     if not filename:
         filename = "document"
-    
+
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".md", mode="w")
     tmp.write(doc_text)
     tmp.close()
-    
+
     # Return the document text and file path for the DownloadButton with visibility update
     return doc_text, gr.update(value={"name": f"{filename}.md", "path": tmp.name}, visible=True)

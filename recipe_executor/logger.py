@@ -3,9 +3,8 @@ import sys
 import logging
 from typing import Any
 
-def init_logger(
-    log_dir: str = "logs", stdio_log_level: str = "INFO"
-) -> logging.Logger:
+
+def init_logger(log_dir: str = "logs", stdio_log_level: str = "INFO") -> logging.Logger:
     """
     Initializes a logger that writes to stdout and to log files (debug/info/error).
     Clears existing logs on each run.
@@ -37,8 +36,7 @@ def init_logger(
 
     # Define formatter for all handlers
     formatter = logging.Formatter(
-        fmt="%(asctime)s.%(msecs)03d [%(levelname)s] (%(filename)s:%(lineno)d) %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S"
+        fmt="%(asctime)s.%(msecs)03d [%(levelname)s] (%(filename)s:%(lineno)d) %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
     )
 
     # Set up file handlers: debug.log, info.log, error.log
