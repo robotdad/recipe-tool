@@ -105,6 +105,19 @@ All documents are saved in the `output/teapots` directory with filenames derived
 
 ## Known Issues and Observations
 
+### Filename Handling with Special Characters
+
+During our testing, we encountered an issue with filenames containing certain special characters:
+
+- The document for "Glaze flaw glossary (crazing, pin-holing, crawling)" failed to generate properly
+- Only the document title and date were created; no content sections were added
+- Error logs showed: `File not found: output/teapots/glaze_flaw_glossary_(crazing`
+- The error suggests the filename was truncated at the first parenthesis
+
+Interestingly, other filenames with special characters like "Cone equivalence cheat-sheet (°C vs °F)" worked correctly. The system appears to handle some special characters differently than others. We resolved this by changing the topic name to use hyphens instead of parentheses and commas.
+
+This issue appears to be related to how the recipe tool handles path construction and file operations when certain special characters (particularly parentheses and commas) are present in filenames.
+
 ### Section Heading Inconsistencies
 
 While testing the document generation, we observed that section headings are sometimes missing or improperly formatted in the output documents. After analyzing the code and outputs, we've identified the following:
