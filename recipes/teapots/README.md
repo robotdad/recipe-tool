@@ -1,0 +1,104 @@
+# Teapot Document Generator
+
+This recipe generates comprehensive documents about various teapot and ceramics-related topics, using a structured approach with predefined prompt templates. It leverages the document generator recipe with custom topic-based content generation.
+
+## Files in this Directory
+
+- `teapot_idea.md` - Original idea file with topic list and prompt templates
+- `teapot.json` - Outline template with section structure and prompts for each topic
+- `topics.txt` - List of topics for document generation (one per line)
+- `process_topics.sh` - Bash script to process all topics sequentially
+
+## How It Works
+
+1. The system uses the document generator recipe with our custom teapot outline
+2. Each topic from `topics.txt` is processed individually
+3. The topic variable is used in both filename generation and document title
+4. For each topic, the system:
+   - Creates a markdown document named after the topic
+   - Inserts the topic name as the document title
+   - Processes each section with prompts that incorporate the topic
+   - Writes the final document to the output directory
+
+## Modifications to Document Generator
+
+We made the following changes to the document generator recipe:
+
+1. Added a `topic` input parameter to accept the current topic being processed
+2. Modified the `document_filename` to use the topic name:
+   ```json
+   "document_filename": "{{ topic | default: outline_file | default: 'document' | replace: '\\', '/' | split: '/' | last | split: '.' | first | replace: ' ', '_' | downcase }}"
+   ```
+3. Added a `topic_string` variable to properly handle the topic name:
+   ```json
+   {
+     "type": "set_context",
+     "config": {
+       "key": "topic_string",
+       "value": "{{ topic }}"
+     }
+   }
+   ```
+4. Updated the `outline.title` to use the topic string:
+   ```json
+   {
+     "type": "set_context",
+     "config": {
+       "key": "outline.title",
+       "value": "{{ topic_string | default: outline.title }}",
+       "if_exists": "overwrite"
+     }
+   }
+   ```
+5. Used the topic string directly in document initialization:
+   ```json
+   {
+     "type": "set_context",
+     "config": {
+       "key": "document",
+       "value": "# {{ topic_string | default: outline.title }}\n\n[document-generator]\n\n**Date:** {{ 'now' | date: '%-m/%-d/%Y %I:%M:%S %p' }}"
+     }
+   }
+   ```
+
+## Usage
+
+### Generate a Document for a Single Topic
+
+```bash
+python recipe_tool.py --execute recipes/document_generator/document-generator-recipe.json \
+  outline_file=recipes/teapots/teapot.json \
+  output_root=output/teapots \
+  model=azure/o4-mini \
+  topic="Yixing zisha clay characteristics"
+```
+
+### Process All Topics in topics.txt
+
+```bash
+# Ensure the script is executable
+chmod +x recipes/teapots/process_topics.sh
+
+# Run the script
+./recipes/teapots/process_topics.sh
+```
+
+The script will:
+1. Activate the virtual environment if not already activated
+2. Navigate to the project root directory
+3. Create the output directory if it doesn't exist
+4. Process each topic in `topics.txt` sequentially
+
+## Output Structure
+
+Each generated document follows a consistent structure with seven sections:
+
+1. **Dawn in the Studio** - Rich, narrative introduction to the topic
+2. **Footprints in Fired Earth** - Historical narrative and context
+3. **Surfaces That Sing** - Artistic significance and aesthetic exploration
+4. **Anatomy of Heat & Clay** - Technical breakdown of physical processes
+5. **Hands in the Mud: A Studio Roadmap** - Practical guide for implementation
+6. **Forks in the Firing Path** - Comparison of different approaches
+7. **Kiln-side Confessions** - Narrative addressing common misconceptions
+
+All documents are saved in the `output/teapots` directory with filenames derived from the topic.

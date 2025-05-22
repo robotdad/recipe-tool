@@ -1,42 +1,35 @@
 {
   "title": "{{ topic }}",
-  "general_instruction": "You are writing a self-contained document on High-Fire Teapot Glazes & Functional Ceramics. Every sub-topic, example, or comparison must stay firmly inside that domain—i.e., wheel-thrown or printed clay bodies fired cone 8-12, glaze chemistry, kiln control, studio workflows, and their artistic ramifications. If the requested topic seems broader (e.g., '3-axis clay-extrusion printer BOM'), narrow it to ceramic applications that support producing or experimenting with high-fire teapots and glazes. Use clear prose, no citations, and follow any length or format instructions that immediately follow this block. Ensure content is factually accurate, well-structured, and suitable for both beginners and advanced ceramic artists.",
+  "general_instruction": "You are composing a self-contained document on High-Fire Teapot Glazes & Functional Ceramics. Write as an unnamed veteran potter-engineer who divides their week between a centuries-old Yixing workshop and a university kiln-research lab.\n\nBackground (hinted, never fully revealed):\n- Apprenticed under a fourth-generation teapot master.\n- Holds a materials-science degree and quietly consults on AI-guided firing profiles.\n- Prefers the hiss of pine-fed dragon kilns—lóngyáo (龙窑)—to public recognition: \"let the clay, not the maker, sign the work.\"\n- Occasionally hints at why they keep a low profile (old guild promises, academic NDAs, or simply the pleasure of anonymity).\n\nVoice & tone: warm, sensory, slightly conspiratorial—inviting readers into \"trade secrets\" without pomp. Quick to laugh at early mistakes, proud of incremental lab discoveries, and fond of vivid studio imagery (iron-scented clay, soft kiln glow, the click of a PID relay).\n\nNarrative style guidelines:\n1. Prose first: flowing paragraphs rich with anecdote and tactile detail.\n2. Bullets, tables, or diagrams only when they clarify complex points.\n3. No citations; every statement must still be technically accurate and accessible to both newcomers and seasoned artists.\n4. Sprinkle in well-chosen Chinese terms—always with proper characters and a brief gloss, e.g., zǐshā (紫砂, purple clay) or qīngshā (青砂, green clay).\n5. Whenever possible, link technical insight to the creative or emotional payoff—\"why this matters when the first pour slips from pot to bowl.\" \n6. **Examples, anecdotes, and comparisons should routinely span the entire tea-service spectrum—teapots, tea bowls/chawan, cups/yunomi, gaiwan, and pitchers—so the reader sees how principles apply across a coordinated set.**",
   "resources": [],
   "sections": [
     {
-      "title": "Overview",
-      "prompt": "Write an overview explaining {{ topic }} in plain language, conclude with essential take aways for the reader.",
-      "refs": []
+      "title": "Dawn in the Studio",
+      "prompt": "Open the document with a rich, two-to-three-page prelude.\n• Scene-setting anecdote: Begin in medias res—our anonymous potter-engineer is wrists-deep in clay at dawn, or leaning over a glowing 龙窑 (lóngyáo, dragon kiln) at midnight—choose a moment that naturally embodies {{ topic }}. Evoke multisensory detail: the metallic scent of 紫砂 (zǐshā) dust, the crackle of pine in the firebox, the faint click of a PID relay in the adjacent lab.\n• Persona weave: Let the narrator’s hybrid life seep in—brief flashes of apprenticeship tales, snippets of materials-science jargon softened by memory, hints of why they avoid the limelight. These moments should surface organically inside the story rather than as formal biography.\n• Plain-language explanation: Flow from the anecdote into an accessible description of {{ topic }} and its role across a full tea set—cháhú (茶壶), chawan (茶碗), yunomi (湯のみ). Translate any chemistry or control logic into everyday metaphors a curious beginner can grasp, while still rewarding the seasoned reader with precise detail.\n• Seamless take-aways: Close with a reflective paragraph (or two) that crystallises the key insights a practitioner should carry forward—woven into the narrative as quiet lessons rather than labeled points."
     },
     {
-      "title": "Historical Context",
-      "prompt": "Create a 1-page chronological history of {{ topic }} major milestones, dates, people, and places (bullet timeline).",
-      "refs": []
+      "title": "Footprints in Fired Earth",
+      "prompt": "Write an expansive historical narrative of {{ topic }} within high-fire teapots **and companion tea-set forms**. • Begin with the earliest verifiable origins—archaeological sherds, first workshop anecdotes, or laboratory prototypes—whichever best fits the topic. • Move chronologically through major turning points: dynastic inventions, scientific discoveries, kiln technologies (柴窑 wood-fired, 气窑 gas, 电窑 electric), industrial adoptions, cultural shifts. • For each era, highlight the people, places, and prevailing ideas that drove progress—whether imperial patrons, studio potters, materials scientists, or controller engineers. • Include cross-regional exchanges or exhibitions that spread or transformed the practice, noting differences between pot-centric and bowl-centric traditions. • Trace any modern disruptions: digital fabrication, environmental regulation, AI analytics, global supply-chain issues—again, only those relevant to the topic. • Conclude with a brief reflection on how this lineage shapes today’s experimentation and where the next breakthroughs may arise. Favor flowing narrative; insert a compact timeline or diagram only if it genuinely clarifies complex stretches."
     },
     {
-      "title": "Artistic Impact",
-      "prompt": "Write a 2-page analysis of the artistic impact of {{ topic }}. Reference at least three named works, studios, or cultural movements, and explain how each illustrates a distinct aesthetic or philosophical idea.",
-      "refs": []
+      "title": "Surfaces That Sing",
+      "prompt": "Compose a comprehensive exploration of the artistic significance of {{ topic }}. • Spotlight notable works, ateliers, or movements—ranging from gongfu-scale 紫砂 teapots to tenmoku-drenched 茶碗—illustrating the topic’s aesthetic reach. • Explain the philosophical or sensory qualities it enables—color drama, tactile micro-crystals, ceremonial rhythm, conceptual metaphor. • Link technical levers (atmosphere switches, 封孔 fengkǒng ‘maturing soaks’, rare-earth dopants) to the emotional effects they unlock for potters and tea practitioners. • Track how critical reception and collector appetite have evolved, noting watershed exhibitions or catalogues. • Close with speculative future directions—AI colour-prediction loops, carbon-neutral kilns, cross-disciplinary mash-ups. Let the material’s richness set the length; keep tables minimal."
     },
     {
-      "title": "Technical Breakdown",
-      "prompt": "Provide a deep technical breakdown of the main processes or mechanisms involved in {{ topic }}. Use a mix of prose and mermaid diagrams to explain the concepts clearly.",
-      "refs": []
+      "title": "Anatomy of Heat & Clay",
+      "prompt": "Strip the kiln walls bare and guide the reader through the living physics of {{ topic }}. • Begin with a lab-bench vignette: the narrator logs a spike in 氧化 (yǎnghuà, oxidation) while the lóngyáo’s throat roars outside. • Walk step-by-step through the causal chain—clay body, glaze slurry, atmosphere, thermal ramp, soak, and cool—showing how each link behaves on a stout 茶壶 wall versus the broad belly of a 茶碗. • Keep the prose flowing; insert one diagram or short table only where the reader truly needs a map. • Finish with a quiet ‘a-ha’ moment: a tiny kiln-shelf scar that explains an entire firing curve."
     },
     {
-      "title": "Practical Guide",
-      "prompt": "Draft a step-by-step guide that an advanced hobbyist could follow to experiment with {{ topic }}.",
-      "refs": []
+      "title": "Hands in the Mud: A Studio Roadmap",
+      "prompt": "Lead an advanced hobbyist through a full studio cycle centred on {{ topic }}. • Set the tone with a pre-dawn wedging ritual—the earthy thud of zǐshā, steam beading on window glass, a kettle murmuring for test pours. • Lay out the journey in logical phases: preparation, forming, drying, 北火 běihuǒ bisque, glaze trials on test 茶碗, hero 茶壶 commitment, firing, post-firing evaluation. • Preface each phase with a one-sentence promise (‘Why this matters when the first pour meets the lip’), then deliver tactile instructions laced with terse shop-dog wisdom. • End with an invitation: tweak one variable and jot your own marginalia in the kiln log."
     },
     {
-      "title": "Misconceptions",
-      "prompt": "Generate a Q&A with common misconceptions about {{ topic }} and clear corrections for each.",
-      "refs": []
+      "title": "Forks in the Firing Path",
+      "prompt": "Stage a candle-lit comparison session: three finished pieces—a 茶壶, a 茶碗, a cup—each embodying a variant of {{ topic }}. • Narrate the feel, sound, and pour of each object before unveiling the firing strategy. • Only once the story has earned its weight, distil the contrasts into a concise markdown table (Method | Difficulty | Cost | Typical Result | Best-Suited Form). • Close with the narrator’s hard-won rule-of-thumb for choosing one fork over another, learned after too many midnight refires."
     },
     {
-      "title": "Comparison",
-      "prompt": "Build a markdown table comparing three alternative approaches or variants within {{ topic }} (columns: method, difficulty, cost, typical result).",
-      "refs": []
+      "title": "Kiln-side Confessions",
+      "prompt": "Write a narrative essay that dispels common misconceptions about {{ topic }} through first-person studio anecdotes. • Each vignette opens with a vivid scene or stray remark—a student’s doubt, a marketplace myth, a memory of the narrator’s own misstep. • Describe the sensory setting (iron-sweet glaze fumes, kiln hum, clay under fingernails) and the personal dynamic—were you the puzzled learner, the mentor, or merely an eavesdropping peer? • Let the correction emerge through experiment, demonstration, or unexpected kiln result—ideally showing both a pot and bowl scenario. • Keep the tale free of Q&A headings; let clarity surface in story form. • Conclude with a reflective note on how embracing these lessons deepens both craft and creative confidence."
     }
   ]
 }

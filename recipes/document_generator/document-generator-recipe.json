@@ -6,6 +6,10 @@
       "description": "Path to outline json file.",
       "type": "string"
     },
+    "topic": {
+      "description": "Topic to use for variable replacement in the outline.",
+      "type": "string"
+    },
     "model": {
       "description": "LLM model to use for generation.",
       "type": "string",
@@ -43,7 +47,7 @@
       "type": "set_context",
       "config": {
         "key": "document_filename",
-        "value": "{{ outline_file | default: 'document' | replace: '\\', '/' | split: '/' | last | split: '.' | first | snakecase | upcase }}"
+        "value": "{{ topic | default: outline_file | default: 'document' | replace: '\\', '/' | split: '/' | last | split: '.' | first | replace: ' ', '_' | downcase }}"
       }
     },
     {
@@ -61,8 +65,23 @@
     {
       "type": "set_context",
       "config": {
+        "key": "topic_string",
+        "value": "{{ topic }}"
+      }
+    },
+    {
+      "type": "set_context",
+      "config": {
+        "key": "outline.title",
+        "value": "{{ topic_string | default: outline.title }}",
+        "if_exists": "overwrite"
+      }
+    },
+    {
+      "type": "set_context",
+      "config": {
         "key": "document",
-        "value": "# {{ outline.title }}\n\n[document-generator]\n\n**Date:** {{ 'now' | date: '%-m/%-d/%Y %I:%M:%S %p' }}"
+        "value": "# {{ topic_string | default: outline.title }}\n\n[document-generator]\n\n**Date:** {{ 'now' | date: '%-m/%-d/%Y %I:%M:%S %p' }}"
       }
     },
     {
