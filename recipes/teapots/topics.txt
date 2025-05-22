@@ -1,0 +1,25 @@
+Yixing zisha clay characteristics
+Cone 10 reduction firing curve examples
+Calcium-flux glaze families
+Tenmoku "hare-fur" surface formation
+Rutile micro-crystal growth triggers
+Electric vs gas kiln atmosphere control
+PID tuning for long soaks
+Thermal-shock testing of teapots
+Porosity vs flavor retention myths
+Lead-free red glazes at high fire
+Copper-red unpredictability factors
+Borrowed Japanese shino aesthetics
+AI image-to-glaze prediction workflows
+3-axis clay-extrusion printer BOM
+Kiln-log anomaly detection script ideas
+Recycled clay body adjustments
+Hydrogen-fired kiln prototypes
+Cone equivalence cheat-sheet (°C vs °F)
+Cost model: propane vs electric per cone cycle
+Glaze flaw glossary (crazing, pin-holing, crawling)
+Matte vs gloss flux ratios
+Soda-firing vs salt-firing contrasts
+Rare-earth opacifiers overview
+Spiral-wedging step-by-step
+Sustainability scorecard for studio practices

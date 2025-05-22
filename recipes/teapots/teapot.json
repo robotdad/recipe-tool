@@ -1,0 +1,42 @@
+{
+  "title": "{{ topic }}",
+  "general_instruction": "You are writing a self-contained document on High-Fire Teapot Glazes & Functional Ceramics. Every sub-topic, example, or comparison must stay firmly inside that domain—i.e., wheel-thrown or printed clay bodies fired cone 8-12, glaze chemistry, kiln control, studio workflows, and their artistic ramifications. If the requested topic seems broader (e.g., '3-axis clay-extrusion printer BOM'), narrow it to ceramic applications that support producing or experimenting with high-fire teapots and glazes. Use clear prose, no citations, and follow any length or format instructions that immediately follow this block. Ensure content is factually accurate, well-structured, and suitable for both beginners and advanced ceramic artists.",
+  "resources": [],
+  "sections": [
+    {
+      "title": "Overview",
+      "prompt": "Write an overview explaining {{ topic }} in plain language, conclude with essential take aways for the reader.",
+      "refs": []
+    },
+    {
+      "title": "Historical Context",
+      "prompt": "Create a 1-page chronological history of {{ topic }} major milestones, dates, people, and places (bullet timeline).",
+      "refs": []
+    },
+    {
+      "title": "Artistic Impact",
+      "prompt": "Write a 2-page analysis of the artistic impact of {{ topic }}. Reference at least three named works, studios, or cultural movements, and explain how each illustrates a distinct aesthetic or philosophical idea.",
+      "refs": []
+    },
+    {
+      "title": "Technical Breakdown",
+      "prompt": "Provide a deep technical breakdown of the main processes or mechanisms involved in {{ topic }}. Use a mix of prose and mermaid diagrams to explain the concepts clearly.",
+      "refs": []
+    },
+    {
+      "title": "Practical Guide",
+      "prompt": "Draft a step-by-step guide that an advanced hobbyist could follow to experiment with {{ topic }}.",
+      "refs": []
+    },
+    {
+      "title": "Misconceptions",
+      "prompt": "Generate a Q&A with common misconceptions about {{ topic }} and clear corrections for each.",
+      "refs": []
+    },
+    {
+      "title": "Comparison",
+      "prompt": "Build a markdown table comparing three alternative approaches or variants within {{ topic }} (columns: method, difficulty, cost, typical result).",
+      "refs": []
+    }
+  ]
+}
