@@ -37,11 +37,11 @@
       "path": "./apps/recipe-tool"
     },
     {
-      "name": "🔌 Python Code Tools MCP",
+      "name": "🌐 Python Code Tools MCP",
       "path": "./mcp-servers/python-code-tools"
     },
     {
-      "name": "🔌 Recipe Tool MCP",
+      "name": "🌐 Recipe Tool MCP",
       "path": "./mcp-servers/recipe-tool"
     },
     {

@@ -6,39 +6,41 @@ A collection of tools for executing natural language recipe-like instructions to
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-## Getting Started
+## Quick Start
 
 ```bash
 git clone https://github.com/microsoft/recipe-tool.git
 cd recipe-tool
+make install    # Install all dependencies and show available commands
 ```
 
 ## Workspace Overview
 
 This workspace is organized into several interconnected projects:
 
-### 🏗️ Core Libraries & CLI Tools
+### 🔧 Core Libraries & CLI Tools
 
-- **`recipe-executor/`** - Core execution engine for JSON recipes (library + CLI)
-- **`recipe-tool/`** - Recipe execution and creation from natural language (library + CLI)
+- **⚙️ Recipe Executor Core** (`recipe-executor/`) - Core execution engine for JSON recipes
+- **🔧 Recipe Tool Core** (`recipe-tool/`) - Recipe execution and creation from natural language
 
-### 📱 User Interface Applications
+### 🖥️ User Interface Applications
 
-- **`apps/document-generator/`** - UX for using the document-generator recipe
-- **`apps/recipe-executor/`** - UX for using the recipe-executor library
-- **`apps/recipe-tool/`** - UX for recipe execution and creation features
+- **🖥️ Document Generator App** (`apps/document-generator/`) - UX for document generation recipes
+- **🖥️ Recipe Executor App** (`apps/recipe-executor/`) - UX for recipe execution
+- **🖥️ Recipe Tool App** (`apps/recipe-tool/`) - UX for recipe creation and execution
 
-### 🌐 MCP Protocol Servers
+### 🌐 MCP Servers
 
-- **`mcp-servers/python-code-tools/`** - MCP server exposing Python coding tools
-- **`mcp-servers/recipe-tool/`** - MCP server exposing recipe-tool capabilities
+- **🌐 Python Code Tools MCP** (`mcp-servers/python-code-tools/`) - MCP server for Python development tools
+- **🌐 Recipe Tool MCP** (`mcp-servers/recipe-tool/`) - MCP server exposing recipe-tool capabilities
 
-### 📄 Content Collections
+### 📚 Content Collections
 
-- **`recipes/`** - JSON recipe files for execution
-- **`blueprints/`** - Markdown blueprint files for code generation
-- **`ai_context/`** - Context files for AI tools
-- **`tools/`** - Utility scripts and tools
+- **📄 Recipes** (`recipes/`) - JSON recipe files for execution
+- **📐 Blueprints** (`blueprints/`) - Markdown blueprint files for code generation
+- **🤖 AI Context** (`ai_context/`) - Context files for AI tools and development
+- **📚 Documentation** (`docs/`) - Essential project documentation
+- **🛠️ Tools** (`tools/`) - Utility scripts and development tools
 
 ## Key Concepts
 
@@ -120,7 +122,7 @@ az login
    cd recipe-tool
    ```
 
-2. **Configure environment:**
+2. **Configure environment (optional):**
 
    ```bash
    cp .env.example .env
@@ -130,13 +132,21 @@ az login
 3. **Install workspace dependencies:**
 
    ```bash
-   uv sync --group dev
+   make install    # Installs all dependencies and shows available commands
    ```
 
-4. **Test the installation:**
+4. **Activate virtual environment:**
    ```bash
-   uv run recipe-executor --help
-   uv run recipe-tool --help
+   source .venv/bin/activate    # Linux/Mac
+   # OR: .venv\Scripts\activate  # Windows
+   ```
+
+5. **Test the installation:**
+   ```bash
+   recipe-executor --help       # Direct script call
+   recipe-tool --help          # Direct script call
+   document-generator-app      # Launch document generator UI
+   recipe-tool-app            # Launch recipe tool UI
    ```
 
 ## Usage
@@ -146,59 +156,110 @@ az login
 #### Execute a Recipe
 
 ```bash
-# Using recipe-executor directly
-uv run recipe-executor path/to/your/recipe.json
+# Using recipe-executor directly (fast, minimal features)
+recipe-executor path/to/your/recipe.json
 
 # Using recipe-tool (with additional context capabilities)
-uv run recipe-tool --execute path/to/your/recipe.json
+recipe-tool --execute path/to/your/recipe.json
 ```
 
 You can pass context variables:
 
 ```bash
-uv run recipe-tool --execute path/to/your/recipe.json context_key=value context_key2=value2
+recipe-tool --execute path/to/your/recipe.json context_key=value context_key2=value2
 ```
 
 Example:
 
 ```bash
-uv run recipe-tool --execute recipes/example_simple/test_recipe.json model=azure/o4-mini
+recipe-tool --execute recipes/example_simple/test_recipe.json model=azure/o4-mini
 ```
 
 #### Create New Recipes from Natural Language
 
 ```bash
-uv run recipe-tool --create path/to/your/recipe_idea.md
+recipe-tool --create path/to/your/recipe_idea.md
 ```
 
 You can provide additional context files:
 
 ```bash
-uv run recipe-tool --create path/to/your/recipe_idea.md \
+recipe-tool --create path/to/your/recipe_idea.md \
    files=path/to/other_file.txt,path/to/another_file.txt
 ```
 
 Example:
 
 ```bash
-uv run recipe-tool --create recipes/recipe_creator/prompts/sample_recipe_idea.md
+recipe-tool --create recipes/recipe_creator/recipe_ideas/sample_recipe_idea.md
 
 # Test the generated recipe
-uv run recipe-tool --execute output/analyze_codebase.json \
+recipe-tool --execute output/analyze_codebase.json \
    input=ai_context/generated/RECIPE_EXECUTOR_CODE_FILES.md,ai_context/generated/RECIPE_EXECUTOR_BLUEPRINT_FILES.md
+```
+
+### User Interface Applications
+
+Launch interactive web applications:
+
+```bash
+document-generator-app    # Document generation with live preview
+recipe-executor-app       # Recipe execution with GUI
+recipe-tool-app          # Full recipe creation and execution interface
+```
+
+### MCP Protocol Servers
+
+Start MCP servers for integration with Claude Desktop or other MCP clients:
+
+```bash
+recipe-tool-mcp-server   # Recipe tool capabilities via MCP
 ```
 
 ## Development
 
-### Individual Package Development
+### Workspace Commands
 
-You can also work on individual packages:
+Available make commands for development:
 
 ```bash
+make help            # Show all available commands
+make install         # Install all dependencies
+make workspace-info  # Show project structure and available commands
+make doctor          # Check workspace health
+
+# Code quality
+make lint            # Run linting across all projects
+make format          # Format code across all projects
+make test            # Run tests across all projects
+
+# Development utilities
+make ai-context-files  # Generate AI context files for development
+make activate          # Show virtual environment activation command
+```
+
+### Individual Package Development
+
+You can also work on individual packages using the VSCode multi-root workspace:
+
+```bash
+# Open the full workspace in VSCode
+code recipe-tool-workspace.code-workspace
+
+# Or focus on a single project
 cd recipe-tool
 code .  # Focus on just recipe-tool
-uv run pytest  # Run tests for this package only
+pytest  # Run tests for this package only (after activating venv)
 ```
+
+### VSCode Integration
+
+The project includes a comprehensive VSCode workspace configuration:
+- **Multi-root workspace**: Organized by project type with emojis
+- **Python extension**: Pre-configured with proper interpreter paths
+- **Testing**: Individual project test discovery and execution
+- **Linting**: Ruff integration for code quality
+- **Extensions**: Recommended extensions for optimal development experience
 
 ## Architecture
 
@@ -223,21 +284,39 @@ Blueprint Files → codebase-generator recipe → Generated Code
 
 One of the interesting aspects of this project is that it can generate its own code using recipes. The workspace includes recipes for:
 
-- Code generation from blueprints
-- Documentation generation
-- Context file creation for AI tools
+- **Code generation from blueprints** - Transform markdown specifications into working code
+- **Documentation generation** - Create comprehensive documentation from outlines  
+- **Context file creation** - Generate AI context files for development assistance
+- **Self-improvement** - The recipe-executor itself is generated by its own recipes
+
+### Key Workflow Integration
+
+The workspace is designed for seamless AI-assisted development:
+
+1. **📐 Write specifications** in `blueprints/` using markdown
+2. **🔧 Generate code** using blueprint recipes in `recipes/codebase_generator/`
+3. **🤖 Update AI context** with `make ai-context-files` for better assistant support
+4. **🖥️ Test interactively** using the UI applications
+5. **⚙️ Validate quality** with `make lint`, `make format`, and `make test`
 
 ## Package Installation
 
 Individual packages can be installed independently:
 
 ```bash
-# Install just what you need
+# Core tools (available via pip when published)
 pip install recipe-executor         # Core execution engine
 pip install recipe-tool             # Execution + creation tools
+
+# UI Applications  
 pip install document-generator-app  # Document generation UI
 pip install recipe-executor-app     # Recipe execution UI
 pip install recipe-tool-app         # Full recipe UI
+
+# Development setup (recommended)
+git clone https://github.com/microsoft/recipe-tool.git
+cd recipe-tool
+make install                        # Get everything with development tools
 ```
 
 ## License
