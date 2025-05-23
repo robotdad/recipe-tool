@@ -5,8 +5,8 @@
 **Search:** ['mcp-servers/python-code-tools']
 **Exclude:** ['.venv', 'node_modules', '*.lock', '.git', '__pycache__', '*.pyc', '*.ruff_cache', 'logs', 'output']
 **Include:** []
-**Date:** 5/23/2025, 12:34:00 PM
-**Files:** 27
+**Date:** 5/23/2025, 2:21:18 PM
+**Files:** 25
 
 === File: mcp-servers/python-code-tools/.ruff.toml ===
 line-length = 120
@@ -835,12 +835,6 @@ if __name__ == "__main__":
     asyncio.run(main())
 
 
-=== File: mcp-servers/python-code-tools/make.log ===
-make[1]: Entering directory '/home/brkrabac/repos/recipe-tool/mcp-servers/python-code-tools'
-uv sync  --all-extras --frozen
-make[1]: Leaving directory '/home/brkrabac/repos/recipe-tool/mcp-servers/python-code-tools'
-
-
 === File: mcp-servers/python-code-tools/pyproject.toml ===
 [project]
 name = "python-code-tools"
@@ -888,9 +882,6 @@ build-backend = "hatchling.build"
   "extraPaths": ["./"],
   "typeCheckingMode": "basic"
 }
-
-
-=== File: mcp-servers/python-code-tools/pytest.log ===
 
 
 === File: mcp-servers/python-code-tools/python_code_tools/__init__.py ===

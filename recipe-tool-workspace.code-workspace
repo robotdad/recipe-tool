@@ -1,47 +1,51 @@
 {
   "folders": [
     {
-      "name": "⚙️ Recipe Executor",
+      "name": "⚙️ Recipe Executor Core",
       "path": "./recipe-executor"
     },
     {
-      "name": "🔧 Recipe Tool",
+      "name": "🔧 Recipe Tool Core",
       "path": "./recipe-tool"
     },
     {
-      "name": "📄 Recipe Files (JSON)",
+      "name": "📄 Recipes",
       "path": "./recipes"
     },
     {
-      "name": "📋 Blueprint Files (Markdown)",
+      "name": "📐 Blueprints",
       "path": "./blueprints"
     },
     {
-      "name": "📱 Document Generator App",
-      "path": "./apps/document-generator"
+      "name": "📚 Documentation",
+      "path": "./docs"
     },
     {
-      "name": "📱 Recipe Executor App",
-      "path": "./apps/recipe-executor"
-    },
-    {
-      "name": "📱 Recipe Tool App",
-      "path": "./apps/recipe-tool"
-    },
-    {
-      "name": "🌐 Python Code Tools MCP Server",
-      "path": "./mcp-servers/python-code-tools"
-    },
-    {
-      "name": "🌐 Recipe Tool MCP Server",
-      "path": "./mcp-servers/recipe-tool"
-    },
-    {
-      "name": "🤖 AI Context Files",
+      "name": "🤖 AI Context",
       "path": "./ai_context"
     },
     {
-      "name": "🛠️ Utility Tools & Scripts",
+      "name": "🖥️ Document Generator App",
+      "path": "./apps/document-generator"
+    },
+    {
+      "name": "🖥️ Recipe Executor App",
+      "path": "./apps/recipe-executor"
+    },
+    {
+      "name": "🖥️ Recipe Tool App", 
+      "path": "./apps/recipe-tool"
+    },
+    {
+      "name": "🔌 Python Code Tools MCP",
+      "path": "./mcp-servers/python-code-tools"
+    },
+    {
+      "name": "🔌 Recipe Tool MCP",
+      "path": "./mcp-servers/recipe-tool"
+    },
+    {
+      "name": "🛠️ Tools",
       "path": "./tools"
     },
     {
@@ -50,161 +54,21 @@
     }
   ],
   "settings": {
-    // === MULTI-ROOT WORKSPACE SPECIFIC ===
-    // Only settings that differ from or enhance the root settings
+    // Inherit most settings from .vscode/settings.json
     "python.defaultInterpreterPath": "./.venv/bin/python",
-
-    // Multi-root specific Ruff configuration
-    "ruff.interpreter": ["./.venv/bin/python"],
-
-    // Ensure consistent analysis across all workspace folders
-    "python.analysis.diagnosticMode": "workspace"
+    
+    // Enable testing only for projects with working tests
+    "python.testing.pytestEnabled": true,
+    "python.testing.pytestArgs": ["--color=yes", "-v"],
+    "python.testing.autoTestDiscoverOnSaveEnabled": true,
+    "python.testing.unittestEnabled": false
   },
-  "tasks": {
-    "version": "2.0.0",
-    "tasks": [
-      {
-        "label": "Sync Workspace",
-        "type": "shell",
-        "command": "uv",
-        "args": ["sync", "--group", "dev"],
-        "group": "build",
-        "presentation": {
-          "echo": true,
-          "reveal": "always",
-          "focus": false,
-          "panel": "shared"
-        },
-        "problemMatcher": []
-      },
-      {
-        "label": "Test All Projects",
-        "type": "shell",
-        "command": "uv",
-        "args": ["run", "pytest"],
-        "group": "test",
-        "presentation": {
-          "echo": true,
-          "reveal": "always",
-          "focus": false,
-          "panel": "shared"
-        }
-      },
-      {
-        "label": "Test Core Libraries",
-        "type": "shell",
-        "command": "uv",
-        "args": ["run", "pytest", "recipe-executor/", "recipe-tool/"],
-        "group": "test",
-        "presentation": {
-          "echo": true,
-          "reveal": "always",
-          "focus": false,
-          "panel": "shared"
-        }
-      },
-      {
-        "label": "Test Apps",
-        "type": "shell",
-        "command": "uv",
-        "args": ["run", "pytest", "apps/"],
-        "group": "test",
-        "presentation": {
-          "echo": true,
-          "reveal": "always",
-          "focus": false,
-          "panel": "shared"
-        }
-      },
-      {
-        "label": "Lint All",
-        "type": "shell",
-        "command": "uv",
-        "args": ["run", "ruff", "check", "."],
-        "group": "build",
-        "presentation": {
-          "echo": true,
-          "reveal": "always",
-          "focus": false,
-          "panel": "shared"
-        }
-      },
-      {
-        "label": "Format All",
-        "type": "shell",
-        "command": "uv",
-        "args": ["run", "ruff", "format", "."],
-        "group": "build",
-        "presentation": {
-          "echo": true,
-          "reveal": "always",
-          "focus": false,
-          "panel": "shared"
-        }
-      }
-    ]
-  },
-  "launch": {
-    "version": "0.2.0",
-    "configurations": [
-      {
-        "name": "Debug Recipe Executor (CLI)",
-        "type": "debugpy",
-        "request": "launch",
-        "program": "${workspaceFolder}/recipe-executor/recipe_executor/main.py",
-        "console": "integratedTerminal",
-        "cwd": "${workspaceFolder}",
-        "args": ["${input:recipeFilePath}"]
-      },
-      {
-        "name": "Debug Recipe Tool (CLI)",
-        "type": "debugpy",
-        "request": "launch",
-        "program": "${workspaceFolder}/recipe-tool/recipe_tool/app.py",
-        "console": "integratedTerminal",
-        "cwd": "${workspaceFolder}",
-        "args": ["${input:recipeToolArgs}"]
-      },
-      {
-        "name": "Debug Document Generator App",
-        "type": "debugpy",
-        "request": "launch",
-        "program": "${workspaceFolder}/apps/document-generator/document_generator/main.py",
-        "console": "integratedTerminal",
-        "cwd": "${workspaceFolder}/apps/document-generator"
-      },
-      {
-        "name": "Debug Recipe Executor App",
-        "type": "debugpy",
-        "request": "launch",
-        "program": "${workspaceFolder}/apps/recipe-executor/recipe_executor_app/main.py",
-        "console": "integratedTerminal",
-        "cwd": "${workspaceFolder}/apps/recipe-executor"
-      },
-      {
-        "name": "Debug Recipe Tool App",
-        "type": "debugpy",
-        "request": "launch",
-        "program": "${workspaceFolder}/apps/recipe-tool/recipe_tool_app/main.py",
-        "console": "integratedTerminal",
-        "cwd": "${workspaceFolder}/apps/recipe-tool"
-      },
-      {
-        "name": "Debug Python Code Tools MCP Server",
-        "type": "debugpy",
-        "request": "launch",
-        "program": "${workspaceFolder}/mcp-servers/python-code-tools/python_code_tools/cli.py",
-        "console": "integratedTerminal",
-        "cwd": "${workspaceFolder}/mcp-servers/python-code-tools"
-      },
-      {
-        "name": "Debug Recipe Tool MCP Server",
-        "type": "debugpy",
-        "request": "launch",
-        "program": "${workspaceFolder}/mcp-servers/recipe-tool/recipe_tool_mcp_server/cli.py",
-        "console": "integratedTerminal",
-        "cwd": "${workspaceFolder}/mcp-servers/recipe-tool"
-      }
+  "extensions": {
+    "recommendations": [
+      "ms-python.python",
+      "charliermarsh.ruff",
+      "ms-python.debugpy",
+      "tamasfe.even-better-toml"
     ]
   }
 }

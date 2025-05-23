@@ -1,6 +1,9 @@
 repo_root = $(shell git rev-parse --show-toplevel)
 include $(repo_root)/tools/makefiles/python.mk
 
+# Project-specific test coverage
+PYTEST_ARGS += --cov=recipe_executor
+
 .PHONY: recipe-executor-create recipe-executor-edit create-component edit-component
 
 # Create recipe executor code from scratch using modular recipes

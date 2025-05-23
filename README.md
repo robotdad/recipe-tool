@@ -190,47 +190,6 @@ uv run recipe-tool --execute output/analyze_codebase.json \
 
 ## Development
 
-### Helper Scripts
-
-Use the development helper script for common tasks:
-
-```bash
-# Setup workspace
-./scripts/dev.sh sync
-
-# Run tests
-./scripts/dev.sh test              # All tests
-./scripts/dev.sh test core         # Core libraries only
-./scripts/dev.sh test apps         # Apps only
-
-# Code quality
-./scripts/dev.sh lint              # Lint all code
-./scripts/dev.sh format            # Format all code
-./scripts/dev.sh check             # Full check (lint + types + tests)
-
-# Building
-./scripts/dev.sh build             # Build all packages
-./scripts/dev.sh build recipe-tool # Build specific package
-
-# Utilities
-./scripts/dev.sh clean             # Clean generated files
-./scripts/dev.sh run recipe-tool --help  # Run any command
-```
-
-### VS Code Development
-
-**Simple approach (recommended):**
-
-```bash
-code .  # Open root folder
-```
-
-**Multi-root workspace (optional):**
-
-```bash
-code recipe-tool-workspace.code-workspace  # Organized sidebar view
-```
-
 ### Individual Package Development
 
 You can also work on individual packages:
@@ -239,19 +198,6 @@ You can also work on individual packages:
 cd recipe-tool
 code .  # Focus on just recipe-tool
 uv run pytest  # Run tests for this package only
-```
-
-### Building and Distribution
-
-Build individual packages for distribution:
-
-```bash
-# Build all packages
-./scripts/dev.sh build
-
-# Publish to PyPI (in dependency order)
-./scripts/publish.sh --test-pypi  # Test first
-./scripts/publish.sh              # Production
 ```
 
 ## Architecture
@@ -264,8 +210,6 @@ recipe-executor (core execution engine)
 recipe-tool (execution + creation wrapper)
     ↓
 apps/* (user interfaces)
-    ↓
-mcp-servers/* (protocol servers)
 ```
 
 ### Content Flow
@@ -290,7 +234,7 @@ Individual packages can be installed independently:
 ```bash
 # Install just what you need
 pip install recipe-executor         # Core execution engine
-pip install recipe-tool            # Execution + creation tools
+pip install recipe-tool             # Execution + creation tools
 pip install document-generator-app  # Document generation UI
 pip install recipe-executor-app     # Recipe execution UI
 pip install recipe-tool-app         # Full recipe UI

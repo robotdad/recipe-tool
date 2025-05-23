@@ -52,9 +52,10 @@
   "ruff.interpreter": ["./.venv/bin/python"],
 
   // === TESTING CONFIGURATION ===
-  "python.testing.pytestEnabled": true,
-  "python.testing.pytestArgs": ["--no-cov"],
-  "python.testing.autoTestDiscoverOnSaveEnabled": true,
+  // Testing disabled at workspace level due to import conflicts
+  // Use the recipe-tool.code-workspace file for better multi-project testing
+  "python.testing.pytestEnabled": false,
+  "python.testing.unittestEnabled": false
 
   // === JSON FORMATTING ===
   "[json]": {
@@ -117,6 +118,7 @@
     "dotenv",
     "edgehandle",
     "Eles",
+    "elif",
     "endcapture",
     "endcomment",
     "endfor",
@@ -130,6 +132,8 @@
     "oaicite",
     "ollama",
     "PYDANTIC",
+    "pyproject",
+    "PYTEST",
     "setrecursionlimit",
     "slugified",
     "snakecase",
@@ -137,6 +141,7 @@
     "subschema",
     "substep",
     "substeps",
-    "toplevel"
+    "toplevel",
+    "venv"
   ]
 }

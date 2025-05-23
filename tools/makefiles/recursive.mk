@@ -9,12 +9,12 @@ mkfile_dir = $(patsubst %/,%,$(dir $(realpath $(lastword $(MAKEFILE_LIST)))))
 # in that case, we don't want any targets
 ifndef IS_RECURSIVE_MAKE
 
-.DEFAULT_GOAL := install
+.DEFAULT_GOAL := help
 
 # make with VERBOSE=1 to print all outputs of recursive makes
 VERBOSE ?= 0
 
-RECURSIVE_TARGETS = clean install test format lint type-check lock
+RECURSIVE_TARGETS = clean test format lint type-check lock
 
 # You can pass in a list of files or directories to retain when running `clean/git-clean`
 # ex: make clean GIT_CLEAN_RETAIN=".env .data"
