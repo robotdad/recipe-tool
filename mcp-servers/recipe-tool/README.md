@@ -1,25 +1,18 @@
- # Recipe Tool MCP Server
+# 🌐 Recipe Tool MCP
 
- This MCP server wraps the `recipe-tool` CLI and exposes its functionality as MCP tools.
+MCP server exposing recipe-tool CLI capabilities for AI assistants.
 
- ## Tools
+## Quick Start
 
- - execute_recipe(recipe_path: str, context: dict[str, str] | None = None, log_dir: str = "logs") -> str  
-   Execute a recipe JSON file.
+```bash
+make install                        # From workspace root
+recipe-tool-mcp-server              # stdio transport (default)
+recipe-tool-mcp-server sse --port 3002  # SSE transport
+```
 
- - create_recipe(idea_path: str, context: dict[str, str] | None = None, log_dir: str = "logs") -> str  
-   Create a recipe from an idea file.
+## Tools
 
- ## Usage
+- `execute_recipe` - Execute recipe JSON files
+- `create_recipe` - Create recipes from idea files
 
- Run as a standalone MCP server:
-
- ```bash
- recipe-tool-mcp-server
- ```
-
- Or install in Claude Desktop:
-
- ```bash
- mcp install recipe-tool-mcp-server
- ```
+See the [main README](../../README.md) for setup and transport options.

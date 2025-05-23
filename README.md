@@ -208,13 +208,60 @@ recipe-executor-app       # Recipe execution with GUI
 recipe-tool-app          # Full recipe creation and execution interface
 ```
 
-### MCP Protocol Servers
+#### Recipe Tool App Advanced Usage
+
+The Recipe Tool app supports command-line options and configuration:
+
+```bash
+# Command-line options
+recipe-tool-app --help              # Show all options
+recipe-tool-app --host 127.0.0.1 --port 8000  # Custom host/port
+recipe-tool-app --no-mcp            # Disable MCP server
+recipe-tool-app --debug             # Enable debug mode
+```
+
+**API Integration**: The app exposes Gradio API endpoints (`execute_recipe`, `create_recipe`, `load_example`) for programmatic access via gradio_client.
+
+**MCP Integration**: Functions as an MCP server at `http://host:port/gradio_api/mcp/sse` for AI assistant integration.
+
+**Configuration**: Apps can be configured via environment variables (e.g., `RECIPE_APP_*` variables) or `.env` files. See individual app directories for specific configuration options.
+
+### MCP Servers
 
 Start MCP servers for integration with Claude Desktop or other MCP clients:
 
 ```bash
-recipe-tool-mcp-server   # Recipe tool capabilities via MCP
+# Recipe tool capabilities
+recipe-tool-mcp-server                    # stdio transport (default)
+recipe-tool-mcp-server stdio              # stdio transport (explicit)
+recipe-tool-mcp-server sse                # SSE transport
+recipe-tool-mcp-server sse --port 3002    # SSE with custom port
+
+# Convenience commands
+recipe-tool-mcp-server-stdio              # stdio transport
+recipe-tool-mcp-server-sse                # SSE transport
+
+# Python code quality tools (Ruff linting/fixing)
+python-code-tools stdio                   # stdio transport
+python-code-tools sse --port 3001         # SSE transport with custom port
+
+# Convenience commands
+python-code-tools-stdio                   # stdio transport
+python-code-tools-sse                     # SSE transport
 ```
+
+**Transport Options**:
+- **stdio**: For direct subprocess communication (Claude Desktop, pydantic-ai)
+- **SSE**: For HTTP-based communication with custom host/port
+
+#### Python Code Tools MCP
+
+Provides code linting tools for AI assistants:
+
+- **lint_code** - Lint and fix Python code snippets
+- **lint_project** - Lint and fix entire Python projects with file patterns
+
+Requirements: Python 3.10+, MCP Python SDK, Ruff
 
 ## Development
 
@@ -298,6 +345,25 @@ The workspace is designed for seamless AI-assisted development:
 3. **🤖 Update AI context** with `make ai-context-files` for better assistant support
 4. **🖥️ Test interactively** using the UI applications
 5. **⚙️ Validate quality** with `make lint`, `make format`, and `make test`
+
+#### Codebase Generator
+
+Generate code from blueprints (the Recipe Executor generates its own code!):
+
+```bash
+# Generate all Recipe Executor code
+recipe-tool --execute recipes/codebase_generator/codebase_generator_recipe.json
+
+# Generate specific component
+recipe-tool --execute recipes/codebase_generator/codebase_generator_recipe.json \
+   component_id=steps.llm_generate
+
+# Advanced options
+recipe-tool --execute recipes/codebase_generator/codebase_generator_recipe.json \
+   edit=true \
+   model=openai/gpt-4o \
+   output_root=custom_output
+```
 
 ## Package Installation
 

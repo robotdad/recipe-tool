@@ -1,3 +1,3 @@
-# Test Code Generation Recipe
+# Simple Recipe Example
 
-This recipe demonstrates a simple workflow that reads a specification file and generates a Python module based on it. The generated module is then written to disk.
+Basic workflow demonstrating file reading, code generation, and writing.

@@ -1,8 +1,7 @@
-# Complex Code Generation Recipe
+# Complex Recipe Example
 
-This recipe demonstrates a multi-step workflow that:
+Multi-step workflow demonstrating file reading, LLM generation, and sub-recipe execution.
 
-1. Reads two specification files.
-2. Uses an LLM step to generate a comprehensive Python module that integrates both core and auxiliary functionalities.
-3. Writes the generated module to disk.
-4. Executes a sub-recipe to generate an additional utility module.
+```bash
+recipe-tool --execute recipes/example_complex/complex_example.json
+```

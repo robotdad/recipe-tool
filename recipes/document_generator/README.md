@@ -1,11 +1,18 @@
-# Instructions for Testing the Document Generator Recipe
+# Document Generator
 
-## Run the Document Generator Recipe
+Recipe for generating comprehensive documents from structured JSON outlines.
+
+## Quick Examples
 
 ```bash
-# From the repo root, run the document generator recipe to create a readme for the codebase.
+# Basic usage
 recipe-tool --execute recipes/document_generator/document_generator_recipe.json \
-   outline_file=recipes/document_generator/examples/readme.json \
-   output_root=output/docs \
-   model=openai/o4-mini
+   outline_file=recipes/document_generator/examples/readme.json
+
+# With custom parameters
+recipe-tool --execute recipes/document_generator/document_generator_recipe.json \
+   outline_file=custom/outline.json \
+   output_root=output/docs
 ```
+
+JSON outline format: `title`, `general_instructions`, and `sections` array. See `examples/readme.json`.

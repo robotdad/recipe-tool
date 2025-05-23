@@ -6,10 +6,15 @@ authors = [{ name = "MADE:Explorations Team" }]
 license = "MIT"
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = ["mcp>=1.6.0", "python-dotenv>=1.1.0", "recipe-tool"]
+dependencies = ["mcp>=1.9.1", "python-dotenv>=1.1.0", "recipe-tool"]
 
 [project.scripts]
+# Main entry point
 recipe-tool-mcp-server = "recipe_tool_mcp_server.cli:main"
+
+# Convenience scripts for specific transports
+recipe-tool-mcp-server-stdio = "recipe_tool_mcp_server.cli:stdio_main"
+recipe-tool-mcp-server-sse = "recipe_tool_mcp_server.cli:sse_main"
 
 [tool.uv]
 package = true
