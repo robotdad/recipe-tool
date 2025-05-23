@@ -1,4 +1,6 @@
 {
+  // === UNIVERSAL EDITOR SETTINGS ===
+  // These apply to all file types and should be consistent everywhere
   "editor.bracketPairColorization.enabled": true,
   "editor.codeActionsOnSave": {
     "source.organizeImports": "explicit",
@@ -10,23 +12,30 @@
   "editor.formatOnSave": true,
   "files.eol": "\n",
   "files.trimTrailingWhitespace": true,
-  "[json]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode",
-    "editor.formatOnSave": true
-  },
-  "[jsonc]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode",
-    "editor.formatOnSave": true
-  },
+
+  // === PYTHON CONFIGURATION ===
+  "python.defaultInterpreterPath": "./.venv/bin/python",
+  "python.terminal.activateEnvironment": true,
   "python.analysis.autoFormatStrings": true,
   "python.analysis.autoImportCompletions": true,
   "python.analysis.diagnosticMode": "workspace",
   "python.analysis.fixAll": ["source.unusedImports"],
-  // Project specific paths
-  "python.analysis.ignore": ["output", "apps"],
   "python.analysis.inlayHints.functionReturnTypes": true,
   "python.analysis.typeCheckingMode": "standard",
-  "python.defaultInterpreterPath": "${workspaceFolder}/.venv",
+  "python.analysis.autoSearchPaths": true,
+
+  // Workspace-specific Python paths
+  "python.analysis.extraPaths": [
+    "./recipe-executor",
+    "./recipe-tool",
+    "./apps/document-generator",
+    "./apps/recipe-executor",
+    "./apps/recipe-tool",
+    "./mcp-servers/python-code-tools",
+    "./mcp-servers/recipe-tool"
+  ],
+
+  // === PYTHON FORMATTING ===
   "[python]": {
     "editor.defaultFormatter": "charliermarsh.ruff",
     "editor.formatOnSave": true,
@@ -37,14 +46,53 @@
       "source.formatDocument": "explicit"
     }
   },
+
+  // === RUFF CONFIGURATION ===
   "ruff.nativeServer": "on",
-  "ruff.interpreter": "${workspaceFolder:.multi-root-tools}/.venv",
-  "search.exclude": {
-    "**/.venv": true,
-    "**/.data": true,
-    "**/ai_context": true
+  "ruff.interpreter": ["./.venv/bin/python"],
+
+  // === TESTING CONFIGURATION ===
+  "python.testing.pytestEnabled": true,
+  "python.testing.pytestArgs": ["--no-cov"],
+  "python.testing.autoTestDiscoverOnSaveEnabled": true,
+
+  // === JSON FORMATTING ===
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true
   },
-  // For use with optional extension: "streetsidesoftware.code-spell-checker"
+  "[jsonc]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true
+  },
+
+  // === FILE WATCHING & SEARCH OPTIMIZATION ===
+  "files.watcherExclude": {
+    "**/.uv/**": true,
+    "**/.venv/**": true,
+    "**/node_modules/**": true,
+    "**/__pycache__/**": true,
+    "**/.pytest_cache/**": true
+  },
+  "search.exclude": {
+    "**/.uv": true,
+    "**/.venv": true,
+    "**/.*": true,
+    "**/__pycache__": true,
+    "**/.data": true,
+    "**/ai_context": true,
+    "**/recipes": false, // Make recipe files searchable
+    "**/blueprints": false, // Make blueprint files searchable
+    "**/tools": false // Make utility tools searchable
+  },
+
+  // === FILE ASSOCIATIONS ===
+  "files.associations": {
+    "*.toml": "toml"
+  },
+
+  // === SPELL CHECKER CONFIGURATION ===
+  // (Only include if using Code Spell Checker extension)
   "cSpell.ignorePaths": [
     ".devcontainer",
     ".git",
@@ -67,7 +115,7 @@
     "Cytoscape",
     "dagre",
     "dotenv",
-    "edgehandles",
+    "edgehandle",
     "Eles",
     "endcapture",
     "endcomment",

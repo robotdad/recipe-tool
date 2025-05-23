@@ -3,7 +3,7 @@
 [git-collector-data]
 
 **URL:** https://github.com/pydantic/pydantic-ai/tree/main/docs  
-**Date:** 5/21/2025, 1:51:53 PM  
+**Date:** 5/23/2025, 12:34:07 PM  
 **Files:** 12  
 
 === File: docs/agents.md ===
@@ -144,30 +144,21 @@ async def main():
                     UserPromptPart(
                         content='What is the capital of France?',
                         timestamp=datetime.datetime(...),
-                        part_kind='user-prompt',
                     )
-                ],
-                instructions=None,
-                kind='request',
+                ]
             )
         ),
         CallToolsNode(
             model_response=ModelResponse(
-                parts=[TextPart(content='Paris', part_kind='text')],
+                parts=[TextPart(content='Paris')],
                 usage=Usage(
-                    requests=1,
-                    request_tokens=56,
-                    response_tokens=1,
-                    total_tokens=57,
-                    details=None,
+                    requests=1, request_tokens=56, response_tokens=1, total_tokens=57
                 ),
                 model_name='gpt-4o',
                 timestamp=datetime.datetime(...),
-                kind='response',
-                vendor_id=None,
             )
         ),
-        End(data=FinalResult(output='Paris', tool_name=None, tool_call_id=None)),
+        End(data=FinalResult(output='Paris')),
     ]
     """
     print(agent_run.result.output)
@@ -216,30 +207,24 @@ async def main():
                         UserPromptPart(
                             content='What is the capital of France?',
                             timestamp=datetime.datetime(...),
-                            part_kind='user-prompt',
                         )
-                    ],
-                    instructions=None,
-                    kind='request',
+                    ]
                 )
             ),
             CallToolsNode(
                 model_response=ModelResponse(
-                    parts=[TextPart(content='Paris', part_kind='text')],
+                    parts=[TextPart(content='Paris')],
                     usage=Usage(
                         requests=1,
                         request_tokens=56,
                         response_tokens=1,
                         total_tokens=57,
-                        details=None,
                     ),
                     model_name='gpt-4o',
                     timestamp=datetime.datetime(...),
-                    kind='response',
-                    vendor_id=None,
                 )
             ),
-            End(data=FinalResult(output='Paris', tool_name=None, tool_call_id=None)),
+            End(data=FinalResult(output='Paris')),
         ]
         """
 ```
@@ -379,7 +364,8 @@ if __name__ == '__main__':
     [
         '=== UserPromptNode: What will the weather be like in Paris on Tuesday? ===',
         '=== ModelRequestNode: streaming partial request tokens ===',
-        '[Request] Starting part 0: ToolCallPart(tool_name=\'weather_forecast\', args=\'{"location":"Pa\', tool_call_id=\'0001\', part_kind=\'tool-call\')',
+        "[Request] Starting part 0: ToolCallPart(tool_name='weather_forecast', tool_call_id='0001')",
+        '[Request] Part 0 args_delta={"location":"Pa',
         '[Request] Part 0 args_delta=ris","forecast_',
         '[Request] Part 0 args_delta=date":"2030-01-',
         '[Request] Part 0 args_delta=01"}',
@@ -387,7 +373,7 @@ if __name__ == '__main__':
         '[Tools] The LLM calls tool=\'weather_forecast\' with args={"location":"Paris","forecast_date":"2030-01-01"} (tool_call_id=\'0001\')',
         "[Tools] Tool call '0001' returned => The forecast in Paris on 2030-01-01 is 24°C and sunny.",
         '=== ModelRequestNode: streaming partial request tokens ===',
-        "[Request] Starting part 0: TextPart(content='It will be ', part_kind='text')",
+        "[Request] Starting part 0: TextPart(content='It will be ')",
         '[Result] The model produced a final output (tool_name=None)',
         "[Request] Part 0 text delta: 'warm and sunny '",
         "[Request] Part 0 text delta: 'in Paris on '",
@@ -425,9 +411,7 @@ result_sync = agent.run_sync(
 print(result_sync.output)
 #> Rome
 print(result_sync.usage())
-"""
-Usage(requests=1, request_tokens=62, response_tokens=1, total_tokens=63, details=None)
-"""
+#> Usage(requests=1, request_tokens=62, response_tokens=1, total_tokens=63)
 
 try:
     result_sync = agent.run_sync(
@@ -839,11 +823,8 @@ with capture_run_messages() as messages:  # (2)!
                     UserPromptPart(
                         content='Please get me the volume of a box with size 6.',
                         timestamp=datetime.datetime(...),
-                        part_kind='user-prompt',
                     )
-                ],
-                instructions=None,
-                kind='request',
+                ]
             ),
             ModelResponse(
                 parts=[
@@ -851,20 +832,13 @@ with capture_run_messages() as messages:  # (2)!
                         tool_name='calc_volume',
                         args={'size': 6},
                         tool_call_id='pyd_ai_tool_call_id',
-                        part_kind='tool-call',
                     )
                 ],
                 usage=Usage(
-                    requests=1,
-                    request_tokens=62,
-                    response_tokens=4,
-                    total_tokens=66,
-                    details=None,
+                    requests=1, request_tokens=62, response_tokens=4, total_tokens=66
                 ),
                 model_name='gpt-4o',
                 timestamp=datetime.datetime(...),
-                kind='response',
-                vendor_id=None,
             ),
             ModelRequest(
                 parts=[
@@ -873,11 +847,8 @@ with capture_run_messages() as messages:  # (2)!
                         tool_name='calc_volume',
                         tool_call_id='pyd_ai_tool_call_id',
                         timestamp=datetime.datetime(...),
-                        part_kind='retry-prompt',
                     )
-                ],
-                instructions=None,
-                kind='request',
+                ]
             ),
             ModelResponse(
                 parts=[
@@ -885,20 +856,13 @@ with capture_run_messages() as messages:  # (2)!
                         tool_name='calc_volume',
                         args={'size': 6},
                         tool_call_id='pyd_ai_tool_call_id',
-                        part_kind='tool-call',
                     )
                 ],
                 usage=Usage(
-                    requests=1,
-                    request_tokens=72,
-                    response_tokens=8,
-                    total_tokens=80,
-                    details=None,
+                    requests=1, request_tokens=72, response_tokens=8, total_tokens=80
                 ),
                 model_name='gpt-4o',
                 timestamp=datetime.datetime(...),
-                kind='response',
-                vendor_id=None,
             ),
         ]
         """
@@ -1460,6 +1424,73 @@ async def main():
 
 1. See [MCP Run Python](run-python.md) for more information.
 
+## Using Tool Prefixes to Avoid Naming Conflicts
+
+When connecting to multiple MCP servers that might provide tools with the same name, you can use the `tool_prefix` parameter to avoid naming conflicts. This parameter adds a prefix to all tool names from a specific server.
+
+### How It Works
+
+- If `tool_prefix` is set, all tools from that server will be prefixed with `{tool_prefix}_`
+- When listing tools, the prefixed names are shown to the model
+- When calling tools, the prefix is automatically removed before sending the request to the server
+
+This allows you to use multiple servers that might have overlapping tool names without conflicts.
+
+### Example with HTTP Server
+
+```python {title="mcp_tool_prefix_http_client.py" py="3.10"}
+from pydantic_ai import Agent
+from pydantic_ai.mcp import MCPServerHTTP
+
+# Create two servers with different prefixes
+weather_server = MCPServerHTTP(
+    url='http://localhost:3001/sse',
+    tool_prefix='weather'  # Tools will be prefixed with 'weather_'
+)
+
+calculator_server = MCPServerHTTP(
+    url='http://localhost:3002/sse',
+    tool_prefix='calc'  # Tools will be prefixed with 'calc_'
+)
+
+# Both servers might have a tool named 'get_data', but they'll be exposed as:
+# - 'weather_get_data'
+# - 'calc_get_data'
+agent = Agent('openai:gpt-4o', mcp_servers=[weather_server, calculator_server])
+```
+
+### Example with Stdio Server
+
+```python {title="mcp_tool_prefix_stdio_client.py" py="3.10"}
+from pydantic_ai import Agent
+from pydantic_ai.mcp import MCPServerStdio
+
+python_server = MCPServerStdio(
+    'deno',
+    args=[
+        'run',
+        '-N',
+        'jsr:@pydantic/mcp-run-python',
+        'stdio',
+    ],
+    tool_prefix='py'  # Tools will be prefixed with 'py_'
+)
+
+js_server = MCPServerStdio(
+    'node',
+    args=[
+        'run',
+        'mcp-js-server.js',
+        'stdio',
+    ],
+    tool_prefix='js'  # Tools will be prefixed with 'js_'
+)
+
+agent = Agent('openai:gpt-4o', mcp_servers=[python_server, js_server])
+```
+
+When the model interacts with these servers, it will see the prefixed tool names, but the prefixes will be automatically handled when making tool calls.
+
 
 === File: docs/mcp/index.md ===
 # Model Context Protocol (MCP)
@@ -1783,36 +1814,22 @@ print(result.all_messages())
             SystemPromptPart(
                 content='Be a helpful assistant.',
                 timestamp=datetime.datetime(...),
-                dynamic_ref=None,
-                part_kind='system-prompt',
             ),
             UserPromptPart(
                 content='Tell me a joke.',
                 timestamp=datetime.datetime(...),
-                part_kind='user-prompt',
             ),
-        ],
-        instructions=None,
-        kind='request',
+        ]
     ),
     ModelResponse(
         parts=[
             TextPart(
-                content='Did you hear about the toothpaste scandal? They called it Colgate.',
-                part_kind='text',
+                content='Did you hear about the toothpaste scandal? They called it Colgate.'
             )
         ],
-        usage=Usage(
-            requests=1,
-            request_tokens=60,
-            response_tokens=12,
-            total_tokens=72,
-            details=None,
-        ),
+        usage=Usage(requests=1, request_tokens=60, response_tokens=12, total_tokens=72),
         model_name='gpt-4o',
         timestamp=datetime.datetime(...),
-        kind='response',
-        vendor_id=None,
     ),
 ]
 """
@@ -1838,17 +1855,12 @@ async def main():
                     SystemPromptPart(
                         content='Be a helpful assistant.',
                         timestamp=datetime.datetime(...),
-                        dynamic_ref=None,
-                        part_kind='system-prompt',
                     ),
                     UserPromptPart(
                         content='Tell me a joke.',
                         timestamp=datetime.datetime(...),
-                        part_kind='user-prompt',
                     ),
-                ],
-                instructions=None,
-                kind='request',
+                ]
             )
         ]
         """
@@ -1869,36 +1881,22 @@ async def main():
                     SystemPromptPart(
                         content='Be a helpful assistant.',
                         timestamp=datetime.datetime(...),
-                        dynamic_ref=None,
-                        part_kind='system-prompt',
                     ),
                     UserPromptPart(
                         content='Tell me a joke.',
                         timestamp=datetime.datetime(...),
-                        part_kind='user-prompt',
                     ),
-                ],
-                instructions=None,
-                kind='request',
+                ]
             ),
             ModelResponse(
                 parts=[
                     TextPart(
-                        content='Did you hear about the toothpaste scandal? They called it Colgate.',
-                        part_kind='text',
+                        content='Did you hear about the toothpaste scandal? They called it Colgate.'
                     )
                 ],
-                usage=Usage(
-                    requests=0,
-                    request_tokens=50,
-                    response_tokens=12,
-                    total_tokens=62,
-                    details=None,
-                ),
+                usage=Usage(request_tokens=50, response_tokens=12, total_tokens=62),
                 model_name='gpt-4o',
                 timestamp=datetime.datetime(...),
-                kind='response',
-                vendor_id=None,
             ),
         ]
         """
@@ -1936,66 +1934,40 @@ print(result2.all_messages())
             SystemPromptPart(
                 content='Be a helpful assistant.',
                 timestamp=datetime.datetime(...),
-                dynamic_ref=None,
-                part_kind='system-prompt',
             ),
             UserPromptPart(
                 content='Tell me a joke.',
                 timestamp=datetime.datetime(...),
-                part_kind='user-prompt',
             ),
-        ],
-        instructions=None,
-        kind='request',
+        ]
     ),
     ModelResponse(
         parts=[
             TextPart(
-                content='Did you hear about the toothpaste scandal? They called it Colgate.',
-                part_kind='text',
+                content='Did you hear about the toothpaste scandal? They called it Colgate.'
             )
         ],
-        usage=Usage(
-            requests=1,
-            request_tokens=60,
-            response_tokens=12,
-            total_tokens=72,
-            details=None,
-        ),
+        usage=Usage(requests=1, request_tokens=60, response_tokens=12, total_tokens=72),
         model_name='gpt-4o',
         timestamp=datetime.datetime(...),
-        kind='response',
-        vendor_id=None,
     ),
     ModelRequest(
         parts=[
             UserPromptPart(
                 content='Explain?',
                 timestamp=datetime.datetime(...),
-                part_kind='user-prompt',
             )
-        ],
-        instructions=None,
-        kind='request',
+        ]
     ),
     ModelResponse(
         parts=[
             TextPart(
-                content='This is an excellent joke invented by Samuel Colvin, it needs no explanation.',
-                part_kind='text',
+                content='This is an excellent joke invented by Samuel Colvin, it needs no explanation.'
             )
         ],
-        usage=Usage(
-            requests=1,
-            request_tokens=61,
-            response_tokens=26,
-            total_tokens=87,
-            details=None,
-        ),
+        usage=Usage(requests=1, request_tokens=61, response_tokens=26, total_tokens=87),
         model_name='gpt-4o',
         timestamp=datetime.datetime(...),
-        kind='response',
-        vendor_id=None,
     ),
 ]
 """
@@ -2080,66 +2052,40 @@ print(result2.all_messages())
             SystemPromptPart(
                 content='Be a helpful assistant.',
                 timestamp=datetime.datetime(...),
-                dynamic_ref=None,
-                part_kind='system-prompt',
             ),
             UserPromptPart(
                 content='Tell me a joke.',
                 timestamp=datetime.datetime(...),
-                part_kind='user-prompt',
             ),
-        ],
-        instructions=None,
-        kind='request',
+        ]
     ),
     ModelResponse(
         parts=[
             TextPart(
-                content='Did you hear about the toothpaste scandal? They called it Colgate.',
-                part_kind='text',
+                content='Did you hear about the toothpaste scandal? They called it Colgate.'
             )
         ],
-        usage=Usage(
-            requests=1,
-            request_tokens=60,
-            response_tokens=12,
-            total_tokens=72,
-            details=None,
-        ),
+        usage=Usage(requests=1, request_tokens=60, response_tokens=12, total_tokens=72),
         model_name='gpt-4o',
         timestamp=datetime.datetime(...),
-        kind='response',
-        vendor_id=None,
     ),
     ModelRequest(
         parts=[
             UserPromptPart(
                 content='Explain?',
                 timestamp=datetime.datetime(...),
-                part_kind='user-prompt',
             )
-        ],
-        instructions=None,
-        kind='request',
+        ]
     ),
     ModelResponse(
         parts=[
             TextPart(
-                content='This is an excellent joke invented by Samuel Colvin, it needs no explanation.',
-                part_kind='text',
+                content='This is an excellent joke invented by Samuel Colvin, it needs no explanation.'
             )
         ],
-        usage=Usage(
-            requests=1,
-            request_tokens=61,
-            response_tokens=26,
-            total_tokens=87,
-            details=None,
-        ),
+        usage=Usage(requests=1, request_tokens=61, response_tokens=26, total_tokens=87),
         model_name='gemini-1.5-pro',
         timestamp=datetime.datetime(...),
-        kind='response',
-        vendor_id=None,
     ),
 ]
 """
@@ -2460,9 +2406,7 @@ result = agent.run_sync('Where were the olympics held in 2012?')
 print(result.output)
 #> city='London' country='United Kingdom'
 print(result.usage())
-"""
-Usage(requests=1, request_tokens=57, response_tokens=8, total_tokens=65, details=None)
-"""
+#> Usage(requests=1, request_tokens=57, response_tokens=8, total_tokens=65)
 ```
 
 #### Example using a remote server
@@ -2491,9 +2435,7 @@ result = agent.run_sync('Where were the olympics held in 2012?')
 print(result.output)
 #> city='London' country='United Kingdom'
 print(result.usage())
-"""
-Usage(requests=1, request_tokens=57, response_tokens=8, total_tokens=65, details=None)
-"""
+#> Usage(requests=1, request_tokens=57, response_tokens=8, total_tokens=65)
 ```
 
 1. The name of the model running on the remote server
@@ -2644,7 +2586,7 @@ result = agent.run_sync('Where were the olympics held in 2012?')
 print(result.output)
 #> city='London' country='United Kingdom'
 print(result.usage())
-#> Usage(requests=1, request_tokens=57, response_tokens=8, total_tokens=65, details=None)
+#> Usage(requests=1, request_tokens=57, response_tokens=8, total_tokens=65)
 ```
 
 _(This example is complete, it can be run "as is")_
@@ -3018,38 +2960,22 @@ print(dice_result.all_messages())
             SystemPromptPart(
                 content="You're a dice game, you should roll the die and see if the number you get back matches the user's guess. If so, tell them they're a winner. Use the player's name in the response.",
                 timestamp=datetime.datetime(...),
-                dynamic_ref=None,
-                part_kind='system-prompt',
             ),
             UserPromptPart(
                 content='My guess is 4',
                 timestamp=datetime.datetime(...),
-                part_kind='user-prompt',
             ),
-        ],
-        instructions=None,
-        kind='request',
+        ]
     ),
     ModelResponse(
         parts=[
             ToolCallPart(
-                tool_name='roll_die',
-                args={},
-                tool_call_id='pyd_ai_tool_call_id',
-                part_kind='tool-call',
+                tool_name='roll_die', args={}, tool_call_id='pyd_ai_tool_call_id'
             )
         ],
-        usage=Usage(
-            requests=1,
-            request_tokens=90,
-            response_tokens=2,
-            total_tokens=92,
-            details=None,
-        ),
+        usage=Usage(requests=1, request_tokens=90, response_tokens=2, total_tokens=92),
         model_name='gemini-1.5-flash',
         timestamp=datetime.datetime(...),
-        kind='response',
-        vendor_id=None,
     ),
     ModelRequest(
         parts=[
@@ -3058,32 +2984,18 @@ print(dice_result.all_messages())
                 content='4',
                 tool_call_id='pyd_ai_tool_call_id',
                 timestamp=datetime.datetime(...),
-                part_kind='tool-return',
             )
-        ],
-        instructions=None,
-        kind='request',
+        ]
     ),
     ModelResponse(
         parts=[
             ToolCallPart(
-                tool_name='get_player_name',
-                args={},
-                tool_call_id='pyd_ai_tool_call_id',
-                part_kind='tool-call',
+                tool_name='get_player_name', args={}, tool_call_id='pyd_ai_tool_call_id'
             )
         ],
-        usage=Usage(
-            requests=1,
-            request_tokens=91,
-            response_tokens=4,
-            total_tokens=95,
-            details=None,
-        ),
+        usage=Usage(requests=1, request_tokens=91, response_tokens=4, total_tokens=95),
         model_name='gemini-1.5-flash',
         timestamp=datetime.datetime(...),
-        kind='response',
-        vendor_id=None,
     ),
     ModelRequest(
         parts=[
@@ -3092,30 +3004,20 @@ print(dice_result.all_messages())
                 content='Anne',
                 tool_call_id='pyd_ai_tool_call_id',
                 timestamp=datetime.datetime(...),
-                part_kind='tool-return',
             )
-        ],
-        instructions=None,
-        kind='request',
+        ]
     ),
     ModelResponse(
         parts=[
             TextPart(
-                content="Congratulations Anne, you guessed correctly! You're a winner!",
-                part_kind='text',
+                content="Congratulations Anne, you guessed correctly! You're a winner!"
             )
         ],
         usage=Usage(
-            requests=1,
-            request_tokens=92,
-            response_tokens=12,
-            total_tokens=104,
-            details=None,
+            requests=1, request_tokens=92, response_tokens=12, total_tokens=104
         ),
         model_name='gemini-1.5-flash',
         timestamp=datetime.datetime(...),
-        kind='response',
-        vendor_id=None,
     ),
 ]
 """
@@ -3383,8 +3285,6 @@ print(test_model.last_model_request_parameters.function_tools)
             'title': 'Foobar',
             'type': 'object',
         },
-        outer_typed_dict_key=None,
-        strict=None,
     )
 ]
 """
@@ -3487,8 +3387,6 @@ print(test_model.last_model_request_parameters.function_tools)
             'required': ['name'],
             'type': 'object',
         },
-        outer_typed_dict_key=None,
-        strict=None,
     )
 ]
 """

@@ -2,19 +2,16 @@
 name = "python-code-tools"
 version = "0.1.0"
 description = "MCP server providing Python code quality tools"
-authors = [{ name = "Brian Krabach" }]
+authors = [{ name = "MADE:Explorations Team" }]
 license = "MIT"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "mcp>=1.9.1",
     "pydantic>=2.7.2,<3.0.0",
-    "mcp>=1.6.0",
     "ruff>=0.1.0",
     "tomli>=2.2.1",
 ]
-
-[dependency-groups]
-dev = ["pytest>=7.0.0", "black>=23.0.0", "mypy>=1.0.0"]
 
 [project.scripts]
 # Main entry point
@@ -24,12 +21,18 @@ python-code-tools = "python_code_tools.cli:main"
 python-code-tools-stdio = "python_code_tools.cli:stdio_main"
 python-code-tools-sse = "python_code_tools.cli:sse_main"
 
+[tool.uv]
+package = true
+
 [tool.ruff]
 line-length = 100
 target-version = "py310"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "W"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["python_code_tools"]
 
 [build-system]
 requires = ["hatchling"]

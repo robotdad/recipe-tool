@@ -1,5 +1,5 @@
 from typer.testing import CliRunner  # type: ignore
-from document_generator.cli.main import app
+from document_generator_app.cli.main import app
 
 runner = CliRunner()
 

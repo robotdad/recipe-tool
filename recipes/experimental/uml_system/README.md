@@ -34,8 +34,8 @@ recipes/
 
   ```bash
   recipe-tool --execute recipes/experimental/uml_system/main.json \
-     input_path=blueprint_test/input/recipe_management_ui_vision.md \
-     output_dir=blueprint_test/output/uml_system \
+     input_path=blueprints/experimental/recipe_management_ui_vision.md \
+     output_dir=output/uml_system \
      model=openai/o4-mini
   ```
 

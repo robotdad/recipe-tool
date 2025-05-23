@@ -1,50 +1,34 @@
-[project]
-name = "recipe-tool"
-version = "0.1.1"
-description = "A tool for executing natural language recipe-like instructions"
-authors = [{ name = "MADE:Explorations Team" }]
-license = "MIT"
-readme = "README.md"
-requires-python = ">=3.11"
-dependencies = [
-    "azure-identity>=1.21.0",
-    "dotenv>=0.9.9",
-    "jsonschema>=4.23.0",
-    "pydantic-ai-slim[anthropic,openai,mcp]>=0.1.3",
-    "pydantic-settings>=2.8.1",
-    "python-code-tools>=0.1.0",
-    "python-dotenv>=1.1.0",
-    "python-liquid>=2.0.1",
-    "pyyaml>=6.0.2",
+[tool.uv.workspace]
+members = [
+    "recipe-tool",
+    "recipe-executor",
+    "apps/document-generator",
+    "apps/recipe-executor",
+    "apps/recipe-tool",
+    "mcp-servers/python-code-tools",
+    "mcp-servers/recipe-tool",
 ]
+
+[tool.uv.sources]
+# Core libraries
+recipe-executor = { workspace = true }
+recipe-tool = { workspace = true }
+# Apps
+document-generator-app = { workspace = true }
+recipe-executor-app = { workspace = true }
+recipe-tool-app = { workspace = true }
+# MCP servers
+python-code-tools = { workspace = true }
+recipe-tool-mcp-server = { workspace = true }
 
 [dependency-groups]
 dev = [
     "build>=1.2.2.post1",
     "debugpy>=1.8.14",
-    "pyright>=1.1.389",
+    "pyright>=1.1.400",
     "pytest>=8.3.5",
     "pytest-cov>=6.1.1",
     "pytest-mock>=3.14.0",
-    "ruff>=0.11.2",
+    "ruff>=0.11.10",
     "twine>=6.1.0",
 ]
-
-[project.scripts]
-recipe-executor = "recipe_executor.main:main"
-recipe-tool = "recipe_tool:main"
-python-code-tools = "python_code_tools.cli:main"
-
-[tool.uv]
-package = true
-
-[tool.uv.sources]
-python-code-tools = { path = "mcp-servers/python-code-tools", editable = true }
-recipe-tool-mcp-server = { path = "mcp-servers/recipe-tool", editable = true }
-
-[tool.hatch.build.targets.wheel]
-packages = ["recipe_executor"]
-
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"

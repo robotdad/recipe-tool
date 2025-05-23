@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 def build_execute_recipe_tab() -> Tuple[
-    gr.File, gr.Code, gr.Textbox, gr.Button, gr.Progress, gr.Markdown, gr.Textbox, gr.Code
+    gr.File, gr.Code, gr.Textbox, gr.Button, gr.Progress, gr.Markdown, gr.Textbox, gr.JSON
 ]:
     """Build the Execute Recipe tab UI components.
 
@@ -33,7 +33,7 @@ def build_execute_recipe_tab() -> Tuple[
         with gr.Column(scale=1):
             gr.Markdown("### Input")
             recipe_file = gr.File(label="Recipe JSON File", file_types=[".json"])
-            recipe_text = gr.Code(label="Recipe JSON", language="json", interactive=True, lines=25)
+            recipe_text = gr.Code(label="Recipe JSON", language="json", interactive=True, wrap_lines=True, lines=25)
 
             with gr.Accordion("Context Variables", open=False):
                 context_vars = gr.Textbox(
@@ -55,7 +55,7 @@ def build_execute_recipe_tab() -> Tuple[
 
                     # Add context variables below the results
                     gr.Markdown("### Context Variables", visible=True)
-                    context_json = gr.Code(label="Context", language="json", interactive=False)
+                    context_json = gr.JSON(label="Context")
 
                 with gr.TabItem("Logs"):
                     logs_output = gr.Textbox(label="Execution Logs", interactive=False, lines=20, max_lines=30)
@@ -98,7 +98,7 @@ def setup_execute_recipe_events(
     progress: gr.Progress,
     result_output: gr.Markdown,
     logs_output: gr.Textbox,
-    context_json: gr.Code,
+    context_json: gr.JSON,
 ) -> None:
     """Set up event handlers for execute recipe tab.
 

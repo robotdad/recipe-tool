@@ -10,7 +10,7 @@ This application provides a simple Gradio interface for running the
 2. Launch the UI with:
 
    ```bash
-   python document_generator/main.py
+   document-generator-app
    ```
 
 3. (Optional) Upload your own outline JSON file to populate the interface fields.

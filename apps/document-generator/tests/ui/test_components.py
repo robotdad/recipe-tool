@@ -1,4 +1,4 @@
-from document_generator.ui.components import resource_entry, section_entry
+from document_generator_app.ui.components import resource_entry, section_entry
 
 
 def test_resource_entry_returns_list():

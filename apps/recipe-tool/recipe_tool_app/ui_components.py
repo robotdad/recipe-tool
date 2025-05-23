@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 
 def build_create_recipe_tab() -> Tuple[
-    gr.TextArea, gr.File, gr.File, gr.Textbox, gr.Button, gr.Code, gr.Markdown, gr.Code
+    gr.TextArea, gr.File, gr.File, gr.Textbox, gr.Button, gr.Code, gr.Markdown, gr.JSON
 ]:
     """Build the Create Recipe tab UI components.
 
@@ -60,7 +60,7 @@ def build_create_recipe_tab() -> Tuple[
                 with gr.TabItem("Preview"):
                     preview_md = gr.Markdown(label="Recipe Structure")
                 with gr.TabItem("Context"):
-                    create_debug_context = gr.Code(language="json", label="Context Variables", max_lines=30)
+                    create_debug_context = gr.JSON(label="Context Variables")
 
     return (
         idea_text,
@@ -83,7 +83,7 @@ def setup_create_recipe_events(
     create_btn: gr.Button,
     create_output: gr.Code,
     preview_md: gr.Markdown,
-    debug_context: gr.Code,
+    debug_context: gr.JSON,
 ) -> None:
     """Set up event handlers for create recipe tab.
 

@@ -3,9 +3,9 @@
 [collect-files]
 
 **Search:** ['recipes/utilities']
-**Exclude:** ['.venv', 'node_modules', '.git', '__pycache__', '*.pyc', '*.ruff_cache']
+**Exclude:** ['.venv', 'node_modules', '*.lock', '.git', '__pycache__', '*.pyc', '*.ruff_cache', 'logs', 'output']
 **Include:** []
-**Date:** 4/30/2025, 11:10:41 AM
+**Date:** 5/22/2025, 8:20:42 AM
 **Files:** 1
 
 === File: recipes/utilities/generate_from_files.json ===

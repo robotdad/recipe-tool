@@ -1,19 +1,22 @@
- [project]
- name = "recipe-tool-mcp-server"
- version = "0.1.0"
- description = "MCP server wrapping the recipe-tool CLI"
- authors = [{ name = "MADE:Explorations Team" }]
- license = "MIT"
- readme = "README.md"
- requires-python = ">=3.11"
- dependencies = [
-     "mcp>=1.6.0",
-     "python-dotenv>=1.1.0",
- ]
+[project]
+name = "recipe-tool-mcp-server"
+version = "0.1.0"
+description = "MCP server wrapping the recipe-tool CLI"
+authors = [{ name = "MADE:Explorations Team" }]
+license = "MIT"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = ["mcp>=1.6.0", "python-dotenv>=1.1.0", "recipe-tool"]
 
- [project.scripts]
- recipe-tool-mcp-server = "recipe_tool_mcp_server.cli:main"
+[project.scripts]
+recipe-tool-mcp-server = "recipe_tool_mcp_server.cli:main"
 
- [build-system]
- requires = ["hatchling"]
- build-backend = "hatchling.build"
+[tool.uv]
+package = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["recipe_tool_mcp_server"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

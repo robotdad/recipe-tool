@@ -3,9 +3,9 @@
 [collect-files]
 
 **Search:** ['recipes/experimental/blueprint_generator_v3']
-**Exclude:** ['.venv', 'node_modules', '.git', '__pycache__', '*.pyc', '*.ruff_cache']
+**Exclude:** ['.venv', 'node_modules', '*.lock', '.git', '__pycache__', '*.pyc', '*.ruff_cache', 'logs', 'output']
 **Include:** []
-**Date:** 5/6/2025, 10:52:16 AM
+**Date:** 5/23/2025, 12:34:00 PM
 **Files:** 23
 
 === File: recipes/experimental/blueprint_generator_v3/README.md ===
@@ -27,7 +27,7 @@ The following instructions will guide you through setting up a test project for 
 
    ```bash
    # Create a sample Task Manager API specification
-   nano blueprint_test/input/task_manager_spec.md
+   nano blueprints/experimental/task_manager_spec.md
    ```
 
 3. Make sure you have the necessary AI context files:
@@ -43,8 +43,8 @@ The following instructions will guide you through setting up a test project for 
 ```bash
 # From the repo root, run the blueprint generator with the test project
 recipe-tool --execute recipes/experimental/blueprint_generator_v3/build.json \
-  project_spec=blueprint_test/input/task_manager_spec.md \
-  output_dir=blueprint_test/output/blueprint_generator_v3 \
+  project_spec=blueprints/experimental/task_manager_spec.md \
+  output_dir=output/blueprint_generator_v3 \
   model=openai/o4-mini
 ```
 
@@ -64,14 +64,14 @@ recipe-tool --execute recipes/experimental/blueprint_generator_v3/build.json \
 
 When a component needs human review:
 
-1. Check the `blueprint_test/output/human_review` directory for instructions.
+1. Check the `output/human_review` directory for instructions.
 
 2. Create a revised specification addressing the issues.
 
 3. Run the process_human_review recipe:
    ```bash
    recipe-tool --execute recipes/experimental/blueprint_generator_v3/build.json \
-     project_spec=blueprint_test/input/task_manager_spec.md \
+     project_spec=blueprints/experimental/task_manager_spec.md \
      output_dir=blueprint_test/output \
      process_review=component_id \
      review_path=path/to/your/revised/spec.md \
@@ -82,13 +82,13 @@ When a component needs human review:
 
 Throughout the process, you can monitor:
 
-- `blueprint_test/output/status/project_status.json` for overall progress
-- `blueprint_test/output/status/*_status.json` for individual component status
-- `blueprint_test/output/analysis` for project analysis results
-- `blueprint_test/output/clarification` for Q&A cycles
-- `blueprint_test/output/evaluation` for evaluation results
-- `blueprint_test/output/human_review` for human review instructions
-- `blueprint_test/output/blueprints` for final blueprints
+- `output/status/project_status.json` for overall progress
+- `output/status/*_status.json` for individual component status
+- `output/analysis` for project analysis results
+- `output/clarification` for Q&A cycles
+- `output/evaluation` for evaluation results
+- `output/human_review` for human review instructions
+- `output/blueprints` for final blueprints
 
 This test project is designed to exercise all parts of the blueprint generator while remaining small enough to process efficiently.
 

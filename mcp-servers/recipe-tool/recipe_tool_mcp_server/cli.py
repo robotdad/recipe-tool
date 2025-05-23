@@ -7,8 +7,6 @@ from dotenv import load_dotenv
 from mcp.server.fastmcp import FastMCP
 
 from recipe_tool import create_recipe as cli_create
-
-# Import the CLI functions
 from recipe_tool import execute_recipe as cli_execute
 
 # Load environment variables from .env if present

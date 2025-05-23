@@ -136,6 +136,27 @@ def build_context_files(force=False) -> None:
             "exclude": collect_files.DEFAULT_EXCLUDE,
             "include": [],
         },
+        # Collect files from apps/recipe-executor
+        {
+            "patterns": ["apps/recipe-executor/recipe_executor_app"],
+            "output": f"{OUTPUT_DIR}/RECIPE_EXECUTOR_APP_FILES.md",
+            "exclude": collect_files.DEFAULT_EXCLUDE,
+            "include": [],
+        },
+        # Collect files from apps/recipe-tool
+        {
+            "patterns": ["apps/recipe-tool/recipe_tool_app"],
+            "output": f"{OUTPUT_DIR}/RECIPE_TOOL_APP_FILES.md",
+            "exclude": collect_files.DEFAULT_EXCLUDE,
+            "include": [],
+        },
+        # Collect files from apps/document-generator
+        {
+            "patterns": ["apps/document-generator/document_generator_app"],
+            "output": f"{OUTPUT_DIR}/DOCUMENT_GENERATOR_APP_FILES.md",
+            "exclude": collect_files.DEFAULT_EXCLUDE,
+            "include": [],
+        },
     ]
 
     # Execute each task

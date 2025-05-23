@@ -1,6 +1,6 @@
 import pytest
 
-from document_generator.schema.validator import validate_outline
+from document_generator_app.schema.validator import validate_outline
 
 
 @pytest.fixture
