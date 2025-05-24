@@ -1,0 +1,12 @@
+{
+  "steps": [
+    {
+      "type": "read_files",
+      "config": {
+        "path": "{{ project_blueprints_root }}/components.json",
+        "content_key": "components",
+        "merge_mode": "dict"
+      }
+    }
+  ]
+}

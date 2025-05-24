@@ -256,10 +256,10 @@ class TestSetupExecuteRecipeEvents:
         assert kwargs["inputs"] == [recipe_file, recipe_text, context_vars]
         assert kwargs["outputs"] == [result_output, logs_output, context_json]
         assert kwargs["show_progress"] == "full"
-        
+
         # Verify that the change event was set up for recipe_text
         recipe_text.change.assert_called_once()
-        
+
         # Verify that the change event was set up for recipe_file
         recipe_file.change.assert_called_once()
 

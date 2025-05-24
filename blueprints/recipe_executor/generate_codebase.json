@@ -1,0 +1,31 @@
+{
+  "steps": [
+    {
+      "type": "set_context",
+      "config": {
+        "key": "project_blueprints_root",
+        "value": "{{ project_blueprints_root | default: 'blueprints/recipe_executor' }}"
+      }
+    },
+    {
+      "type": "set_context",
+      "config": {
+        "key": "edit",
+        "value": "{{ edit | default: false }}"
+      }
+    },
+    {
+      "type": "set_context",
+      "config": {
+        "key": "component_id",
+        "value": "{{ component_id | default: 'all' }}"
+      }
+    },
+    {
+      "type": "execute_recipe",
+      "config": {
+        "recipe_path": "{{ recipe_root | default: 'recipes/codebase_generator' }}/codebase_generator_recipe.json"
+      }
+    }
+  ]
+}

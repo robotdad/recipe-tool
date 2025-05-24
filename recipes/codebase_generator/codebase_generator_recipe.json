@@ -1,0 +1,108 @@
+{
+  "steps": [
+    {
+      "type": "set_context",
+      "config": {
+        "key": "project_blueprints_root",
+        "value": "{{ project_blueprints_root | default: 'blueprints/recipe_executor' }}"
+      }
+    },
+    {
+      "type": "set_context",
+      "config": {
+        "key": "component_id",
+        "value": "{{ component_id | default: 'all' }}"
+      }
+    },
+    {
+      "type": "set_context",
+      "config": {
+        "key": "model",
+        "value": "{{ model | default: 'openai/o4-mini' }}"
+      }
+    },
+    {
+      "type": "set_context",
+      "config": {
+        "key": "output_root",
+        "value": "{{ output_root | default: 'output' }}"
+      }
+    },
+    {
+      "type": "set_context",
+      "config": {
+        "key": "refs_root",
+        "value": "{{ refs_root | default: 'ai_context' }}"
+      }
+    },
+    {
+      "type": "set_context",
+      "config": {
+        "key": "existing_code_root",
+        "value": "{{ existing_code_root | default: 'recipe_executor' }}"
+      }
+    },
+    {
+      "type": "set_context",
+      "config": {
+        "key": "output_path",
+        "value": "{{ output_path | default: '' }}"
+      }
+    },
+    {
+      "type": "set_context",
+      "config": {
+        "key": "dev_guide_path",
+        "value": "{{ dev_guide_path | default: 'ai_context/DEV_GUIDE_FOR_PYTHON.md' }}"
+      }
+    },
+    {
+      "type": "set_context",
+      "config": {
+        "key": "edit",
+        "value": "{{ edit | default: false }}"
+      }
+    },
+    {
+      "type": "set_context",
+      "config": {
+        "key": "recipe_root",
+        "value": "{{ recipe_root | default: 'recipes/codebase_generator' }}"
+      }
+    },
+    {
+      "type": "execute_recipe",
+      "config": {
+        "recipe_path": "{{ recipe_root }}/recipes/read_components.json"
+      }
+    },
+    {
+      "type": "loop",
+      "config": {
+        "items": "components",
+        "item_key": "component",
+        "max_concurrency": 0,
+        "delay": 0.1,
+        "result_key": "built_components",
+        "substeps": [
+          {
+            "type": "conditional",
+            "config": {
+              "condition": "{% if component_id == component.id or component_id == 'all' %}true{% else %}false{% endif %}",
+              "if_true": {
+                "steps": [
+                  {
+                    "type": "execute_recipe",
+                    "config": {
+                      "recipe_path": "{{ recipe_root | default: 'recipes/recipe_executor' }}/recipes/process_component.json"
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

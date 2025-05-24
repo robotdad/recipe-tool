@@ -1,4 +1,4 @@
-from document_generator.config.settings import Settings
+from document_generator_app.config.settings import Settings
 
 
 def test_settings_defaults(monkeypatch):

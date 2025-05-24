@@ -25,7 +25,7 @@ import pathlib
 from typing import List, Optional, Set, Tuple
 
 # Default exclude patterns: common directories and binary files to ignore.
-DEFAULT_EXCLUDE = [".venv", "node_modules", ".git", "__pycache__", "*.pyc", "*.ruff_cache"]
+DEFAULT_EXCLUDE = [".venv", "node_modules", "*.lock", ".git", "__pycache__", "*.pyc", "*.ruff_cache", "logs", "output"]
 
 
 def parse_patterns(pattern_str: str) -> List[str]:
@@ -247,7 +247,7 @@ def format_output(
 
     # Add metadata header
     now = datetime.datetime.now()
-    date_str = now.strftime('%-m/%-d/%Y, %-I:%M:%S %p')
+    date_str = now.strftime("%-m/%-d/%Y, %-I:%M:%S %p")
     output_lines.append(f"# {patterns}")
     output_lines.append("")
     output_lines.append("[collect-files]")

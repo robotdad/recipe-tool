@@ -12,11 +12,12 @@ from textwrap import dedent
 
 OUTPUT_DIR = "ai_context/git_collector"
 
+
 # Debug function - can be removed or commented out when fixed
 def print_debug_info():
     print("===== DEBUG INFO =====")
     print(f"PATH: {os.environ.get('PATH', '')}")
-    npx_location = which('npx')
+    npx_location = which("npx")
     print(f"NPX location: {npx_location}")
     print("======================")
 
@@ -66,12 +67,12 @@ def main() -> None:
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
-                check=False
+                check=False,
             )
 
             # If git-collector is in the output, it's installed via pnpm
             if "git-collector" in result.stdout and "ERR" not in result.stdout:
-                 runners.append([pnpm_path, "exec", "git-collector"])
+                runners.append([pnpm_path, "exec", "git-collector"])
         except Exception:
             # If any error occurs during check, move to next option
             pass
@@ -85,7 +86,6 @@ def main() -> None:
     else:
         # Fallback to just the command name as a last resort
         runners.append(["npx", "--yes", "git-collector"])
-
 
     if not runners:
         sys.exit(guidance())

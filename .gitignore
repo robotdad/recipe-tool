@@ -39,6 +39,7 @@ next-steps.md
 
 # Generated files
 output
+logs
 
 # Test files
 .coverage

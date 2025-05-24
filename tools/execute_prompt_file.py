@@ -194,8 +194,12 @@ def process_directory(
     """Process a directory recursively"""
     for root, dirs, files in os.walk(dir_path):
         # Filter directories based on exclude patterns, but respect include patterns
-        dirs[:] = [d for d in dirs if not should_exclude(os.path.join(root, d), exclude_patterns)
-                  or should_include(os.path.join(root, d), include_patterns)]
+        dirs[:] = [
+            d
+            for d in dirs
+            if not should_exclude(os.path.join(root, d), exclude_patterns)
+            or should_include(os.path.join(root, d), include_patterns)
+        ]
 
         # Process each file in the directory
         for file in files:
@@ -243,12 +247,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description="Execute recipe_executor with a prompt file and collected files as context."
     )
-    parser.add_argument(
-        "--prompt-file", required=True, help="Path to the prompt file to use as the primary input"
-    )
-    parser.add_argument(
-        "--files", required=True, help="File paths or patterns to collect (can be comma-separated)"
-    )
+    parser.add_argument("--prompt-file", required=True, help="Path to the prompt file to use as the primary input")
+    parser.add_argument("--files", required=True, help="File paths or patterns to collect (can be comma-separated)")
     parser.add_argument(
         "--exclude",
         type=str,
@@ -260,9 +260,7 @@ def main() -> None:
     parser.add_argument(
         "--include", type=str, default="", help="Comma-separated patterns to include (overrides excludes if matched)"
     )
-    parser.add_argument(
-        "--dry-run", action="store_true", help="Print the command without executing it"
-    )
+    parser.add_argument("--dry-run", action="store_true", help="Print the command without executing it")
     args = parser.parse_args()
 
     # Validate prompt file
@@ -276,7 +274,7 @@ def main() -> None:
     include_patterns = parse_patterns(args.include) if args.include else []
 
     # Handle comma-separated files patterns (with or without spaces)
-    files_patterns = [pattern.strip() for pattern in args.files.split(',')]
+    files_patterns = [pattern.strip() for pattern in args.files.split(",")]
 
     # Collect files from each pattern
     all_files = []

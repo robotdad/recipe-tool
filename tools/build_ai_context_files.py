@@ -60,7 +60,7 @@ def ensure_directory_exists(file_path) -> None:
 def strip_date_line(text: str) -> str:
     """Remove any '**Date:** …' line so we can compare content ignoring timestamps."""
     # Remove the entire line that begins with **Date:**
-    return re.sub(r'^\*\*Date:\*\*.*\n?', '', text, flags=re.MULTILINE)
+    return re.sub(r"^\*\*Date:\*\*.*\n?", "", text, flags=re.MULTILINE)
 
 
 def build_context_files(force=False) -> None:
@@ -73,10 +73,10 @@ def build_context_files(force=False) -> None:
             "exclude": collect_files.DEFAULT_EXCLUDE,
             "include": ["README.md", "pyproject.toml", ".env.example"],
         },
-        # Collect files from recipes/recipe_executor
+        # Collect files from blueprints/recipe_executor
         {
-            "patterns": ["recipes/recipe_executor"],
-            "output": f"{OUTPUT_DIR}/RECIPE_EXECUTOR_RECIPE_FILES.md",
+            "patterns": ["blueprints/recipe_executor"],
+            "output": f"{OUTPUT_DIR}/RECIPE_EXECUTOR_BLUEPRINT_FILES.md",
             "exclude": collect_files.DEFAULT_EXCLUDE,
             "include": [],
         },
@@ -98,6 +98,13 @@ def build_context_files(force=False) -> None:
         {
             "patterns": ["mcp-servers/python-code-tools"],
             "output": f"{OUTPUT_DIR}/PYTHON_CODE_TOOLS_FILES.md",
+            "exclude": collect_files.DEFAULT_EXCLUDE,
+            "include": [],
+        },
+        # Collect files from recipes/codebase_generator
+        {
+            "patterns": ["recipes/codebase_generator"],
+            "output": f"{OUTPUT_DIR}/CODEBASE_GENERATOR_FILES.md",
             "exclude": collect_files.DEFAULT_EXCLUDE,
             "include": [],
         },
@@ -129,6 +136,27 @@ def build_context_files(force=False) -> None:
             "exclude": collect_files.DEFAULT_EXCLUDE,
             "include": [],
         },
+        # Collect files from apps/recipe-executor
+        {
+            "patterns": ["apps/recipe-executor/recipe_executor_app"],
+            "output": f"{OUTPUT_DIR}/RECIPE_EXECUTOR_APP_FILES.md",
+            "exclude": collect_files.DEFAULT_EXCLUDE,
+            "include": [],
+        },
+        # Collect files from apps/recipe-tool
+        {
+            "patterns": ["apps/recipe-tool/recipe_tool_app"],
+            "output": f"{OUTPUT_DIR}/RECIPE_TOOL_APP_FILES.md",
+            "exclude": collect_files.DEFAULT_EXCLUDE,
+            "include": [],
+        },
+        # Collect files from apps/document-generator
+        {
+            "patterns": ["apps/document-generator/document_generator_app"],
+            "output": f"{OUTPUT_DIR}/DOCUMENT_GENERATOR_APP_FILES.md",
+            "exclude": collect_files.DEFAULT_EXCLUDE,
+            "include": [],
+        },
     ]
 
     # Execute each task
@@ -152,10 +180,10 @@ def build_context_files(force=False) -> None:
         # Build header
         now = datetime.datetime.now()
         # Use appropriate format specifiers based on the platform
-        if platform.system() == 'Windows':
-            date_str = now.strftime('%#m/%#d/%Y, %#I:%M:%S %p')  # Windows non-padding format
+        if platform.system() == "Windows":
+            date_str = now.strftime("%#m/%#d/%Y, %#I:%M:%S %p")  # Windows non-padding format
         else:
-            date_str = now.strftime('%-m/%-d/%Y, %-I:%M:%S %p')  # Unix non-padding format
+            date_str = now.strftime("%-m/%-d/%Y, %-I:%M:%S %p")  # Unix non-padding format
         header_lines = [
             f"# {' | '.join(patterns)}",
             "",

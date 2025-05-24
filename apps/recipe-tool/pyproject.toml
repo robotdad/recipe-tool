@@ -1,21 +1,24 @@
 [project]
 name = "recipe-tool-app"
 version = "0.1.0"
-description = "Gradio web app for the Recipe Tool"
+description = "Gradio app combining recipe execution and recipe creation features"
 authors = [{ name = "MADE:Explorations Team" }]
 license = "MIT"
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = ["gradio[mcp]>=4.0.0", "python-dotenv>=1.1.0", "recipe-tool"]
+dependencies = [
+    "gradio[mcp]>=5.30.0",
+    "python-dotenv>=1.1.0",
+    "recipe-executor-app>=0.1.0",
+]
 
 [dependency-groups]
 dev = [
-    "pytest>=8.3.5",
-    "pytest-asyncio>=0.21.0",
     "pyright>=1.1.389",
-    "ruff>=0.11.2",
+    "pytest>=8.3.5",
+    "pytest-asyncio>=0.26.0",
     "pytest-cov>=6.1.1",
-    "recipe-executor-app",
+    "ruff>=0.11.2",
 ]
 
 [tool.pyright]
@@ -33,15 +36,14 @@ filterwarnings = [
     "ignore::DeprecationWarning:websockets.legacy:",
 ]
 
+[project.scripts]
+recipe-tool-app = "recipe_tool_app.app:main"
+
 [tool.uv]
 package = true
 
-[tool.uv.sources]
-recipe-tool = { path = "../..", editable = true }
-recipe-executor-app = { path = "../recipe-executor", editable = true }
-
-[project.scripts]
-recipe-tool-app = "recipe_tool_app.app:main"
+[tool.hatch.build.targets.wheel]
+packages = ["recipe_tool_app"]
 
 [build-system]
 requires = ["hatchling"]

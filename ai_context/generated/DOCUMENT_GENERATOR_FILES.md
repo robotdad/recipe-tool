@@ -3,10 +3,10 @@
 [collect-files]
 
 **Search:** ['recipes/document_generator']
-**Exclude:** ['.venv', 'node_modules', '.git', '__pycache__', '*.pyc', '*.ruff_cache']
+**Exclude:** ['.venv', 'node_modules', '*.lock', '.git', '__pycache__', '*.pyc', '*.ruff_cache', 'logs', 'output']
 **Include:** []
-**Date:** 5/16/2025, 5:28:59 PM
-**Files:** 10
+**Date:** 5/22/2025, 8:20:42 AM
+**Files:** 11
 
 === File: recipes/document_generator/README.md ===
 # Instructions for Testing the Document Generator Recipe
@@ -15,14 +15,66 @@
 
 ```bash
 # From the repo root, run the document generator recipe to create a readme for the codebase.
-recipe-tool --execute recipes/document_generator/document-generator-recipe.json \
+recipe-tool --execute recipes/document_generator/document_generator_recipe.json \
    outline_file=recipes/document_generator/examples/readme.json \
    output_root=output/docs \
    model=openai/o4-mini
 ```
 
 
-=== File: recipes/document_generator/document-generator-recipe.json ===
+=== File: recipes/document_generator/docs/diagram.md ===
+```mermaid
+flowchart TD
+
+%% ---------- top level ----------
+subgraph DOCUMENT_GENERATOR
+    DG0[set_context model] --> DG1[set_context output_root] --> DG2[set_context recipe_root] --> DG3[set_context document_filename]
+
+    DG3 --> LO0
+    %% load_outline ----------------------------------------------------------
+    subgraph load_outline
+        LO0[read_files outline] --> LO1[set_context toc]
+    end
+    LO1 --> LR0
+
+    %% load_resources --------------------------------------------------------
+    subgraph load_resources
+        LR0[loop outline.resources] --> LR1[read_files resource] --> LR2[set_context resource]
+    end
+    LR2 --> DG4[set_context document]
+
+    DG4 --> WD0
+    %% write_document --------------------------------------------------------
+    subgraph write_document
+        WD0[write_files document.md]
+    end
+    WD0 --> WS0
+
+    %% write_sections (recursive) -------------------------------------------
+    subgraph write_sections
+        WS0[loop sections] --> WS1{resource_key?}
+        WS1 -- yes --> WC0
+        WS1 -- no  --> WSSEC0
+
+        %% write_content ----------------------------------------------------
+        subgraph write_content
+            WC0[execute read_document] --> WC1[set_context merge section.content] --> WC2[execute write_document]
+        end
+
+        %% write_section ----------------------------------------------------
+        subgraph write_section
+            WSSEC0[execute read_document] --> WSSEC1[set_context rendered_prompt] --> WSSEC2[llm_generate section] --> WSSEC3[set_context merge generated.content] --> WSSEC4[execute write_document]
+        end
+
+        WC2 --> WS2{has_children?}
+        WSSEC4 --> WS2
+        WS2 -- yes --> WS0
+    end
+end
+```
+
+
+=== File: recipes/document_generator/document_generator_recipe.json ===
 {
   "name": "Document Generator",
   "description": "Generates a document from an outline, using LLMs to fill in sections and assemble the final document.",
@@ -116,7 +168,7 @@ recipe-tool --execute recipes/document_generator/document-generator-recipe.json 
   "resources": [
     {
       "key": "codebase_docs",
-      "path": "ai_context/generated/RECIPE_EXECUTOR_RECIPE_FILES.md",
+      "path": "ai_context/generated/RECIPE_EXECUTOR_BLUEPRINT_FILES.md",
       "description": "In-repo design docs, examples, etc."
     },
     {
@@ -129,50 +181,32 @@ recipe-tool --execute recipes/document_generator/document-generator-recipe.json 
     {
       "title": "Header",
       "prompt": "Produce an H1 title using the repository name. Optionally add shields.io badges for build status, license, or published package version if the information exists.\nWrite a single-sentence summary of what the project does and who it is for, based on the highest-level documentation.",
-      "refs": [
-        "codebase_docs",
-        "code_files"
-      ]
+      "refs": ["codebase_docs", "code_files"]
     },
     {
       "title": "Key Features",
       "prompt": "List the main capabilities or selling points, one bullet per feature, drawing facts from design docs or API specs.",
-      "refs": [
-        "codebase_docs",
-        "api_docs"
-      ]
+      "refs": ["codebase_docs", "code_files"]
     },
     {
       "title": "Installation",
       "prompt": "Provide copy-paste installation instructions, including package-manager commands, build steps, and environment variables, using exact data from configuration files.",
-      "refs": [
-        "codebase_docs",
-        "code_files"
-      ]
+      "refs": ["codebase_docs", "code_files"]
     },
     {
       "title": "Usage",
       "prompt": "Show the simplest runnable example pulled from tests, docs, or API specs. If multiple language clients exist, include one example per language.",
-      "refs": [
-        "codebase_docs",
-        "code_files"
-      ]
+      "refs": ["codebase_docs", "code_files"]
     },
     {
       "title": "API Reference",
       "prompt": "If formal API specs exist, generate a short table of endpoints with method, path, and one-line description; otherwise keep the heading with a note indicating N/A.",
-      "refs": [
-        "codebase_docs",
-        "code_files"
-      ]
+      "refs": ["codebase_docs", "code_files"]
     },
     {
       "title": "Architecture Overview",
       "prompt": "Describe the high-level architecture in two or three short paragraphs. If diagrams are available, embed image links and reference major components.",
-      "refs": [
-        "codebase_docs",
-        "code_files"
-      ]
+      "refs": ["codebase_docs", "code_files"]
     }
   ]
 }

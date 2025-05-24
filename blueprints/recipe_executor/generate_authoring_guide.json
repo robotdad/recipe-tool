@@ -1,0 +1,24 @@
+{
+  "steps": [
+    {
+      "type": "set_context",
+      "config": {
+        "key": "outline_file",
+        "value": "{{ outline_file | default: 'blueprints/recipe_executor/outlines/recipe-json-authoring-guide.json' }}"
+      }
+    },
+    {
+      "type": "set_context",
+      "config": {
+        "key": "output_root",
+        "value": "{{ output_root | default: 'output/docs' }}"
+      }
+    },
+    {
+      "type": "execute_recipe",
+      "config": {
+        "recipe_path": "{{ recipe_root | default: 'recipes/document_generator' }}/document_generator_recipe.json"
+      }
+    }
+  ]
+}

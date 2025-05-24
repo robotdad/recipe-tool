@@ -1,4 +1,4 @@
-from document_generator.models.outline import Resource, Section, Outline
+from document_generator_app.models.outline import Resource, Section, Outline
 
 
 def test_outline_dataclass():

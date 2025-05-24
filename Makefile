@@ -1,35 +1,97 @@
-repo_root = $(shell git rev-parse --show-toplevel)
-include $(repo_root)/tools/makefiles/python.mk
+# Recipe Tool Workspace Root Makefile
+# Uses recursive.mk to run targets across all project subdirectories
 
-# Build AI context files for the recipe executor
-.PHONY: ai-context-files
-ai-context-files:
-	@echo "Building AI context files for recipe executor development..."
-	@python $(repo_root)/tools/build_ai_context_files.py
-	@python $(repo_root)/tools/build_git_collector_files.py
+# Include the recursive system
+include tools/makefiles/recursive.mk
 
-.PHONY: recipe-executor-create recipe-executor-edit create-component edit-component
 
-# Create recipe executor code from scratch using modular recipes
-recipe-executor-create:
-	@echo "Generating recipe executor code from modular recipes..."
-	recipe-tool --execute recipes/recipe_executor/build.json model=openai/o4-mini
+# Helper function to list available commands
+define list_commands
+	@echo "Available project commands:"
+	@ls .venv/bin/ 2>/dev/null | grep -E "(recipe|document)" | sed 's/^/  /' || echo "  (run 'make install' first)"
+	@echo ""
+endef
 
-# Edit existing recipe executor code using modular recipes
-recipe-executor-edit:
-	@echo "Editing recipe executor code from modular recipes..."
-	recipe-tool --execute recipes/recipe_executor/build.json model=openai/o4-mini edit=true existing_code_root=.
+# Helper function to list discovered projects
+define list_projects
+	@echo "Projects discovered: $(words $(MAKE_DIRS))"
+	@for dir in $(MAKE_DIRS); do echo "  - $$dir"; done
+	@echo ""
+endef
 
-# Create a specific component
-create-component:
-	@echo "Generating component $(COMPONENT)..."
-	recipe-tool --execute recipes/recipe_executor/build.json model=openai/o4-mini component_id=$(COMPONENT)
 
-# Edit a specific component
-edit-component:
-	@echo "Editing component $(COMPONENT)..."
-	recipe-tool --execute recipes/recipe_executor/build.json model=openai/o4-mini component_id=$(COMPONENT) edit=true existing_code_root=.
+# Workspace-specific targets that don't need to be recursive
+.PHONY: ai-context-files doctor install activate workspace-info
 
-# Usage examples:
-# make create-component COMPONENT=context
-# make edit-component COMPONENT=llm_utils.llm
+# AI Context Files (workspace-level only)
+ai-context-files: ## Build AI context files for development
+	@echo ""
+	@echo "Building AI context files..."
+	uv run python tools/build_ai_context_files.py
+	uv run python tools/build_git_collector_files.py
+	@echo "AI context files generated"
+	@echo ""
+
+# Show workspace info including available commands
+workspace-info: ## Show workspace info and available commands
+	@echo ""
+	@echo "Recipe Tool Workspace"
+	@echo "===================="
+	@echo ""
+	$(call list_projects)
+	$(call list_commands)
+
+# Workspace health check
+doctor: ## Check workspace overall health
+	@echo ""
+	@echo "Checking workspace health..."
+	@uv --version || (echo "❌ uv not found" && exit 1)
+	@test -f uv.lock && echo "✅ Lock file exists" || echo "❌ Lock file missing"
+	@test -d .venv && echo "✅ Virtual environment exists" || echo "❌ Virtual environment missing"
+	@echo "Projects with Makefiles: $(words $(MAKE_DIRS))"
+	@echo "Health check completed"
+	@echo ""
+
+# Workspace-level install (installs all dependencies)
+install: ## Install/update all workspace dependencies
+	@echo ""
+	@echo "Installing workspace dependencies..."
+	uv sync --group dev
+	@echo "Workspace dependencies installed"
+	@echo ""
+	$(call list_commands)
+	@$(MAKE) -s activate
+
+# Activate virtual environment
+activate: ## Show command to activate virtual environment
+	@if [ -n "$$VIRTUAL_ENV" ]; then \
+		echo "\033[32m✓ Virtual environment already active\033[0m"; \
+		echo ""; \
+	elif [ -f .venv/bin/activate ]; then \
+		echo "\033[33m→ Run this command: source .venv/bin/activate\033[0m"; \
+		echo ""; \
+	elif [ -f .venv/Scripts/activate ]; then \
+		echo "\033[33m→ Run this command: .venv\\Scripts\\activate\033[0m"; \
+		echo ""; \
+	else \
+		echo "\033[31m✗ No virtual environment found. Run 'make install' first.\033[0m"; \
+	fi
+
+# Default goal is to show help
+.DEFAULT_GOAL := help
+help: ## Show available targets
+	@echo ""
+	@echo "Recipe Tool Workspace"
+	@echo "====================="
+	@echo ""
+	@echo "Workspace targets:"
+	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  %-20s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+	@echo ""
+	@echo "Recursive targets (run across all projects):"
+	@echo "  test                 Run tests in all projects"
+	@echo "  lint                 Lint code in all projects"
+	@echo "  format               Format code in all projects"
+	@echo "  clean                Clean all projects"
+	@echo ""
+	@echo "Usage: make install  # Set up workspace dependencies"
+	@echo ""

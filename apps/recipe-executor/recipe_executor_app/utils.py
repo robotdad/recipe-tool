@@ -251,10 +251,10 @@ def parse_context_vars(context_str: Optional[str]) -> Dict[str, Any]:
 
 def safe_json_serialize(obj: Any) -> Dict[str, Any]:
     """Convert a potentially complex object to a JSON-serializable dictionary.
-    
+
     Args:
         obj: Object to serialize
-        
+
     Returns:
         Dict[str, Any]: JSON-serializable dictionary
     """
@@ -280,7 +280,11 @@ def safe_json_serialize(obj: Any) -> Dict[str, Any]:
         except (TypeError, OverflowError):
             # Fall back to string representation
             if hasattr(obj, "__dict__"):
-                return {"__str__": str(obj), "__type__": type(obj).__name__, "__attrs__": safe_json_serialize(obj.__dict__)}
+                return {
+                    "__str__": str(obj),
+                    "__type__": type(obj).__name__,
+                    "__attrs__": safe_json_serialize(obj.__dict__),
+                }
             else:
                 return {"__str__": str(obj), "__type__": type(obj).__name__}
 

@@ -7,7 +7,6 @@ import json
 from typing import Optional, Tuple
 
 import gradio as gr
-import gradio.themes
 
 from recipe_executor_app.config import settings
 from recipe_executor_app.core import RecipeExecutorCore
@@ -18,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 def build_execute_recipe_tab() -> Tuple[
-    gr.File, gr.Code, gr.Textbox, gr.Button, gr.Progress, gr.Markdown, gr.Textbox, gr.Code
+    gr.File, gr.Code, gr.Textbox, gr.Button, gr.Progress, gr.Markdown, gr.Textbox, gr.JSON
 ]:
     """Build the Execute Recipe tab UI components.
 
@@ -34,7 +33,7 @@ def build_execute_recipe_tab() -> Tuple[
         with gr.Column(scale=1):
             gr.Markdown("### Input")
             recipe_file = gr.File(label="Recipe JSON File", file_types=[".json"])
-            recipe_text = gr.Code(label="Recipe JSON", language="json", interactive=False, lines=25)
+            recipe_text = gr.Code(label="Recipe JSON", language="json", interactive=True, wrap_lines=True, lines=25)
 
             with gr.Accordion("Context Variables", open=False):
                 context_vars = gr.Textbox(
@@ -56,7 +55,7 @@ def build_execute_recipe_tab() -> Tuple[
 
                     # Add context variables below the results
                     gr.Markdown("### Context Variables", visible=True)
-                    context_json = gr.Code(label="Context", language="json", interactive=False)
+                    context_json = gr.JSON(label="Context")
 
                 with gr.TabItem("Logs"):
                     logs_output = gr.Textbox(label="Execution Logs", interactive=False, lines=20, max_lines=30)
@@ -99,7 +98,7 @@ def setup_execute_recipe_events(
     progress: gr.Progress,
     result_output: gr.Markdown,
     logs_output: gr.Textbox,
-    context_json: gr.Code,
+    context_json: gr.JSON,
 ) -> None:
     """Set up event handlers for execute recipe tab.
 
@@ -169,7 +168,7 @@ def setup_execute_recipe_events(
     def update_execute_btn(recipe_content):
         # Enable button if recipe_content is not empty
         return gr.update(interactive=bool(recipe_content))
-    
+
     # Set up event handler for recipe execution
     execute_btn.click(
         fn=execute_recipe_formatted,
@@ -178,14 +177,14 @@ def setup_execute_recipe_events(
         api_name="execute_recipe",
         show_progress="full",  # Show the progress bar during execution
     )
-    
+
     # Enable execute button when recipe is loaded
     recipe_text.change(
         fn=update_execute_btn,
         inputs=[recipe_text],
         outputs=[execute_btn],
     )
-    
+
     # When a file is uploaded, read the content and update the recipe_text
     def handle_file_upload(file_path):
         if file_path is None or not file_path:
@@ -199,7 +198,7 @@ def setup_execute_recipe_events(
         except (json.JSONDecodeError, FileNotFoundError) as e:
             logger.error(f"Error parsing uploaded file: {e}")
             return "", gr.update(interactive=False)
-    
+
     # Handle file upload to update JSON content and button state
     recipe_file.change(
         fn=handle_file_upload,
@@ -233,10 +232,10 @@ def setup_example_events(
         # Extract the individual fields for Gradio UI
         recipe_content_str = result.get("recipe_content", "")
         structure_preview = result.get("structure_preview", "")
-        
+
         # Return the string content directly for gr.Code component
         recipe_content = recipe_content_str
-        
+
         # Validate that it's valid JSON
         try:
             if recipe_content_str:

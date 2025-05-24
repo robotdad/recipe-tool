@@ -3,7 +3,7 @@
 [git-collector-data]
 
 **URL:** https://github.com/modelcontextprotocol/modelcontextprotocol/tree/main/docs  
-**Date:** 4/23/2025, 11:19:36 AM  
+**Date:** 5/21/2025, 1:51:51 PM  
 **Files:** 10  
 
 === File: docs/docs/concepts/architecture.mdx ===
@@ -2301,7 +2301,7 @@ The Claude.app interface provides basic server status information:
    - Connected servers
    - Available prompts and resources
 
-2. Click the <img src="/images/claude-desktop-mcp-hammer-icon.svg" style={{display: 'inline', margin: 0, height: '1.3em'}} /> icon to view:
+2. Click the "Search and tools" <img src="/images/claude-desktop-mcp-slider.svg" style={{display: 'inline', margin: 0, height: '1.3em'}} /> icon to view:
    - Tools made available to the model
 
 ### Viewing logs

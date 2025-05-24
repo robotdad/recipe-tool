@@ -1,0 +1,22 @@
+[project]
+name = "recipe-tool"
+version = "0.1.1"
+description = "A tool for executing natural language recipe-like instructions"
+authors = [{ name = "MADE:Explorations Team" }]
+license = "MIT"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = ["recipe-executor"]
+
+[project.scripts]
+recipe-tool = "recipe_tool.app:main"
+
+[tool.uv]
+package = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["recipe_tool"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
