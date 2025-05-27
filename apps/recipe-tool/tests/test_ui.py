@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from recipe_tool_app.ui_components import create_recipe_ui
+from recipe_tool_app.ui import create_recipe_ui
 
 
 @pytest.fixture

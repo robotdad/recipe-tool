@@ -151,31 +151,3 @@ class RecipeExecutorCore:
                 "recipe_content": "",
                 "structure_preview": f"### Error\n{str(e)}",
             }
-
-    def find_examples(self, directory: str) -> Dict[str, str]:
-        """Find example recipes in a directory."""
-        examples = {}
-        repo_root = get_repo_root()
-
-        # Resolve directory path
-        if not os.path.isabs(directory):
-            directory = os.path.join(repo_root, directory)
-
-        if not os.path.exists(directory):
-            return {}
-
-        # Find JSON files
-        for root, _, files in os.walk(directory):
-            for file in files:
-                if file.endswith(".json"):
-                    full_path = os.path.join(root, file)
-                    rel_path = os.path.relpath(full_path, repo_root)
-
-                    try:
-                        content = json.loads(read_file(full_path))
-                        name = content.get("name", file)
-                        examples[f"{name} ({rel_path})"] = full_path
-                    except Exception:
-                        examples[f"{file} ({rel_path})"] = full_path
-
-        return examples

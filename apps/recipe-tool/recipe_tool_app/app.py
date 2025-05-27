@@ -3,14 +3,14 @@
 import argparse
 
 import gradio as gr
-import gradio.themes  # type: ignore
+import gradio.themes
 from recipe_executor.logger import init_logger
 from recipe_executor_app.app import create_executor_block
 from recipe_executor_app.core import RecipeExecutorCore
 
 from recipe_tool_app.config import settings
 from recipe_tool_app.core import RecipeToolCore
-from recipe_tool_app.ui_components import create_recipe_ui
+from recipe_tool_app.ui import create_recipe_ui
 
 # Set up logging
 logger = init_logger(settings.log_dir)
@@ -20,7 +20,7 @@ logger.setLevel(settings.log_level.upper())
 def create_app() -> gr.Blocks:
     """Create the Recipe Tool app."""
     recipe_core = RecipeToolCore()
-    theme = gr.themes.Soft() if settings.theme == "soft" else None  # type: ignore
+    theme = gradio.themes.Soft() if settings.theme == "soft" else None  # type: ignore
 
     with gr.Blocks(title=settings.app_title, theme=theme) as app:
         gr.Markdown("# Recipe Tool")

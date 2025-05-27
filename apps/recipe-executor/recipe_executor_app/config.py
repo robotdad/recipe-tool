@@ -11,7 +11,6 @@ class ExampleRecipe(BaseModel):
 
     name: str
     path: str
-    description: str = ""
     context_vars: Dict[str, str] = {}
 
 
@@ -39,20 +38,12 @@ class Settings(BaseSettings):
         ExampleRecipe(
             name="Simple Test Recipe",
             path="../../recipes/example_simple/test_recipe.json",
-            description="A simple recipe that reads a spec and generates code",
             context_vars={},
         ),
         ExampleRecipe(
             name="Demo Quarterly Report",
-            path="./examples/recipes/demo-quarterly-report.json",
-            description="Generate a quarterly report from sales data",
-            context_vars={"new_data_file": "apps/recipe-executor/examples/demo-data/q2-2025-sales.csv"},
-        ),
-        ExampleRecipe(
-            name="Recipe to Mermaid",
-            path="./examples/recipes/recipe-to-mermaid.json",
-            description="Convert a recipe to a Mermaid diagram",
-            context_vars={"recipe_path": "../../recipes/example_content_writer/generate_content.json"},
+            path="../../recipes/example_quarterly_report/demo_quarterly_report_recipe.json",
+            context_vars={"new_data_file": "recipes/example_quarterly_report/demo-data/q2-2025-sales.csv"},
         ),
     ]
 
@@ -60,7 +51,7 @@ class Settings(BaseSettings):
     theme: str = "soft"  # Use "default", "soft", "glass", etc.
 
     model_config = SettingsConfigDict(
-        env_prefix="RECIPE_EXEC_APP_",
+        env_prefix="RECIPE_APP_",
         env_file=".env",
         env_file_encoding="utf-8",
         case_sensitive=False,

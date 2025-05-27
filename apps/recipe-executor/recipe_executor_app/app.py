@@ -4,7 +4,7 @@ import argparse
 from typing import Any, Dict, Optional
 
 import gradio as gr
-import gradio.themes  # type: ignore
+import gradio.themes
 from recipe_executor.logger import init_logger
 
 from recipe_executor_app.config import settings
@@ -21,7 +21,7 @@ def create_executor_block(core: Optional[RecipeExecutorCore] = None, include_hea
     if core is None:
         core = RecipeExecutorCore()
 
-    theme = gr.themes.Soft() if settings.theme == "soft" else None  # type: ignore
+    theme = gradio.themes.Soft() if settings.theme == "soft" else None
 
     with gr.Blocks(theme=theme) as block:
         if include_header:
