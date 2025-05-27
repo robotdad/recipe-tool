@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from recipe_executor_app.ui import create_ui, create_examples_ui
+from recipe_executor_app.ui import create_ui
 
 
 @pytest.fixture
@@ -41,8 +41,12 @@ class TestCreateUI:
     @patch("gradio.Tabs")
     @patch("gradio.TabItem")
     @patch("gradio.JSON")
+    @patch("gradio.Dropdown")
+    @patch("recipe_executor_app.config.settings")
     def test_create_ui(
         self,
+        mock_settings,
+        mock_dropdown,
         mock_json,
         mock_tab_item,
         mock_tabs,
@@ -57,6 +61,13 @@ class TestCreateUI:
         mock_recipe_core,
     ):
         """Test that create_ui creates the expected UI components."""
+        # Setup mock settings with example recipes
+        from recipe_executor_app.config import ExampleRecipe
+
+        mock_settings.example_recipes = [
+            ExampleRecipe(name="Test 1", path="test1.json", context_vars={"key": "value"}),
+        ]
+
         # Setup context managers
         for mock in [mock_row, mock_column, mock_accordion, mock_tabs, mock_tab_item]:
             instance = mock.return_value
@@ -73,43 +84,7 @@ class TestCreateUI:
         mock_file.assert_called_once()
         mock_code.assert_called()
         mock_textbox.assert_called()
-        mock_button.assert_called_once()
+        mock_button.assert_called()  # Called twice now (Load Example + Execute)
         mock_markdown.assert_called()
+        mock_dropdown.assert_called_once()  # New: Examples dropdown
         mock_json.assert_called_once()
-
-
-class TestCreateExamplesUI:
-    """Tests for the create_examples_ui function."""
-
-    @patch("gradio.Dropdown")
-    @patch("gradio.Button")
-    @patch("gradio.Markdown")
-    @patch("recipe_executor_app.config.settings")
-    def test_create_examples_ui(self, mock_settings, mock_markdown, mock_button, mock_dropdown, mock_recipe_core):
-        """Test that create_examples_ui creates the expected UI components."""
-        # Setup mock settings with ExampleRecipe objects
-        from recipe_executor_app.config import ExampleRecipe
-
-        mock_settings.example_recipes = [
-            ExampleRecipe(name="Test 1", path="test1.json", context_vars={"key": "value"}),
-            ExampleRecipe(name="Test 2", path="test2.json", context_vars={}),
-        ]
-
-        # Setup mock components
-        recipe_text = MagicMock()
-        context_vars = MagicMock()
-
-        # Call the function
-        result = create_examples_ui(mock_recipe_core, recipe_text, context_vars)
-
-        # Verify the result is a tuple with the expected components
-        assert isinstance(result, tuple)
-        assert len(result) == 3
-
-        # Verify that components were created
-        mock_dropdown.assert_called_once()
-        mock_button.assert_called_once()
-        mock_markdown.assert_called_once()
-
-        # Verify click event was set up
-        mock_button.return_value.click.assert_called_once()

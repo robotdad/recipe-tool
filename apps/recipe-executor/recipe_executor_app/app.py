@@ -9,7 +9,7 @@ from recipe_executor.logger import init_logger
 
 from recipe_executor_app.config import settings
 from recipe_executor_app.core import RecipeExecutorCore
-from recipe_executor_app.ui import create_ui, create_examples_ui
+from recipe_executor_app.ui import create_ui
 
 # Set up logging
 logger = init_logger(settings.log_dir)
@@ -28,13 +28,8 @@ def create_executor_block(core: Optional[RecipeExecutorCore] = None, include_hea
             gr.Markdown("# Recipe Executor")
             gr.Markdown("A web interface for executing recipes.")
 
-        # Main UI
-        components = create_ui(core, include_header)
-        recipe_file, recipe_text, context_vars = components[:3]
-
-        # Examples
-        with gr.Accordion("Examples", open=False):
-            create_examples_ui(core, recipe_text, context_vars)
+        # Main UI (now includes examples)
+        create_ui(core, include_header)
 
     return block
 

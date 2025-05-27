@@ -17,6 +17,17 @@ def create_ui(core: RecipeExecutorCore, include_header: bool = True):
     with gr.Row():
         with gr.Column(scale=1):
             gr.Markdown("### Input")
+
+            # Examples section at the top for easy access
+            with gr.Accordion("Examples", open=False):
+                from recipe_executor_app.config import settings
+
+                # Create dropdown choices from example recipes
+                example_choices = [(ex.name, idx) for idx, ex in enumerate(settings.example_recipes)]
+                example_dropdown = gr.Dropdown(choices=example_choices, label="Example Recipes", type="index")
+                load_example_btn = gr.Button("Load Example", size="sm")
+                example_desc = gr.Markdown()
+
             recipe_file = gr.File(label="Recipe JSON File", file_types=[".json"])
             recipe_text = gr.Code(label="Recipe JSON", language="json", interactive=True, lines=20)
 
@@ -94,19 +105,7 @@ def create_ui(core: RecipeExecutorCore, include_header: bool = True):
 
     recipe_file.change(fn=load_file, inputs=[recipe_file], outputs=[recipe_text, execute_btn])
 
-    return recipe_file, recipe_text, context_vars, execute_btn, result_output, logs_output, context_json
-
-
-def create_examples_ui(core: RecipeExecutorCore, recipe_text: gr.Code, context_vars: gr.Textbox):
-    """Create examples UI section."""
-    from recipe_executor_app.config import settings
-
-    # Create dropdown choices from example recipes
-    example_choices = [(ex.name, idx) for idx, ex in enumerate(settings.example_recipes)]
-    example_dropdown = gr.Dropdown(choices=example_choices, label="Example Recipes", type="index")
-    load_btn = gr.Button("Load Example")
-    example_desc = gr.Markdown()
-
+    # Set up example loading
     async def load_example(example_idx):
         if example_idx is None:
             return "", "", ""
@@ -118,10 +117,9 @@ def create_examples_ui(core: RecipeExecutorCore, recipe_text: gr.Code, context_v
         content = result.get("recipe_content", "")
 
         # Build preview with description
-        preview = f"### {example.name}\n\n"
+        preview = f"**{example.name}**"
         if example.description:
-            preview += f"**Description**: {example.description}\n\n"
-        preview += result.get("structure_preview", "")
+            preview += f": {example.description}"
 
         # Convert context vars to string format
         ctx_parts = [f"{k}={v}" for k, v in example.context_vars.items()]
@@ -129,11 +127,10 @@ def create_examples_ui(core: RecipeExecutorCore, recipe_text: gr.Code, context_v
 
         return content, preview, ctx
 
-    load_btn.click(
+    load_example_btn.click(
         fn=load_example,
         inputs=[example_dropdown],
         outputs=[recipe_text, example_desc, context_vars],
-        api_name="load_example",
     )
 
-    return example_dropdown, load_btn, example_desc
+    return recipe_file, recipe_text, context_vars, execute_btn, result_output, logs_output, context_json
