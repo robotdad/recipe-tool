@@ -1,0 +1,107 @@
+{
+  "steps": [
+    {
+      "type": "read_files",
+      "config": {
+        "path": "{{ new_data_file }}",
+        "content_key": "new_data_csv"
+      }
+    },
+    {
+      "type": "conditional",
+      "config": {
+        "condition": "file_exists('{{ historical_data_file }}')",
+        "if_true": {
+          "steps": [
+            {
+              "type": "read_files",
+              "config": {
+                "path": "{{ historical_data_file }}",
+                "content_key": "historical_data_csv",
+                "optional": true
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "set_context",
+      "config": {
+        "key": "company_name",
+        "value": "{{ company_name | default: 'Our Company' }}"
+      }
+    },
+    {
+      "type": "set_context",
+      "config": {
+        "key": "quarter",
+        "value": "{{ quarter | default: 'auto-detect' }}"
+      }
+    },
+    {
+      "type": "set_context",
+      "config": {
+        "key": "output_root",
+        "value": "{{ output_root | default: 'output' }}"
+      }
+    },
+    {
+      "type": "set_context",
+      "config": {
+        "key": "model",
+        "value": "{{ model | default: 'openai/o4-mini' }}"
+      }
+    },
+    {
+      "type": "llm_generate",
+      "config": {
+        "prompt": "You are a business analyst generating a quarterly business report for {{ company_name }} for {{ quarter }}. Use the new quarterly data CSV:\n{{ new_data_csv }}\n{% if historical_data_csv %}Also use the historical data CSV:\n{{ historical_data_csv }}\n{% endif %}Calculate key performance metrics (revenue growth, customer acquisition, etc.), compare the current quarter with historical trends, and identify significant patterns and outliers. Provide the results as a JSON object with the following structure:{\n  \"executive_summary\": \"...\",\n  \"metrics\": {\"revenue_growth\": \"...\", \"customer_acquisition\": \"...\"},\n  \"trends_chart\": \"<mermaid flowchart>...\",\n  \"product_performance_chart\": \"<mermaid pie>...\",\n  \"regional_analysis\": \"...\",\n  \"recommendations\": \"...\"\n}Only output valid JSON.",
+        "model": "{{ model }}",
+        "output_format": {
+          "type": "object",
+          "properties": {
+            "company_name": {"type": "string"},
+            "executive_summary": {"type": "string"},
+            "metrics": {
+              "type": "object",
+              "properties": {
+                "revenue_growth": {"type": "string"},
+                "customer_acquisition": {"type": "string"}
+              },
+              "required": ["revenue_growth", "customer_acquisition"]
+            },
+            "trends_chart": {"type": "string"},
+            "product_performance_chart": {"type": "string"},
+            "quarter": {"type": "string"},
+            "regional_analysis": {"type": "string"},
+            "recommendations": {"type": "string"}
+          },
+          "required": ["executive_summary", "metrics", "trends_chart", "product_performance_chart", "regional_analysis", "recommendations"]
+        },
+        "output_key": "analysis"
+      }
+    },
+    {
+      "type": "llm_generate",
+      "config": {
+        "prompt": "Using the analysis in context and original data, generate a comprehensive markdown-formatted business report for {{ company_name }} for {{ quarter }}. Include an Executive Summary, Key Metrics table, Mermaid charts for trends and product performance using analysis.trends_chart and analysis.product_performance_chart, a Regional Performance Analysis section, and Strategic Recommendations. Reported generated on {{ 'now' | date: '%m-%d-%Y %H:%M' }}. Output the report in valid markdown.",
+        "model": "{{ model }}",
+        "output_format": "text",
+        "output_key": "report_md"
+      }
+    },
+    {
+      "type": "write_files",
+      "config": {
+        "root": "{{ output_root }}/{{ analysis.company_name | replace: ' ', '_' }}",
+        "files": [
+          {
+            "path": "Business_Report_{{ analysis.quarter | replace: ' ', '_' }}.md",
+            "content_key": "report_md"
+          }
+        ]
+      }
+    }
+  ]
+}

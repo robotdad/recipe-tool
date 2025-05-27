@@ -2,7 +2,16 @@
 
 from typing import Any, Dict, List, Optional
 
+from pydantic import BaseModel
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class ExampleRecipe(BaseModel):
+    """Configuration for an example recipe."""
+
+    name: str
+    path: str
+    context_vars: Dict[str, str] = {}
 
 
 class Settings(BaseSettings):
@@ -24,18 +33,25 @@ class Settings(BaseSettings):
     log_dir: str = "logs"
     log_level: str = "DEBUG"  # Use DEBUG, INFO, WARNING, ERROR, or CRITICAL
 
-    # Example recipes paths
-    example_recipes: List[str] = [
-        "../../recipes/example_simple/test_recipe.json",
-        "../../recipes/example_content_writer/generate_content.json",
-        "../../recipes/example_brave_search/search.json",
+    # Example recipes with context
+    example_recipes: List[ExampleRecipe] = [
+        ExampleRecipe(
+            name="Simple Test Recipe",
+            path="../../recipes/example_simple/test_recipe.json",
+            context_vars={},
+        ),
+        ExampleRecipe(
+            name="Demo Quarterly Report",
+            path="../../recipes/example_quarterly_report/demo_quarterly_report_recipe.json",
+            context_vars={"new_data_file": "recipes/example_quarterly_report/demo-data/q2-2025-sales.csv"},
+        ),
     ]
 
     # Theme settings
     theme: str = "soft"  # Use "default", "soft", "glass", etc.
 
     model_config = SettingsConfigDict(
-        env_prefix="RECIPE_EXEC_APP_",
+        env_prefix="RECIPE_APP_",
         env_file=".env",
         env_file_encoding="utf-8",
         case_sensitive=False,

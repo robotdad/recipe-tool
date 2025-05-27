@@ -3,24 +3,21 @@
 import json
 import logging
 import os
-from typing import Dict, Optional, Union, Any
+from typing import Dict, Optional, Any
 
 from recipe_executor.context import Context
 from recipe_executor.executor import Executor
 
 from recipe_executor_app.utils import (
     create_temp_file,
-    format_context_for_display,
-    format_recipe_results,
+    format_results,
+    get_main_repo_root,
     get_repo_root,
-    log_context_paths,
     parse_context_vars,
-    parse_recipe_json,
     read_file,
-    resolve_path,
+    safe_json_dumps,
 )
 
-# Initialize logger
 logger = logging.getLogger(__name__)
 
 
@@ -28,193 +25,129 @@ class RecipeExecutorCore:
     """Core functionality for Recipe Executor operations."""
 
     def __init__(self, executor: Optional[Executor] = None):
-        """Initialize with the executor.
-
-        Args:
-            executor: Optional Executor instance. If None, a new one will be created.
-        """
-        # Ensure logger is properly configured
-        self.logger = logger
-        self.logger.info("Initializing RecipeExecutorCore")
-
-        # Create executor with logger
+        """Initialize with the executor."""
         self.executor = executor if executor is not None else Executor(logger)
 
     async def execute_recipe(
-        self, recipe_file: Optional[str], recipe_text: Optional[Union[Dict[str, Any], str]], context_vars: Optional[str]
+        self, recipe_file: Optional[str], recipe_text: Optional[str], context_vars: Optional[str]
     ) -> Dict[str, Any]:
-        """
-        Execute a recipe from a file upload or text input.
-
-        Args:
-            recipe_file: Optional path to a recipe JSON file
-            recipe_text: Optional JSON string containing the recipe
-            context_vars: Optional context variables as comma-separated key=value pairs
-
-        Returns:
-            dict: Contains formatted_results (markdown) and raw_json keys
-        """
+        """Execute a recipe from file or text input."""
+        cleanup = None
         try:
-            # Parse context variables
+            # Parse context
             context_dict = parse_context_vars(context_vars)
 
-            # Prepare context
+            # Add default paths if not provided by user
+            repo_root = get_repo_root()
+            main_repo_root = get_main_repo_root()
+
+            # Only set defaults if they weren't provided
+            if "recipe_root" not in context_dict and main_repo_root:
+                context_dict["recipe_root"] = os.path.join(main_repo_root, "recipes")
+
+            if "output_root" not in context_dict:
+                context_dict["output_root"] = os.path.join(repo_root, "output")
+
+            # Ensure output directory exists
+            if "output_root" in context_dict:
+                os.makedirs(context_dict["output_root"], exist_ok=True)
+
             context = Context(artifacts=context_dict)
 
             # Determine recipe source
-            recipe_source = None
             if recipe_file:
                 recipe_source = recipe_file
-                logger.info(f"Executing recipe from file: {recipe_file}")
             elif recipe_text:
-                # Convert recipe_text to string if it's a dictionary
-                recipe_content = json.dumps(recipe_text) if isinstance(recipe_text, dict) else recipe_text
-                # Create a temporary file for the recipe text
-                recipe_source, cleanup_fn = create_temp_file(recipe_content, prefix="recipe_", suffix=".json")
-                logger.info(f"Executing recipe from text input (saved to {recipe_source})")
+                # Save to temp file
+                recipe_source, cleanup = create_temp_file(recipe_text, suffix=".json")
             else:
                 return {
-                    "formatted_results": "### Error\nNo recipe provided. Please upload a file or paste the recipe JSON.",
+                    "formatted_results": "### Error\nNo recipe provided.",
                     "raw_json": "{}",
                     "debug_context": {},
                 }
 
-            # Log important paths
-            log_context_paths(context_dict)
-
-            # Execute the recipe
-            start_time = os.times().elapsed  # More accurate than time.time()
+            # Execute recipe
+            start_time = os.times().elapsed
             await self.executor.execute(recipe_source, context)
             execution_time = os.times().elapsed - start_time
 
-            # Get all artifacts from context to display in raw tab
+            # Get results
             all_artifacts = context.dict()
 
-            # Log the full context for debugging
-            logger.debug(f"Final context: {context.dict()}")
-
-            # Extract result entries from context
+            # Extract string results
             results = {}
-            # Always include output_root if it exists
-            if "output_root" in all_artifacts:
-                results["output_root"] = all_artifacts["output_root"]
-
             for key, value in all_artifacts.items():
-                # Only include string results or keys that look like outputs
                 if isinstance(value, str) and (key.startswith("output") or key.startswith("result")):
                     results[key] = value
 
-            # Format the results for display
-            markdown_output = format_recipe_results(results, execution_time)
+            return {
+                "formatted_results": format_results(results, execution_time),
+                "raw_json": safe_json_dumps(all_artifacts),
+                "debug_context": all_artifacts,
+            }
 
-            # Format the raw JSON for display
-            raw_json = format_context_for_display(all_artifacts)
-
-            return {"formatted_results": markdown_output, "raw_json": raw_json, "debug_context": all_artifacts}
         except Exception as e:
             logger.error(f"Error executing recipe: {e}", exc_info=True)
             return {
-                "formatted_results": f"### Error Executing Recipe\n\n```\n{str(e)}\n```",
+                "formatted_results": f"### Error\n\n```\n{str(e)}\n```",
                 "raw_json": "{}",
                 "debug_context": {"error": str(e)},
             }
+        finally:
+            # Clean up temp file if created
+            if cleanup:
+                cleanup()
 
     async def load_recipe(self, recipe_path: str) -> Dict[str, str]:
-        """Load a recipe file.
-
-        Args:
-            recipe_path: Path to the recipe file
-
-        Returns:
-            dict: Contains recipe_content and structure_preview keys
-        """
+        """Load a recipe file and return content with preview."""
         try:
-            # Find the recipe file
-            potential_paths = [
-                recipe_path,  # Direct path
-                os.path.abspath(recipe_path),  # Absolute path
-                os.path.join(get_repo_root(), recipe_path),  # Relative to repo root
-                os.path.join(get_repo_root(), "recipes", recipe_path),  # In recipes directory
+            # Try different path resolutions
+            repo_root = get_repo_root()
+            main_repo_root = get_main_repo_root()
+
+            paths_to_try = [
+                recipe_path,
+                os.path.join(repo_root, recipe_path),
+                os.path.join(repo_root, "recipes", recipe_path),
             ]
 
-            # Try each path until one exists
-            for path in potential_paths:
+            # Add main repo paths if available
+            if main_repo_root:
+                paths_to_try.extend([
+                    os.path.join(main_repo_root, "recipes", recipe_path),
+                    os.path.join(main_repo_root, recipe_path),
+                ])
+
+            for path in paths_to_try:
                 if os.path.exists(path):
-                    logger.info(f"Found recipe at: {path}")
-                    recipe_content = read_file(path)
+                    content = read_file(path)
 
-                    # Parse the recipe to verify it's valid JSON
-                    recipe_json = parse_recipe_json(recipe_content)
+                    # Parse to validate and extract info
+                    recipe = json.loads(content)
+                    name = recipe.get("name", os.path.basename(path))
+                    desc = recipe.get("description", "No description")
+                    steps = len(recipe.get("steps", []))
 
-                    # Generate a preview of the structure
-                    step_count = len(recipe_json.get("steps", []))
-                    recipe_name = recipe_json.get("name", os.path.basename(path))
-                    recipe_desc = recipe_json.get("description", "No description available")
+                    preview = f"""### Recipe: {name}
 
-                    structure_preview = f"""### Recipe: {recipe_name}
-
-**Description**: {recipe_desc}
-
-**Steps**: {step_count}
-
-**Path**: {path}
-"""
+**Description**: {desc}
+**Steps**: {steps}
+**Path**: {path}"""
 
                     return {
-                        "recipe_content": recipe_content,
-                        "structure_preview": structure_preview,
+                        "recipe_content": content,
+                        "structure_preview": preview,
                     }
 
-            # If none of the paths exist
-            logger.warning(f"Could not find recipe at any of these paths: {potential_paths}")
             return {
                 "recipe_content": "",
                 "structure_preview": f"### Error\nCould not find recipe at: {recipe_path}",
             }
+
         except Exception as e:
-            logger.error(f"Error loading recipe: {e}", exc_info=True)
+            logger.error(f"Error loading recipe: {e}")
             return {
                 "recipe_content": "",
                 "structure_preview": f"### Error\n{str(e)}",
             }
-
-    def find_examples_in_directory(self, directory: str) -> Dict[str, str]:
-        """Find all JSON recipe examples in a directory.
-
-        Args:
-            directory: Directory to search in
-
-        Returns:
-            Dict[str, str]: Map of display names to file paths
-        """
-        examples = {}
-
-        # Resolve the directory path
-        directory = resolve_path(directory)
-
-        # Check if the directory exists
-        if not os.path.exists(directory) or not os.path.isdir(directory):
-            logger.warning(f"Example directory not found: {directory}")
-            return {}
-
-        # Find all JSON files
-        repo_root = get_repo_root()
-
-        for root, dirs, files in os.walk(directory):
-            for file in files:
-                if file.endswith(".json"):
-                    full_path = os.path.join(root, file)
-                    rel_path = os.path.relpath(full_path, repo_root)
-
-                    # Try to read the file to extract name if it's a recipe
-                    try:
-                        # Read and parse the file content as JSON
-                        content = json.loads(read_file(full_path))
-                        name = content.get("name", file)
-                        examples[f"{name} ({rel_path})"] = full_path
-                    except Exception as e:
-                        # If we can't parse it as JSON, just use the filename
-                        logger.debug(f"Could not parse {full_path} as JSON: {e}")
-                        examples[f"{file} ({rel_path})"] = full_path
-
-        return examples

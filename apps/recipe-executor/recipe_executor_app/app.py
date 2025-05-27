@@ -1,4 +1,4 @@
-"""Gradio web app for the Recipe Executor."""
+"""Recipe Executor Gradio app."""
 
 import argparse
 from typing import Any, Dict, Optional
@@ -9,131 +9,65 @@ from recipe_executor.logger import init_logger
 
 from recipe_executor_app.config import settings
 from recipe_executor_app.core import RecipeExecutorCore
-from recipe_executor_app.ui_components import (
-    build_examples_tab,
-    build_execute_recipe_tab,
-    setup_example_events,
-    setup_execute_recipe_events,
-)
+from recipe_executor_app.ui import create_ui
 
 # Set up logging
 logger = init_logger(settings.log_dir)
-# Set logger level from settings
 logger.setLevel(settings.log_level.upper())
 
 
-def create_executor_block(recipe_core: Optional[RecipeExecutorCore] = None, include_header: bool = True) -> gr.Blocks:
-    """Create a Recipe Executor block that can be embedded in other apps.
+def create_executor_block(core: Optional[RecipeExecutorCore] = None, include_header: bool = True) -> gr.Blocks:
+    """Create a reusable Recipe Executor block."""
+    if core is None:
+        core = RecipeExecutorCore()
 
-    Args:
-        recipe_core: Optional RecipeExecutorCore instance. If None, a new one will be created.
-        include_header: Whether to include the header (title and description)
-
-    Returns:
-        gr.Blocks: Gradio Blocks interface that can be embedded in other apps
-    """
-    # Initialize core if not provided
-    if recipe_core is None:
-        recipe_core = RecipeExecutorCore()
-
-    # Apply theme
-    theme = gradio.themes.Soft() if settings.theme == "soft" else settings.theme
+    theme = gradio.themes.Soft() if settings.theme == "soft" else None
 
     with gr.Blocks(theme=theme) as block:
         if include_header:
             gr.Markdown("# Recipe Executor")
             gr.Markdown("A web interface for executing recipes.")
 
-        # Examples area (not in a tab)
-        with gr.Accordion("Examples", open=False):
-            examples_components = build_examples_tab()
-            example_paths, load_example_btn, example_desc = examples_components
-
-        # Execute Recipe components
-        execute_components = build_execute_recipe_tab()
-        (
-            recipe_file,
-            recipe_text,
-            context_vars,
-            execute_btn,
-            progress,
-            result_output,
-            logs_output,
-            context_json,
-        ) = execute_components
-
-        # Set up event handlers for execute recipe
-        setup_execute_recipe_events(
-            recipe_core,
-            recipe_file,
-            recipe_text,
-            context_vars,
-            execute_btn,
-            progress,
-            result_output,
-            logs_output,
-            context_json,
-        )
-
-        # Set up example loading events
-        setup_example_events(
-            recipe_core,
-            example_paths,
-            load_example_btn,
-            example_desc,
-            recipe_text,
-            context_vars,
-        )
+        # Main UI (now includes examples)
+        create_ui(core, include_header)
 
     return block
 
 
 def create_app() -> gr.Blocks:
-    """Create and return the Gradio app."""
-    # Initialize the core functionality
-    recipe_core = RecipeExecutorCore()
+    """Create the full Gradio app."""
+    core = RecipeExecutorCore()
 
-    # Create the app with a title
     with gr.Blocks(title=settings.app_title) as app:
-        # Use the component approach - clean and reusable
-        create_executor_block(recipe_core)
+        create_executor_block(core)
 
     return app
 
 
-def get_components(recipe_core: Optional[RecipeExecutorCore] = None) -> Dict[str, Any]:
-    """Return individual components for embedding in other apps.
-
-    Args:
-        recipe_core: Optional RecipeExecutorCore instance. If None, a new one will be created.
-
-    Returns:
-        Dict[str, Any]: Dictionary of components and functions that can be reused
-    """
-    # Initialize core if not provided
-    if recipe_core is None:
-        recipe_core = RecipeExecutorCore()
+def get_components(core: Optional[RecipeExecutorCore] = None) -> Dict[str, Any]:
+    """Get reusable components for embedding."""
+    if core is None:
+        core = RecipeExecutorCore()
 
     return {
         "create_executor_block": create_executor_block,
-        "core": recipe_core,
-        "execute_recipe": recipe_core.execute_recipe,
-        "load_recipe": recipe_core.load_recipe,
+        "core": core,
+        "execute_recipe": core.execute_recipe,
+        "load_recipe": core.load_recipe,
     }
 
 
 def main() -> None:
-    """Entry point for the application."""
-    # Parse command line arguments to override settings
+    """CLI entry point."""
     parser = argparse.ArgumentParser(description=settings.app_description)
-    parser.add_argument("--host", help=f"Host to listen on (default: {settings.host})")
-    parser.add_argument("--port", type=int, help=f"Port to listen on (default: {settings.port})")
-    parser.add_argument("--no-mcp", action="store_true", help="Disable MCP server functionality")
-    parser.add_argument("--debug", action="store_true", help="Enable debug mode")
+    parser.add_argument("--host", help=f"Host (default: {settings.host})")
+    parser.add_argument("--port", type=int, help="Port")
+    parser.add_argument("--no-mcp", action="store_true", help="Disable MCP")
+    parser.add_argument("--debug", action="store_true", help="Debug mode")
 
     args = parser.parse_args()
 
-    # Override settings with command line arguments if provided
+    # Override settings
     if args.host:
         settings.host = args.host
     if args.port:
@@ -143,12 +77,9 @@ def main() -> None:
     if args.debug:
         settings.debug = True
 
-    # Create and launch the app with settings
+    # Launch app
     app = create_app()
-
-    # Get launch kwargs from settings
-    launch_kwargs = settings.to_launch_kwargs()
-    app.launch(**launch_kwargs)
+    app.launch(**settings.to_launch_kwargs())
 
 
 if __name__ == "__main__":

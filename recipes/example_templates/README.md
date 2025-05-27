@@ -2,7 +2,7 @@
 
 # Extras Demo
 
-This example shows how to use the `extras` feature of the Python Liquid support in `recipe_executor` to create a Markdown file for each item in a JSON array.
+This example shows how to use the `extra filters` feature of the Python Liquid support in `recipe_executor` to create a Markdown file for each item in a JSON array.
 
 ## Run the Recipe
 

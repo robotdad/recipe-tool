@@ -126,12 +126,10 @@ class TestRecipeExecutorCore:
 
         # Mock the file operations
         with (
-            patch("recipe_executor_app.core.resolve_path") as mock_resolve_path,
             patch("os.path.exists") as mock_exists,
             patch("recipe_executor_app.core.read_file") as mock_read_file,
         ):
-            # Set up the mocks
-            mock_resolve_path.return_value = recipe_path
+            # Set up the mocks - the function tries multiple paths
             mock_exists.return_value = True
             mock_read_file.return_value = recipe_content
 
@@ -158,9 +156,9 @@ class TestRecipeExecutorCore:
         }
 
         # Mock the actual implementation
-        with patch.object(core, "find_examples_in_directory", return_value=examples):
+        with patch.object(core, "find_examples", return_value=examples):
             # Call the method (it will return our mock value)
-            result = core.find_examples_in_directory("/any/path")
+            result = core.find_examples("/any/path")
 
             # Verify the result matches our mock
             assert result == examples
