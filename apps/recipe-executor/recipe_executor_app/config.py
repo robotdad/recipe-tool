@@ -2,7 +2,17 @@
 
 from typing import Any, Dict, List, Optional
 
+from pydantic import BaseModel
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class ExampleRecipe(BaseModel):
+    """Configuration for an example recipe."""
+
+    name: str
+    path: str
+    description: str = ""
+    context_vars: Dict[str, str] = {}
 
 
 class Settings(BaseSettings):
@@ -24,11 +34,26 @@ class Settings(BaseSettings):
     log_dir: str = "logs"
     log_level: str = "DEBUG"  # Use DEBUG, INFO, WARNING, ERROR, or CRITICAL
 
-    # Example recipes paths
-    example_recipes: List[str] = [
-        "../../recipes/example_simple/test_recipe.json",
-        "../../recipes/example_content_writer/generate_content.json",
-        "../../recipes/example_brave_search/search.json",
+    # Example recipes with context
+    example_recipes: List[ExampleRecipe] = [
+        ExampleRecipe(
+            name="Simple Test Recipe",
+            path="../../recipes/example_simple/test_recipe.json",
+            description="A simple recipe that reads a spec and generates code",
+            context_vars={},
+        ),
+        ExampleRecipe(
+            name="Content Writer",
+            path="../../recipes/example_content_writer/generate_content.json",
+            description="Generate content from a prompt",
+            context_vars={"recipe_root": "../../recipes"},
+        ),
+        ExampleRecipe(
+            name="Recipe to Mermaid",
+            path="./examples/recipes/recipe-to-mermaid.json",
+            description="Convert a recipe to a Mermaid diagram",
+            context_vars={"recipe_path": "../../recipes/example_content_writer/generate_content.json"},
+        ),
     ]
 
     # Theme settings

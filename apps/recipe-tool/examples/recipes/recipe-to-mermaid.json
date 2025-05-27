@@ -1,10 +1,11 @@
 {
   "steps": [
     {
-      "type": "set_context",
+      "type": "read_files",
       "config": {
-        "key": "output_path",
-        "value": "{{ output_path | default: 'output' }}"
+        "path": "{{ recipe_path }}",
+        "content_key": "recipe_src",
+        "merge_mode": "concat"
       }
     },
     {
@@ -22,11 +23,10 @@
       }
     },
     {
-      "type": "read_files",
+      "type": "set_context",
       "config": {
-        "path": "{{ recipe_path }}",
-        "content_key": "recipe_src",
-        "merge_mode": "concat"
+        "key": "output_root",
+        "value": "{{ output_root | default: 'output' }}"
       }
     },
     {
@@ -43,10 +43,11 @@
       "config": {
         "files": [
           {
-            "path": "{{ output_path }}/{{ diagram_filename }}",
+            "path": "{{ diagram_filename }}",
             "content_key": "mermaid_diagram"
           }
-        ]
+        ],
+        "root": "{{ output_root }}"
       }
     }
   ]

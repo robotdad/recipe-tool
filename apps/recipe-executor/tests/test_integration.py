@@ -32,7 +32,6 @@ async def test_execute_recipe_integration():
             # Mock the executor to return a specific context
             with (
                 patch("recipe_executor.executor.Executor.execute", new_callable=AsyncMock) as mock_execute,
-                patch("recipe_executor_app.utils.resolve_path", return_value=test_file_path),
             ):
                 # Create the core
                 core = RecipeExecutorCore()

@@ -1,54 +1,69 @@
-"""Tests for the recipe_tool_app package."""
+"""Tests for the app module."""
 
-import json
 from unittest.mock import MagicMock, patch
 
 
-@patch("recipe_tool_app.app.init_logger")
-@patch("recipe_tool_app.app.RecipeToolCore")
-@patch("recipe_tool_app.app.build_ui")
-def test_create_app(mock_build_ui, mock_core, mock_logger):
-    """Test that the app is created successfully."""
-    # Setup mocks
-    mock_logger.return_value = MagicMock()
-    mock_core.return_value = MagicMock()
-    mock_build_ui.return_value = MagicMock()
+class TestCreateApp:
+    """Tests for create_app function."""
 
-    # Import here to use the patched modules
-    from recipe_tool_app.app import create_app
+    @patch("recipe_tool_app.app.RecipeToolCore")
+    @patch("recipe_tool_app.app.RecipeExecutorCore")
+    @patch("recipe_tool_app.app.gr.Blocks")
+    @patch("recipe_tool_app.app.gr.Markdown")
+    @patch("recipe_tool_app.app.gr.Tabs")
+    @patch("recipe_tool_app.app.gr.TabItem")
+    @patch("recipe_tool_app.app.create_recipe_ui")
+    @patch("recipe_tool_app.app.create_executor_block")
+    def test_create_app(
+        self,
+        mock_executor_block,
+        mock_recipe_ui,
+        mock_tab_item,
+        mock_tabs,
+        mock_markdown,
+        mock_blocks,
+        mock_executor_core,
+        mock_recipe_core,
+    ):
+        """Test create_app function."""
+        # Setup context managers
+        mock_app = MagicMock()
+        mock_blocks.return_value.__enter__.return_value = mock_app
+        mock_tabs.return_value.__enter__.return_value = MagicMock()
+        mock_tab_item.return_value.__enter__.return_value = MagicMock()
 
-    app = create_app()
+        # Import and call
+        from recipe_tool_app.app import create_app
 
-    # Verify app creation process
-    assert app is not None
-    assert mock_core.called
-    assert mock_build_ui.called
-    mock_build_ui.assert_called_once_with(mock_core.return_value)
+        result = create_app()
+
+        # Verify
+        assert result == mock_app
+        mock_recipe_core.assert_called_once()
+        mock_executor_core.assert_called_once()
+        mock_recipe_ui.assert_called_once()
+        mock_executor_block.assert_called_once()
 
 
-@patch("recipe_tool_app.app.argparse.ArgumentParser")
-@patch("recipe_tool_app.app.create_app")
-def test_main_with_args(mock_create_app, mock_arg_parser):
-    """Test the main function with command line arguments."""
-    # Setup mocks
-    mock_app = MagicMock()
-    mock_create_app.return_value = mock_app
+class TestMain:
+    """Tests for main function."""
 
-    # Mock ArgumentParser
-    mock_parser = MagicMock()
-    mock_arg_parser.return_value = mock_parser
+    @patch("recipe_tool_app.app.argparse.ArgumentParser")
+    @patch("recipe_tool_app.app.create_app")
+    @patch("recipe_tool_app.app.settings")
+    def test_main_with_args(self, mock_settings, mock_create_app, mock_parser_class):
+        """Test main function with command line arguments."""
+        # Setup
+        mock_parser = MagicMock()
+        mock_parser_class.return_value = mock_parser
+        mock_args = MagicMock(host="127.0.0.1", port=8080, no_mcp=True, debug=True)
+        mock_parser.parse_args.return_value = mock_args
 
-    # Mock parse_args result
-    args = MagicMock()
-    args.host = "127.0.0.1"
-    args.port = 8080
-    args.no_mcp = True
-    args.debug = True
-    mock_parser.parse_args.return_value = args
+        mock_app = MagicMock()
+        mock_create_app.return_value = mock_app
+        mock_settings.to_launch_kwargs.return_value = {}
 
-    # Mock settings
-    with patch("recipe_tool_app.app.settings") as mock_settings:
-        # Execute main
+        # Import and call main
         from recipe_tool_app.app import main
 
         main()
@@ -60,28 +75,4 @@ def test_main_with_args(mock_create_app, mock_arg_parser):
         assert mock_settings.debug is True
 
         # Verify app was launched
-        assert mock_app.launch.called
-        # Verify launch_kwargs were retrieved from settings
-        assert mock_settings.to_launch_kwargs.called
-
-
-def test_json_serialization_with_nonserializable():
-    """Test JSON serialization with non-serializable objects."""
-
-    # Create a test object that's not directly serializable
-    class TestObject:
-        def __str__(self):
-            return "TestObject"
-
-    test_obj = TestObject()
-    test_dict = {"key1": "value1", "key2": test_obj}
-
-    # Serialize using the default parameter
-    json_str = json.dumps(test_dict, default=lambda o: str(o))
-
-    # Parse back to verify
-    parsed = json.loads(json_str)
-
-    # Check that the string representation was used
-    assert parsed["key1"] == "value1"
-    assert parsed["key2"] == "TestObject"
+        mock_app.launch.assert_called_once()
