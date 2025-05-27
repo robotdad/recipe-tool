@@ -23,23 +23,23 @@ from recipe_executor_app.core import RecipeExecutorCore
 # Create the main app
 with gr.Blocks(title="My App with Recipe Executor") as app:
     gr.Markdown("# My App with Recipe Executor")
-    
+
     with gr.Tab("My Features"):
         # Your custom UI components
         text_input = gr.Textbox(label="Text Input")
         button = gr.Button("Process")
         output = gr.Textbox(label="Output")
-        
+
         # Your custom function
         def process_text(text):
             return f"Processed: {text}"
-        
+
         button.click(fn=process_text, inputs=text_input, outputs=output)
-    
+
     with gr.Tab("Recipe Executor"):
         # Create a recipe executor core
         executor_core = RecipeExecutorCore()
-        
+
         # Add the executor block
         create_executor_block(executor_core)
 
@@ -76,17 +76,17 @@ load_recipe = components["load_recipe"]
 # Create the main app
 with gr.Blocks(title="My App with Recipe Executor") as app:
     gr.Markdown("# My App with Recipe Executor")
-    
+
     # Create a custom UI that uses the Recipe Executor functionality
-    recipe_text = gr.Code(label="Recipe JSON", language="json")
+    recipe_text = gr.Code(label="Recipe JSON", language="json", interactive=True, wrap_lines=True)
     execute_btn = gr.Button("Execute Recipe")
     result = gr.Markdown(label="Result")
-    
+
     # Use the execute_recipe function from the Recipe Executor
     async def execute_recipe_wrapper(text):
         result = await execute_recipe(None, text, None)
         return result.get("formatted_results", "")
-    
+
     execute_btn.click(fn=execute_recipe_wrapper, inputs=recipe_text, outputs=result)
 
 # Launch the app
@@ -107,7 +107,7 @@ executor_app_path = str(Path(__file__).parent.parent.parent / "recipe-executor")
 if executor_app_path not in sys.path:
     sys.path.append(executor_app_path)
 
-# Import recipe-executor components 
+# Import recipe-executor components
 try:
     from recipe_executor_app.app import create_executor_block, get_components
     from recipe_executor_app.core import RecipeExecutorCore

@@ -43,10 +43,10 @@ class Settings(BaseSettings):
             context_vars={},
         ),
         ExampleRecipe(
-            name="Content Writer",
-            path="../../recipes/example_content_writer/generate_content.json",
-            description="Generate content from a prompt",
-            context_vars={"recipe_root": "../../recipes"},
+            name="Demo Quarterly Report",
+            path="./examples/recipes/demo-quarterly-report.json",
+            description="Generate a quarterly report from sales data",
+            context_vars={"new_data_file": "apps/recipe-executor/examples/demo-data/q2-2025-sales.csv"},
         ),
         ExampleRecipe(
             name="Recipe to Mermaid",

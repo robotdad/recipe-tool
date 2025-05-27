@@ -18,22 +18,28 @@ def create_ui(core: RecipeExecutorCore, include_header: bool = True):
         with gr.Column(scale=1):
             gr.Markdown("### Input")
 
-            # Examples section at the top for easy access
-            with gr.Accordion("Examples", open=False):
-                from recipe_executor_app.config import settings
+            # Tabbed interface for recipe input options
+            with gr.Tabs():
+                with gr.TabItem("Upload Recipe"):
+                    recipe_file = gr.File(label="Recipe JSON File", file_types=[".json"])
 
-                # Create dropdown choices from example recipes
-                example_choices = [(ex.name, idx) for idx, ex in enumerate(settings.example_recipes)]
-                example_dropdown = gr.Dropdown(choices=example_choices, label="Example Recipes", type="index")
-                load_example_btn = gr.Button("Load Example", size="sm")
-                example_desc = gr.Markdown()
+                with gr.TabItem("Examples"):
+                    from recipe_executor_app.config import settings
 
-            recipe_file = gr.File(label="Recipe JSON File", file_types=[".json"])
-            recipe_text = gr.Code(label="Recipe JSON", language="json", interactive=True, lines=20)
+                    # Create dropdown choices from example recipes
+                    example_choices = [(ex.name, idx) for idx, ex in enumerate(settings.example_recipes)]
+                    example_dropdown = gr.Dropdown(choices=example_choices, label="Example Recipes", type="index")
+                    load_example_btn = gr.Button("Load Example", variant="secondary")
 
-            with gr.Accordion("Context Variables", open=False):
+            recipe_text = gr.Code(
+                label="Recipe JSON", language="json", interactive=True, lines=10, max_lines=20, wrap_lines=True
+            )
+
+            with gr.Accordion("Additional Options", open=False):
                 context_vars = gr.Textbox(
-                    placeholder="key1=value1,key2=value2", info="Add context variables as key=value pairs"
+                    label="Context Variables",
+                    placeholder="key1=value1,key2=value2",
+                    info="Add context variables as key=value pairs",
                 )
 
             execute_btn = gr.Button("Execute Recipe", variant="primary", interactive=False)
@@ -46,7 +52,7 @@ def create_ui(core: RecipeExecutorCore, include_header: bool = True):
                     context_json = gr.JSON(label="Context")
 
                 with gr.TabItem("Logs"):
-                    logs_output = gr.Textbox(lines=20, max_lines=30, interactive=False)
+                    logs_output = gr.Textbox(label="Logs", lines=20, max_lines=30, interactive=False)
 
     # Set up event handlers
     async def execute_with_logs(file, text, ctx, progress=gr.Progress()):
@@ -108,7 +114,7 @@ def create_ui(core: RecipeExecutorCore, include_header: bool = True):
     # Set up example loading
     async def load_example(example_idx):
         if example_idx is None:
-            return "", "", ""
+            return "", ""
 
         example = settings.example_recipes[example_idx]
 
@@ -116,21 +122,16 @@ def create_ui(core: RecipeExecutorCore, include_header: bool = True):
         result = await core.load_recipe(example.path)
         content = result.get("recipe_content", "")
 
-        # Build preview with description
-        preview = f"**{example.name}**"
-        if example.description:
-            preview += f": {example.description}"
-
         # Convert context vars to string format
         ctx_parts = [f"{k}={v}" for k, v in example.context_vars.items()]
         ctx = ",".join(ctx_parts) if ctx_parts else ""
 
-        return content, preview, ctx
+        return content, ctx
 
     load_example_btn.click(
         fn=load_example,
         inputs=[example_dropdown],
-        outputs=[recipe_text, example_desc, context_vars],
+        outputs=[recipe_text, context_vars],
     )
 
     return recipe_file, recipe_text, context_vars, execute_btn, result_output, logs_output, context_json

@@ -9,16 +9,31 @@ from .core import RecipeToolCore
 
 def create_recipe_ui(core: RecipeToolCore) -> Tuple:
     """Create the Create Recipe UI components."""
+    from .config import settings
+
     with gr.Row():
         with gr.Column(scale=1):
             gr.Markdown("### Input")
 
             with gr.Tabs():
-                with gr.TabItem("Text Input"):
-                    idea_text = gr.TextArea(label="Idea Text", placeholder="Enter your recipe idea here...", lines=10)
+                with gr.TabItem("Upload Idea"):
+                    idea_file = gr.File(label="Idea Text File", file_types=[".md", ".txt"])
 
-                with gr.TabItem("File Input"):
-                    idea_file = gr.File(label="Idea File", file_types=[".md", ".txt"])
+                with gr.TabItem("Examples"):
+                    # Create dropdown choices from example ideas
+                    example_choices = [(ex.name, idx) for idx, ex in enumerate(settings.example_ideas)]
+                    example_dropdown = gr.Dropdown(choices=example_choices, label="Example Ideas", type="index")
+                    load_example_btn = gr.Button("Load Example", variant="secondary")
+
+            idea_text = gr.Code(
+                label="Idea Text",
+                language="markdown",
+                lines=10,
+                max_lines=20,
+                show_line_numbers=False,
+                interactive=True,
+                wrap_lines=True,
+            )
 
             with gr.Accordion("Additional Options", open=False):
                 reference_files = gr.File(
@@ -72,6 +87,54 @@ def create_recipe_ui(core: RecipeToolCore) -> Tuple:
         inputs=[idea_text, idea_file, reference_files, context_vars],
         outputs=[recipe_output, preview_md, debug_context],
         api_name="create_recipe",
+    )
+
+    # Set up example loading
+    def load_example(example_idx):
+        if example_idx is None:
+            return "", ""
+
+        example = settings.example_ideas[example_idx]
+
+        # Read the example file content
+        try:
+            from pathlib import Path
+
+            # Get the directory where this module is located
+            module_dir = Path(__file__).parent.parent
+            example_path = module_dir / example.path
+
+            with open(example_path, "r") as f:
+                content = f.read()
+        except Exception as e:
+            content = f"Error loading example: {str(e)}"
+
+        # Convert context vars to string format
+        ctx_parts = [f"{k}={v}" for k, v in example.context_vars.items()]
+        ctx = ",".join(ctx_parts) if ctx_parts else ""
+
+        return content, ctx
+
+    load_example_btn.click(
+        fn=load_example,
+        inputs=[example_dropdown],
+        outputs=[idea_text, context_vars],
+    )
+
+    # Load file content when a file is selected
+    def load_file_content(file):
+        if not file:
+            return ""
+        try:
+            with open(file.name, "r") as f:
+                return f.read()
+        except Exception as e:
+            return f"Error loading file: {str(e)}"
+
+    idea_file.change(
+        fn=load_file_content,
+        inputs=[idea_file],
+        outputs=[idea_text],
     )
 
     return (idea_text, idea_file, reference_files, context_vars, create_btn, recipe_output, preview_md, debug_context)

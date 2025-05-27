@@ -2,7 +2,17 @@
 
 from typing import Any, Dict, List, Optional
 
+from pydantic import BaseModel
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class ExampleIdea(BaseModel):
+    """Configuration for an example recipe idea."""
+
+    name: str
+    path: str
+    description: str = ""
+    context_vars: Dict[str, str] = {}
 
 
 class Settings(BaseSettings):
@@ -28,11 +38,44 @@ class Settings(BaseSettings):
         "DEBUG"  # Use DEBUG, INFO, WARNING, ERROR, or CRITICAL - Set to DEBUG for detailed path information
     )
 
-    # Example recipes paths
+    # Example recipes paths (for recipe executor)
     example_recipes: List[str] = [
         "../../../recipes/example_simple/test_recipe.json",
         "../../../recipes/example_content_writer/generate_content.json",
         "../../../recipes/example_brave_search/search.json",
+    ]
+
+    # Example ideas (for recipe creator)
+    example_ideas: List[ExampleIdea] = [
+        ExampleIdea(
+            name="Hello World Gradio App",
+            path="examples/hello-world-spec-idea.md",
+            description="Create a simple Hello World app using Gradio",
+        ),
+        ExampleIdea(
+            name="Simple Spec to Python",
+            path="examples/simple-spec-recipe-idea.md",
+            description="Turn a text spec into a runnable Python script",
+            context_vars={
+                "output_root": "./output",
+            },
+        ),
+        ExampleIdea(
+            name="Recipe to Mermaid Diagram",
+            path="examples/recipe-to-mermaid-idea.md",
+            description="Convert a recipe JSON into a Mermaid diagram",
+        ),
+        ExampleIdea(
+            name="File Rollup Tool",
+            path="examples/file-rollup-tool-idea.md",
+            description="Create a tool that combines multiple files into one",
+        ),
+        ExampleIdea(
+            name="Quarterly Report Generator",
+            path="examples/demo-quarterly-report-idea.md",
+            description="Generate a quarterly sales report from CSV data",
+            context_vars={},
+        ),
     ]
 
     # Theme settings
