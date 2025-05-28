@@ -39,18 +39,29 @@ async def test_create_recipe_from_text(core_instance, mock_executor):
             # Mock Context
             with patch("recipe_tool_app.core.Context") as mock_context_class:
                 mock_context = MagicMock()
-                mock_context.dict.return_value = {"generated_recipe": recipe_json}
+                # Create a mock FileSpec object
+                mock_filespec = MagicMock()
+                mock_filespec.path = "test_recipe.json"
+                mock_context.dict.return_value = {
+                    "generated_recipe": [mock_filespec],
+                    "output_root": "output",
+                }
                 mock_context_class.return_value = mock_context
 
-                # Execute
-                result = await core_instance.create_recipe(
-                    idea_text="Test idea", idea_file=None, reference_files=None, context_vars=None
-                )
+                # Mock read_file
+                with patch("recipe_tool_app.recipe_processor.read_file") as mock_read_file:
+                    mock_read_file.return_value = recipe_json
 
-                # Verify
-                assert mock_executor.execute.called
-                assert "recipe_json" in result
-                assert result["recipe_json"] == recipe_json
+                    # Execute
+                    result = await core_instance.create_recipe(
+                        idea_text="Test idea", idea_file=None, reference_files=None, context_vars=None
+                    )
+
+                    # Verify
+                    assert mock_executor.execute.called
+                    assert "recipe_json" in result
+                    assert result["recipe_json"] == recipe_json
+                    mock_read_file.assert_called_once_with("output/test_recipe.json")
 
 
 @pytest.mark.asyncio
@@ -67,18 +78,28 @@ async def test_create_recipe_from_file(core_instance, mock_executor):
         # Mock Context
         with patch("recipe_tool_app.core.Context") as mock_context_class:
             mock_context = MagicMock()
-            mock_context.dict.return_value = {"generated_recipe": recipe_json}
+            # Create a mock FileSpec object
+            mock_filespec = MagicMock()
+            mock_filespec.path = "test_recipe.json"
+            mock_context.dict.return_value = {
+                "generated_recipe": [mock_filespec],
+                "output_root": "output",
+            }
             mock_context_class.return_value = mock_context
 
-            # Execute
-            result = await core_instance.create_recipe(
-                idea_text="", idea_file="/path/to/idea.md", reference_files=None, context_vars=None
-            )
+            # Mock read_file
+            with patch("recipe_tool_app.recipe_processor.read_file") as mock_read_file:
+                mock_read_file.return_value = recipe_json
 
-            # Verify
-            assert mock_executor.execute.called
-            assert "recipe_json" in result
-            assert result["recipe_json"] == recipe_json
+                # Execute
+                result = await core_instance.create_recipe(
+                    idea_text="", idea_file="/path/to/idea.md", reference_files=None, context_vars=None
+                )
+
+                # Verify
+                assert mock_executor.execute.called
+                assert "recipe_json" in result
+                assert result["recipe_json"] == recipe_json
 
 
 @pytest.mark.asyncio
@@ -130,29 +151,38 @@ def test_find_recipe_output():
 
     recipe_json = '{"name": "Test Recipe"}'
 
-    # Test 1: Recipe in context
-    context = {"generated_recipe": recipe_json}
-    result = find_recipe_output(context)
-    assert result == recipe_json
+    # Test 1: FileSpec object format (the expected format)
+    with patch("recipe_tool_app.recipe_processor.read_file") as mock_read:
+        mock_read.return_value = recipe_json
+        # Create a mock FileSpec object
+        mock_filespec = MagicMock()
+        mock_filespec.path = "test_recipe.json"
+        context = {"generated_recipe": [mock_filespec], "output_root": "output"}
+        result = find_recipe_output(context)
+        assert result == recipe_json
+        mock_read.assert_called_once_with("output/test_recipe.json")
 
-    # Test 2: Recipe as list
-    context = {"generated_recipe": [{"content": recipe_json}]}
+    # Test 2: No generated_recipe in context
+    context = {"output_root": "output"}
     result = find_recipe_output(context)
-    assert result == recipe_json
+    assert result is None
 
-    # Test 3: Recipe as dict with content
-    context = {"generated_recipe": {"content": recipe_json}}
+    # Test 3: Empty generated_recipe list
+    context = {"generated_recipe": [], "output_root": "output"}
     result = find_recipe_output(context)
-    assert result == recipe_json
+    assert result is None
 
-    # Test 4: Recipe in file
-    with patch("recipe_tool_app.recipe_processor.os.path.exists") as mock_exists:
-        mock_exists.return_value = True
-        with patch("recipe_tool_app.recipe_processor.read_file") as mock_read:
-            mock_read.return_value = recipe_json
-            context = {"output_root": "/output", "target_file": "recipe.json"}
-            result = find_recipe_output(context)
-            assert result == recipe_json
+    # Test 4: generated_recipe is not a list
+    context = {"generated_recipe": "not a list", "output_root": "output"}
+    result = find_recipe_output(context)
+    assert result is None
+
+    # Test 5: Object without path attribute
+    mock_obj = MagicMock()
+    del mock_obj.path  # Ensure it doesn't have path attribute
+    context = {"generated_recipe": [mock_obj], "output_root": "output"}
+    result = find_recipe_output(context)
+    assert result is None
 
 
 def test_generate_preview():

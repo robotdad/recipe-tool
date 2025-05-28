@@ -47,9 +47,14 @@ async def test_core_to_utils_integration(mock_executor):
     _ = RecipeToolCore(executor=mock_executor)
 
     # Test that find_recipe_output works
-    context = {"generated_recipe": '{"name": "Test"}'}
-    result = find_recipe_output(context)
-    assert result == '{"name": "Test"}'
+    with patch("recipe_tool_app.recipe_processor.read_file") as mock_read:
+        mock_read.return_value = '{"name": "Test"}'
+        # Create a mock FileSpec object
+        mock_filespec = MagicMock()
+        mock_filespec.path = "test.json"
+        context = {"generated_recipe": [mock_filespec], "output_root": "output"}
+        result = find_recipe_output(context)
+        assert result == '{"name": "Test"}'
 
     # Test that generate_preview works
     recipe = {"name": "Test", "steps": []}
