@@ -27,17 +27,46 @@ def create_docs_server(settings: DocsServerSettings) -> FastMCP:
         # Convert to relative paths for cleaner display
         result = []
         for file_path in files:
-            # Try to make path relative to one of the doc roots
-            for doc_path in settings.doc_paths:
-                try:
-                    rel_path = file_path.relative_to(Path(doc_path).resolve())
-                    result.append(str(rel_path))
-                    break
-                except ValueError:
-                    pass
+            path_str = str(file_path)
+            
+            # URLs should be displayed as-is
+            if path_str.startswith(('http://', 'https://')):
+                result.append(path_str)
             else:
-                # If not relative to any doc root, use absolute path
-                result.append(str(file_path))
+                # Check if this file IS one of the doc_paths
+                found = False
+                for doc_path in settings.doc_paths:
+                    doc_path_str = str(doc_path)
+                    if not doc_path_str.startswith(('http://', 'https://')):
+                        doc_path_resolved = Path(doc_path).resolve()
+                        if doc_path_resolved == file_path:
+                            # This file IS a doc_path - show parent/filename
+                            if file_path.parent != Path("/"):
+                                result.append(f"{file_path.parent.name}/{file_path.name}")
+                            else:
+                                result.append(file_path.name)
+                            found = True
+                            break
+                
+                if not found:
+                    # Try to make path relative to one of the doc roots
+                    for doc_path in settings.doc_paths:
+                        doc_path_str = str(doc_path)
+                        # Skip URL doc_paths when making relative paths
+                        if doc_path_str.startswith(('http://', 'https://')):
+                            continue
+                        try:
+                            rel_path = file_path.relative_to(Path(doc_path).resolve())
+                            rel_path_str = str(rel_path)
+                            result.append(rel_path_str)
+                            found = True
+                            break
+                        except ValueError:
+                            pass
+                    
+                    if not found:
+                        # If not relative to any doc root, use absolute path
+                        result.append(str(file_path))
 
         return result
 
@@ -92,13 +121,37 @@ def create_docs_server(settings: DocsServerSettings) -> FastMCP:
         for file_path, snippet in results:
             # Try to make path relative
             display_path = str(file_path)
-            for doc_path in settings.doc_paths:
-                try:
-                    rel_path = file_path.relative_to(Path(doc_path).resolve())
-                    display_path = str(rel_path)
-                    break
-                except ValueError:
-                    pass
+            
+            # URLs should be displayed as-is
+            if not display_path.startswith(('http://', 'https://')):
+                # Check if this file IS one of the doc_paths
+                found = False
+                for doc_path in settings.doc_paths:
+                    doc_path_str = str(doc_path)
+                    if not doc_path_str.startswith(('http://', 'https://')):
+                        doc_path_resolved = Path(doc_path).resolve()
+                        if doc_path_resolved == file_path:
+                            # This file IS a doc_path - show parent/filename
+                            if file_path.parent != Path("/"):
+                                display_path = f"{file_path.parent.name}/{file_path.name}"
+                            else:
+                                display_path = file_path.name
+                            found = True
+                            break
+                
+                if not found:
+                    # Try to make path relative to one of the doc roots
+                    for doc_path in settings.doc_paths:
+                        doc_path_str = str(doc_path)
+                        # Skip URL doc_paths when making relative paths
+                        if doc_path_str.startswith(('http://', 'https://')):
+                            continue
+                        try:
+                            rel_path = file_path.relative_to(Path(doc_path).resolve())
+                            display_path = str(rel_path)
+                            break
+                        except ValueError:
+                            pass
 
             formatted_results.append({"file": display_path, "snippet": snippet.strip()})
 

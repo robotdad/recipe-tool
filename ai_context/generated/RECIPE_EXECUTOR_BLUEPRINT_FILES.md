@@ -5,7 +5,7 @@
 **Search:** ['blueprints/recipe_executor']
 **Exclude:** ['.venv', 'node_modules', '*.lock', '.git', '__pycache__', '*.pyc', '*.ruff_cache', 'logs', 'output']
 **Include:** []
-**Date:** 5/22/2025, 8:20:42 AM
+**Date:** 5/28/2025, 12:47:25 PM
 **Files:** 49
 
 === File: blueprints/recipe_executor/README.md ===
@@ -5069,12 +5069,12 @@ None
     },
     {
       "key": "codebase_generator_recipes",
-      "path": "ai_context/generated/CODEBASE_GENERATOR_FILES.md",
+      "path": "ai_context/generated/CODEBASE_GENERATOR_RECIPE_FILES.md",
       "description": "Recipe files used to generate code from blueprint files (component manifest and then per-component 'docs' and 'spec' files)."
     },
     {
       "key": "sample_recipes",
-      "path": "ai_context/generated/BLUEPRINT_GENERATOR_V4_FILES.md, ai_context/generated/DOCUMENT_GENERATOR_FILES.md",
+      "path": "ai_context/generated/BLUEPRINT_GENERATOR_V4_RECIPE_FILES.md, ai_context/generated/DOCUMENT_GENERATOR_RECIPE_FILES.md",
       "description": "Additional sample recipes that show other ways to use the recipe tools for different use cases and ways to use Python Liquid templating, the various step types, etc."
     },
     {

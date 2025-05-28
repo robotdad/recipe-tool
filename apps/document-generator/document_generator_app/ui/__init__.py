@@ -1,7 +1,6 @@
 """
-UI package for Document Generator.
+Simplified Document Generator UI package.
 """
+from document_generator_app.ui.layout import build_editor
 
-__all__ = ["build_editor", "resource_entry", "section_entry"]
-from .layout import build_editor
-from .components import resource_entry, section_entry
+__all__ = ["build_editor"]

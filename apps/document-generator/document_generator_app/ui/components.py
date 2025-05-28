@@ -1,52 +1,54 @@
 """
-Reusable UI components for the Document Generator editor.
+All UI components for the simplified document generator.
 """
-
-import gradio as gr  # type: ignore
-
-
-def resource_entry(key: str = "", description: str = "", path: str = "", merge_mode: str = "concat"):
-    """
-    Return Gradio components for a single resource entry row.
-    """
-    key_tb = gr.Textbox(label="Key", value=key)
-    desc_tb = gr.Textbox(label="Description", value=description)
-    path_tb = gr.Textbox(label="Path or URL", value=path)
-    file_upl = gr.File(label="Upload File")
-    # Allow empty merge_mode selection
-    mm_dd = gr.Dropdown(choices=["", "concat", "dict"], label="Merge Mode", value=merge_mode)
-    return [key_tb, desc_tb, path_tb, file_upl, mm_dd]
+import gradio as gr
 
 
-def section_entry(section=None):
-    """
-    Return Gradio components for a single section entry, including nested placeholder.
-    """
-    section = section or {}
-    title = section.get("title", "")
-    prompt = section.get("prompt", "") or ""
-    refs = section.get("refs", [])
-    resource_key = section.get("resource_key", "") or ""
+def create_resource_editor():
+    """Resource editor form."""
+    with gr.Column(visible=False) as container:
+        gr.Markdown("### Resource Details")
+        
+        key = gr.Textbox(label="Resource Key", placeholder="unique_key")
+        description = gr.TextArea(label="Description", lines=2)
+        path = gr.Textbox(label="Path or URL", placeholder="https://... or /path/to/file")
+        file_upload = gr.File(label="Or Upload File")
+        merge_mode = gr.Dropdown(["concat", "dict"], label="Merge Mode", value="concat")
+    
+    return {
+        "container": container,
+        "key": key,
+        "description": description,
+        "path": path,
+        "file": file_upload,
+        "merge_mode": merge_mode
+    }
 
-    title_tb = gr.Textbox(label="Section Title", value=title)
-    mode = "prompt" if section.get("prompt") is not None else "static"
-    mode_radio = gr.Radio(choices=["prompt", "static"], label="Mode", value=mode)
-    prompt_tb = gr.TextArea(label="Prompt", value=prompt)
-    refs_ch = gr.CheckboxGroup(choices=refs, label="Refs", value=refs)
 
-    # Build dropdown choices, ensuring it includes the resource_key if present
-    dropdown_choices = [""]
-    if refs:
-        dropdown_choices.extend(refs)
-    if resource_key and resource_key not in dropdown_choices:
-        dropdown_choices.append(resource_key)
-
-    # Allow empty resource key if none selected
-    res_dd = gr.Dropdown(
-        choices=dropdown_choices,
-        label="Resource Key",
-        value=resource_key,
-        allow_custom_value=True,  # Allow custom values to avoid warnings
-    )
-    nested_acc = gr.Accordion(label="Subsections", open=False)
-    return [title_tb, mode_radio, prompt_tb, refs_ch, res_dd, nested_acc]
+def create_section_editor():
+    """Section editor form."""
+    with gr.Column(visible=False) as container:
+        gr.Markdown("### Section Details")
+        
+        title = gr.Textbox(label="Section Title")
+        mode = gr.Radio(["Prompt", "Static"], label="Mode", value="Prompt")
+        
+        # Prompt mode
+        with gr.Column() as prompt_container:
+            prompt = gr.TextArea(label="Generation Prompt", lines=4)
+            refs = gr.CheckboxGroup(label="Reference Resources", choices=[])
+        
+        # Static mode
+        with gr.Column(visible=False) as static_container:
+            resource_key = gr.Dropdown(label="Source Resource", choices=[])
+    
+    return {
+        "container": container,
+        "title": title,
+        "mode": mode,
+        "prompt": prompt,
+        "refs": refs,
+        "resource_key": resource_key,
+        "prompt_container": prompt_container,
+        "static_container": static_container
+    }

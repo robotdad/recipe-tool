@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 import aiofiles
+import httpx
 
 from .config import DocsServerSettings
 
@@ -52,7 +53,7 @@ class DocumentLoader:
         return files
 
     async def get_file_index(self) -> List[Path]:
-        """Get an index of all available documentation files."""
+        """Get an index of all available documentation files and URLs."""
         # Check if we need to refresh the index
         if (
             self._file_index is None
@@ -62,12 +63,22 @@ class DocumentLoader:
             files = []
 
             for doc_path in self.settings.doc_paths:
-                path = Path(doc_path).resolve()
+                path_str = str(doc_path)
+                
+                # Handle URLs
+                if path_str.startswith(('http://', 'https://')):
+                    # Pre-fetch URL content to ensure it's available
+                    content = await self._load_url(path_str)
+                    if content:
+                        # Add URL to index as a "virtual path"
+                        files.append(Path(path_str))
+                else:
+                    path = Path(path_str).resolve()
 
-                if path.is_file() and self._should_include(path):
-                    files.append(path)
-                elif path.is_dir():
-                    files.extend(await self._scan_directory(path))
+                    if path.is_file() and self._should_include(path):
+                        files.append(path)
+                    elif path.is_dir():
+                        files.extend(await self._scan_directory(path))
 
             self._file_index = sorted(set(files))
             self._index_time = datetime.now()
@@ -75,7 +86,13 @@ class DocumentLoader:
         return self._file_index
 
     async def load_file(self, file_path: Path) -> Optional[str]:
-        """Load a documentation file with caching."""
+        """Load a documentation file or URL with caching."""
+        path_str = str(file_path)
+        
+        # Check if it's a URL
+        if path_str.startswith(('http://', 'https://')):
+            return await self._load_url(path_str)
+        
         file_path = Path(file_path).resolve()
 
         # Check cache
@@ -121,6 +138,29 @@ class DocumentLoader:
                 results.append((file_path, snippet))
 
         return results
+
+    async def _load_url(self, url: str) -> Optional[str]:
+        """Load content from a URL."""
+        # Check cache first
+        if self.settings.enable_cache and url in self._cache:
+            content, cached_time = self._cache[url]
+            if datetime.now() - cached_time < timedelta(seconds=self.settings.cache_ttl):
+                return content
+        
+        # Fetch URL
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(url, timeout=30.0)
+                response.raise_for_status()
+                content = response.text
+                
+            # Update cache
+            if self.settings.enable_cache:
+                self._cache[url] = (content, datetime.now())
+                
+            return content
+        except Exception:
+            return None
 
     def clear_cache(self):
         """Clear the document cache."""

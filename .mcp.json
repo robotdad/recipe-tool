@@ -3,6 +3,10 @@
     "gradio-docs": {
       "type": "sse",
       "url": "https://gradio-docs-mcp.hf.space/gradio_api/mcp/sse"
+    },
+    "context7": {
+      "type": "sse",
+      "url": "https://mcp.context7.com/sse"
     }
   }
 }

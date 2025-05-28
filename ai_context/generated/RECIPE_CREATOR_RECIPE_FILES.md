@@ -5,7 +5,7 @@
 **Search:** ['recipes/recipe_creator']
 **Exclude:** ['.venv', 'node_modules', '*.lock', '.git', '__pycache__', '*.pyc', '*.ruff_cache', 'logs', 'output']
 **Include:** []
-**Date:** 5/28/2025, 7:14:48 AM
+**Date:** 5/28/2025, 12:47:25 PM
 **Files:** 5
 
 === File: recipes/recipe_creator/create.json ===
@@ -64,7 +64,7 @@
     {
       "type": "read_files",
       "config": {
-        "path": "{{ ai_context_root }}/generated/RECIPE_EXECUTOR_CODE_FILES.md,{{ ai_context_root }}/generated/RECIPE_EXECUTOR_BLUEPRINT_FILES.md,{{ ai_context_root }}/generated/CODEBASE_GENERATOR_FILES.md,{{ ai_context_root }}/generated/RECIPE_JSON_AUTHORING_GUIDE.md,{{ ai_context_root }}/IMPLEMENTATION_PHILOSOPHY.md,{{ ai_context_root }}/MODULAR_DESIGN_PHILOSOPHY.md,{{ ai_context_root }}/git_collector/LIQUID_PYTHON_DOCS.md",
+        "path": "{{ ai_context_root }}/generated/RECIPE_EXECUTOR_CODE_FILES.md,{{ ai_context_root }}/generated/RECIPE_EXECUTOR_BLUEPRINT_FILES.md,{{ ai_context_root }}/generated/CODEBASE_GENERATOR_RECIPE_FILES.md,{{ ai_context_root }}/generated/RECIPE_JSON_AUTHORING_GUIDE.md,{{ ai_context_root }}/IMPLEMENTATION_PHILOSOPHY.md,{{ ai_context_root }}/MODULAR_DESIGN_PHILOSOPHY.md,{{ ai_context_root }}/git_collector/LIQUID_PYTHON_DOCS.md",
         "content_key": "context_files"
       }
     },

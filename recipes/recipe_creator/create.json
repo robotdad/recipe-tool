@@ -53,7 +53,7 @@
     {
       "type": "read_files",
       "config": {
-        "path": "{{ ai_context_root }}/generated/RECIPE_EXECUTOR_CODE_FILES.md,{{ ai_context_root }}/generated/RECIPE_EXECUTOR_BLUEPRINT_FILES.md,{{ ai_context_root }}/generated/CODEBASE_GENERATOR_FILES.md,{{ ai_context_root }}/generated/RECIPE_JSON_AUTHORING_GUIDE.md,{{ ai_context_root }}/IMPLEMENTATION_PHILOSOPHY.md,{{ ai_context_root }}/MODULAR_DESIGN_PHILOSOPHY.md,{{ ai_context_root }}/git_collector/LIQUID_PYTHON_DOCS.md",
+        "path": "{{ ai_context_root }}/generated/RECIPE_EXECUTOR_CODE_FILES.md,{{ ai_context_root }}/generated/RECIPE_EXECUTOR_BLUEPRINT_FILES.md,{{ ai_context_root }}/generated/CODEBASE_GENERATOR_RECIPE_FILES.md,{{ ai_context_root }}/generated/RECIPE_JSON_AUTHORING_GUIDE.md,{{ ai_context_root }}/IMPLEMENTATION_PHILOSOPHY.md,{{ ai_context_root }}/MODULAR_DESIGN_PHILOSOPHY.md,{{ ai_context_root }}/git_collector/LIQUID_PYTHON_DOCS.md",
         "content_key": "context_files"
       }
     },

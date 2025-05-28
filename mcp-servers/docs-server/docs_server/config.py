@@ -36,7 +36,7 @@ class DocsServerSettings(BaseSettings):
 
     # Maximum file size to process (in bytes)
     max_file_size: int = Field(
-        default=1024 * 1024,  # 1MB
+        default=2 * 1024 * 1024,  # 2MB
         description="Maximum file size to process in bytes",
     )
 

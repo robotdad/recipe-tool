@@ -5,7 +5,7 @@
 **Search:** ['recipe-executor/recipe_executor']
 **Exclude:** ['.venv', 'node_modules', '*.lock', '.git', '__pycache__', '*.pyc', '*.ruff_cache', 'logs', 'output']
 **Include:** ['README.md', 'pyproject.toml', '.env.example']
-**Date:** 5/28/2025, 7:04:16 AM
+**Date:** 5/28/2025, 12:47:25 PM
 **Files:** 26
 
 === File: .env.example ===
@@ -424,6 +424,7 @@ members = [
     "apps/document-generator",
     "apps/recipe-executor",
     "apps/recipe-tool",
+    "mcp-servers/docs-server",
     "mcp-servers/python-code-tools",
     "mcp-servers/recipe-tool",
 ]
@@ -437,6 +438,7 @@ document-generator-app = { workspace = true }
 recipe-executor-app = { workspace = true }
 recipe-tool-app = { workspace = true }
 # MCP servers
+docs-server = { workspace = true }
 python-code-tools = { workspace = true }
 recipe-tool-mcp-server = { workspace = true }
 
