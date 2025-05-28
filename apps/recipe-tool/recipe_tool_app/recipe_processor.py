@@ -10,14 +10,12 @@ from typing import Any, Dict, Optional
 
 from recipe_executor_app.utils import read_file
 
-from .path_resolver import resolve_output_path
-
 
 logger = logging.getLogger(__name__)
 
 
 def find_recipe_output(context_dict: Dict[str, Any]) -> Optional[str]:
-    """Find the recipe output from context or files.
+    """Find the recipe output from the generated file.
 
     Args:
         context_dict: Context dictionary from recipe execution
@@ -25,44 +23,38 @@ def find_recipe_output(context_dict: Dict[str, Any]) -> Optional[str]:
     Returns:
         Recipe JSON content or None if not found
     """
-    # Check context first
-    if "generated_recipe" in context_dict:
-        content = context_dict["generated_recipe"]
-        if isinstance(content, str):
-            return content
-        elif isinstance(content, list) and content:
-            if isinstance(content[0], dict) and "content" in content[0]:
-                return content[0]["content"]
-        elif isinstance(content, dict) and "content" in content:
-            return content["content"]
+    # Get the generated recipe path from context
+    if "generated_recipe" not in context_dict:
+        logger.error("No generated_recipe in context")
+        return None
 
-    # Check output file
+    generated_recipe = context_dict["generated_recipe"]
+    if not isinstance(generated_recipe, list) or not generated_recipe:
+        logger.error(f"generated_recipe is not a list or is empty: {type(generated_recipe)}")
+        return None
+
+    # Get the first generated recipe file (FileSpec object)
+    first_recipe = generated_recipe[0]
+
+    # Extract path from FileSpec object
+    if not hasattr(first_recipe, "path"):
+        logger.error(f"Recipe item doesn't have path attribute: {type(first_recipe)}")
+        return None
+
+    recipe_filename = first_recipe.path
+
+    # Build the full path
     output_root = context_dict.get("output_root", "output")
-    target_file = context_dict.get("target_file", "generated_recipe.json")
-    file_path = resolve_output_path(output_root, target_file)
+    file_path = os.path.join(output_root, recipe_filename)
 
-    if os.path.exists(file_path):
-        try:
-            return read_file(file_path)
-        except Exception as e:
-            logger.warning(f"Failed to read {file_path}: {e}")
-
-    # Check for recent JSON files
-    if os.path.exists(output_root):
-        import time
-
-        current_time = time.time()
-        for file in sorted(os.listdir(output_root), reverse=True):
-            if file.endswith(".json"):
-                try:
-                    path = os.path.join(output_root, file)
-                    # Check if file was created recently (within last 30 seconds)
-                    if os.path.getmtime(path) > current_time - 30:
-                        return read_file(path)
-                except Exception:
-                    continue
-
-    return None
+    # Read the file
+    try:
+        content = read_file(file_path)
+        logger.info(f"Successfully read generated recipe from: {file_path}")
+        return content
+    except Exception as e:
+        logger.error(f"Failed to read generated recipe from {file_path}: {e}")
+        return None
 
 
 def generate_preview(recipe: Dict[str, Any], execution_time: float) -> str:

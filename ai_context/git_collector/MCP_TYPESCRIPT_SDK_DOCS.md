@@ -3,7 +3,7 @@
 [git-collector-data]
 
 **URL:** https://github.com/modelcontextprotocol/typescript-sdk  
-**Date:** 5/15/2025, 8:40:33 AM  
+**Date:** 5/27/2025, 2:32:42 PM  
 **Files:** 1  
 
 === File: README.md ===
@@ -557,7 +557,7 @@ putMessageTool.disable()
 
 const upgradeAuthTool = server.tool(
   "upgradeAuth",
-  { permission: z.enum(["write', vadmin"])},
+  { permission: z.enum(["write', admin"])},
   // Any mutations here will automatically emit `listChanged` notifications
   async ({ permission }) => {
     const { ok, err, previous } = await upgradeAuthAndStoreToken(permission)

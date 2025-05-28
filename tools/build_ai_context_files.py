@@ -68,7 +68,7 @@ def build_context_files(force=False) -> None:
     tasks = [
         # Collect files from recipe_executor
         {
-            "patterns": ["recipe_executor"],
+            "patterns": ["recipe-executor/recipe_executor"],
             "output": f"{OUTPUT_DIR}/RECIPE_EXECUTOR_CODE_FILES.md",
             "exclude": collect_files.DEFAULT_EXCLUDE,
             "include": ["README.md", "pyproject.toml", ".env.example"],
@@ -84,13 +84,6 @@ def build_context_files(force=False) -> None:
         {
             "patterns": ["recipes/recipe_creator"],
             "output": f"{OUTPUT_DIR}/RECIPE_CREATOR_RECIPE_FILES.md",
-            "exclude": collect_files.DEFAULT_EXCLUDE,
-            "include": [],
-        },
-        # Collect files from recipes/utilities
-        {
-            "patterns": ["recipes/utilities"],
-            "output": f"{OUTPUT_DIR}/UTILITIES_RECIPE_FILES.md",
             "exclude": collect_files.DEFAULT_EXCLUDE,
             "include": [],
         },
@@ -119,13 +112,6 @@ def build_context_files(force=False) -> None:
         {
             "patterns": ["recipes/example_*"],
             "output": f"{OUTPUT_DIR}/RECIPE_EXAMPLES_FILES.md",
-            "exclude": collect_files.DEFAULT_EXCLUDE,
-            "include": [],
-        },
-        # Collect files from recipes/experimental/blueprint_generator_v3
-        {
-            "patterns": ["recipes/experimental/blueprint_generator_v3"],
-            "output": f"{OUTPUT_DIR}/BLUEPRINT_GENERATOR_V3_FILES.md",
             "exclude": collect_files.DEFAULT_EXCLUDE,
             "include": [],
         },

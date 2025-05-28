@@ -3,7 +3,7 @@
 [git-collector-data]
 
 **URL:** https://github.com/modelcontextprotocol/python-sdk  
-**Date:** 5/20/2025, 11:55:26 AM  
+**Date:** 5/27/2025, 2:32:42 PM  
 **Files:** 1  
 
 === File: README.md ===
@@ -169,7 +169,7 @@ from dataclasses import dataclass
 
 from fake_database import Database  # Replace with your actual DB type
 
-from mcp.server.fastmcp import Context, FastMCP
+from mcp.server.fastmcp import FastMCP
 
 # Create a named server
 mcp = FastMCP("My App")
@@ -201,9 +201,10 @@ mcp = FastMCP("My App", lifespan=app_lifespan)
 
 # Access type-safe lifespan context in tools
 @mcp.tool()
-def query_db(ctx: Context) -> str:
+def query_db() -> str:
     """Tool that uses initialized resources"""
-    db = ctx.request_context.lifespan_context.db
+    ctx = mcp.get_context()
+    db = ctx.request_context.lifespan_context["db"]
     return db.query()
 ```
 
@@ -640,7 +641,7 @@ server = Server("example-server", lifespan=server_lifespan)
 # Access lifespan context in handlers
 @server.call_tool()
 async def query_db(name: str, arguments: dict) -> list:
-    ctx = server.get_context()
+    ctx = server.request_context
     db = ctx.lifespan_context["db"]
     return await db.query(arguments["query"])
 ```

@@ -39,10 +39,6 @@ class Settings(BaseSettings):
     # Example ideas (for recipe creator)
     example_ideas: List[ExampleIdea] = [
         ExampleIdea(
-            name="Hello World Gradio App",
-            path="../../recipes/recipe_creator/examples/hello-world-spec-idea.md",
-        ),
-        ExampleIdea(
             name="Simple Spec to Python",
             path="../../recipes/recipe_creator/examples/simple-spec-recipe-idea.md",
             context_vars={
@@ -50,17 +46,17 @@ class Settings(BaseSettings):
             },
         ),
         ExampleIdea(
+            name="Quarterly Report Generator",
+            path="../../recipes/recipe_creator/examples/demo-quarterly-report-idea.md",
+            context_vars={},
+        ),
+        ExampleIdea(
             name="Recipe to Mermaid Diagram",
             path="../../recipes/recipe_creator/examples/recipe-to-mermaid-idea.md",
         ),
         ExampleIdea(
-            name="File Rollup Tool",
-            path="../../recipes/recipe_creator/examples/file-rollup-tool-idea.md",
-        ),
-        ExampleIdea(
-            name="Quarterly Report Generator",
-            path="../../recipes/recipe_creator/examples/demo-quarterly-report-idea.md",
-            context_vars={},
+            name="Analyze Code Files",
+            path="../../recipes/recipe_creator/examples/analyze-code-files-idea.md",
         ),
     ]
 
