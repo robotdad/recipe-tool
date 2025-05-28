@@ -33,8 +33,12 @@
       "path": "./apps/recipe-executor"
     },
     {
-      "name": "🖥️ Recipe Tool App", 
+      "name": "🖥️ Recipe Tool App",
       "path": "./apps/recipe-tool"
+    },
+    {
+      "name": "🌐 Docs Server MCP",
+      "path": "mcp-servers/docs-server"
     },
     {
       "name": "🌐 Python Code Tools MCP",
@@ -56,7 +60,7 @@
   "settings": {
     // Inherit most settings from .vscode/settings.json
     "python.defaultInterpreterPath": "./.venv/bin/python",
-    
+
     // Enable testing only for projects with working tests
     "python.testing.pytestEnabled": true,
     "python.testing.pytestArgs": ["--color=yes", "-v"],

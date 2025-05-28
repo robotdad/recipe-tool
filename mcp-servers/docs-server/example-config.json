@@ -1,0 +1,10 @@
+{
+  "doc_paths": ["./docs", "./README.md"],
+  "include_patterns": ["*.md", "*.rst", "*.txt"],
+  "exclude_patterns": [".*", "__pycache__", "*.pyc", "test_*"],
+  "max_file_size": 2097152,
+  "enable_cache": true,
+  "cache_ttl": 600,
+  "host": "localhost",
+  "port": 3003
+}

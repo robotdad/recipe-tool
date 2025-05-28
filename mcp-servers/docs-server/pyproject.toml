@@ -1,0 +1,36 @@
+[project]
+name = "docs-mcp-server"
+version = "0.1.0"
+description = "MCP server for serving project documentation"
+authors = [{ name = "MADE:Explorations Team" }]
+license = "MIT"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "mcp>=1.9.1",
+    "python-dotenv>=1.1.0",
+    "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
+    "aiofiles>=24.0.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0.0", "pytest-asyncio>=0.24.0"]
+
+[project.scripts]
+# Main entry point
+docs-server = "docs_server.cli:main"
+
+# Convenience scripts for specific transports
+docs-server-stdio = "docs_server.cli:stdio_main"
+docs-server-sse = "docs_server.cli:sse_main"
+
+[tool.uv]
+package = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["docs_server"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
