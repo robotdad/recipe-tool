@@ -36,9 +36,11 @@ class Settings(BaseSettings):
     # Example recipes with context
     example_recipes: List[ExampleRecipe] = [
         ExampleRecipe(
-            name="Simple Test Recipe",
-            path="../../recipes/example_simple/test_recipe.json",
-            context_vars={},
+            name="Generate Code from Spec File (Hello World Demo)",
+            path="../../recipes/example_simple/code_from_spec_recipe.json",
+            context_vars={
+                "spec_file": "recipes/example_simple/specs/hello-world-spec.txt",
+            },
         ),
         ExampleRecipe(
             name="Demo Quarterly Report",

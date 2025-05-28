@@ -5,8 +5,39 @@
 **Search:** ['mcp-servers/python-code-tools']
 **Exclude:** ['.venv', 'node_modules', '*.lock', '.git', '__pycache__', '*.pyc', '*.ruff_cache', 'logs', 'output']
 **Include:** []
-**Date:** 5/23/2025, 2:21:18 PM
-**Files:** 25
+**Date:** 5/27/2025, 2:32:39 PM
+**Files:** 33
+
+=== File: mcp-servers/python-code-tools/.pytest_cache/.gitignore ===
+# Created by pytest automatically.
+*
+
+
+=== File: mcp-servers/python-code-tools/.pytest_cache/CACHEDIR.TAG ===
+Signature: 8a477f597d28d172789f06886806bc55
+# This file is a cache directory tag created by pytest.
+# For information about cache directory tags, see:
+#	https://bford.info/cachedir/spec.html
+
+
+=== File: mcp-servers/python-code-tools/.pytest_cache/README.md ===
+# pytest cache directory #
+
+This directory contains data from the pytest's cache plugin,
+which provides the `--lf` and `--ff` options, as well as the `cache` fixture.
+
+**Do not** commit this to version control.
+
+See [the docs](https://docs.pytest.org/en/stable/how-to/cache.html) for more information.
+
+
+=== File: mcp-servers/python-code-tools/.pytest_cache/v/cache/nodeids ===
+[
+  "tests/test_placeholder.py::test_placeholder"
+]
+
+=== File: mcp-servers/python-code-tools/.pytest_cache/v/cache/stepwise ===
+[]
 
 === File: mcp-servers/python-code-tools/.ruff.toml ===
 line-length = 120
@@ -23,402 +54,38 @@ include $(repo_root)/tools/makefiles/python.mk
 
 
 === File: mcp-servers/python-code-tools/README.md ===
-# Python Code Tools MCP Server
+# 🌐 Python Code Tools MCP
 
-This project implements a Model Context Protocol (MCP) server that provides code quality and maintenance tools for Python projects. It allows AI assistants and other MCP clients to perform code linting and fixing operations on both individual Python code snippets and entire project directories.
+MCP server providing Python code quality tools (Ruff linting/fixing) for AI assistants.
 
-## Features
-
-- **Code Linting with Auto-fix**: Uses Ruff, a fast Python linter written in Rust, to identify issues and automatically fix them where possible
-- **Project-level Linting**: Analyze and fix code issues across entire Python projects or specific directories
-- **Generic architecture** allows for easily swapping underlying tools in the future
-- **Support for multiple transports**:
-  - **stdio**: For direct subprocess communication
-  - **SSE**: For HTTP-based communication
-- **Convenient command-line interface** with dedicated scripts for each transport
-- **Integration with AI assistants** like Claude and other MCP clients
-
-## Requirements
-
-- Python 3.10+
-- MCP Python SDK (`pip install mcp>=1.6.0`)
-- Ruff (`pip install ruff>=0.1.0`)
-
-## Installation
-
-### Using UV (Recommended)
-
-1. Clone this repository
-2. Create and activate a virtual environment:
+## Quick Start
 
 ```bash
-# Create the virtual environment
-uv venv
-
-# Activate it (Unix/macOS)
-source .venv/bin/activate
-# Or on Windows
-.venv\Scripts\activate
+make install                            # From workspace root
+python-code-tools stdio                # stdio transport
+python-code-tools sse --port 3001      # SSE transport
 ```
 
-3. Install the package in development mode:
+## Tools
 
-```bash
-uv pip install -e .
-```
+- `lint_code` - Lint and fix Python code snippets
+- `lint_project` - Lint and fix entire Python projects
 
-### Using pip
-
-```bash
-pip install -e .
-```
-
-## Usage
-
-### Command Line
-
-The server provides several convenient entry points:
-
-#### General Command
-
-```bash
-# Start with stdio transport
-python-code-tools stdio
-
-# Start with SSE transport
-python-code-tools sse --host localhost --port 3001
-```
-
-#### Transport-Specific Commands
-
-```bash
-# Start with stdio transport
-python-code-tools-stdio
-
-# Start with SSE transport (with optional host/port args)
-python-code-tools-sse
-# or with custom host and port
-python-code-tools-sse --host 0.0.0.0 --port 5000
-```
-
-### As a Python Module
-
-```bash
-# Using stdio transport
-python -m python_code_tools stdio
-
-# Using SSE transport
-python -m python_code_tools sse --host localhost --port 3001
-```
-
-## Using with MCP Clients
-
-See the [examples directory](./examples/README.md) for detailed examples of using the Python Code Tools MCP server with different clients and tools.
-
-## Available Tools
-
-### `lint_code`
-
-Lints a Python code snippet and automatically fixes issues when possible.
-
-**Parameters**:
-
-- `code` (string, required): The Python code to lint
-- `fix` (boolean, optional): Whether to automatically fix issues when possible (default: true)
-- `config` (object, optional): Optional configuration settings for the linter
-
-**Returns**:
-
-- `fixed_code` (string): The code after linting and fixing
-- `issues` (list): List of issues found in the code
-- `fixed_count` (integer): Number of issues that were automatically fixed
-- `remaining_count` (integer): Number of issues that could not be fixed
-
-### `lint_project`
-
-Lints a Python project directory and automatically fixes issues when possible.
-
-**Parameters**:
-
-- `project_path` (string, required): Path to the project directory to lint
-- `file_patterns` (array of strings, optional): List of file patterns to include (e.g., `["*.py", "src/**/*.py"]`)
-- `fix` (boolean, optional): Whether to automatically fix issues when possible (default: true)
-- `config` (object, optional): Optional configuration settings for the linter
-
-**Returns**:
-
-- `issues` (array): List of issues found in the code
-- `fixed_count` (integer): Number of issues that were automatically fixed
-- `remaining_count` (integer): Number of issues that could not be fixed
-- `modified_files` (array): List of files that were modified by the auto-fix
-- `project_path` (string): The path to the project that was linted
-- `has_ruff_config` (boolean): Whether the project has a ruff configuration file
-- `files_summary` (object): Summary of issues grouped by file
-
-## Extending the Server
-
-### Adding New Linters
-
-The server is designed to be extended with additional linters. To add a new linter:
-
-1. Create a new class that extends the appropriate base class (`CodeLinter` or `ProjectLinter`) in a new file under `python_code_tools/linters/`
-2. Implement the required methods (`lint_code()` or `lint_project()`)
-3. Update the `create_mcp_server()` function in `server.py` to use your new linter
-
-Example for a hypothetical alternative code linter:
-
-```python
-# python_code_tools/linters/alt_linter.py
-from python_code_tools.linters.base import CodeLinter, CodeLintResult
-
-class AltLinter(CodeLinter):
-    """An alternative linter implementation."""
-
-    def __init__(self, **kwargs):
-        super().__init__(name="alt-linter", **kwargs)
-
-    async def lint_code(self, code, fix=True, config=None):
-        # Implement the linting logic using your tool of choice
-        # ...
-        return CodeLintResult(
-            fixed_code=fixed_code,
-            issues=issues,
-            fixed_count=fixed_count,
-            remaining_count=remaining_count
-        )
-```
-
-Example for a hypothetical alternative project linter:
-
-```python
-# python_code_tools/linters/alt_project_linter.py
-from python_code_tools.linters.base import ProjectLinter, ProjectLintResult
-
-class AltProjectLinter(ProjectLinter):
-    """An alternative project linter implementation."""
-
-    def __init__(self, **kwargs):
-        super().__init__(name="alt-project-linter", **kwargs)
-
-    async def lint_project(self, project_path, file_patterns=None, fix=True, config=None):
-        # Implement the project linting logic using your tool of choice
-        # ...
-        return ProjectLintResult(
-            issues=issues,
-            fixed_count=fixed_count,
-            remaining_count=remaining_count,
-            modified_files=modified_files,
-            project_path=project_path,
-            has_ruff_config=has_config,
-            files_summary=files_summary
-        )
-```
-
-### Adding New Tool Types
-
-To add entirely new tool types beyond linting:
-
-1. Implement the tool logic in an appropriate module
-2. Add a new function to the `create_mcp_server()` function in `server.py`
-3. Register it with the `@mcp.tool()` decorator
+See the [main README](../../README.md) for setup and transport options.
 
 
 === File: mcp-servers/python-code-tools/examples/README.md ===
 # Python Code Tools Examples
 
-This directory contains example code demonstrating how to use the Python Code Tools MCP server with different clients and tools.
+Example code demonstrating MCP server usage with different clients.
 
-## Example Files
+## Files
 
-### Code Linting Examples
+- **stdio_client_example.py** - pydantic-ai agent usage
+- **direct_mcp_client_example.py** - Direct MCP client usage  
+- **project_linting_example.py** - Project-level linting examples
 
-- **stdio_client_example.py**: Shows how to use the `lint_code` tool with pydantic-ai's Agent class via stdio transport
-- **direct_mcp_client_example.py**: Shows how to use the `lint_code` tool with a direct MCP client via stdio transport
-
-### Project Linting Examples
-
-- **project_linting_example.py**: Shows how to use the `lint_project` tool with pydantic-ai's Agent class
-- **direct_project_linting_example.py**: Shows how to use the `lint_project` tool with a direct MCP client
-
-## Usage Examples
-
-### Linting a Code Snippet
-
-Using pydantic-ai:
-
-````python
-from pydantic_ai import Agent
-from pydantic_ai.mcp import MCPServerStdio
-
-# Sample Python code with some issues
-SAMPLE_CODE = """
-import sys
-import os
-import time  # unused import
-
-def calculate_sum(a, b):
-    result = a + b
-    return result
-
-# Line too long - will be flagged by ruff
-long_text = "This is a very long line of text that exceeds the default line length limit in most Python style guides"
-"""
-
-async def main():
-    # Set up the MCP server as a subprocess
-    server = MCPServerStdio("python", args=["-m", "python_code_tools", "stdio"])
-
-    # Create an agent with the MCP server
-    agent = Agent("claude-3-7-sonnet-latest", mcp_servers=[server])
-
-    # Use the MCP server in a conversation
-    async with agent.run_mcp_servers():
-        result = await agent.run(
-            f"""
-            Please analyze this Python code using the lint_code tool:
-
-            ```python
-            {SAMPLE_CODE}
-            ```
-
-            Explain what issues were found and what was fixed.
-            """
-        )
-
-        print(result.output)
-
-if __name__ == "__main__":
-    asyncio.run(main())
-````
-
-Using a direct MCP client:
-
-```python
-from mcp import ClientSession, StdioServerParameters
-from mcp.client.stdio import stdio_client
-
-# Sample code with issues
-SAMPLE_CODE = """
-import os
-import time  # unused import
-
-unused_var = 10
-"""
-
-async def main():
-    # Create parameters for the stdio connection
-    server_params = StdioServerParameters(
-        command="python",
-        args=["-m", "python_code_tools", "stdio"],
-        env=dict(os.environ)
-    )
-
-    # Connect to the MCP server
-    async with stdio_client(server_params) as (read, write):
-        # Create a client session
-        async with ClientSession(read, write) as session:
-            # Initialize the session
-            await session.initialize()
-
-            # Call the lint_code tool
-            result = await session.call_tool(
-                "lint_code",
-                {
-                    "code": SAMPLE_CODE,
-                    "fix": True
-                }
-            )
-
-            # Process the result
-            if result.content and len(result.content) > 0:
-                first_content = result.content[0]
-                if hasattr(first_content, "type") and first_content.type == "text":
-                    lint_result = json.loads(first_content.text)
-                    print(f"Fixed code:\n{lint_result['fixed_code']}")
-```
-
-### Linting a Project
-
-Using pydantic-ai:
-
-````python
-from pydantic_ai import Agent
-from pydantic_ai.mcp import MCPServerStdio
-
-async def main():
-    # Set up the MCP server as a subprocess
-    server = MCPServerStdio("python", args=["-m", "python_code_tools", "stdio"])
-
-    # Create an agent with the MCP server
-    agent = Agent("claude-3-7-sonnet-latest", mcp_servers=[server])
-
-    # Use the MCP server in a conversation
-    async with agent.run_mcp_servers():
-        result = await agent.run(
-            """
-            Please analyze the Python code in the project directory "/path/to/your/project"
-            using the lint_project tool. Focus on the src directory with this command:
-
-            ```
-            lint_project(
-                project_path="/path/to/your/project",
-                file_patterns=["src/**/*.py"],
-                fix=True
-            )
-            ```
-
-            Explain what issues were found and what was fixed.
-            """
-        )
-
-        print(result.output)
-````
-
-Using a direct MCP client:
-
-```python
-from mcp import ClientSession, StdioServerParameters
-from mcp.client.stdio import stdio_client
-
-async def main():
-    # Create parameters for the stdio connection
-    server_params = StdioServerParameters(
-        command="python",
-        args=["-m", "python_code_tools", "stdio"],
-        env=dict(os.environ)
-    )
-
-    # Connect to the MCP server
-    async with stdio_client(server_params) as (read, write):
-        # Create a client session
-        async with ClientSession(read, write) as session:
-            # Initialize the session
-            await session.initialize()
-
-            # Call the lint_project tool
-            result = await session.call_tool(
-                "lint_project",
-                {
-                    "project_path": "/path/to/your/project",
-                    "file_patterns": ["**/*.py"],
-                    "fix": True
-                }
-            )
-
-            # Process the result
-            lint_result = json.loads(result.content[0].text)
-            print(f"Issues found: {len(lint_result['issues'])}")
-            print(f"Fixed issues: {lint_result['fixed_count']}")
-```
-
-## Additional Examples
-
-Check the individual example files for more detailed usage patterns, including:
-
-- Error handling
-- Processing and displaying results
-- Configuring tool parameters
-- Working with different transport options
+Run examples directly to see MCP server integration patterns.
 
 
 === File: mcp-servers/python-code-tools/examples/direct_mcp_client_example.py ===
@@ -882,6 +549,9 @@ build-backend = "hatchling.build"
   "extraPaths": ["./"],
   "typeCheckingMode": "basic"
 }
+
+
+=== File: mcp-servers/python-code-tools/pytest.log ===
 
 
 === File: mcp-servers/python-code-tools/python_code_tools/__init__.py ===
@@ -2272,4 +1942,14 @@ def cleanup_temp_file(temp_file: IO[Any], file_path: Path) -> None:
     if os.path.exists(file_path):
         os.unlink(file_path)
 
+
+=== File: mcp-servers/python-code-tools/tests/__init__.py ===
+# Test package for python-code-tools MCP server
+
+=== File: mcp-servers/python-code-tools/tests/test_placeholder.py ===
+"""Placeholder test to prevent 'no tests ran' error."""
+
+def test_placeholder():
+    """Placeholder test - replace with actual tests."""
+    assert True
 
