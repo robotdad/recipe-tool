@@ -36,7 +36,7 @@ def test_section_serialization():
     assert "prompt" in d1
     assert "refs" in d1
     assert "resource_key" not in d1
-    
+
     # Test resource-based section
     s2 = Section(title="Resource Section", resource_key="key1")
     d2 = s2.to_dict()
@@ -51,8 +51,8 @@ def test_outline_validation():
         title="Test",
         general_instruction="Instructions",
         resources=[Resource("key1", "/path", "desc", "concat")],
-        sections=[Section("Section 1", prompt="Generate")]
+        sections=[Section("Section 1", prompt="Generate")],
     )
-    
+
     # Should not raise
     validate_outline(outline.to_dict())
