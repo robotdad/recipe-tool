@@ -24,9 +24,9 @@ class DocumentLoader:
         """Check if a file should be included based on patterns."""
         # For URLs, extract just the filename part
         path_str = str(path)
-        if path_str.startswith(('http://', 'https://')):
+        if path_str.startswith(("http://", "https://")):
             # Get the last part of the URL as the filename
-            name = path_str.split('/')[-1]
+            name = path_str.split("/")[-1]
         else:
             name = path.name
 
@@ -70,16 +70,16 @@ class DocumentLoader:
 
             for doc_path in self.settings.doc_paths:
                 # Handle URLs (which are kept as strings)
-                if isinstance(doc_path, str) and doc_path.startswith(('http://', 'https://')):
+                if isinstance(doc_path, str) and doc_path.startswith(("http://", "https://")):
                     path_str = doc_path
                     # Check if URL matches include patterns (based on filename)
-                    url_filename = path_str.split('/')[-1]
+                    url_filename = path_str.split("/")[-1]
                     include = False
                     for pattern in self.settings.include_patterns:
                         if fnmatch.fnmatch(url_filename, pattern):
                             include = True
                             break
-                    
+
                     if include:
                         # Pre-fetch URL content to ensure it's available
                         print(f"Fetching URL: {path_str}")
@@ -111,11 +111,11 @@ class DocumentLoader:
     async def load_file(self, file_path: Union[Path, str]) -> Optional[str]:
         """Load a documentation file or URL with caching."""
         path_str = str(file_path)
-        
+
         # Check if it's a URL
-        if path_str.startswith(('http://', 'https://')):
+        if path_str.startswith(("http://", "https://")):
             return await self._load_url(path_str)
-        
+
         file_path = Path(file_path).resolve()
 
         # Check cache
@@ -169,18 +169,18 @@ class DocumentLoader:
             content, cached_time = self._cache[url]
             if datetime.now() - cached_time < timedelta(seconds=self.settings.cache_ttl):
                 return content
-        
+
         # Fetch URL
         try:
             async with httpx.AsyncClient() as client:
                 response = await client.get(url, timeout=30.0, follow_redirects=True)
                 response.raise_for_status()
                 content = response.text
-                
+
             # Update cache
             if self.settings.enable_cache:
                 self._cache[url] = (content, datetime.now())
-                
+
             return content
         except Exception as e:
             print(f"Error fetching URL {url}: {type(e).__name__}: {str(e)}")

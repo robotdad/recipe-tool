@@ -5,7 +5,6 @@ Defines Resource, Section, and Outline dataclasses with serialization utilities.
 
 from dataclasses import dataclass, field, asdict
 from typing import List, Optional, Dict, Any
-import json
 from jsonschema import validate
 
 
@@ -25,11 +24,11 @@ class Section:
     resource_key: Optional[str] = None
     sections: List["Section"] = field(default_factory=list)
     _mode: Optional[str] = field(default=None, init=False, repr=False)  # Internal mode tracking
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dict, excluding None values and empty refs to match schema."""
         result = {"title": self.title}
-        
+
         # Use mode to determine which fields to include
         if self._mode == "Static" and self.resource_key is not None:
             result["resource_key"] = self.resource_key
@@ -39,10 +38,10 @@ class Section:
                 result["prompt"] = self.prompt
             if self.refs:  # Only include refs if not empty
                 result["refs"] = self.refs
-        
+
         # Always include sections array (even if empty)
         result["sections"] = [s.to_dict() for s in self.sections]
-        
+
         return result
 
 
@@ -75,7 +74,7 @@ class Outline:
             "title": self.title,
             "general_instruction": self.general_instruction,
             "resources": [asdict(r) for r in self.resources],
-            "sections": [s.to_dict() for s in self.sections]
+            "sections": [s.to_dict() for s in self.sections],
         }
 
     @classmethod
@@ -115,16 +114,13 @@ OUTLINE_SCHEMA = {
                     "key": {"type": "string"},
                     "path": {"type": "string"},
                     "description": {"type": "string"},
-                    "merge_mode": {"type": "string", "enum": ["concat", "dict"]}
+                    "merge_mode": {"type": "string", "enum": ["concat", "dict"]},
                 },
                 "required": ["key", "path", "description"],
-                "additionalProperties": False
-            }
+                "additionalProperties": False,
+            },
         },
-        "sections": {
-            "type": "array",
-            "items": {"$ref": "#/definitions/section"}
-        }
+        "sections": {"type": "array", "items": {"$ref": "#/definitions/section"}},
     },
     "definitions": {
         "section": {
@@ -134,18 +130,15 @@ OUTLINE_SCHEMA = {
                 "prompt": {"type": "string"},
                 "refs": {"type": "array", "items": {"type": "string"}},
                 "resource_key": {"type": "string"},
-                "sections": {"type": "array", "items": {"$ref": "#/definitions/section"}}
+                "sections": {"type": "array", "items": {"$ref": "#/definitions/section"}},
             },
             "required": ["title"],
-            "oneOf": [
-                {"required": ["prompt"]},
-                {"required": ["resource_key"]}
-            ],
-            "additionalProperties": False
+            "oneOf": [{"required": ["prompt"]}, {"required": ["resource_key"]}],
+            "additionalProperties": False,
         }
     },
     "required": ["title", "general_instruction", "resources", "sections"],
-    "additionalProperties": False
+    "additionalProperties": False,
 }
 
 

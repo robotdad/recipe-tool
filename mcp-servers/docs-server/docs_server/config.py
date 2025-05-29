@@ -21,16 +21,16 @@ class DocsServerSettings(BaseSettings):
         default_factory=lambda: [Path(".")],
         description="List of paths to documentation files/directories or URLs",
     )
-    
-    @field_validator('doc_paths', mode='before')
+
+    @field_validator("doc_paths", mode="before")
     def validate_doc_paths(cls, v):
         """Convert doc_paths to appropriate types."""
         if not isinstance(v, list):
             v = [v]
-        
+
         result = []
         for item in v:
-            if isinstance(item, str) and item.startswith(('http://', 'https://')):
+            if isinstance(item, str) and item.startswith(("http://", "https://")):
                 # Keep URLs as strings
                 result.append(item)
             else:
