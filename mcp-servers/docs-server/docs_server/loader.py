@@ -3,7 +3,7 @@
 import fnmatch
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
 import aiofiles
 import httpx
@@ -17,12 +17,18 @@ class DocumentLoader:
     def __init__(self, settings: DocsServerSettings):
         self.settings = settings
         self._cache: Dict[str, tuple[str, datetime]] = {}
-        self._file_index: Optional[List[Path]] = None
+        self._file_index: Optional[List[Union[Path, str]]] = None
         self._index_time: Optional[datetime] = None
 
     def _should_include(self, path: Path) -> bool:
         """Check if a file should be included based on patterns."""
-        name = path.name
+        # For URLs, extract just the filename part
+        path_str = str(path)
+        if path_str.startswith(('http://', 'https://')):
+            # Get the last part of the URL as the filename
+            name = path_str.split('/')[-1]
+        else:
+            name = path.name
 
         # Check exclude patterns first
         for pattern in self.settings.exclude_patterns:
@@ -52,7 +58,7 @@ class DocumentLoader:
 
         return files
 
-    async def get_file_index(self) -> List[Path]:
+    async def get_file_index(self) -> List[Union[Path, str]]:
         """Get an index of all available documentation files and URLs."""
         # Check if we need to refresh the index
         if (
@@ -63,29 +69,46 @@ class DocumentLoader:
             files = []
 
             for doc_path in self.settings.doc_paths:
-                path_str = str(doc_path)
-                
-                # Handle URLs
-                if path_str.startswith(('http://', 'https://')):
-                    # Pre-fetch URL content to ensure it's available
-                    content = await self._load_url(path_str)
-                    if content:
-                        # Add URL to index as a "virtual path"
-                        files.append(Path(path_str))
+                # Handle URLs (which are kept as strings)
+                if isinstance(doc_path, str) and doc_path.startswith(('http://', 'https://')):
+                    path_str = doc_path
+                    # Check if URL matches include patterns (based on filename)
+                    url_filename = path_str.split('/')[-1]
+                    include = False
+                    for pattern in self.settings.include_patterns:
+                        if fnmatch.fnmatch(url_filename, pattern):
+                            include = True
+                            break
+                    
+                    if include:
+                        # Pre-fetch URL content to ensure it's available
+                        print(f"Fetching URL: {path_str}")
+                        content = await self._load_url(path_str)
+                        if content:
+                            # Add URL to index as a string
+                            files.append(path_str)
+                            print(f"Successfully indexed URL: {path_str}")
+                        else:
+                            # Log failed URL fetch
+                            print(f"Warning: Failed to fetch URL: {path_str}")
                 else:
-                    path = Path(path_str).resolve()
+                    # Handle Path objects
+                    path = doc_path if isinstance(doc_path, Path) else Path(doc_path)
+                    path = path.resolve()
 
                     if path.is_file() and self._should_include(path):
                         files.append(path)
                     elif path.is_dir():
                         files.extend(await self._scan_directory(path))
 
-            self._file_index = sorted(set(files))
+            # Sort with mixed types (strings and Path objects)
+            unique_files = list(set(files))
+            self._file_index = sorted(unique_files, key=lambda x: str(x))
             self._index_time = datetime.now()
 
         return self._file_index
 
-    async def load_file(self, file_path: Path) -> Optional[str]:
+    async def load_file(self, file_path: Union[Path, str]) -> Optional[str]:
         """Load a documentation file or URL with caching."""
         path_str = str(file_path)
         
@@ -114,7 +137,7 @@ class DocumentLoader:
         except Exception:
             return None
 
-    async def search_files(self, query: str) -> List[tuple[Path, str]]:
+    async def search_files(self, query: str) -> List[tuple[Union[Path, str], str]]:
         """Search for files containing the query string."""
         query_lower = query.lower()
         results = []
@@ -150,7 +173,7 @@ class DocumentLoader:
         # Fetch URL
         try:
             async with httpx.AsyncClient() as client:
-                response = await client.get(url, timeout=30.0)
+                response = await client.get(url, timeout=30.0, follow_redirects=True)
                 response.raise_for_status()
                 content = response.text
                 
@@ -159,7 +182,8 @@ class DocumentLoader:
                 self._cache[url] = (content, datetime.now())
                 
             return content
-        except Exception:
+        except Exception as e:
+            print(f"Error fetching URL {url}: {type(e).__name__}: {str(e)}")
             return None
 
     def clear_cache(self):

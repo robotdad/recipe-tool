@@ -2,7 +2,7 @@
   "doc_paths": [
     "../../ai_context/generated",
     "../../README.md",
-    "https://raw.githubusercontent.com/pydantic/pydantic/main/README.md"
+    "https://raw.githubusercontent.com/microsoft/recipe-tool/refs/heads/main/ai_context/git_collector/LIQUID_PYTHON_DOCS.md"
   ],
   "include_patterns": ["*.md"],
   "exclude_patterns": [".*"],

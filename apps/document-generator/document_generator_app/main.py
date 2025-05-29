@@ -2,7 +2,7 @@
 Main entrypoint for the Document Generator App UI.
 """
 
-from document_generator_app.ui.layout import build_editor
+from document_generator_app.ui import build_editor
 
 
 def main() -> None:

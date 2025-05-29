@@ -1,9 +1,9 @@
 """Configuration for the documentation server."""
 
 from pathlib import Path
-from typing import List
+from typing import List, Union
 
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -16,11 +16,27 @@ class DocsServerSettings(BaseSettings):
         extra="ignore",
     )
 
-    # Paths to documentation files
-    doc_paths: List[Path] = Field(
+    # Paths to documentation files or URLs
+    doc_paths: List[Union[Path, str]] = Field(
         default_factory=lambda: [Path(".")],
-        description="List of paths to documentation files or directories",
+        description="List of paths to documentation files/directories or URLs",
     )
+    
+    @field_validator('doc_paths', mode='before')
+    def validate_doc_paths(cls, v):
+        """Convert doc_paths to appropriate types."""
+        if not isinstance(v, list):
+            v = [v]
+        
+        result = []
+        for item in v:
+            if isinstance(item, str) and item.startswith(('http://', 'https://')):
+                # Keep URLs as strings
+                result.append(item)
+            else:
+                # Convert file paths to Path objects
+                result.append(Path(item))
+        return result
 
     # File patterns to include
     include_patterns: List[str] = Field(

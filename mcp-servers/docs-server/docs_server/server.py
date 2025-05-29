@@ -1,7 +1,7 @@
 """MCP server implementation for documentation."""
 
 from pathlib import Path
-from typing import List
+from typing import List, Union
 
 from mcp.server.fastmcp import FastMCP
 
@@ -20,52 +20,46 @@ def create_docs_server(settings: DocsServerSettings) -> FastMCP:
         List all available documentation files.
 
         Returns:
-            List of file paths relative to the configured documentation roots.
+            List of file paths as configured (e.g., '../../ai_context/generated/file.md').
         """
         files = await loader.get_file_index()
 
-        # Convert to relative paths for cleaner display
         result = []
         for file_path in files:
-            path_str = str(file_path)
-            
-            # URLs should be displayed as-is
-            if path_str.startswith(('http://', 'https://')):
-                result.append(path_str)
+            # URLs are stored as strings, return as-is
+            if isinstance(file_path, str):
+                result.append(file_path)
             else:
-                # Check if this file IS one of the doc_paths
+                # For files, find which doc_path it belongs to and show relative to that
                 found = False
                 for doc_path in settings.doc_paths:
-                    doc_path_str = str(doc_path)
-                    if not doc_path_str.startswith(('http://', 'https://')):
-                        doc_path_resolved = Path(doc_path).resolve()
-                        if doc_path_resolved == file_path:
-                            # This file IS a doc_path - show parent/filename
-                            if file_path.parent != Path("/"):
-                                result.append(f"{file_path.parent.name}/{file_path.name}")
-                            else:
-                                result.append(file_path.name)
-                            found = True
-                            break
+                    if isinstance(doc_path, str) and doc_path.startswith(('http://', 'https://')):
+                        continue
+                    
+                    doc_path_obj = doc_path if isinstance(doc_path, Path) else Path(doc_path)
+                    try:
+                        # Check if this file is under this doc_path
+                        rel_path = file_path.relative_to(doc_path_obj.resolve())
+                        # Return it as configured doc_path + relative path
+                        result.append(str(doc_path / rel_path))
+                        found = True
+                        break
+                    except ValueError:
+                        continue
                 
                 if not found:
-                    # Try to make path relative to one of the doc roots
+                    # If file is the doc_path itself, return as configured
                     for doc_path in settings.doc_paths:
-                        doc_path_str = str(doc_path)
-                        # Skip URL doc_paths when making relative paths
-                        if doc_path_str.startswith(('http://', 'https://')):
+                        if isinstance(doc_path, str) and doc_path.startswith(('http://', 'https://')):
                             continue
-                        try:
-                            rel_path = file_path.relative_to(Path(doc_path).resolve())
-                            rel_path_str = str(rel_path)
-                            result.append(rel_path_str)
+                        doc_path_obj = doc_path if isinstance(doc_path, Path) else Path(doc_path)
+                        if doc_path_obj.resolve() == file_path:
+                            result.append(str(doc_path))
                             found = True
                             break
-                        except ValueError:
-                            pass
                     
                     if not found:
-                        # If not relative to any doc root, use absolute path
+                        # Fallback to absolute path
                         result.append(str(file_path))
 
         return result
@@ -81,22 +75,79 @@ def create_docs_server(settings: DocsServerSettings) -> FastMCP:
         Returns:
             The contents of the file, or an error message if the file cannot be read.
         """
-        # Try to resolve the path
-        path = Path(file_path)
-
-        if not path.is_absolute():
-            # Try to find the file relative to doc roots
+        # Check if it's a URL first
+        if file_path.startswith(('http://', 'https://')):
+            # Validate URL is in our index
+            files = await loader.get_file_index()
+            if file_path not in [f for f in files if isinstance(f, str)]:
+                return f"Error: URL '{file_path}' not found in documentation index"
+            content = await loader.load_file(file_path)
+        else:
+            # For file paths, resolve based on our doc_paths
+            resolved_path = None
+            
+            # First check if it matches any doc_path exactly
             for doc_path in settings.doc_paths:
-                candidate = Path(doc_path) / file_path
-                if candidate.exists():
-                    path = candidate
+                if isinstance(doc_path, str) and doc_path.startswith(('http://', 'https://')):
+                    continue
+                if str(doc_path) == file_path:
+                    resolved_path = Path(doc_path).resolve()
                     break
-
-        content = await loader.load_file(path)
-
+            
+            # Then check if it's a path under a doc_path
+            if not resolved_path:
+                path_obj = Path(file_path)
+                if path_obj.is_absolute():
+                    # Absolute path - validate it's in our index
+                    files = await loader.get_file_index()
+                    for f in files:
+                        if isinstance(f, Path) and f == path_obj:
+                            resolved_path = f
+                            break
+                else:
+                    # Relative path - could be relative to current dir or a doc_path
+                    # First try as-is
+                    candidate = path_obj.resolve()
+                    if candidate.exists():
+                        files = await loader.get_file_index()
+                        for f in files:
+                            if isinstance(f, Path) and f == candidate:
+                                resolved_path = candidate
+                                break
+                    
+                    # If not found, try relative to each doc_path
+                    if not resolved_path:
+                        for doc_path in settings.doc_paths:
+                            if isinstance(doc_path, str) and doc_path.startswith(('http://', 'https://')):
+                                continue
+                            doc_path_obj = doc_path if isinstance(doc_path, Path) else Path(doc_path)
+                            # For paths like ../../ai_context/generated/file.md
+                            # We need to resolve the doc_path first, then append the rest
+                            if str(file_path).startswith(str(doc_path)):
+                                # Extract the relative part after the doc_path
+                                rel_part = str(file_path)[len(str(doc_path)):].lstrip('/')
+                                if rel_part:
+                                    candidate = doc_path_obj.resolve() / rel_part
+                                else:
+                                    candidate = doc_path_obj.resolve()
+                                
+                                if candidate.exists():
+                                    files = await loader.get_file_index()
+                                    for f in files:
+                                        if isinstance(f, Path) and f == candidate:
+                                            resolved_path = candidate
+                                            break
+                                if resolved_path:
+                                    break
+            
+            if not resolved_path:
+                return f"Error: File '{file_path}' not found in documentation index"
+            
+            content = await loader.load_file(resolved_path)
+        
         if content is None:
             return f"Error: Could not read file '{file_path}'"
-
+        
         return content
 
     @mcp.tool()
@@ -119,41 +170,36 @@ def create_docs_server(settings: DocsServerSettings) -> FastMCP:
         # Format results
         formatted_results = []
         for file_path, snippet in results:
-            # Try to make path relative
-            display_path = str(file_path)
-            
-            # URLs should be displayed as-is
-            if not display_path.startswith(('http://', 'https://')):
-                # Check if this file IS one of the doc_paths
-                found = False
+            if isinstance(file_path, str):
+                # URL - return as-is
+                formatted_results.append({
+                    "file": file_path,
+                    "snippet": snippet.strip()
+                })
+            else:
+                # File - find its doc_path and show relative to that
+                display_path = str(file_path)  # fallback
                 for doc_path in settings.doc_paths:
-                    doc_path_str = str(doc_path)
-                    if not doc_path_str.startswith(('http://', 'https://')):
-                        doc_path_resolved = Path(doc_path).resolve()
-                        if doc_path_resolved == file_path:
-                            # This file IS a doc_path - show parent/filename
-                            if file_path.parent != Path("/"):
-                                display_path = f"{file_path.parent.name}/{file_path.name}"
-                            else:
-                                display_path = file_path.name
-                            found = True
+                    if isinstance(doc_path, str) and doc_path.startswith(('http://', 'https://')):
+                        continue
+                    
+                    doc_path_obj = doc_path if isinstance(doc_path, Path) else Path(doc_path)
+                    try:
+                        # Check if this file is under this doc_path
+                        rel_path = file_path.relative_to(doc_path_obj.resolve())
+                        # Return it as configured doc_path + relative path
+                        display_path = str(doc_path / rel_path)
+                        break
+                    except ValueError:
+                        # Check if it IS the doc_path
+                        if doc_path_obj.resolve() == file_path:
+                            display_path = str(doc_path)
                             break
                 
-                if not found:
-                    # Try to make path relative to one of the doc roots
-                    for doc_path in settings.doc_paths:
-                        doc_path_str = str(doc_path)
-                        # Skip URL doc_paths when making relative paths
-                        if doc_path_str.startswith(('http://', 'https://')):
-                            continue
-                        try:
-                            rel_path = file_path.relative_to(Path(doc_path).resolve())
-                            display_path = str(rel_path)
-                            break
-                        except ValueError:
-                            pass
-
-            formatted_results.append({"file": display_path, "snippet": snippet.strip()})
+                formatted_results.append({
+                    "file": display_path,
+                    "snippet": snippet.strip()
+                })
 
         return formatted_results
 
@@ -172,13 +218,27 @@ def create_docs_server(settings: DocsServerSettings) -> FastMCP:
         total_size = 0
 
         for file_path in files:
-            ext = file_path.suffix.lower()
-            extensions[ext] = extensions.get(ext, 0) + 1
+            # Handle both URLs (strings) and Path objects
+            if isinstance(file_path, str):
+                # For URLs, extract extension from the URL
+                if file_path.startswith(('http://', 'https://')):
+                    # Get the last part of the URL and extract extension
+                    filename = file_path.split('/')[-1]
+                    if '.' in filename:
+                        ext = '.' + filename.split('.')[-1].lower()
+                    else:
+                        ext = '.no-extension'
+                    extensions[ext] = extensions.get(ext, 0) + 1
+                    # Can't get size for URLs without fetching them
+            else:
+                # For Path objects
+                ext = file_path.suffix.lower() if file_path.suffix else '.no-extension'
+                extensions[ext] = extensions.get(ext, 0) + 1
 
-            try:
-                total_size += file_path.stat().st_size
-            except OSError:
-                pass
+                try:
+                    total_size += file_path.stat().st_size
+                except OSError:
+                    pass
 
         return {
             "total_files": len(files),

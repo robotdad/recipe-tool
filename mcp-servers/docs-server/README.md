@@ -95,7 +95,7 @@ The server provides the following tools:
 ### `list_docs`
 List all available documentation files.
 
-**Returns**: List of file paths relative to the configured documentation roots.
+**Returns**: List of file paths (absolute paths for local files, URLs as-is).
 
 ### `read_doc`
 Read the contents of a documentation file.
