@@ -316,6 +316,16 @@ def remove_selected(state: Dict[str, Any]) -> Dict[str, Any]:
 # ============================================================================
 
 
+def start_generation() -> List[Any]:
+    """Show generation start state."""
+    return [
+        gr.update(value="🔄 Generating document...", interactive=False),  # generate_btn
+        gr.update(value="⏳ Generating your document, please wait...", visible=True),  # generation_status
+        gr.update(visible=False),  # output_container
+        gr.update(visible=False),  # download_doc_btn
+    ]
+
+
 async def handle_generate(current_state: Dict[str, Any]) -> List[Any]:
     """Generate document from outline."""
     try:
@@ -329,6 +339,8 @@ async def handle_generate(current_state: Dict[str, Any]) -> List[Any]:
             f.write(content)
 
         return [
+            gr.update(value="Generate Document", interactive=True),  # generate_btn
+            gr.update(value="✅ Document generated successfully!", visible=True),  # generation_status
             gr.update(visible=True),  # output_container
             content,  # output_markdown
             gr.update(  # download_doc_btn
@@ -337,6 +349,8 @@ async def handle_generate(current_state: Dict[str, Any]) -> List[Any]:
         ]
     except Exception as e:
         return [
+            gr.update(value="Generate Document", interactive=True),  # generate_btn
+            gr.update(value=f"❌ Error: {str(e)}", visible=True),  # generation_status
             gr.update(visible=True),  # output_container
             f"Error generating document: {str(e)}",  # output_markdown
             gr.update(visible=False),  # download_doc_btn
@@ -351,10 +365,23 @@ async def handle_generate(current_state: Dict[str, Any]) -> List[Any]:
 def build_editor() -> gr.Blocks:
     """Create the main Gradio Blocks application."""
 
-    # CSS for vertical radio buttons
+    # CSS for vertical radio buttons and section backgrounds
     custom_css = """
     .radio-vertical .wrap {
         flex-direction: column;
+    }
+    .section-block {
+        background-color: var(--block-background-fill) !important;
+        padding: 16px !important;
+        margin: 8px 0 !important;
+        border-radius: var(--block-radius) !important;
+        border: 1px solid var(--block-border-color) !important;
+    }
+    .preview-block {
+        padding: 16px !important;
+        margin: 8px 0 !important;
+        border-radius: var(--block-radius) !important;
+        border: 1px solid var(--block-border-color) !important;
     }
     """
 
@@ -366,7 +393,10 @@ def build_editor() -> gr.Blocks:
 
         with gr.Row():
             # Left Column - Lists
-            with gr.Column(scale=2, min_width=300):
+            with gr.Column(scale=3, min_width=300):
+                # Upload button
+                upload_btn = gr.UploadButton("Upload Outline", file_types=[".json"], variant="secondary", size="sm")
+
                 # Document metadata
                 title = gr.Textbox(label="Document Title", placeholder="Enter your document title...")
                 instructions = gr.TextArea(
@@ -374,12 +404,8 @@ def build_editor() -> gr.Blocks:
                 )
 
                 # Resources section
-                with gr.Group():
+                with gr.Column(elem_classes="section-block"):
                     gr.Markdown("### Resources")
-                    with gr.Row():
-                        resource_add_btn = gr.Button("+ Add", size="sm")
-                        resource_remove_btn = gr.Button("- Remove", size="sm")
-
                     resource_radio = gr.Radio(
                         label=None,
                         choices=[],
@@ -387,19 +413,17 @@ def build_editor() -> gr.Blocks:
                         elem_id="resource_radio",
                         elem_classes=["radio-vertical"],
                     )
+                    with gr.Row():
+                        resource_add_btn = gr.Button("+ Add", size="sm")
+                        resource_remove_btn = gr.Button("- Remove", size="sm")
 
                 # Sections section
-                with gr.Group():
+                with gr.Column(elem_classes="section-block"):
                     gr.Markdown("### Sections")
                     gr.Markdown(
                         "*Note: Changing resource keys may require re-selecting sections that reference them*",
                         elem_classes=["markdown-small"],
                     )
-                    with gr.Row():
-                        section_add_btn = gr.Button("+ Add", size="sm")
-                        section_sub_btn = gr.Button("+ Sub", size="sm")
-                        section_remove_btn = gr.Button("- Remove", size="sm")
-
                     section_radio = gr.Radio(
                         label=None,
                         choices=[],
@@ -408,18 +432,13 @@ def build_editor() -> gr.Blocks:
                         elem_classes=["radio-vertical"],
                     )
 
-                # Upload button
-                upload_btn = gr.UploadButton("Upload Outline", file_types=[".json"], variant="secondary", size="sm")
-
-                # Live JSON preview
-                with gr.Accordion("JSON Preview", open=False):
-                    json_preview = gr.Code(label=None, language="json", interactive=False, lines=20)
-
-                # Validation message
-                validation_message = gr.Markdown(visible=False)
+                    with gr.Row():
+                        section_add_btn = gr.Button("+ Add", size="sm")
+                        section_sub_btn = gr.Button("+ Sub", size="sm")
+                        section_remove_btn = gr.Button("- Remove", size="sm")
 
             # Right Column - Editor
-            with gr.Column(scale=3, min_width=400):
+            with gr.Column(scale=2, min_width=300):
                 # Empty state
                 empty_state = gr.Markdown("### Select an item to edit", visible=True)
 
@@ -427,15 +446,24 @@ def build_editor() -> gr.Blocks:
                 resource_editor = create_resource_editor()
                 section_editor = create_section_editor()
 
+                # Validation message
+                validation_message = gr.Markdown(visible=False)
+
                 # Generation section
                 gr.Markdown("---")
                 generate_btn = gr.Button("Generate Document", variant="primary", interactive=False)
+                generation_status = gr.Markdown(visible=False)
 
-                # Output area
-                output_container = gr.Column(visible=False)
-                with output_container:
-                    output_markdown = gr.Markdown()
-                    download_doc_btn = gr.DownloadButton("Download Document", visible=False)
+                download_doc_btn = gr.DownloadButton("Download Document", visible=False)
+
+                # Live JSON preview
+                with gr.Accordion("JSON Preview", open=False):
+                    json_preview = gr.Code(label=None, language="json", interactive=False, wrap_lines=True, lines=20)
+
+        # Output area
+        output_container = gr.Column(visible=False, elem_classes="preview-block")
+        with output_container:
+            output_markdown = gr.Markdown()
 
         # ====================================================================
         # Event Handlers
@@ -992,7 +1020,12 @@ def build_editor() -> gr.Blocks:
 
         # Generate handler
         generate_btn.click(
-            handle_generate, inputs=[state], outputs=[output_container, output_markdown, download_doc_btn]
+            start_generation,
+            outputs=[generate_btn, generation_status, output_container, download_doc_btn]
+        ).then(
+            handle_generate,
+            inputs=[state],
+            outputs=[generate_btn, generation_status, output_container, output_markdown, download_doc_btn]
         )
 
         # Initial validation on load
