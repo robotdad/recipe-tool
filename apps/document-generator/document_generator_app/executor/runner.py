@@ -11,8 +11,6 @@ from recipe_executor.executor import Executor
 from recipe_executor.logger import init_logger
 
 from ..models.outline import Outline
-
-
 from typing import Optional
 
 

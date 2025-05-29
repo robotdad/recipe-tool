@@ -90,56 +90,56 @@ def build_context_files(force=False) -> None:
         # Collect files from mcp-servers/python-code-tools
         {
             "patterns": ["mcp-servers/python-code-tools"],
-            "output": f"{OUTPUT_DIR}/PYTHON_CODE_TOOLS_FILES.md",
+            "output": f"{OUTPUT_DIR}/PYTHON_CODE_TOOLS_MCP_CODE_FILES.md",
             "exclude": collect_files.DEFAULT_EXCLUDE,
             "include": [],
         },
         # Collect files from recipes/codebase_generator
         {
             "patterns": ["recipes/codebase_generator"],
-            "output": f"{OUTPUT_DIR}/CODEBASE_GENERATOR_FILES.md",
+            "output": f"{OUTPUT_DIR}/CODEBASE_GENERATOR_RECIPE_FILES.md",
             "exclude": collect_files.DEFAULT_EXCLUDE,
             "include": [],
         },
         # Collect files from recipes/document_generator
         {
             "patterns": ["recipes/document_generator"],
-            "output": f"{OUTPUT_DIR}/DOCUMENT_GENERATOR_FILES.md",
+            "output": f"{OUTPUT_DIR}/DOCUMENT_GENERATOR_RECIPE_FILES.md",
             "exclude": collect_files.DEFAULT_EXCLUDE,
             "include": [],
         },
         # Collect files from recipes/examples_*
         {
             "patterns": ["recipes/example_*"],
-            "output": f"{OUTPUT_DIR}/RECIPE_EXAMPLES_FILES.md",
+            "output": f"{OUTPUT_DIR}/EXAMPLES_RECIPE_FILES.md",
             "exclude": collect_files.DEFAULT_EXCLUDE,
             "include": [],
         },
         # Collect files from recipes/experimental/blueprint_generator_v4
         {
             "patterns": ["recipes/experimental/blueprint_generator_v4"],
-            "output": f"{OUTPUT_DIR}/BLUEPRINT_GENERATOR_V4_FILES.md",
+            "output": f"{OUTPUT_DIR}/BLUEPRINT_GENERATOR_V4_RECIPE_FILES.md",
             "exclude": collect_files.DEFAULT_EXCLUDE,
             "include": [],
         },
         # Collect files from apps/recipe-executor
         {
             "patterns": ["apps/recipe-executor/recipe_executor_app"],
-            "output": f"{OUTPUT_DIR}/RECIPE_EXECUTOR_APP_FILES.md",
+            "output": f"{OUTPUT_DIR}/RECIPE_EXECUTOR_APP_CODE_FILES.md",
             "exclude": collect_files.DEFAULT_EXCLUDE,
             "include": [],
         },
         # Collect files from apps/recipe-tool
         {
             "patterns": ["apps/recipe-tool/recipe_tool_app"],
-            "output": f"{OUTPUT_DIR}/RECIPE_TOOL_APP_FILES.md",
+            "output": f"{OUTPUT_DIR}/RECIPE_TOOL_APP_CODE_FILES.md",
             "exclude": collect_files.DEFAULT_EXCLUDE,
             "include": [],
         },
         # Collect files from apps/document-generator
         {
             "patterns": ["apps/document-generator/document_generator_app"],
-            "output": f"{OUTPUT_DIR}/DOCUMENT_GENERATOR_APP_FILES.md",
+            "output": f"{OUTPUT_DIR}/DOCUMENT_GENERATOR_APP_CODE_FILES.md",
             "exclude": collect_files.DEFAULT_EXCLUDE,
             "include": [],
         },
