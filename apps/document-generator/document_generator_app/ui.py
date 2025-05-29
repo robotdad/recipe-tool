@@ -1020,12 +1020,11 @@ def build_editor() -> gr.Blocks:
 
         # Generate handler
         generate_btn.click(
-            start_generation,
-            outputs=[generate_btn, generation_status, output_container, download_doc_btn]
+            start_generation, outputs=[generate_btn, generation_status, output_container, download_doc_btn]
         ).then(
             handle_generate,
             inputs=[state],
-            outputs=[generate_btn, generation_status, output_container, output_markdown, download_doc_btn]
+            outputs=[generate_btn, generation_status, output_container, output_markdown, download_doc_btn],
         )
 
         # Initial validation on load
