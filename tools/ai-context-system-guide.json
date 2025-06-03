@@ -14,8 +14,8 @@
     },
     {
       "key": "build_integration",
-      "path": "Makefile, tools/makefiles/python.mk, tools/makefiles/recursive.mk",
-      "description": "Build system integration showing how to incorporate AI context generation into project workflows."
+      "path": "Makefile",
+      "description": "Makefile target for AI context generation (ai-context-files target only, not general development commands)."
     },
     {
       "key": "philosophy_docs",
@@ -24,69 +24,39 @@
     },
     {
       "key": "project_structure",
-      "path": "ai_context/README.md, CLAUDE.md",
-      "description": "Project structure and usage patterns showing how the AI context system fits into the overall development workflow."
+      "path": "ai_context/README.md",
+      "description": "AI context directory structure and organization patterns (excluding general development workflow)."
     }
   ],
   "sections": [
     {
       "title": "Overview",
-      "prompt": "Based ONLY on the information in the provided resources, write an introduction that explains:\n- What an AI context generation system is and why it's valuable for large codebases\n- How it helps AI development tools understand project structure without scanning entire repositories\n- The key benefits: faster AI responses, consistent context, automated updates\n- A brief overview using ONLY the actual recipe-tool implementation details found in the resources\nDO NOT invent examples or file names. Use only what exists in the provided resource files. Keep this concise but compelling for developers considering implementation.",
+      "prompt": "Based ONLY on the provided resources, write a concise introduction explaining what an AI context generation system is, why it's valuable, and how the recipe-tool implementation works. Focus on AI context generation only, not general development workflow. DO NOT invent examples or file names - use only what exists in the resource files.",
       "refs": ["project_structure", "philosophy_docs"]
     },
     {
       "title": "What This System Does",
-      "prompt": "Using ONLY the implementation files and generated examples from the resources, explain the core functionality:\n- Automatically scans codebases using configurable patterns\n- Generates consolidated Markdown files with organized content\n- Handles binary files, encoding issues, and large repositories gracefully\n- Provides metadata about file counts, timestamps, and search patterns\n- Creates structured output that AI tools can easily consume\nInclude concrete examples ONLY from the actual generated files provided in the resources. Quote exact content and file names that exist in the resources.",
+      "prompt": "Using ONLY the implementation files and generated examples, explain what this system does and how it works. Show the core functionality with concrete examples from the actual generated files in the resources. Quote exact content and file names that exist.",
       "refs": ["implementation_files", "generated_examples"]
     },
     {
-      "title": "Core Components",
-      "prompt": "Based strictly on the implementation files provided in the resources, detail the three main implementation files that developers need to understand and copy:\n1. `collect_files.py` - describe using ONLY the actual code and comments from the resource file\n2. `build_ai_context_files.py` - describe using ONLY the actual code and comments from the resource file\n3. `build_git_collector_files.py` - describe using ONLY the actual code and comments from the resource file\nFor each component, explain its purpose and key features using ONLY information directly found in the provided resource files. Do not invent functionality or examples.",
-      "refs": ["implementation_files", "project_structure"]
-    },
-    {
       "title": "Implementation Steps",
-      "prompt": "Using ONLY the patterns and examples found in the provided resource files, provide a step-by-step guide for implementing this system in a new project:\n1. Copy the core files from recipe-tool\n2. Customize the tasks list in build_ai_context_files.py using ONLY the actual task configurations shown in the resource files\n3. Add build system integration using ONLY the Makefile patterns and shell examples found in the build_integration resources\n4. Test and iterate on the configuration\nInclude specific examples of customization based ONLY on the actual configurations and patterns found in the provided resource files. Do not create hypothetical project examples.",
+      "prompt": "Using ONLY the patterns from the resource files, provide essential implementation steps: copy the core files, customize the tasks list, add AI context build integration, and test. Focus ONLY on AI context generation setup, not general development workflow. Include specific examples based ONLY on the actual configurations found in the resources.",
       "refs": ["implementation_files", "build_integration", "project_structure"]
     },
     {
       "title": "Configuration and Customization",
-      "prompt": "Using ONLY the information from the provided resource files, show how to customize the system:\n- Task configuration format with patterns, output paths, includes/excludes using ONLY the actual format shown in the implementation files\n- Configuration examples using ONLY the actual task configurations found in the resource files\n- Performance considerations using ONLY the actual strategies mentioned in the philosophy docs and implementation files\n- Strategic use of exclusions and includes using ONLY the patterns shown in the provided resources\nProvide configuration examples using ONLY the actual patterns and configurations found in the resource files. Do not invent new project types or configurations.",
+      "prompt": "Using ONLY the resource files, show how to customize the system with the actual task configuration format and examples found in the implementation. Focus on essential customization patterns and include key performance considerations like splitting strategies and exclusion patterns from the actual code.",
       "refs": ["implementation_files", "generated_examples", "philosophy_docs"]
     },
     {
-      "title": "Build System Integration",
-      "prompt": "Using ONLY the build integration files from the resources, demonstrate how to integrate AI context generation into project workflows:\n- Makefile integration patterns using ONLY the actual Makefile content from the build_integration resources\n- Shell script patterns using ONLY what is shown in the provided resource files\n- CI/CD and Git hooks using ONLY examples or patterns found in the resource files\n- Version control practices using ONLY what is documented in the provided resources\nShow ONLY actual integration code directly quoted from the recipe-tool project resource files. Do not create hypothetical examples.",
-      "refs": ["build_integration", "project_structure"]
-    },
-    {
-      "title": "Usage and Operation",
-      "prompt": "Using ONLY the information from the implementation files and build integration resources, cover day-to-day usage of the system:\n- Basic generation commands using ONLY the actual commands shown in the resource files\n- Force regeneration options using ONLY the actual flags and options found in the implementation files\n- Manual file collection using ONLY the actual command-line usage shown in the resources\n- Monitoring and maintenance using ONLY the approaches mentioned in the resource files\n- Troubleshooting using ONLY the issues and solutions implied by the actual code\nInclude command examples using ONLY the actual commands and outputs shown in or implied by the resource files.",
-      "refs": ["implementation_files", "build_integration", "generated_examples"]
-    },
-    {
-      "title": "Performance and Scalability",
-      "prompt": "Using ONLY the information from the implementation files and philosophy docs, address performance considerations for large projects:\n- Splitting strategies using ONLY the patterns shown in the actual task configurations from the resources\n- Strategic exclusion patterns using ONLY the actual exclude patterns found in the implementation files\n- Memory management using ONLY the approaches shown in the actual code\n- File size and optimization strategies using ONLY what is mentioned in the resource files\n- Monitoring approaches using ONLY what is shown in the actual implementation\nProvide specific guidance based ONLY on the actual recipe-tool implementation found in the resource files. Do not invent performance metrics or strategies not shown in the resources.",
-      "refs": ["implementation_files", "philosophy_docs", "project_structure"]
-    },
-    {
-      "title": "Integration with AI Development Tools",
-      "prompt": "Using ONLY the generated examples and project structure from the resources, explain how the generated context files integrate with AI development workflows:\n- Structured format using ONLY the actual format shown in the generated examples\n- File boundaries and metadata using ONLY the actual structure from the generated examples\n- Organization patterns using ONLY what is shown in the actual generated files\n- AI tool integration using ONLY the patterns and practices mentioned in the project structure resources\n- Context management practices using ONLY what is documented in the provided resources\nReference ONLY the actual usage patterns found in the recipe-tool project resource files. Do not invent AI tool integrations not mentioned in the resources.",
-      "refs": ["generated_examples", "project_structure", "philosophy_docs"]
-    },
-    {
-      "title": "Best Practices and Recommendations",
-      "prompt": "Using ONLY the philosophy docs, project structure, and implementation files from the resources, summarize key best practices for successful implementation:\n- Regular regeneration strategies using ONLY the approaches mentioned in the resource files\n- Version control approaches using ONLY what is documented in the provided resources\n- Documentation and team adoption using ONLY the patterns shown in the actual project\n- Monitoring and limits using ONLY the considerations mentioned in the resource files\n- Iterative improvement using ONLY the approaches outlined in the philosophy docs\n- Maintenance procedures using ONLY what is implied by the actual implementation\nDraw ONLY from the actual modular design and implementation philosophies found in the provided resource files. Do not invent best practices not mentioned in the resources.",
-      "refs": ["philosophy_docs", "project_structure", "implementation_files"]
-    },
-    {
-      "title": "Troubleshooting and Common Issues",
-      "prompt": "Using ONLY the implementation files and build integration resources, address common implementation and operational issues:\n- Git-collector issues using ONLY the error handling and fallback logic shown in the actual implementation files\n- Permission and file system issues using ONLY the patterns and error handling shown in the actual code\n- Memory and encoding problems using ONLY the actual handling approaches found in the implementation files\n- Build system challenges using ONLY the integration patterns shown in the build integration resources\n- Performance optimization using ONLY the strategies implied by the actual code and configuration patterns\nProvide solutions using ONLY the actual error handling, fallback logic, and patterns found in the resource files. Do not invent problems or solutions not shown in the resources.",
-      "refs": ["implementation_files", "build_integration"]
+      "title": "Setup and Usage",
+      "prompt": "Using ONLY the build integration and implementation files, show how to integrate AI context generation into workflows and cover essential day-to-day usage. Focus on the ai-context-files Makefile target, basic commands, force regeneration, and maintenance tasks. Ignore general development workflow commands.",
+      "refs": ["build_integration", "implementation_files", "project_structure"]
     },
     {
       "title": "Examples and Templates",
-      "prompt": "Using ONLY the actual task configurations and patterns found in the implementation files and generated examples, provide ready-to-use configuration templates:\n- Configuration patterns using ONLY the actual task structures shown in the implementation files\n- Project type examples using ONLY the patterns that can be directly derived from the actual configurations in the resources\n- Build integration using ONLY the actual patterns shown in the build integration resources\n- Usage examples using ONLY the actual commands and workflows found in the resource files\nEach template should use ONLY the actual task configuration formats, build patterns, and usage examples found in the provided resource files. Do not invent project types or configurations not demonstrated in the resources.",
+      "prompt": "Using ONLY the actual task configurations from the implementation files, provide ready-to-use templates based on the real patterns and build integration examples found in the resources. Include essential troubleshooting tips and best practices for successful implementation.",
       "refs": ["implementation_files", "generated_examples", "philosophy_docs"]
     }
   ]
