@@ -5,8 +5,8 @@
 **Search:** ['recipes/document_generator']
 **Exclude:** ['.venv', 'node_modules', '*.lock', '.git', '__pycache__', '*.pyc', '*.ruff_cache', 'logs', 'output']
 **Include:** []
-**Date:** 5/27/2025, 2:32:39 PM
-**Files:** 11
+**Date:** 6/3/2025, 12:16:48 PM
+**Files:** 15
 
 === File: recipes/document_generator/README.md ===
 # Document Generator
@@ -168,6 +168,62 @@ end
 }
 
 
+=== File: recipes/document_generator/examples/launch-documentation.json ===
+{
+  "title": "Customer Analytics Dashboard - Launch Documentation",
+  "general_instruction": "Create comprehensive launch documentation for our new B2B SaaS analytics product. Focus on value propositions, implementation details, and customer benefits. Use clear, professional language suitable for both technical and business stakeholders.",
+  "resources": [
+    {
+      "key": "product_specs",
+      "path": "product_specs.md",
+      "description": "Technical specifications, features, API details, and system requirements"
+    },
+    {
+      "key": "market_research",
+      "path": "market_research.md",
+      "description": "Competitive analysis, target customer profiles, and market opportunities"
+    },
+    {
+      "key": "pricing_strategy",
+      "path": "pricing_strategy.md",
+      "description": "Pricing tiers, packaging, and competitive positioning"
+    }
+  ],
+  "sections": [
+    {
+      "title": "Executive Summary",
+      "prompt": "Create a compelling executive summary that highlights the key benefits and market opportunity, drawing from the market research and product specifications. Include our unique value proposition and why this product matters now.",
+      "refs": ["product_specs", "market_research"]
+    },
+    {
+      "title": "Product Overview",
+      "prompt": "Provide a comprehensive overview of the Customer Analytics Dashboard, detailing core features and capabilities. Explain how each feature delivers value to our target customers. Structure this for both technical and non-technical readers.",
+      "refs": ["product_specs", "market_research"]
+    },
+    {
+      "title": "Technical Architecture",
+      "prompt": "Explain the technical architecture in clear prose, focusing on scalability, performance, and reliability. Translate technical specifications into benefits that matter to decision makers.",
+      "refs": ["product_specs"]
+    },
+    {
+      "title": "Implementation Guide",
+      "prompt": "Create a step-by-step implementation guide that emphasizes our 2-week deployment advantage. Include prerequisites, phases, and what customers can expect during onboarding.",
+      "refs": ["product_specs", "pricing_strategy"]
+    },
+    {
+      "title": "Pricing & Packages",
+      "prompt": "Present our pricing strategy in a clear, compelling way. Emphasize value and ROI compared to competitors. Include migration incentives and explain how pricing scales with customer growth.",
+      "refs": ["pricing_strategy", "market_research"]
+    },
+    {
+      "title": "Go-to-Market Strategy",
+      "prompt": "Outline our go-to-market approach based on target customer profiles and competitive positioning. Include key messages, channels, and how we'll win against established competitors.",
+      "refs": ["market_research", "pricing_strategy", "product_specs"]
+    }
+  ]
+}
+
+
 === File: recipes/document_generator/examples/readme.json ===
 {
   "title": "README",
@@ -217,6 +273,285 @@ end
     }
   ]
 }
+
+
+=== File: recipes/document_generator/examples/resources/market_research.md ===
+# Market Research Report - Customer Analytics Dashboard
+
+## Executive Summary
+
+The customer analytics market is experiencing 23% YoY growth, reaching $16.2B in 2024. Our solution addresses critical gaps in real-time processing and predictive capabilities that existing solutions fail to deliver.
+
+## Target Customer Profiles
+
+### Primary Segment: Mid-Market B2B SaaS Companies
+
+- Company size: 200-2000 employees
+- Annual revenue: $20M-$500M
+- Characteristics:
+  - Growing customer base (10K-500K users)
+  - Data-driven culture
+  - Existing BI tools but need specialized customer analytics
+  - 2-5 person analytics team
+
+### Secondary Segment: E-commerce Platforms
+
+- Company size: 100-1000 employees
+- Annual revenue: $10M-$200M
+- Characteristics:
+  - High transaction volumes
+  - Need for real-time customer insights
+  - Focus on conversion optimization
+  - Seasonal traffic patterns
+
+### Tertiary Segment: Digital Media Companies
+
+- Subscription-based services
+- Content personalization needs
+- User engagement focus
+- Churn reduction priorities
+
+## Competitive Landscape
+
+### Direct Competitors
+
+**Amplitude**
+
+- Strengths: Strong brand, product analytics focus
+- Weaknesses: Limited predictive capabilities, expensive at scale
+- Pricing: $30K-$150K annually
+- Market share: 18%
+
+**Mixpanel**
+
+- Strengths: User-friendly interface, good mobile analytics
+- Weaknesses: Performance issues with large datasets, basic ML features
+- Pricing: $25K-$100K annually
+- Market share: 15%
+
+**Heap**
+
+- Strengths: Autocapture technology, retroactive analysis
+- Weaknesses: Limited customization, no native predictive analytics
+- Pricing: $35K-$120K annually
+- Market share: 12%
+
+### Indirect Competitors
+
+- Google Analytics 360 (enterprise web analytics)
+- Adobe Analytics (marketing-focused)
+- Segment (data collection/routing)
+
+## Market Opportunities
+
+### Unmet Needs
+
+1. **Real-time + Predictive**: No solution combines sub-second queries with advanced ML
+2. **Affordable Scale**: Competitors' pricing becomes prohibitive at high volumes
+3. **Vertical Integration**: Most tools require multiple vendors for complete solution
+4. **Ease of Implementation**: Average deployment time is 3-6 months with competitors
+
+### Growth Drivers
+
+- 67% of companies plan to increase analytics spending in 2025
+- GDPR/privacy regulations driving need for first-party analytics
+- Shift from descriptive to predictive analytics
+- Rising customer acquisition costs requiring better retention tools
+
+## Positioning Strategy
+
+"The only customer analytics platform that combines enterprise-grade real-time processing with accessible predictive intelligence, at half the cost of traditional solutions."
+
+## Key Differentiators
+
+1. 10x faster query performance
+2. Built-in predictive models (no data science team required)
+3. 50% lower TCO than primary competitors
+4. 2-week implementation vs. industry average of 3 months
+5. Unified platform (no need for separate ETL, visualization, ML tools)
+
+
+=== File: recipes/document_generator/examples/resources/pricing_strategy.md ===
+# Pricing Strategy - Customer Analytics Dashboard
+
+## Pricing Philosophy
+
+Value-based pricing model that scales with customer success, positioned 40-50% below enterprise competitors while delivering superior capabilities.
+
+## Pricing Tiers
+
+### Starter
+
+**$499/month** (billed annually) or $599/month (monthly)
+
+- Up to 100K monthly tracked users
+- 5 team members
+- 30-day data retention
+- Core analytics features
+- Email support
+- API access (100K calls/month)
+
+### Growth
+
+**$1,499/month** (billed annually) or $1,799/month (monthly)
+
+- Up to 1M monthly tracked users
+- 25 team members
+- 90-day data retention
+- All Starter features plus:
+  - Predictive analytics (churn, LTV)
+  - Custom dashboards
+  - Slack integration
+  - Priority support
+  - API access (1M calls/month)
+
+### Enterprise
+
+**Custom pricing** starting at $4,999/month
+
+- Unlimited tracked users
+- Unlimited team members
+- Custom data retention
+- All Growth features plus:
+  - Custom ML models
+  - Dedicated success manager
+  - SLA guarantees (99.9% uptime)
+  - Advanced security features
+  - White-label options
+  - Unlimited API access
+
+## Add-On Services
+
+### Professional Services
+
+- Implementation Package: $5,000 (one-time)
+- Custom Integration: $2,500 per connector
+- Training Workshop: $1,500 per day
+- Analytics Consultation: $250/hour
+
+### Additional Resources
+
+- Extra 1M tracked users: $500/month
+- Extended data retention (per 30 days): $200/month
+- Additional API calls: $100 per million
+- Custom ML model development: $10,000 per model
+
+## Pricing Advantages vs. Competitors
+
+| Feature        | Our Pricing | Amplitude  | Mixpanel      | Heap          |
+| -------------- | ----------- | ---------- | ------------- | ------------- |
+| Entry Price    | $499/mo     | $2,000/mo  | $1,500/mo     | $3,000/mo     |
+| 1M Users       | $1,499/mo   | $5,000/mo  | $4,000/mo     | $6,000/mo     |
+| Predictive ML  | Included    | +$2,000/mo | Not available | Not available |
+| Implementation | 2 weeks     | 3-6 months | 2-3 months    | 3-4 months    |
+
+## Discount Structure
+
+- Annual commitment: 17% discount
+- 2-year commitment: 25% discount
+- Non-profit organizations: 30% discount
+- Educational institutions: 50% discount
+- Startup program (<$5M ARR): 50% discount for year 1
+
+## Migration Incentives
+
+- Competitor switch bonus: 3 months free
+- Free data migration (up to 1TB)
+- Parallel running period (1 month)
+- Success guarantee: Full refund if not satisfied within 90 days
+
+## Revenue Projections
+
+- Average deal size: $2,500/month
+- Expected tier distribution: 60% Growth, 25% Enterprise, 15% Starter
+- Projected annual contract value: $30,000
+- Customer lifetime value: $135,000 (4.5 year average retention)
+
+
+=== File: recipes/document_generator/examples/resources/product_specs.md ===
+# Customer Analytics Dashboard - Technical Specifications
+
+## Product Overview
+
+The Customer Analytics Dashboard is a cloud-native B2B SaaS platform that provides real-time customer behavior analytics, predictive insights, and actionable intelligence for data-driven decision making.
+
+## Core Features
+
+### Real-Time Analytics Engine
+
+- Sub-second query response times for datasets up to 100TB
+- Support for 10,000+ concurrent users
+- Event streaming with <500ms latency
+- Custom metric builder with drag-and-drop interface
+
+### Predictive Intelligence
+
+- Customer churn prediction (85% accuracy)
+- Revenue forecasting models
+- Behavioral segmentation using ML clustering
+- Anomaly detection for fraud prevention
+
+### Data Visualization Suite
+
+- 50+ pre-built visualization templates
+- Custom dashboard builder
+- Mobile-responsive design
+- Export to PDF, PNG, and interactive HTML
+
+### Integration Capabilities
+
+- Native connectors for 30+ data sources
+- REST API with comprehensive endpoints
+- Webhook support for real-time alerts
+- Single Sign-On (SSO) with SAML 2.0
+
+## Technical Architecture
+
+### Infrastructure
+
+- Multi-region deployment on AWS
+- Kubernetes orchestration with auto-scaling
+- PostgreSQL for metadata storage
+- Apache Kafka for event streaming
+- Redis for caching layer
+
+### API Specifications
+
+- RESTful API design
+- OAuth 2.0 authentication
+- Rate limiting: 1000 requests/minute
+- Versioned endpoints (current: v2.0)
+- 99.9% uptime SLA
+
+### Security & Compliance
+
+- End-to-end encryption (AES-256)
+- SOC 2 Type II certified
+- GDPR compliant
+- Role-based access control (RBAC)
+- Audit logging for all data access
+
+## System Requirements
+
+### Browser Support
+
+- Chrome 90+
+- Firefox 88+
+- Safari 14+
+- Edge 90+
+
+### Integration Requirements
+
+- API tokens for authentication
+- Minimum 100 Mbps network connection
+- Whitelisted IP ranges for enterprise deployments
+
+### Data Limits
+
+- Maximum 50GB per data upload
+- 10 million events per day processing
+- 1000 custom metrics per account
+- 90-day data retention (configurable)
 
 
 === File: recipes/document_generator/recipes/load_outline.json ===

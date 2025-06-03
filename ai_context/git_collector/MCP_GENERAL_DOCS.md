@@ -3,7 +3,7 @@
 [git-collector-data]
 
 **URL:** https://github.com/modelcontextprotocol/modelcontextprotocol/tree/main/docs  
-**Date:** 5/21/2025, 1:51:51 PM  
+**Date:** 6/3/2025, 12:16:52 PM  
 **Files:** 10  
 
 === File: docs/docs/concepts/architecture.mdx ===
@@ -867,6 +867,7 @@ Servers expose a list of concrete resources via the `resources/list` endpoint. E
   name: string;          // Human-readable name
   description?: string;  // Optional description
   mimeType?: string;     // Optional MIME type
+  size?: number;         // Optional size in bytes
 }
 ```
 
@@ -2697,8 +2698,6 @@ The Inspector provides several features for interacting with your MCP server:
 title: Introduction
 description: 'Get started with the Model Context Protocol (MCP)'
 ---
-
-<Note>C# SDK released! Check out [what else is new.](/development/updates)</Note>
 
 MCP is an open protocol that standardizes how applications provide context to LLMs. Think of MCP like a USB-C port for AI applications. Just as USB-C provides a standardized way to connect your devices to various peripherals and accessories, MCP provides a standardized way to connect AI models to different data sources and tools.
 

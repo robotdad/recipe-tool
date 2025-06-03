@@ -11,7 +11,7 @@
 Recipe Tool bridges the gap between natural language and automation:
 
 1. **Start with an idea** - Write what you want in plain English/markdown
-2. **Generate a recipe** - Recipe Tool creates a JSON workflow from your description  
+2. **Generate a recipe** - Recipe Tool creates a JSON workflow from your description
 3. **Execute reliably** - The JSON recipe runs deterministically, combining LLM calls with structured logic
 
 Think of recipes as the "compiled" version of your ideas - they capture your intent in a format that executes reliably every time, using "more code than model" for reproducible results.
@@ -19,6 +19,7 @@ Think of recipes as the "compiled" version of your ideas - they capture your int
 ## What are Recipes?
 
 Under the hood, recipes are JSON files that define automated workflows. Each recipe contains:
+
 - **Steps** that execute in sequence (or in parallel)
 - **Context** that flows between steps, accumulating results
 - **Templates** using Liquid syntax for dynamic content
@@ -35,7 +36,7 @@ Here's what gets generated when you ask to "read a file and create a summary":
       "paths": ["{{ input }}"]
     },
     {
-      "step_type": "llm_generate", 
+      "step_type": "llm_generate",
       "prompt": "Summarize this content:\n\n{{ file_contents[0] }}"
     },
     {
@@ -52,6 +53,7 @@ Here's what gets generated when you ask to "read a file and create a summary":
 ```
 
 Example use cases:
+
 - 📝 Generate complete documents from outlines
 - 🔧 Transform natural language ideas into executable recipes
 - 💻 Generate code from specifications (this project generates its own code!)
@@ -66,16 +68,12 @@ git clone https://github.com/microsoft/recipe-tool.git
 cd recipe-tool
 make install
 
-# Create a recipe from your idea (natural language → JSON)
-echo "Read all Python files in src/ and create a summary of what each module does" > my_idea.md
-recipe-tool --create my_idea.md
-
-# Execute the generated recipe
-recipe-tool --execute output/summarize_python_modules.json src=./src
-
-# Or try an existing example
-recipe-tool --create recipes/recipe_creator/recipe_ideas/sample_recipe_idea.md
+# Try an example recipe
+recipe-tool --execute recipes/example_simple/code_from_spec_recipe.json \
+   spec_file=recipes/example_simple/specs/hello-world-spec.txt
 ```
+
+See more examples in [recipes](recipes/) directory.
 
 ## Architecture
 
@@ -88,15 +86,15 @@ graph TD
         UI2[Recipe Executor App]
         UI3[Recipe Tool App]
     end
-    
+
     subgraph "CLI Layer"
         CLI[Recipe Tool<br/>creation + execution]
     end
-    
+
     subgraph "Core Engine"
         RE[Recipe Executor<br/>pure execution engine]
     end
-    
+
     subgraph "Recipe Step Types"
         ST1[LLM Generate]
         ST2[Read/Write Files]
@@ -104,26 +102,26 @@ graph TD
         ST4[Execute Sub-Recipe]
         ST5[Set Context]
     end
-    
+
     subgraph "External Services"
         MCP1[Any MCP Server]
         LLM[LLM APIs]
     end
-    
+
     UI1 --> CLI
     UI2 --> RE
     UI3 --> CLI
     CLI --> RE
-    
+
     RE --> ST1
     RE --> ST2
     RE --> ST3
     RE --> ST4
     RE --> ST5
-    
+
     ST3 -.->|calls| MCP1
     ST1 -.->|calls| LLM
-    
+
     style RE stroke:#f0f,stroke-width:4px
     style CLI stroke:#00f,stroke-width:3px
 ```
@@ -136,7 +134,7 @@ The Recipe Executor's code is entirely generated from markdown blueprints using 
 graph LR
     B[Blueprints<br/>markdown specs] -->|codebase generator<br/>recipe| C[Recipe Executor<br/>source code]
     C -->|executes| B
-    
+
     style C stroke:#f0f,stroke-width:4px
 ```
 
@@ -195,22 +193,26 @@ recipe-tool --help
 ### Basic Workflow
 
 1. **Write your idea** in natural language (markdown file):
+
 ```markdown
 # Analyze Code Quality
 
 Read all Python files in the project and:
+
 1. Count lines of code per file
 2. Identify files with no docstrings
 3. Create a report with recommendations
 ```
 
 2. **Generate a recipe** from your idea:
+
 ```bash
 recipe-tool --create code_quality_idea.md
 # Creates: output/analyze_code_quality.json
 ```
 
 3. **Execute the recipe** (now it's reproducible!):
+
 ```bash
 recipe-tool --execute output/analyze_code_quality.json project_path=./myproject
 ```
@@ -218,6 +220,7 @@ recipe-tool --execute output/analyze_code_quality.json project_path=./myproject
 ### Direct Execution
 
 If you already have JSON recipes:
+
 ```bash
 # Execute with context variables
 recipe-tool --execute recipes/example_simple/test_recipe.json model=azure/gpt-4o
@@ -226,6 +229,7 @@ recipe-tool --execute recipes/example_simple/test_recipe.json model=azure/gpt-4o
 ### Web Interfaces
 
 For a more visual experience:
+
 ```bash
 recipe-tool-app          # Full UI for creation and execution
 recipe-executor-app      # Debug-focused execution UI
@@ -237,6 +241,7 @@ document-generator-app   # Document workflow UI
 #### Code Generation from Blueprints
 
 The Recipe Executor generates its own code:
+
 ```bash
 # Generate all Recipe Executor code
 recipe-tool --execute recipes/codebase_generator/codebase_generator_recipe.json
@@ -249,6 +254,7 @@ recipe-tool --execute recipes/codebase_generator/codebase_generator_recipe.json 
 #### Document Generation
 
 Create structured documents from outlines:
+
 ```bash
 recipe-tool --execute recipes/document_generator/document_generator_recipe.json \
    outline=path/to/outline.json
@@ -257,6 +263,7 @@ recipe-tool --execute recipes/document_generator/document_generator_recipe.json 
 #### MCP Server Integration
 
 For AI assistants (Claude Desktop, etc.):
+
 ```bash
 # Recipe capabilities via MCP
 recipe-tool-mcp-server stdio              # For Claude Desktop
@@ -271,9 +278,10 @@ python-code-tools stdio
 ### 🔨 Code Generation Recipes
 
 - **Codebase Generator** (`recipes/codebase_generator/`) - Transforms markdown blueprints into working code
+
   - Used to generate the Recipe Executor itself!
   - Sub-recipes for component processing and code generation
-  
+
 - **Blueprint Generators** (`recipes/experimental/blueprint_generator_v*/`) - Creates blueprints from ideas
   - Multiple versions exploring different approaches
   - Generates component specifications and documentation
@@ -287,6 +295,7 @@ python-code-tools stdio
 ### 🛠️ Utility Recipes
 
 - **Recipe Creator** (`recipes/recipe_creator/`) - Generates recipes from natural language descriptions
+
   - Core functionality of the recipe-tool CLI
   - Analyzes ideas and creates executable JSON recipes
 
@@ -324,6 +333,7 @@ make ai-context-files # Generate context for AI assistants
 ### VSCode Integration
 
 The project includes a comprehensive VSCode workspace configuration:
+
 - Multi-root workspace organized by project type
 - Pre-configured Python paths and testing
 - Ruff integration for code quality
