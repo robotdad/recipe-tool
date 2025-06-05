@@ -39,12 +39,17 @@
   },
   {
     "id": "llm_utils.llm",
-    "deps": ["logger", "llm_utils.azure_openai", "llm_utils.mcp"],
+    "deps": ["logger", "llm_utils.azure_openai", "llm_utils.mcp", "llm_utils.responses"],
     "refs": ["git_collector/PYDANTIC_AI_DOCS.md"]
   },
   {
     "id": "llm_utils.mcp",
     "deps": ["logger"],
+    "refs": ["git_collector/PYDANTIC_AI_DOCS.md"]
+  },
+  {
+    "id": "llm_utils.responses",
+    "deps": [],
     "refs": ["git_collector/PYDANTIC_AI_DOCS.md"]
   },
   {

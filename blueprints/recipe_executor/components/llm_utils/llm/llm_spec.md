@@ -6,7 +6,7 @@ The LLM component provides a unified interface for interacting with various larg
 
 ## Core Requirements
 
-- Support multiple LLM providers (Azure OpenAI, OpenAI, Anthropic, Ollama)
+- Support multiple LLM providers (Azure OpenAI, OpenAI, Anthropic, Ollama, OpenAI Responses)
 - Provide model initialization based on a standardized model identifier format
 - Encapsulate LLM API details behind a unified interface
 - Use PydanticAI's async interface for non-blocking LLM calls
@@ -23,6 +23,7 @@ The LLM component provides a unified interface for interacting with various larg
 - Use PydanticAI's provider-specific model classes, passing only the model name
   - pydantic_ai.models.openai.OpenAIModel (used also for Azure OpenAI and Ollama)
   - pydantic_ai.models.anthropic.AnthropicModel
+- For `openai_responses` provider: call `create_openai_responses_model(model_name)` which returns the model directly
 - Create a PydanticAI Agent with the model, structured output type, and optional MCP servers
 - Support: `output_type: Type[Union[str, BaseModel]] = str`
 - Pass provided `mcp_servers` (or empty list) to the Agent constructor (e.g. `Agent(model, mcp_servers=mcp_servers, output_type=output_type)`)
@@ -41,6 +42,7 @@ The LLM component provides a unified interface for interacting with various larg
 ### Internal Components
 
 - **Azure OpenAI**: Uses `get_azure_openai_model` for Azure OpenAI model initialization
+- **Responses**: Uses `create_openai_responses_model` for OpenAI Responses API model initialization
 - **Logger**: Uses the logger for logging LLM calls
 - **MCP**: Integrates remote MCP tools when `mcp_servers` are provided (uses `pydantic_ai.mcp`)
 
@@ -83,6 +85,7 @@ def get_model(model_id: str) -> OpenAIModel | AnthropicModel:
     - azure (for Azure OpenAI, use 'azure/model_name/deployment_name' or 'azure/model_name')
     - anthropic
     - ollama
+    - openai_responses (for OpenAI Responses API with built-in tools)
 
     Args:
         model_id (str): Model identifier in format 'provider/model_name'
@@ -97,6 +100,7 @@ def get_model(model_id: str) -> OpenAIModel | AnthropicModel:
     """
 
     # If 'azure' is the model provider, use the `get_azure_openai_model` function
+    # If 'openai_responses' is the model provider, use the `create_openai_responses_model` function from responses component
 ```
 
 Usage example:
@@ -113,6 +117,10 @@ anthropic_model = get_model("anthropic/claude-3-7-sonnet-latest")
 # Get an Ollama model
 ollama_model = get_model("ollama/phi4")
 # Uses OllamaModel('phi4')
+
+# Get an OpenAI Responses model
+responses_model = get_model("openai_responses/gpt-4o")
+# Uses create_openai_responses_model('gpt-4o') from responses component
 ```
 
 Getting an agent:
