@@ -27,9 +27,21 @@ The LLM component provides a unified interface for interacting with various larg
 - For `azure_responses` provider: call `create_azure_responses_model(model_name, deployment_name)` which returns the model directly
 - Create a PydanticAI Agent with the model, structured output type, and optional MCP servers
 - Support: `output_type: Type[Union[str, BaseModel]] = str`
+- Support: `openai_builtin_tools: Optional[List[Dict[str, Any]]] = None` parameter for built-in tools with Responses API models
 - Pass provided `mcp_servers` (or empty list) to the Agent constructor (e.g. `Agent(model, mcp_servers=mcp_servers, output_type=output_type)`)
-- Implement fully asynchronous execution:
-  - Make `generate` an async function (`async def generate`)
+- For Responses API models with built-in tools, configure the model with `OpenAIResponsesModelSettings` that includes the tools
+- Implement fully asynchronous execution with the following signature:
+  ```python
+  async def generate(
+      self,
+      prompt: str,
+      model: Optional[str] = None,
+      max_tokens: Optional[int] = None,
+      output_type: Type[Union[str, BaseModel]] = str,
+      mcp_servers: Optional[List[MCPServer]] = None,
+      openai_builtin_tools: Optional[List[Dict[str, Any]]] = None,
+  ) -> Union[str, BaseModel]:
+  ```
   - Use `await agent.run(prompt)` method of the Agent to make requests
 - CRITICAL: make sure to return the `result.output` in the `generate` method to return only the structured output
 
