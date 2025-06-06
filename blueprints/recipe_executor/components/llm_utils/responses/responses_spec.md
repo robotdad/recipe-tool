@@ -8,15 +8,13 @@ via the `openai_responses` provider.
 
 ## Core Requirements
 
-- `create_openai_responses_model(model_name: str) -> OpenAIResponsesModel`
+- Provide a PydanticAI-compatible OpenAIResponsesModel instance
+- Implement basic error handling
 
 ## Implementation Considerations
 
-- Generate a function `create_openai_responses_model` that:
-  - Takes `model_name` (e.g., "gpt-4o") only
-  - For OpenAI responses, instantiate `OpenAIResponsesModel(model_name)` 
+- For the `get_openai_responses_model` function:
   - Return the `OpenAIResponsesModel` instance directly
-  - Built-in tools functionality will be added in Phase 3 via `llm_generate` step
 
 ## Implementation Hints
 
@@ -26,7 +24,7 @@ None
 
 ### Internal Components
 
-- **LLM**: Invoked by `LLMGenerateStep` when model provider is `openai_responses`
+- **Logger**: Uses the logger for logging LLM calls
 
 ### External Libraries
 
@@ -42,7 +40,8 @@ None
 
 ## Logging
 
-None
+- Debug: Log the loaded environment variables (masking all but first/last character of api keys)
+- Info: Log the model name
 
 ## Error Handling
 
