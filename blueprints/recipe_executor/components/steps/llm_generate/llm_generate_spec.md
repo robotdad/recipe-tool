@@ -14,18 +14,7 @@ The LLMGenerateStep component enables recipes to generate content using large la
 - Call LLMs to generate content
 - Store generated results in the context with dynamic key support
 - Include appropriate logging for LLM operations
-
-## Configuration Schema
-
-The LLMGenerateConfig must include these fields:
-
-- `prompt: str` - The prompt template
-- `model: str` - Model identifier in provider/model format  
-- `max_tokens: Optional[Union[str, int]]` - Token limit
-- `mcp_servers: Optional[List[Dict[str, Any]]]` - MCP server configs
-- `openai_builtin_tools: Optional[List[Dict[str, Any]]]` - Built-in tools for Responses API models
-- `output_format: Union[str, Dict[str, Any], List[Dict[str, Any]]]` - Output format specification
-- `output_key: str` - Context key for storing results
+- Configuration fields: `prompt`, `model`, `max_tokens`, `mcp_servers`, `openai_builtin_tools`, `output_format`, `output_key`
 
 ## Implementation Considerations
 

@@ -6,18 +6,9 @@ The Responses component provides OpenAI built-in tool integration using the Pyda
 It enables recipes to request OpenAI's built-in capabilities (web search, code execution)
 via the `openai_responses` provider.
 
-## Provider Identifiers
-
-- `openai_responses` (OpenAI only - Azure handled by separate component)
-
 ## Core Requirements
 
 - `create_openai_responses_model(model_name: str) -> OpenAIResponsesModel`
-
-## Component Dependencies
-
-- **LLM**: Invoked by `LLMGenerateStep` when model provider is `openai_responses`
-- **PydanticAI**: Uses `OpenAIResponsesModel` for basic OpenAI Responses API access
 
 ## Implementation Considerations
 
@@ -27,14 +18,36 @@ via the `openai_responses` provider.
   - Return the `OpenAIResponsesModel` instance directly
   - Built-in tools functionality will be added in Phase 3 via `llm_generate` step
 
-## External Libraries
+## Implementation Hints
+
+None
+
+## Component Dependencies
+
+### Internal Components
+
+- **LLM**: Invoked by `LLMGenerateStep` when model provider is `openai_responses`
+
+### External Libraries
 
 - **pydantic-ai**: Uses PydanticAI's `OpenAIResponsesModel`
+
+### Configuration Dependencies
+
+None
+
+## Output Files
+
+- `recipe_executor/llm_utils/responses.py`
+
+## Logging
+
+None
 
 ## Error Handling
 
 - Handle model initialization errors gracefully with clear error messages
 
-## Output Files
+## Dependency Integration Considerations
 
-- `recipe_executor/llm_utils/responses.py`
+None

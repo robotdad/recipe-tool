@@ -80,3 +80,7 @@ None required for Phase 2.
 ## Output Files
 
 - `recipe_executor/llm_utils/azure_responses.py`
+
+## Dependency Integration Considerations
+
+None

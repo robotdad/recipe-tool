@@ -15,7 +15,7 @@ The LLM component provides a unified interface for interacting with various larg
 - Support optional structured output format
 - Accept an optional `mcp_servers: Optional[List[MCPServer]]` to enable remote MCP tool integration
 
-## Implementation Considerations
+## Implementation Hints
 
 - Use a clear `provider/model_name` identifier format
 - Do not need to pass api keys directly to model classes
@@ -48,49 +48,9 @@ The LLM component provides a unified interface for interacting with various larg
   - Use `await agent.run(prompt)` method of the Agent to make requests
 - CRITICAL: make sure to return the `result.output` in the `generate` method to return only the structured output
 
-## Logging
+### PydanticAI Model Creation
 
-- Debug: Log full request payload before making call and then full result payload after receiving it, making sure to mask any sensitive information (e.g. API keys, secrets, etc.)
-- Info: Log model name and provider before making call (do not include the request payload details) and then include processing times and tokens used upon completion (do not include the result payload details)
-
-## Component Dependencies
-
-### Internal Components
-
-- **Azure OpenAI**: Uses `get_azure_openai_model` for Azure OpenAI model initialization
-- **Responses**: Uses `create_openai_responses_model` for OpenAI Responses API model initialization
-- **Azure Responses**: Uses `create_azure_responses_model` for Azure Responses API model initialization
-- **Logger**: Uses the logger for logging LLM calls
-- **MCP**: Integrates remote MCP tools when `mcp_servers` are provided (uses `pydantic_ai.mcp`)
-
-### External Libraries
-
-- **pydantic-ai**: Uses PydanticAI for model initialization, Agent-based request handling, and structured-output processing
-- **pydantic-ai.mcp**: Provides `MCPServer`, `MCPServerHTTP` and `MCPServerStdio` classes for MCP server transports
-- **openai.types.responses**: Provides types for the responses API `WebSearchToolParam`, `FileSearchToolParam`
-
-### Configuration Dependencies
-
-- **DEFAULT_MODEL**: (Optional) Environment variable specifying the default LLM model in format "provider/model_name"
-- **OPENAI_API_KEY**: (Required for OpenAI) API key for OpenAI access
-- **ANTHROPIC_API_KEY**: (Required for Anthropic) API key for Anthropic access
-- **OLLAMA_BASE_URL**: (Required for Ollama) Endpoint for Ollama models
-
-## Error Handling
-
-- Provide clear error messages for unsupported providers
-- Handle network and API errors gracefully
-- Log detailed error information for debugging
-
-## Output Files
-
-- `recipe_executor/llm_utils/llm.py`
-
-## Dependency Integration Considerations
-
-### PydanticAI
-
-Create a PydanticAI model for the LLM provider and model name. This will be used to initialize the model and make requests.
+Create a PydanticAI model for the LLM provider and model name:
 
 ```python
 def get_model(model_id: str) -> OpenAIModel | AnthropicModel:
@@ -167,12 +127,9 @@ async with agent.run_mcp_servers():
 print(result.data)  # This will print the structured output
 ```
 
-#### Ollama
+### Ollama Integration
 
-- The Ollama model requires an endpoint to be specified. This can be done by passing the `endpoint` parameter to the `get_model` function.
-- The endpoint should be in the format `http://<host>:<port>`, where `<host>` is the hostname or IP address of the Ollama server and `<port>` is the port number on which the server is running.
-
-Then you can use the `OpenAIModel` class to create an instance of the model and make requests to the Ollama server.
+The Ollama model requires an endpoint to be specified:
 
 ```python
 from pydantic_ai.models.openai import OpenAIModel
@@ -189,4 +146,47 @@ return OpenAIModel(
     model_name='qwen2.5-coder:7b',
     provider=OpenAIProvider(base_url=f'{OLLAMA_BASE_URL}/v1'),
 )
+```
+
+## Logging
+
+- Debug: Log full request payload before making call and then full result payload after receiving it, making sure to mask any sensitive information (e.g. API keys, secrets, etc.)
+- Info: Log model name and provider before making call (do not include the request payload details) and then include processing times and tokens used upon completion (do not include the result payload details)
+
+## Component Dependencies
+
+### Internal Components
+
+- **Azure OpenAI**: Uses `get_azure_openai_model` for Azure OpenAI model initialization
+- **Responses**: Uses `create_openai_responses_model` for OpenAI Responses API model initialization
+- **Azure Responses**: Uses `create_azure_responses_model` for Azure Responses API model initialization
+- **Logger**: Uses the logger for logging LLM calls
+- **MCP**: Integrates remote MCP tools when `mcp_servers` are provided (uses `pydantic_ai.mcp`)
+
+### External Libraries
+
+- **pydantic-ai**: Uses PydanticAI for model initialization, Agent-based request handling, and structured-output processing
+- **pydantic-ai.mcp**: Provides `MCPServer`, `MCPServerHTTP` and `MCPServerStdio` classes for MCP server transports
+- **openai.types.responses**: Provides types for the responses API `WebSearchToolParam`, `FileSearchToolParam`
+
+### Configuration Dependencies
+
+- **DEFAULT_MODEL**: (Optional) Environment variable specifying the default LLM model in format "provider/model_name"
+- **OPENAI_API_KEY**: (Required for OpenAI) API key for OpenAI access
+- **ANTHROPIC_API_KEY**: (Required for Anthropic) API key for Anthropic access
+- **OLLAMA_BASE_URL**: (Required for Ollama) Endpoint for Ollama models
+
+## Error Handling
+
+- Provide clear error messages for unsupported providers
+- Handle network and API errors gracefully
+- Log detailed error information for debugging
+
+## Output Files
+
+- `recipe_executor/llm_utils/llm.py`
+
+## Dependency Integration Considerations
+
+Implement a standardized `get_model` function that routes to appropriate provider-specific model creation functions based on the provider prefix in the model identifier. Use existing component functions for Azure OpenAI, Responses API, and Azure Responses API integration.
 ```
