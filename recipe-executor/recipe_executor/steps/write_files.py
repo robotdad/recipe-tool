@@ -19,6 +19,7 @@ class WriteFilesConfig(StepConfig):
         files: Optional direct list of dicts with 'path'/'content' or key references.
         root: Base directory for output files.
     """
+
     files_key: Optional[str] = None
     files: Optional[List[Dict[str, Any]]] = None
     root: str = "."

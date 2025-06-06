@@ -90,6 +90,4 @@ class ExecuteRecipeStep(BaseStep[ExecuteRecipeConfig]):
             self.logger.info(f"Completed sub-recipe execution: {rendered_path}")
         except Exception as exc:
             self.logger.error(f"Error executing sub-recipe '{rendered_path}': {exc}")
-            raise RuntimeError(
-                f"Failed to execute sub-recipe '{rendered_path}': {exc}"
-            ) from exc
+            raise RuntimeError(f"Failed to execute sub-recipe '{rendered_path}': {exc}") from exc

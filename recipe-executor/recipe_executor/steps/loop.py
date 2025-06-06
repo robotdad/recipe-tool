@@ -2,6 +2,7 @@
 """
 LoopStep: iterate over a collection, execute substeps for each item with optional concurrency.
 """
+
 import asyncio
 import logging
 from typing import Any, Dict, List, Optional, Tuple, Union
@@ -64,9 +65,7 @@ class LoopStep(BaseStep[LoopStepConfig]):
         if items_obj is None:
             raise ValueError(f"LoopStep: Items '{items_def}' not found in context.")
         if not isinstance(items_obj, (list, dict)):
-            raise ValueError(
-                f"LoopStep: Items must be a list or dict, got {type(items_obj).__name__}."
-            )
+            raise ValueError(f"LoopStep: Items must be a list or dict, got {type(items_obj).__name__}.")
 
         # Flatten to list of (key, value)
         items_list: List[Tuple[Any, Any]] = (
@@ -74,9 +73,7 @@ class LoopStep(BaseStep[LoopStepConfig]):
         )
         total = len(items_list)
         max_conc = cfg.max_concurrency
-        self.logger.info(
-            f"LoopStep: Processing {total} items with max_concurrency={max_conc}."
-        )
+        self.logger.info(f"LoopStep: Processing {total} items with max_concurrency={max_conc}.")
 
         # Handle empty
         if total == 0:
@@ -87,9 +84,7 @@ class LoopStep(BaseStep[LoopStepConfig]):
 
         # Prepare result containers
         results: Union[List[Any], Dict[Any, Any]] = [] if isinstance(items_obj, list) else {}
-        errors: Union[List[Dict[str, Any]], Dict[Any, Dict[str, Any]]] = (
-            [] if isinstance(items_obj, list) else {}
-        )
+        errors: Union[List[Dict[str, Any]], Dict[Any, Dict[str, Any]]] = [] if isinstance(items_obj, list) else {}
 
         # Concurrency semaphore (None means unlimited)
         semaphore: Optional[asyncio.Semaphore] = None
@@ -200,10 +195,7 @@ class LoopStep(BaseStep[LoopStepConfig]):
             context[f"{cfg.result_key}__errors"] = errors
 
         err_count = len(errors) if isinstance(errors, (list, dict)) else 0
-        self.logger.info(
-            f"LoopStep: Completed {completed}/{total} items. Errors: {err_count}."
-        )
-
+        self.logger.info(f"LoopStep: Completed {completed}/{total} items. Errors: {err_count}.")
 
 
 def _resolve_path(path: str, context: ContextProtocol) -> Any:
@@ -211,7 +203,7 @@ def _resolve_path(path: str, context: ContextProtocol) -> Any:
     Resolve a dot-notated path against the context or nested dicts.
     """
     current: Any = context
-    for seg in path.split('.'):
+    for seg in path.split("."):
         if isinstance(current, ContextProtocol):
             current = current.get(seg)
         elif isinstance(current, dict):

@@ -22,18 +22,14 @@ class FileSpec(BaseModel):
     """
 
     path: str = Field(..., description="Relative file path to write to")
-    content: Union[str, Dict[str, Any], List[Dict[str, Any]]] = Field(
-        ..., description="Content of the file"
-    )
+    content: Union[str, Dict[str, Any], List[Dict[str, Any]]] = Field(..., description="Content of the file")
 
 
 class ReadFilesConfig(BaseModel):
     """Configuration for a 'read_files' recipe step."""
 
     path: str = Field(..., description="File path to read")
-    content_key: str = Field(
-        ..., description="Key under which the file content will be stored in context"
-    )
+    content_key: str = Field(..., description="Key under which the file content will be stored in context")
 
 
 class McpServer(BaseModel):
@@ -41,38 +37,24 @@ class McpServer(BaseModel):
 
     command: str = Field(..., description="Command to start the MCP server")
     args: List[str] = Field(..., description="List of arguments for the command")
-    env: Optional[Dict[str, str]] = Field(
-        None, description="Environment variables mapping"
-    )
+    env: Optional[Dict[str, str]] = Field(None, description="Environment variables mapping")
 
 
 class LLMGenerateConfig(BaseModel):
     """Configuration for a 'llm_generate' recipe step."""
 
     prompt: str = Field(..., description="Prompt template for the language model")
-    model: Optional[str] = Field(
-        None, description="Language model identifier to use"
-    )
-    output_format: Optional[str] = Field(
-        None, description="Format of the output, e.g., 'files'"
-    )
-    output_key: Optional[str] = Field(
-        None, description="Key under which to store the output in context"
-    )
-    mcp_servers: Optional[List[McpServer]] = Field(
-        None, description="List of MCP server definitions"
-    )
+    model: Optional[str] = Field(None, description="Language model identifier to use")
+    output_format: Optional[str] = Field(None, description="Format of the output, e.g., 'files'")
+    output_key: Optional[str] = Field(None, description="Key under which to store the output in context")
+    mcp_servers: Optional[List[McpServer]] = Field(None, description="List of MCP server definitions")
 
 
 class WriteFilesConfig(BaseModel):
     """Configuration for a 'write_files' recipe step."""
 
-    files_key: str = Field(
-        ..., description="Context key containing the list of files to write"
-    )
-    root: Optional[str] = Field(
-        None, description="Root directory for writing files"
-    )
+    files_key: str = Field(..., description="Context key containing the list of files to write")
+    root: Optional[str] = Field(None, description="Root directory for writing files")
 
 
 class RecipeStep(BaseModel):
@@ -96,6 +78,4 @@ class Recipe(BaseModel):
     """
 
     steps: List[RecipeStep] = Field(..., description="Ordered list of recipe steps")
-    env_vars: Optional[List[str]] = Field(
-        None, description="Environment variables required by the recipe"
-    )
+    env_vars: Optional[List[str]] = Field(None, description="Environment variables required by the recipe")

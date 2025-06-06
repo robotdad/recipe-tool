@@ -21,6 +21,7 @@ class StepConfig(BaseModel):
     Base configuration model for steps.
     Extend this class to add step-specific fields.
     """
+
     # No common fields; each step should subclass and define its own
     pass
 
@@ -52,9 +53,7 @@ class BaseStep(Generic[StepConfigType]):
         self.logger: logging.Logger = logger
         self.config: StepConfigType = config
         # Log initialization with debug-level detail
-        self.logger.debug(
-            f"Initialized {self.__class__.__name__} with config: {self.config!r}"
-        )
+        self.logger.debug(f"Initialized {self.__class__.__name__} with config: {self.config!r}")
 
     async def execute(self, context: ContextProtocol) -> None:
         """
@@ -66,6 +65,4 @@ class BaseStep(Generic[StepConfigType]):
         Raises:
             NotImplementedError: If not implemented in a subclass.
         """
-        raise NotImplementedError(
-            f"{self.__class__.__name__} must implement the execute method"
-        )
+        raise NotImplementedError(f"{self.__class__.__name__} must implement the execute method")

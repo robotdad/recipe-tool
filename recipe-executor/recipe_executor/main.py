@@ -6,7 +6,7 @@ import os
 import sys
 import time
 import traceback
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any
 
 from dotenv import load_dotenv
 from recipe_executor.config import load_configuration
@@ -38,38 +38,17 @@ async def main_async() -> None:
 
     # Parse command-line arguments
     parser = argparse.ArgumentParser(description="Recipe Executor CLI")
-    parser.add_argument(
-        "recipe_path",
-        type=str,
-        help="Path to the recipe file to execute"
-    )
-    parser.add_argument(
-        "--log-dir",
-        type=str,
-        default="logs",
-        help="Directory for log files"
-    )
-    parser.add_argument(
-        "--context",
-        action="append",
-        default=[],
-        help="Context artifact values as key=value pairs"
-    )
-    parser.add_argument(
-        "--config",
-        action="append",
-        default=[],
-        help="Static configuration values as key=value pairs"
-    )
+    parser.add_argument("recipe_path", type=str, help="Path to the recipe file to execute")
+    parser.add_argument("--log-dir", type=str, default="logs", help="Directory for log files")
+    parser.add_argument("--context", action="append", default=[], help="Context artifact values as key=value pairs")
+    parser.add_argument("--config", action="append", default=[], help="Static configuration values as key=value pairs")
     args = parser.parse_args()
 
     # Ensure log directory exists
     try:
         os.makedirs(args.log_dir, exist_ok=True)
     except Exception as e:
-        sys.stderr.write(
-            f"Logger Initialization Error: cannot create log directory '{args.log_dir}': {e}\n"
-        )
+        sys.stderr.write(f"Logger Initialization Error: cannot create log directory '{args.log_dir}': {e}\n")
         raise SystemExit(1)
 
     # Initialize logging
@@ -98,17 +77,12 @@ async def main_async() -> None:
             content = f.read()
         recipe: Recipe = Recipe.model_validate_json(content)
     except Exception as e:
-        logger.error(
-            "Failed to load recipe '%s': %s", args.recipe_path, e,
-            exc_info=True
-        )
+        logger.error("Failed to load recipe '%s': %s", args.recipe_path, e, exc_info=True)
         raise SystemExit(1)
 
     # Load configuration from environment and recipe-specific vars
     try:
-        env_config: Dict[str, Any] = load_configuration(
-            getattr(recipe, "env_vars", None)
-        )
+        env_config: Dict[str, Any] = load_configuration(getattr(recipe, "env_vars", None))
     except Exception as e:
         logger.error("Configuration loading error: %s", e, exc_info=True)
         raise SystemExit(1)
@@ -126,17 +100,11 @@ async def main_async() -> None:
     try:
         await executor.execute(recipe, context)
     except Exception as exec_err:
-        logger.error(
-            "An error occurred during recipe execution: %s", exec_err,
-            exc_info=True
-        )
+        logger.error("An error occurred during recipe execution: %s", exec_err, exc_info=True)
         raise SystemExit(1)
     duration = time.time() - start_time
 
-    logger.info(
-        "Recipe execution completed successfully in %.2f seconds",
-        duration
-    )
+    logger.info("Recipe execution completed successfully in %.2f seconds", duration)
 
 
 def main() -> None:

@@ -66,13 +66,9 @@ class SetContextStep(BaseStep[SetContextConfig]):
         else:
             raise ValueError(f"Unknown if_exists strategy: '{strategy}'")
 
-        self.logger.info(
-            f"SetContextStep: key='{key}', strategy='{strategy}', existed={existed}"
-        )
+        self.logger.info(f"SetContextStep: key='{key}', strategy='{strategy}', existed={existed}")
 
-    def _render_value(
-        self, raw: Any, context: ContextProtocol, nested: bool
-    ) -> Any:
+    def _render_value(self, raw: Any, context: ContextProtocol, nested: bool) -> Any:
         """
         Recursively render Liquid templates in strings, lists, and dicts.
 

@@ -6,6 +6,7 @@ Provides a `render_template` function that renders strings with variables source
 an object implementing ContextProtocol. Includes a custom `snakecase` filter and enables
 extra filters via the environment.
 """
+
 import re
 from typing import Any
 
@@ -42,6 +43,7 @@ def _snakecase(value: Any) -> str:
     # Strip leading/trailing underscores
     return s.strip("_")
 
+
 # Register custom filter
 _env.filters["snakecase"] = _snakecase
 
@@ -65,14 +67,8 @@ def render_template(text: str, context: ContextProtocol) -> str:
         rendered = template.render(**context.dict())
         return rendered
     except LiquidError as e:
-        err_msg = (
-            f"Liquid template rendering error: {e}. "
-            f"Template: {text!r}. Context: {context.dict()!r}"
-        )
+        err_msg = f"Liquid template rendering error: {e}. Template: {text!r}. Context: {context.dict()!r}"
         raise ValueError(err_msg) from e
     except Exception as e:
-        err_msg = (
-            f"Error rendering template: {e}. "
-            f"Template: {text!r}. Context: {context.dict()!r}"
-        )
+        err_msg = f"Error rendering template: {e}. Template: {text!r}. Context: {context.dict()!r}"
         raise ValueError(err_msg) from e

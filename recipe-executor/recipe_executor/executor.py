@@ -49,15 +49,11 @@ class Executor(ExecutorProtocol):
                     with open(recipe_str, encoding="utf-8") as f:
                         data = json.load(f)
                 except Exception as e:
-                    raise ValueError(
-                        f"Failed to read or parse recipe file '{recipe_str}': {e}"
-                    ) from e
+                    raise ValueError(f"Failed to read or parse recipe file '{recipe_str}': {e}") from e
                 try:
                     recipe_model = Recipe.model_validate(data)
                 except Exception as e:
-                    raise ValueError(
-                        f"Invalid recipe structure from file '{recipe_str}': {e}"
-                    ) from e
+                    raise ValueError(f"Invalid recipe structure from file '{recipe_str}': {e}") from e
             else:
                 # Raw JSON string
                 self.logger.debug("Loading recipe from JSON string.")
@@ -78,17 +74,13 @@ class Executor(ExecutorProtocol):
         except Exception:
             summary = {}
         step_count = len(recipe_model.steps or [])
-        self.logger.debug(
-            f"Recipe loaded: {{'steps': {step_count}}}. Full recipe: {summary}"
-        )
+        self.logger.debug(f"Recipe loaded: {{'steps': {step_count}}}. Full recipe: {summary}")
 
         # Execute each step sequentially
         for idx, step in enumerate(recipe_model.steps or []):  # type: ignore
             step_type = step.type
             config = step.config or {}
-            self.logger.debug(
-                f"Executing step {idx} of type '{step_type}' with config: {config}"
-            )
+            self.logger.debug(f"Executing step {idx} of type '{step_type}' with config: {config}")
 
             if step_type not in STEP_REGISTRY:
                 raise ValueError(f"Unknown step type '{step_type}' at index {idx}")
@@ -104,8 +96,6 @@ class Executor(ExecutorProtocol):
                 msg = f"Error executing step {idx} ('{step_type}'): {e}"
                 raise ValueError(msg) from e
 
-            self.logger.debug(
-                f"Step {idx} ('{step_type}') completed successfully."
-            )
+            self.logger.debug(f"Step {idx} ('{step_type}') completed successfully.")
 
         self.logger.debug("All recipe steps completed successfully.")

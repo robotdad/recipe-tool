@@ -137,9 +137,7 @@ class LLMGenerateStep(BaseStep[LLMGenerateConfig]):
 
             # JSON object schema
             elif isinstance(output_format, dict):  # type: ignore
-                schema_model: Type[BaseModel] = json_object_to_pydantic_model(
-                    output_format, model_name="LLMObject"
-                )
+                schema_model: Type[BaseModel] = json_object_to_pydantic_model(output_format, model_name="LLMObject")
                 kwargs = {"output_type": schema_model}
                 if max_tokens is not None:
                     kwargs["max_tokens"] = max_tokens
@@ -149,20 +147,14 @@ class LLMGenerateStep(BaseStep[LLMGenerateConfig]):
             # List schema
             elif isinstance(output_format, list):  # type: ignore
                 if len(output_format) != 1 or not isinstance(output_format[0], dict):
-                    raise ValueError(
-                        "When output_format is a list, it must contain a single schema object."
-                    )
+                    raise ValueError("When output_format is a list, it must contain a single schema object.")
                 item_schema = output_format[0]
                 wrapper_schema: Dict[str, Any] = {
                     "type": "object",
-                    "properties": {
-                        "items": {"type": "array", "items": item_schema}
-                    },
+                    "properties": {"items": {"type": "array", "items": item_schema}},
                     "required": ["items"],
                 }
-                schema_model = json_object_to_pydantic_model(
-                    wrapper_schema, model_name="LLMListWrapper"
-                )
+                schema_model = json_object_to_pydantic_model(wrapper_schema, model_name="LLMListWrapper")
                 kwargs = {"output_type": schema_model}
                 if max_tokens is not None:
                     kwargs["max_tokens"] = max_tokens

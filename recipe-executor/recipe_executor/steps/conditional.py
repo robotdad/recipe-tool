@@ -27,6 +27,7 @@ class ConditionalConfig(StepConfig):
 
 # Utility functions for condition evaluation
 
+
 def file_exists(path: Any) -> bool:
     """Check if a given path exists on the filesystem."""
     try:
@@ -195,9 +196,7 @@ class ConditionalStep(BaseStep[ConditionalConfig]):
 
         for step_def in steps:
             if not isinstance(step_def, dict):
-                self.logger.debug(
-                    "Skipping invalid step definition: %s", step_def
-                )
+                self.logger.debug("Skipping invalid step definition: %s", step_def)
                 continue
 
             step_type = step_def.get("type")
@@ -208,13 +207,9 @@ class ConditionalStep(BaseStep[ConditionalConfig]):
 
             step_cls = STEP_REGISTRY.get(step_type)
             if step_cls is None:
-                raise RuntimeError(
-                    f"Unknown step type in conditional branch: {step_type}"
-                )
+                raise RuntimeError(f"Unknown step type in conditional branch: {step_type}")
 
-            self.logger.debug(
-                "Executing step '%s' in conditional branch", step_type
-            )
+            self.logger.debug("Executing step '%s' in conditional branch", step_type)
             step_instance = step_cls(self.logger, step_conf)
             await step_instance.execute(context)
 

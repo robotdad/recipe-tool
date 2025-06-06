@@ -2,10 +2,11 @@
 """
 ParallelStep allows concurrent execution of multiple sub-steps (execute_recipe steps) with isolation.
 """
+
 import asyncio
 import logging
 from collections.abc import Awaitable
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional
 
 from recipe_executor.steps.base import BaseStep, StepConfig
 from recipe_executor.steps.registry import STEP_REGISTRY
@@ -21,6 +22,7 @@ class ParallelConfig(StepConfig):
         delay: Optional delay (in seconds) between launching each substep.
         timeout: Optional timeout (in seconds) for the entire parallel execution.
     """
+
     substeps: List[Dict[str, Any]]
     max_concurrency: int = 0
     delay: float = 0.0
@@ -89,9 +91,7 @@ class ParallelStep(BaseStep[ParallelConfig]):
                 if failure["exc"] is None:
                     failure["exc"] = exc
                     failure["idx"] = idx
-                sub_logger.error(
-                    "Substep %d failed: %s", idx, exc, exc_info=True
-                )
+                sub_logger.error("Substep %d failed: %s", idx, exc, exc_info=True)
                 raise
 
             finally:
@@ -100,9 +100,7 @@ class ParallelStep(BaseStep[ParallelConfig]):
         # Launch substeps with concurrency control and optional delay
         for idx, spec in enumerate(substeps):
             if failure["exc"]:
-                self.logger.debug(
-                    "Fail-fast: aborting launch of remaining substeps at index %d", idx
-                )
+                self.logger.debug("Fail-fast: aborting launch of remaining substeps at index %d", idx)
                 break
 
             await semaphore.acquire()
@@ -119,13 +117,9 @@ class ParallelStep(BaseStep[ParallelConfig]):
         # Wait until first exception, all done, or timeout
         try:
             if timeout is not None:
-                done, pending = await asyncio.wait(
-                    tasks, timeout=timeout, return_when=asyncio.FIRST_EXCEPTION
-                )
+                done, pending = await asyncio.wait(tasks, timeout=timeout, return_when=asyncio.FIRST_EXCEPTION)
             else:
-                done, pending = await asyncio.wait(
-                    tasks, return_when=asyncio.FIRST_EXCEPTION
-                )
+                done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_EXCEPTION)
         except Exception:
             done, pending = set(tasks), set()
 
@@ -140,9 +134,7 @@ class ParallelStep(BaseStep[ParallelConfig]):
             for p in pending:
                 p.cancel()
             await asyncio.gather(*pending, return_exceptions=True)
-            raise RuntimeError(
-                f"ParallelStep aborted due to failure in substep {failed_idx}"
-            ) from failure["exc"]
+            raise RuntimeError(f"ParallelStep aborted due to failure in substep {failed_idx}") from failure["exc"]
 
         # Handle timeout
         if pending:

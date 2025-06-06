@@ -7,6 +7,7 @@ This module provides structural interfaces (Protocols) for core components:
 - StepProtocol
 - ExecutorProtocol
 """
+
 from typing import Protocol, runtime_checkable, Any, Dict, Iterator, Union
 from pathlib import Path
 from logging import Logger

@@ -37,7 +37,7 @@ def get_mcp_server(logger: logging.Logger, config: Dict[str, Any]) -> MCPServer:
     masked: Dict[str, Any] = {}
     for key, value in config.items():
         if key in ("headers", "env") and isinstance(value, dict):
-            masked[key] = {k: '***' for k in value.keys()}
+            masked[key] = {k: "***" for k in value.keys()}
         else:
             masked[key] = value
     logger.debug("MCP server configuration: %s", masked)
@@ -122,6 +122,4 @@ def get_mcp_server(logger: logging.Logger, config: Dict[str, Any]) -> MCPServer:
         return server
 
     # Invalid configuration
-    raise ValueError(
-        "Invalid MCP server configuration: must contain 'url' for HTTP or 'command' for stdio transport"
-    )
+    raise ValueError("Invalid MCP server configuration: must contain 'url' for HTTP or 'command' for stdio transport")

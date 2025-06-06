@@ -3,6 +3,7 @@
 Config component for the Recipe Executor.
 Provides centralized, type-safe configuration via environment variables.
 """
+
 import os
 from typing import Any, Dict, List, Optional
 
@@ -17,55 +18,34 @@ class RecipeExecutorConfig(BaseSettings):
     This class automatically loads values from environment variables
     and .env files.
     """
+
     # Standard AI Provider API Keys
-    openai_api_key: Optional[str] = Field(
-        default=None,
-        env="OPENAI_API_KEY",
-        description="API key for OpenAI"
-    )
-    anthropic_api_key: Optional[str] = Field(
-        default=None,
-        env="ANTHROPIC_API_KEY",
-        description="API key for Anthropic"
-    )
+    openai_api_key: Optional[str] = Field(default=None, env="OPENAI_API_KEY", description="API key for OpenAI")
+    anthropic_api_key: Optional[str] = Field(default=None, env="ANTHROPIC_API_KEY", description="API key for Anthropic")
 
     # Azure OpenAI Credentials
     azure_openai_api_key: Optional[str] = Field(
-        default=None,
-        env="AZURE_OPENAI_API_KEY",
-        description="API key for Azure OpenAI"
+        default=None, env="AZURE_OPENAI_API_KEY", description="API key for Azure OpenAI"
     )
     azure_openai_base_url: Optional[str] = Field(
-        default=None,
-        env="AZURE_OPENAI_BASE_URL",
-        description="Base URL for Azure OpenAI endpoint"
+        default=None, env="AZURE_OPENAI_BASE_URL", description="Base URL for Azure OpenAI endpoint"
     )
     azure_openai_api_version: str = Field(
-        default="2025-03-01-preview",
-        env="AZURE_OPENAI_API_VERSION",
-        description="API version for Azure OpenAI"
+        default="2025-03-01-preview", env="AZURE_OPENAI_API_VERSION", description="API version for Azure OpenAI"
     )
     azure_openai_deployment_name: Optional[str] = Field(
-        default=None,
-        env="AZURE_OPENAI_DEPLOYMENT_NAME",
-        description="Deployment name for Azure OpenAI"
+        default=None, env="AZURE_OPENAI_DEPLOYMENT_NAME", description="Deployment name for Azure OpenAI"
     )
     azure_use_managed_identity: bool = Field(
-        default=False,
-        env="AZURE_USE_MANAGED_IDENTITY",
-        description="Use Azure managed identity for authentication"
+        default=False, env="AZURE_USE_MANAGED_IDENTITY", description="Use Azure managed identity for authentication"
     )
     azure_client_id: Optional[str] = Field(
-        default=None,
-        env="AZURE_CLIENT_ID",
-        description="Client ID for Azure managed identity"
+        default=None, env="AZURE_CLIENT_ID", description="Client ID for Azure managed identity"
     )
 
     # Ollama Settings
     ollama_base_url: str = Field(
-        default="http://localhost:11434",
-        env="OLLAMA_BASE_URL",
-        description="Base URL for Ollama API"
+        default="http://localhost:11434", env="OLLAMA_BASE_URL", description="Base URL for Ollama API"
     )
 
     class Config:
@@ -75,9 +55,7 @@ class RecipeExecutorConfig(BaseSettings):
         extra = "ignore"
 
 
-def load_configuration(
-    recipe_env_vars: Optional[List[str]] = None
-) -> Dict[str, Any]:
+def load_configuration(recipe_env_vars: Optional[List[str]] = None) -> Dict[str, Any]:
     """
     Load configuration from environment variables.
 

@@ -3,10 +3,11 @@
 Logger component for the Recipe Executor tool.
 Provides a consistent logging interface that writes to stdout and separate log files for DEBUG, INFO, and ERROR levels.
 """
+
 import os
 import sys
 import logging
-from typing import Optional
+
 
 def init_logger(log_dir: str = "logs", stdio_log_level: str = "INFO") -> logging.Logger:
     """
@@ -42,8 +43,7 @@ def init_logger(log_dir: str = "logs", stdio_log_level: str = "INFO") -> logging
 
     # Define log formatting
     formatter = logging.Formatter(
-        fmt="%(asctime)s.%(msecs)03d [%(levelname)s] (%(filename)s:%(lineno)d) %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S"
+        fmt="%(asctime)s.%(msecs)03d [%(levelname)s] (%(filename)s:%(lineno)d) %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
     )
 
     # File handlers for DEBUG, INFO, and ERROR levels

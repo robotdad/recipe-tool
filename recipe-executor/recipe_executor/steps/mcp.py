@@ -2,6 +2,7 @@
 """
 MCPStep component for invoking tools on remote MCP servers and storing results in context.
 """
+
 import logging
 import os
 from typing import Any, Dict, List, Optional
@@ -133,8 +134,7 @@ class MCPStep(BaseStep[MCPConfig]):  # type: ignore
                             arguments=arguments,
                         )
                     except Exception as exc:
-                        msg = (f"Tool invocation failed for '{tool_name}' "
-                               f"on {service_desc}: {exc}")
+                        msg = f"Tool invocation failed for '{tool_name}' on {service_desc}: {exc}"
                         raise ValueError(msg) from exc
         except ValueError:
             # Propagate invocation errors
@@ -145,12 +145,12 @@ class MCPStep(BaseStep[MCPConfig]):  # type: ignore
 
         # Convert result to a plain dictionary
         try:
-            if hasattr(result, 'dict'):
+            if hasattr(result, "dict"):
                 result_dict: Dict[str, Any] = result.dict()  # type: ignore
             else:
                 result_dict = result.__dict__  # type: ignore
         except Exception:
-            result_dict = {k: getattr(result, k) for k in dir(result) if not k.startswith('_')}
+            result_dict = {k: getattr(result, k) for k in dir(result) if not k.startswith("_")}
 
         # Store the result in context
         context[self.config.result_key] = result_dict
