@@ -162,6 +162,7 @@ These servers expose functionality via the Model Context Protocol:
 
 ### Prerequisites
 
+- **`make`** - Build automation tool ([install guide](https://www.gnu.org/software/make/))
 - **`uv`** - Python dependency management ([install guide](https://github.com/astral-sh/uv))
 - **`GitHub CLI`** - For ai-context-files tool ([install guide](https://cli.github.com/))
 - **Azure CLI** (optional) - For Azure OpenAI with Managed Identity ([install guide](https://docs.microsoft.com/cli/azure/install-azure-cli))
