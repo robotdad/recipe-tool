@@ -12,7 +12,7 @@ class SettingsConfig(BaseModel):
 
     # Model settings
     model_providers: List[str] = ["openai", "azure", "anthropic", "ollama"]
-    default_model: str = "openai/gpt-4o"
+    default_model: str = "openai/o4-mini"
 
     # Environment variable definitions
     env_vars: Dict[str, Dict[str, Any]] = {
@@ -86,8 +86,8 @@ class SettingsConfig(BaseModel):
 
     # Model configurations
     model_configs: Dict[str, List[str]] = {
-        "openai": ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-3.5-turbo"],
-        "azure": ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-3.5-turbo"],
+        "openai": ["gpt-4o", "gpt-4.1", "o3", "o4-mini"],
+        "azure": ["gpt-4o", "gpt-4.1", "o3", "o4-mini"],
         "anthropic": ["claude-3-5-sonnet", "claude-3-opus", "claude-3-haiku"],
         "ollama": ["llama3.2", "mistral", "gemma2", "phi3"],
     }
@@ -238,7 +238,7 @@ def create_settings_sidebar(
         try:
             # Build model string
             provider = kwargs.get("provider", "openai")
-            model_name = kwargs.get("model_name", "gpt-4o")
+            model_name = kwargs.get("model_name", "o4-mini")
             azure_deployment = kwargs.get("azure_deployment", "")
 
             if provider == "azure" and azure_deployment:
@@ -295,15 +295,20 @@ def get_model_string_from_env() -> str:
     """Get the current model string from environment or use default."""
     # Check for explicit model env var first
     if os.getenv("MODEL"):
-        return os.getenv("MODEL", "openai/gpt-4o")
+        return os.getenv("MODEL", "openai/o4-mini")
 
     # Otherwise, try to construct from available info
-    if os.getenv("AZURE_OPENAI_BASE_URL"):
-        deployment = os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME", "gpt-4o")
-        return f"azure/gpt-4o/{deployment}"
+    # Default to OpenAI if available
+    if os.getenv("OPENAI_API_KEY"):
+        return "openai/o4-mini"
+    elif os.getenv("AZURE_OPENAI_BASE_URL"):
+        deployment = os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME", "o4-mini")
+        return f"azure/o4-mini/{deployment}"
     elif os.getenv("ANTHROPIC_API_KEY"):
         return "anthropic/claude-3-5-sonnet"
     elif os.getenv("OLLAMA_BASE_URL"):
-        return "ollama/llama3.2"
+        # Use environment variable or default to a more common model
+        return os.getenv("OLLAMA_DEFAULT_MODEL", "ollama/llama3.2")
     else:
-        return "openai/gpt-4o"
+        # Final fallback to OpenAI
+        return "openai/o4-mini"

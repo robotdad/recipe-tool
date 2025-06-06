@@ -66,7 +66,12 @@ class RecipeExecutorCore:
                 except ValueError:
                     pass
 
-            context = Context(artifacts=context_dict)
+            # Load configuration from environment
+            from recipe_executor.config import load_configuration
+            config = load_configuration()
+            
+            # Create context with both artifacts and config
+            context = Context(artifacts=context_dict, config=config)
 
             # Determine recipe source
             if recipe_file:
