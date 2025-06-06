@@ -4,13 +4,13 @@ from typing import Any, Dict, List, Optional, Union, Type
 
 from pydantic import BaseModel
 
+from recipe_executor.llm_utils.llm import LLM
+from recipe_executor.llm_utils.mcp import get_mcp_server
 from recipe_executor.models import FileSpec
 from recipe_executor.protocols import ContextProtocol
 from recipe_executor.steps.base import BaseStep, StepConfig
 from recipe_executor.utils.models import json_object_to_pydantic_model
 from recipe_executor.utils.templates import render_template
-from recipe_executor.llm_utils.mcp import get_mcp_server
-from recipe_executor.llm_utils.llm import LLM
 
 
 class LLMGenerateConfig(StepConfig):
@@ -21,11 +21,12 @@ class LLMGenerateConfig(StepConfig):
         prompt: The prompt to send to the LLM (templated beforehand).
         model: The model identifier to use (provider/model_name format).
         max_tokens: The maximum number of tokens for the LLM response.
-        mcp_servers: List of MCP servers for access to tools.
-        openai_builtin_tools: Built-in tools for Responses API models.
-        output_format: The format of the LLM output (text, files, or JSON schema object/list).
+        mcp_servers: List of MCP server configurations for access to tools.
+        openai_builtin_tools: List of built-in tools for Responses API models.
+        output_format: The format of the LLM output (text, files, or JSON/list schemas).
         output_key: The name under which to store the LLM output in context.
     """
+
     prompt: str
     model: str = "openai/gpt-4o"
     max_tokens: Optional[Union[str, int]] = None
@@ -35,108 +36,156 @@ class LLMGenerateConfig(StepConfig):
     output_key: str = "llm_output"
 
 
+class FileSpecCollection(BaseModel):  # type: ignore
+    files: List[FileSpec]
+
+
+def _render_config(config: Dict[str, Any], context: ContextProtocol) -> Dict[str, Any]:
+    """
+    Recursively render templated strings in a dict.
+    """
+    result: Dict[str, Any] = {}
+    for key, value in config.items():
+        if isinstance(value, str):
+            result[key] = render_template(value, context)
+        elif isinstance(value, dict):
+            result[key] = _render_config(value, context)
+        elif isinstance(value, list):
+            items: List[Any] = []
+            for item in value:
+                if isinstance(item, dict):
+                    items.append(_render_config(item, context))
+                else:
+                    items.append(item)
+            result[key] = items
+        else:
+            result[key] = value
+    return result
+
+
 class LLMGenerateStep(BaseStep[LLMGenerateConfig]):
+    """
+    Step to generate content via a large language model (LLM).
+    """
+
     def __init__(self, logger: logging.Logger, config: Dict[str, Any]) -> None:
         super().__init__(logger, LLMGenerateConfig(**config))
 
     async def execute(self, context: ContextProtocol) -> None:
-        # Render dynamic values
-        prompt = render_template(self.config.prompt, context)
-        model_id = render_template(self.config.model, context)
-        # Max tokens
-        max_tokens_val: Optional[int] = None
-        if self.config.max_tokens is not None:
-            raw = self.config.max_tokens
-            if isinstance(raw, str):
-                rendered = render_template(raw, context)
-                max_tokens_val = int(rendered)
-            else:
-                max_tokens_val = int(raw)
-        # Output key (dynamic)
-        output_key = render_template(self.config.output_key, context)
-        # Prepare MCP servers
-        mcp_servers: List[Any] = []
-        if self.config.mcp_servers:
-            def _render(val: Any) -> Any:
-                if isinstance(val, str):
-                    return render_template(val, context)
-                if isinstance(val, dict):
-                    return {k: _render(v) for k, v in val.items()}
-                if isinstance(val, list):
-                    return [_render(v) for v in val]
-                return val
+        # Render core templated values
+        prompt: str = render_template(self.config.prompt, context)
+        model_id: str = render_template(self.config.model, context)
+        output_key: str = render_template(self.config.output_key, context)
 
-            for server_conf in self.config.mcp_servers:
-                rendered_conf = _render(server_conf)
-                server = get_mcp_server(logger=self.logger, config=rendered_conf)
-                mcp_servers.append(server)
-        # Instantiate LLM
+        # Prepare max_tokens
+        raw_max = self.config.max_tokens
+        max_tokens: Optional[int] = None
+        if raw_max is not None:
+            max_str = render_template(str(raw_max), context)
+            try:
+                max_tokens = int(max_str)
+            except ValueError:
+                raise ValueError(f"Invalid max_tokens value: {raw_max!r}")
+
+        # Collect and render MCP server configurations
+        mcp_cfgs: List[Dict[str, Any]] = []
+        if self.config.mcp_servers:
+            mcp_cfgs.extend(self.config.mcp_servers)
+        ctx_mcp = context.get_config().get("mcp_servers") or []
+        if isinstance(ctx_mcp, list):
+            mcp_cfgs.extend(ctx_mcp)
+
+        mcp_servers: List[Any] = []
+        for cfg in mcp_cfgs:
+            rendered = _render_config(cfg, context)
+            server = get_mcp_server(logger=self.logger, config=rendered)
+            mcp_servers.append(server)
+
+        # Instantiate LLM client
         llm = LLM(
             logger=self.logger,
             model=model_id,
-            max_tokens=max_tokens_val,
             mcp_servers=mcp_servers or None,
         )
-        # Validate built-in tools
+
+        # Validate and render built-in tools for Responses API models
         validated_tools: Optional[List[Dict[str, Any]]] = None
         if self.config.openai_builtin_tools:
+            tools_rendered: List[Dict[str, Any]] = []
+            for tool_cfg in self.config.openai_builtin_tools:
+                tools_rendered.append(_render_config(tool_cfg, context))
             provider = model_id.split("/")[0]
             if provider not in ("openai_responses", "azure_responses"):
                 raise ValueError(
                     "Built-in tools only supported with Responses API models (openai_responses/* or azure_responses/*)"
                 )
-            for tool in self.config.openai_builtin_tools:
+            for tool in tools_rendered:
                 ttype = tool.get("type")
                 if ttype != "web_search_preview":
                     raise ValueError(f"Unsupported tool type: {ttype}. Supported: web_search_preview")
-            validated_tools = self.config.openai_builtin_tools
-        # Determine output type
-        fmt = self.config.output_format
-        if isinstance(fmt, str) and fmt == "text":
-            output_type: Union[Type[Any], Type[BaseModel]] = str
-        elif isinstance(fmt, str) and fmt == "files":
-            class FileSpecCollection(BaseModel):  # type: ignore
-                files: List[FileSpec]
+            validated_tools = tools_rendered
 
-            output_type = FileSpecCollection
-        elif isinstance(fmt, dict):
-            # object schema
-            output_type = json_object_to_pydantic_model(fmt, model_name="LLMGenerateOutputModel")
-        elif isinstance(fmt, list) and len(fmt) == 1:
-            # list schema
-            item_schema = fmt[0]
-            object_schema = {
-                "type": "object",
-                "properties": {"items": {"type": "array", "items": item_schema}},
-                "required": ["items"],
-            }
-            output_type = json_object_to_pydantic_model(object_schema, model_name="LLMGenerateListOutputModel")
-        else:
-            raise ValueError(f"Invalid output_format: {fmt}")
-        # Call LLM
-        self.logger.debug("Calling LLM generate")
+        output_format = self.config.output_format
+        result: Any = None
+
         try:
-            result = await llm.generate(
-                prompt=prompt,
-                output_type=output_type,
-                openai_builtin_tools=validated_tools,
+            self.logger.debug(
+                "Calling LLM: model=%s, format=%r, max_tokens=%s, mcp_servers=%r, tools=%r",
+                model_id,
+                output_format,
+                max_tokens,
+                mcp_servers,
+                validated_tools,
             )
-        except Exception as e:
-            self.logger.error("LLM generate failed: %s", e)
+
+            # Text output
+            if output_format == "text":  # type: ignore
+                kwargs: Dict[str, Any] = {"output_type": str, "openai_builtin_tools": validated_tools}
+                if max_tokens is not None:
+                    kwargs["max_tokens"] = max_tokens
+                result = await llm.generate(prompt, **kwargs)
+                context[output_key] = result
+
+            # Files output
+            elif output_format == "files":  # type: ignore
+                kwargs = {"output_type": FileSpecCollection, "openai_builtin_tools": validated_tools}
+                if max_tokens is not None:
+                    kwargs["max_tokens"] = max_tokens
+                result = await llm.generate(prompt, **kwargs)
+                context[output_key] = result.files
+
+            # JSON object schema
+            elif isinstance(output_format, dict):
+                schema_model: Type[BaseModel] = json_object_to_pydantic_model(output_format, model_name="LLMObject")
+                kwargs = {"output_type": schema_model, "openai_builtin_tools": validated_tools}
+                if max_tokens is not None:
+                    kwargs["max_tokens"] = max_tokens
+                result = await llm.generate(prompt, **kwargs)
+                context[output_key] = result.model_dump()
+
+            # List schema
+            elif isinstance(output_format, list):  # type: ignore
+                if len(output_format) != 1 or not isinstance(output_format[0], dict):
+                    raise ValueError(
+                        "When output_format is a list, it must be a single-item list containing a schema object."
+                    )
+                item_schema = output_format[0]
+                wrapper_schema: Dict[str, Any] = {
+                    "type": "object",
+                    "properties": {"items": {"type": "array", "items": item_schema}},
+                    "required": ["items"],
+                }
+                schema_model = json_object_to_pydantic_model(wrapper_schema, model_name="LLMListWrapper")
+                kwargs = {"output_type": schema_model, "openai_builtin_tools": validated_tools}
+                if max_tokens is not None:
+                    kwargs["max_tokens"] = max_tokens
+                result = await llm.generate(prompt, **kwargs)
+                wrapper = result.model_dump()
+                context[output_key] = wrapper.get("items", [])
+
+            else:
+                raise ValueError(f"Unsupported output_format: {output_format!r}")
+
+        except Exception as exc:
+            self.logger.error("LLM generate failed: %r", exc, exc_info=True)
             raise
-        # Store results
-        if isinstance(fmt, str) and fmt == "text":
-            context[output_key] = result  # type: ignore
-        elif isinstance(fmt, str) and fmt == "files":
-            # result is FileSpecCollection
-            files_list = getattr(result, "files", [])  # type: ignore
-            # convert to dicts
-            context[output_key] = [f.model_dump() for f in files_list]
-        elif isinstance(fmt, dict):
-            # object model
-            context[output_key] = result.model_dump()  # type: ignore
-        else:
-            # list model
-            data = result.model_dump()  # type: ignore
-            items = data.get("items", [])
-            context[output_key] = items
