@@ -28,8 +28,11 @@ The LLM component provides a unified interface for interacting with various larg
 - Create a PydanticAI Agent with the model, structured output type, and optional MCP servers
 - Support: `output_type: Type[Union[str, BaseModel]] = str`
 - Support: `openai_builtin_tools: Optional[List[Dict[str, Any]]] = None` parameter for built-in tools with Responses API models
+  - We only want to support `WebSearchToolParam` and `FileSearchToolParam` at this time.
 - Pass provided `mcp_servers` (or empty list) to the Agent constructor (e.g. `Agent(model, mcp_servers=mcp_servers, output_type=output_type)`)
-- For Responses API models with built-in tools, configure the model with `OpenAIResponsesModelSettings` that includes the tools
+- For Responses API models with built-in tools, configure the model with `OpenAIResponsesModelSettings` that includes properly typed tools
+- Convert raw dict tools to PydanticAI tool parameter types (e.g., `WebSearchToolParam`) before passing to `OpenAIResponsesModelSettings`
+- Import required tool parameter types from `pydantic_ai.models.openai` for type conversion
 - Implement fully asynchronous execution with the following signature:
   ```python
   async def generate(
@@ -64,6 +67,7 @@ The LLM component provides a unified interface for interacting with various larg
 
 - **pydantic-ai**: Uses PydanticAI for model initialization, Agent-based request handling, and structured-output processing
 - **pydantic-ai.mcp**: Provides `MCPServer`, `MCPServerHTTP` and `MCPServerStdio` classes for MCP server transports
+- **openai.types.responses**: Provides types for the responses API `WebSearchToolParam`, `FileSearchToolParam`
 
 ### Configuration Dependencies
 
