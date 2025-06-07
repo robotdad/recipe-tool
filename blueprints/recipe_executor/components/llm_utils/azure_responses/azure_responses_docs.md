@@ -4,41 +4,49 @@ The Azure Responses component provides Azure OpenAI built-in tool integration fo
 
 ## Overview
 
-This component handles Azure OpenAI's Responses API built-in tools (web search, code execution) 
+This component handles Azure OpenAI's Responses API built-in tools (web search, code execution)
 by creating configured `OpenAIResponsesModel` instances with Azure authentication and appropriate tool settings.
 
-## Usage
-
-### Basic Usage (Phase 2)
+## Importing
 
 ```python
 from recipe_executor.llm_utils.azure_responses import create_azure_responses_model
+```
+
+### Basic Usage
+
+```python
+def get_azure_responses_model(
+    logger: logging.Logger,
+    model_name: str,
+) -> pydantic_ia.models.openai.OpenAIResponsesModel:
+    """
+    Create an OpenAIResponsesModel for the given model name.
+
+    Args:
+        logger (logging.Logger): Logger for logging messages.
+        model_name: Name of the model (e.g., "gpt-4o").
+        deployment_name (Optional[str]): Deployment name for Azure OpenAI, defaults to model_name.
+
+    Returns:
+        OpenAIResponsesModel: A PydanticAI OpenAIResponsesModel instance .
+
+    Raises:
+        Exception: If the model cannot be created or if the model name is invalid.
+    """
+```
+
+Usage example:
+
+```python
 
 # Create basic Azure responses model
-model = create_azure_responses_model("gpt-4o")
+model = get_azure_responses_model("gpt-4o")
 
 # Use with PydanticAI Agent
 from pydantic_ai import Agent
 agent = Agent(model=model)
 result = await agent.run("Hello, what can you do with the Azure Responses API?")
-```
-
-### Phase 3 Features (Future)
-
-Built-in tools support (web search, code execution) will be added in Phase 3 via the `llm_generate` step, not in this component.
-
-## Integration with LLM Component
-
-The LLM component routes `azure_responses/*` model identifiers to this component:
-
-```python
-# In llm.py get_model() function:
-if provider == "azure_responses":
-    from recipe_executor.llm_utils.azure_responses import create_azure_responses_model
-    model_name = parts[1]
-    deployment_name = parts[2] if len(parts) > 2 else None
-    model = create_azure_responses_model(model_name, deployment_name)
-    return model
 ```
 
 ## Environment Variables
@@ -79,6 +87,8 @@ Provides full Azure OpenAI Responses API model creation with proper Azure authen
 
 ## Error Handling
 
-- **Model initialization errors**: Clear error messages for Azure OpenAI model creation failures
-- **Authentication errors**: Detailed error messages for Azure Identity or API key issues
-- **Invalid model names**: Validation errors with helpful context
+- Handle model initialization errors gracefully with clear error messages
+
+## Dependency Integration Considerations
+
+None
