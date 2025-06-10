@@ -9,14 +9,14 @@ The Azure Responses component provides a PydanticAI wrapper for Azure OpenAI Res
 - Provide a PydanticAI-compatible OpenAIResponsesModel instance for Azure OpenAI
 - Use proper Azure OpenAI authentication (API key or Azure Identity)
 - Support Azure OpenAI endpoints and deployments
-- Implement basic error handling and parameter validation  
+- Implement basic error handling and parameter validation
 - Export `create_azure_responses_model` function
 - Follow same patterns as existing `azure_openai` component
 
 ## Implementation Considerations
 
 - Use `OpenAIResponsesModel` with `provider='azure'` parameter
-- Create `AsyncAzureOpenAI` client following same patterns as `azure_openai` component  
+- Create `AsyncAzureOpenAI` client following same patterns as `azure_openai` component
 - Pass Azure client via `OpenAIProvider(openai_client=azure_client)`
 - Support both API key and Azure Identity authentication
 - Return a `pydantic_ai.models.openai.OpenAIResponsesModel` configured for Azure
@@ -56,11 +56,12 @@ model = OpenAIResponsesModel(
 
 ### Internal Components
 
-None required for Phase 2.
+- **Logger**: Uses the logger for logging LLM calls
 
 ### External Libraries
 
 - **pydantic-ai**: Uses PydanticAI's `OpenAIResponsesModel` for model management
+- **openai**: Uses `AsyncAzureOpenAI` client for API communication
 - **azure-identity**: Uses `DefaultAzureCredential`, `ManagedIdentityCredential`, and `get_bearer_token_provider` for token provision
 
 ### Configuration Dependencies
