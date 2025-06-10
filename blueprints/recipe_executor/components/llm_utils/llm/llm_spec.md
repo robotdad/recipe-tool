@@ -158,8 +158,8 @@ return OpenAIModel(
 ### Internal Components
 
 - **Azure OpenAI**: Uses `get_azure_openai_model` for Azure OpenAI model initialization
-- **Responses**: Uses `create_openai_responses_model` for OpenAI Responses API model initialization
-- **Azure Responses**: Uses `create_azure_responses_model` for Azure Responses API model initialization
+- **Responses**: Uses `get_openai_responses_model` for OpenAI Responses API model initialization
+- **Azure Responses**: Uses `get_azure_responses_model` for Azure Responses API model initialization
 - **Logger**: Uses the logger for logging LLM calls
 - **MCP**: Integrates remote MCP tools when `mcp_servers` are provided (uses `pydantic_ai.mcp`)
 
@@ -189,4 +189,7 @@ return OpenAIModel(
 ## Dependency Integration Considerations
 
 Implement a standardized `get_model` function that routes to appropriate provider-specific model creation functions based on the provider prefix in the model identifier. Use existing component functions for Azure OpenAI, Responses API, and Azure Responses API integration.
+
+```
+
 ```
