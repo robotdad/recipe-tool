@@ -81,10 +81,6 @@ AZURE_OPENAI_API_VERSION= # Optional, defaults to 2025-03-01-preview
 AZURE_OPENAI_DEPLOYMENT_NAME= # Optional, defaults to model_name
 ```
 
-## Phase 2 Scope
-
-Provides full Azure OpenAI Responses API model creation with proper Azure authentication and endpoint configuration. Built-in tools (web search, code execution) will be added in Phase 3.
-
 ## Error Handling
 
 - Handle model initialization errors gracefully with clear error messages
