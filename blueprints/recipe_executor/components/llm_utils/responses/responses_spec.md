@@ -32,7 +32,8 @@ None
 
 ### Configuration Dependencies
 
-None
+- **DEFAULT_MODEL**: (Optional) Environment variable specifying the default LLM model in format "provider/model_name"
+- **OPENAI_API_KEY**: (Required for OpenAI) API key for OpenAI access
 
 ## Output Files
 
@@ -45,7 +46,9 @@ None
 
 ## Error Handling
 
-- Handle model initialization errors gracefully with clear error messages
+- Provide clear error messages for unsupported providers
+- Handle network and API errors gracefully
+- Log detailed error information for debugging
 
 ## Dependency Integration Considerations
 
