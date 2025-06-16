@@ -2,451 +2,370 @@
 
 [document-generator]
 
-**Date:** 6/2/2025 10:23:59 PM
+**Date:** 6/13/2025 10:51:20 AM
 
-## Overview
+# Quick Start - Copy This System
 
-An AI context generation system automates the collection and organization of codebase artifacts and library documentation into structured Markdown files that are optimized for AI-driven development tools. By automatically rolling up scattered source files, API references, and external docs into focused context bundles, the system ensures that large-language models (LLMs) always see a complete, up-to-date view of the project without manual prompt assembly.
+To swiftly integrate the AI context system into your project, follow this streamlined checklist. This guide allows you to set up the system using only Python's standard library, ensuring no external dependencies are required.
 
-Why It’s Valuable
-- **Consistent Context**  
-  Every module or library is presented in a self-contained Markdown roll-up, reducing missing dependencies or out-of-sync code in AI prompts.
-- **Developer Efficiency**  
-  Eliminates the need to manually gather files or update prompts when code changes.  
-- **Modular Clarity**  
-  Aligns with the project’s minimalist, modular design philosophy by producing only what’s needed now.
-
-Recipe-Tool Implementation
-In the recipe-tool project, AI context generation lives under the `ai_context/` directory and is driven by the built-in document generation pipeline:
-
-  ai_context/
-  ├── git_collector/   # External library documentation for reference
-  └── generated/       # Project file roll-ups for LLM consumption (auto-generated)
-
-1. **Ingest**: The pipeline reads all supported files in `ai_context/git_collector/` alongside selected code artifacts.  
-2. **Transform**: It applies naming and grouping conventions—no extra abstractions, just direct Markdown summaries.  
-3. **Emit**: Consolidated `.md` files are written to `ai_context/generated/`, ready for LLM ingestion.
-
-This implementation leverages the project’s core design principles—ruthless simplicity, minimal abstractions, and end-to-end thinking—to deliver a practical, self-maintaining context layer for AI development workflows.
-
-## What This System Does
-
-This system automates rolling up your code and recipe definitions into self-contained Markdown documents for AI consumption. At its core, it uses two components:
-
-1. Collect-Files Utility (tools/collect_files.py)
-   - Recursively scans directories and patterns, applies default and user-supplied `--exclude`/`--include` filters, and formats each file with a header and its content.
-   - For example, running:
-     ```bash
-     python tools/collect_files.py recipe-executor/recipe_executor \
-       --exclude ".venv,node_modules,*.lock,.git,__pycache__,*.pyc,*.ruff_cache,logs,output" \
-       --include "README.md,pyproject.toml,.env.example" \
-       --format markdown > ai_context/generated/RECIPE_EXECUTOR_CODE_FILES.md
-     ```
-     produces `ai_context/generated/RECIPE_EXECUTOR_CODE_FILES.md` starting with:
-     # recipe-executor/recipe_executor
-     [collect-files]
-     **Search:** ['recipe-executor/recipe_executor']
-     **Exclude:** ['.venv', 'node_modules', '*.lock', '.git', '__pycache__', '*.pyc', '*.ruff_cache', 'logs', 'output']
-     **Include:** ['README.md', 'pyproject.toml', '.env.example']
-     **Date:** 5/28/2025, 12:47:25 PM
-     **Files:** 26
+1. **Copy Core Files**
+   
+   - Copy the following essential Python scripts from the source repository:
      
-     And individual file sections such as:
-     === File: .env.example ===
-     # Optional for the project
-     #LOG_LEVEL=DEBUG
-     ...
-
-2. Build Script (tools/build_ai_context_files.py)
-   - Imports `collect_files` and defines a list of tasks, each mapping `patterns`, `exclude`, `include`, and an `output` path under `ai_context/generated/`.
-   - Example task for document-generator recipes:
-     {
-       "patterns": ["recipes/document_generator"],
-       "output": "ai_context/generated/DOCUMENT_GENERATOR_RECIPE_FILES.md",
-       "exclude": collect_files.DEFAULT_EXCLUDE,
-       "include": []
-     }
-   - Running `python tools/build_ai_context_files.py` (or `make ai-context-files`) iterates tasks, collects matching files, and writes headers plus file contents. For instance, `DOCUMENT_GENERATOR_RECIPE_FILES.md` begins with:
-     # recipes/document_generator
-     [collect-files]
-     **Search:** ['recipes/document_generator']
-     **Exclude:** ['.venv', 'node_modules', '*.lock', '.git', '__pycache__', '*.pyc', '*.ruff_cache', 'logs', 'output']
-     **Include:** []
-     **Date:** 5/27/2025, 2:32:39 PM
-     **Files:** 11
-
-Resulting Markdown roll-ups (e.g., `RECIPE_EXECUTOR_CODE_FILES.md` and `DOCUMENT_GENERATOR_RECIPE_FILES.md`) are committed under `ai_context/generated/`. These files provide complete, up-to-date context bundles—every source file, config, and recipe definition—ready for downstream LLM-driven document generation or analysis.
-
-## Implementation Steps
-
-Follow these steps to stand up the AI context generation system in your own project. We’ll copy the core scripts, tailor the task list, hook it into your Makefile, and then run a smoke test.
-
-1. Copy the core modules
-   • Create a `tools/` folder (if you don’t already have one) and copy in the two Python scripts that drive collection and build:
      ```bash
-     mkdir -p tools
-     cp path/to/original/collect_files.py tools/collect_files.py
-     cp path/to/original/build_ai_context_files.py tools/build_ai_context_files.py
+     cp source_repo/tools/collect_files.py your_repo/tools/
+     cp source_repo/tools/build_ai_context_files.py your_repo/tools/
      ```
-   • These provide:
-     - `collect_files.py` → recursively scans your code, applies default and custom `--exclude`/`--include` filters, and formats output.
-     - `build_ai_context_files.py` → defines a tasks array and invokes `collect_files.collect_files` to emit per-pattern Markdown roll-ups.
 
-2. Customize the task list
-   • Open `tools/build_ai_context_files.py` and locate the `tasks = [ … ]` block near the top.  
-   • Replace or extend it with exactly the modules you want to ship to LLMs. For example, to collect your document-generator recipes and the recipe-tool app:
+2. **Set Up the Output Directory**
+   
+   - Create the necessary directory structure to store the generated files:
+     
+     ```bash
+     mkdir -p your_repo/ai_context/generated
+     ```
+
+3. **Adjust Tasks Configuration**
+   
+   - Open `build_ai_context_files.py` in your new repo and modify the tasks list to suit your project's structure. Customize the patterns, exclusions, and inclusions in the `tasks` variable:
+     
      ```python
+     # Example editing tasks in build_ai_context_files.py
      tasks = [
          {
-             "patterns": ["recipes/document_generator"],
-             "output": f"{OUTPUT_DIR}/DOCUMENT_GENERATOR_RECIPE_FILES.md",
+             "patterns": ["your_project_dir"],
+             "output": "ai_context/generated/YOUR_OUTPUT_FILE.md",
              "exclude": collect_files.DEFAULT_EXCLUDE,
-             "include": [],
+             "include": ["README.md"],
          },
-         {
-             "patterns": ["apps/recipe-tool/recipe_tool_app"],
-             "output": f"{OUTPUT_DIR}/RECIPE_TOOL_APP_CODE_FILES.md",
-             "exclude": collect_files.DEFAULT_EXCLUDE,
-             "include": [],
-         },
-         # …add more entries for recipe-executor, blueprints, examples, etc.
      ]
      ```
-   • Each task maps:
-     - `patterns`: glob or directory path(s) to collect
-     - `exclude`: usually `collect_files.DEFAULT_EXCLUDE`
-     - `include`: any additional files (e.g. `README.md`, `pyproject.toml`)
-     - `output`: target file under `ai_context/generated/`
 
-3. Wire up the Makefile target
-   • In your root `Makefile`, add (or confirm you have) an `ai-context-files` target that invokes both build scripts.  For example:
+4. **Run the Script**
+   
+   **Directly using Python:**
+
+   - Navigate to your repository's root and execute:
+     
+     ```bash
+     python tools/build_ai_context_files.py
+     ```
+   
+   **Optional: Integrate with Make**
+
+   - If preferred, define a Makefile to integrate more seamlessly into existing workflows:
+     
      ```makefile
-     .PHONY: ai-context-files
-     ai-context-files: ## Build AI context files for development
-      	@echo "Building AI context files..."
-      	@python tools/build_ai_context_files.py
-      	@python tools/build_git_collector_files.py
-      	@echo "→ Outputs: ai_context/generated/ and ai_context/git_collector/"
+     make ai-context:
+     	python tools/build_ai_context_files.py
      ```
-   • This ensures `make ai-context-files`:
-     - Creates `ai_context/generated/` if missing
-     - Runs each task, skipping unchanged files
-     - Falls back to `git-collector` via NPX if needed for external docs
 
-4. Run and verify
-   • From your repo root, simply run:
+Following these steps will establish the AI context functionality quickly within your existing project, providing immediate utility without the need for external resources or libraries.
+
+# Core Files You Need
+
+To effectively generate AI context within your project, ensure you have the following essential Python scripts. These files leverage Python’s standard library exclusively, eliminating the need for additional dependencies.
+
+1. **Essential Files to Copy**
+   
+   - **`collect_files.py`**: This script is a utility for aggregating files based on specified patterns and outputs them into a markdown format. It's crucial for collecting and displaying file contents from various parts of your project.
+     
      ```bash
-     make ai-context-files
+     cp source_repo/tools/collect_files.py your_repo/tools/
      ```
-   • You should see output like:
-     ```text
-     Building AI context files...
-     Collecting files for patterns: ['recipes/document_generator']
-     Found 11 files.
-     Written to ai_context/generated/DOCUMENT_GENERATOR_RECIPE_FILES.md
-     Collecting files for patterns: ['apps/recipe-tool/recipe_tool_app']
-     Found 8 files.
-     Written to ai_context/generated/RECIPE_TOOL_APP_CODE_FILES.md
-     → Outputs: ai_context/generated/ and ai_context/git_collector/
-     ```
-   • Validate one of the generated roll-ups:
+
+   - **`build_ai_context_files.py`**: This script utilizes `collect_files.py` to compile project-specific files into comprehensive markdown documents, tailored for AI processing. It allows the customization of file collections through pattern-based task configurations.
+     
      ```bash
-     head -n 20 ai_context/generated/DOCUMENT_GENERATOR_RECIPE_FILES.md
-     ```
-   • You should see the metadata header and first file section:
-     ```markdown
-     # recipes/document_generator
-     [collect-files]
-     **Search:** ['recipes/document_generator']
-     **Exclude:** ['.venv', 'node_modules', '*.lock', '.git', '__pycache__', '*.pyc', '*.ruff_cache', 'logs', 'output']
-     **Include:** []
-     **Date:** 6/2/2025, 11:15:03 AM
-     **Files:** 11
-
-     === File: recipe_generator.py ===
+     cp source_repo/tools/build_ai_context_files.py your_repo/tools/
      ```
 
-That’s it – you now have an automated AI context layer that rolls up exactly the code and docs your LLMs need, on demand and in lock-step with your repository.
+2. **Optional File for External Documentation**
 
-## Configuration and Customization
+   - **`build_git_collector_files.py`**: Use this file if your project involves external documentation integration. It facilitates the collection of such documentation using external tools like `git-collector`.
+     
+     ```bash
+     cp source_repo/tools/build_git_collector_files.py your_repo/tools/
+     ```
+     
+     Note: This is not essential unless external document handling is needed.
 
-Once the core scripts are in place, you can tailor exactly **what** and **how** files are rolled up for your AI contexts. Below are the most common customization patterns using the actual task format from `tools/build_ai_context_files.py` and the `collect_files.py` implementation.
+3. **Minimal Directory Structure After Copying**
 
-### 1. Editing the Task List
-Open `tools/build_ai_context_files.py` and locate the `tasks = [ … ]` list. Each task is a dict with four keys:
+   After migrating these core files, your directory should look like this:
 
-```python
-tasks = [
-  {
-    "patterns": ["recipes/document_generator"],
-    "output": f"{OUTPUT_DIR}/DOCUMENT_GENERATOR_RECIPE_FILES.md",
-    "exclude": collect_files.DEFAULT_EXCLUDE,
-    "include": [],
-  },
-  {
-    "patterns": ["apps/recipe-tool/recipe_tool_app"],
-    "output": f"{OUTPUT_DIR}/RECIPE_TOOL_APP_CODE_FILES.md",
-    "exclude": collect_files.DEFAULT_EXCLUDE,
-    "include": ["README.md", "pyproject.toml"],
-  },
-  # … add more entries for each module or directory
-]
-```
+   ```
+   your_repo/
+   ├── tools/
+   │   ├── collect_files.py
+   │   ├── build_ai_context_files.py
+   │   └── (optional) build_git_collector_files.py
+   └── ai_context/
+       └── generated/
+   ```
 
-– **patterns**: glob(s) or directories to scan
-– **exclude**: a list of fnmatch-style patterns (combine your own with `DEFAULT_EXCLUDE`)
-– **include**: overrides to re-include files that would otherwise match an exclude
-– **output**: target Markdown under `ai_context/generated`
+By integrating these files and creating the basic directory structure, you are set to begin generating AI context files tailored to your project's needs, utilizing solely Python's built-in capabilities.
 
-### 2. Fine-Tuning Exclude/Include
-The default exclude list lives in `collect_files.py`:
+# Running the System
 
-```python
-DEFAULT_EXCLUDE = [
-  ".venv", "node_modules", "*.lock", ".git",
-  "__pycache__", "*.pyc", "*.ruff_cache", "logs", "output"
-]
-```
+To generate and manage AI context files using this system, you have two primary options: direct execution with Python and optional Make integration for convenience.
 
-To add project-specific ignores, pass a custom exclude string or list:
+## Direct Python Execution
+
+The primary method to utilize the AI context system is directly through Python. This is the quickest, no-dependency-required method, and uses only the Python standard library. Follow these steps:
+
+1. **Navigate to the Project Root**
+
+   Ensure you start from the root of your project directory where your `tools` and `ai_context` directories are located.
+
+   ```bash
+   cd /path/to/your_repo
+   ```
+
+2. **Execute the Primary Script**
+
+   Run the following command to build your AI context files:
+
+   ```bash
+   python tools/build_ai_context_files.py
+   ```
+
+   This command invokes the build process, collecting files as per your configured tasks and generating markdown outputs in the `ai_context/generated` directory.
+
+## Optional Make Integration
+
+For users who prefer integrating into a Make-based workflow, an optional Make target can streamline repeated executions and integrate with broader project automation.
+
+### Configuring Make
+
+1. **Add Makefile Target**
+
+   Edit your project's Makefile to include a target for building AI context files. Ensure your Makefile is located appropriately to manage directory-wide builds:
+
+   ```makefile
+   ai-context-files: ## Build AI context files for development
+   	@echo "Building AI context files..."
+   	python tools/build_ai_context_files.py
+   	@echo "AI context files generated"
+   ```
+
+2. **Run via Make**
+
+   Once configured, simply use the command below in your project root to run the context build process with Make:
+
+   ```bash
+   make ai-context-files
+   ```
+
+### Note on Make Usage
+
+Utilizing Make is entirely optional and serves as an additional utility for those familiar with or already using Makefile setups in their development process. The Python script will always be sufficient on its own, and is recommended for those seeking the minimal setup.
+
+By following these steps, you can quickly generate AI context files, leveraging either command method based on your project’s needs and your development workflow preferences.
+
+# Customize for Your Project
+
+To adapt the `build_ai_context_files.py` script for your specific project structure, you will need to modify the tasks configuration according to your project's directory layout and file organization. Below are examples for various common project structures, illustrating how to customize the tasks configuration for each.
+
+## Example 1: Standard Src/Lib Project Structure
 
 ```bash
-python tools/collect_files.py src/**/*.py \
-  --exclude "${DEFAULT_EXCLUDE},tests/slow,legacy/*" \
-  --include "legacy/readme.md" \
-  --format markdown > my_src_rollup.md
+project_root/
+├── src/
+│   ├── module1/
+│   └── module2/
+└── lib/
+    └── utils/
 ```
 
-Or in your build script:
-```python
-my_excludes = collect_files.DEFAULT_EXCLUDE + ["tests/slow", "legacy/*"]
-tasks.append({
-  "patterns": ["src"],
-  "output": f"{OUTPUT_DIR}/SRC_CODE_FILES.md",
-  "exclude": my_excludes,
-  "include": ["README.md"],
-})
-```
-
-### 3. Splitting Strategies for Performance
-When your repo grows large, split collections into smaller tasks so each `collect_files` invocation scans a narrower tree:
+For a project where source code is contained within `src/` and libraries or utility scripts are under `lib/`, your tasks configuration might look like:
 
 ```python
-# Instead of one giant scan:
-#   patterns=["."]
-# do two parallel tasks:
-tasks = [
-  {"patterns": ["src/core/**"], ...},
-  {"patterns": ["src/plugins/**"], ...},
-]
-```
-
-This reduces I/O overhead and lets you track which layer changed when rerunning only the affected roll-up.
-
-### 4. Pattern Resolution and Recursion
-`collect_files` uses `glob.glob(..., recursive=True)` combined with `fnmatch` on absolute and component paths. You can target subtrees directly:
-
-```python
-# Collect only Python and Markdown in docs/:
-tasks.append({
-  "patterns": ["docs/**/*.py", "docs/**/*.md"],
-  "exclude": collect_files.DEFAULT_EXCLUDE,
-  "include": [],
-  "output": f"{OUTPUT_DIR}/DOCS_FILES.md",
-})
-```
-
-If you need to handle relative paths with `..`, the `resolve_pattern` helper will normalize them for you.
-
-### 5. Putting It All Together
-1. **Define granular tasks** in `build_ai_context_files.py`—one per logical component.
-2. **Leverage `DEFAULT_EXCLUDE`** but extend it for your legacy, test, or generated folders.
-3. **Use `include`** to pull in important top-level files (e.g., `README.md`, `LICENSE`, `pyproject.toml`).
-4. **Partition large code trees** into multiple tasks to speed up scanning and minimize rebuild scope.
-
-With these patterns in place, your AI context pipeline remains both **powerful** and **fast**, producing just the right roll-ups for downstream LLM-driven document generation or analysis.
-
-## Setup and Usage
-
-This section shows how to hook AI context generation into your day-to-day workflow using the `ai-context-files` Make target and the underlying build scripts. You’ll learn how to run, force-regenerate, and maintain your context bundle without touching any of your usual CI/development commands.
-
-### 1. Hook into Your Makefile
-
-Ensure you have the following `ai-context-files` target in the root Makefile (this is the one from the recipe-tool workspace):
-
-```makefile
-.PHONY: ai-context-files
-ai-context-files: ## Build AI context files for development
-	@echo ""
-	@echo "Building AI context files..."
-	@python tools/build_ai_context_files.py
-	@python tools/build_git_collector_files.py
-	@echo "AI context files generated"
-	@echo ""
-```
-
-This target will:
-- Run `build_ai_context_files.py` to collect your code/recipe files into `ai_context/generated/`.
-- Run `build_git_collector_files.py` to fetch external docs into `ai_context/git_collector/`.
-
-### 2. Basic Commands
-
-Once the Makefile is in place, here’s your daily driver:
-
-  • **Generate or update all contexts**
-
-    ```bash
-    make ai-context-files
-    ```
-
-    *Output example:*  
-    ```text
-    Building AI context files...
-    Collecting files for patterns: ['recipes/document_generator']
-    Found 11 files.
-    Written to ai_context/generated/DOCUMENT_GENERATOR_RECIPE_FILES.md
-    → git-collector → success
-    AI context files generated
-    ```
-
-  • **Inspect the diff** (Git):
-
-    ```bash
-    git diff ai_context/generated/
-    ```
-
-### 3. Force Regeneration
-
-By default, the build script skips writing files whose content (aside from the timestamp) hasn’t changed. To override this and regenerate everything:
-
-  1. **Direct script flag**
-
-     ```bash
-     python tools/build_ai_context_files.py --force
-     ```
-
-  2. **Remove outputs then rebuild**
-
-     ```bash
-     rm -rf ai_context/generated/* ai_context/git_collector/*
-     make ai-context-files
-     ```
-
-Use `--force` or a clean-and-make cycle when you:
-- Add or remove tasks in `build_ai_context_files.py`.
-- Change header formats or metadata logic.
-
-### 4. Maintenance Tasks
-
-Keep your AI context system healthy with these routines:
-
-  • **Update your task list**  
-    Edit `tools/build_ai_context_files.py` → `tasks = [ … ]` → add/remove patterns, adjust `exclude`/`include` lists.
-
-  • **Prune stale files**  
-    If you remove a module or rename a directory, manually delete its Markdown under `ai_context/generated/` before rerunning.
-
-  • **Verify external docs**  
-    Occasionally re-run `build_git_collector_files.py` alone:
-    ```bash
-    python tools/build_git_collector_files.py
-    ```
-
-  • **CI integration**  
-    Add `make ai-context-files` as a lightweight check in your CI pipeline to ensure context docs stay up to date.
-
-With these commands and habits in place, your AI context layer remains in lock-step with your repository—always fresh, accurate, and ready for LLM-powered tooling.
-
-## Examples and Templates
-
-Below are ready-to-use code templates and command examples based on the real `recipe-tool` patterns. Copy, paste, and customize these snippets to stand up your own AI context generation pipeline.
-
-### 1. build_ai_context_files.py – Task List Template
-
-In `tools/build_ai_context_files.py`, define a `tasks` array mapping your project modules to generated Markdown roll-ups. Reuse `collect_files.DEFAULT_EXCLUDE` and add project-specific excludes or includes as needed.
-
-```python
-# tools/build_ai_context_files.py
-
-from tools import collect_files
-
-OUTPUT_DIR = "ai_context/generated"
-
 tasks = [
     {
-        "patterns": ["src/core/**/*"],
-        "output": f"{OUTPUT_DIR}/CORE_CODE_FILES.md",
-        "exclude": collect_files.DEFAULT_EXCLUDE + ["tests/*", "legacy/**"],
-        "include": ["README.md", "pyproject.toml"],
+        "patterns": ["src/**/*.py"],
+        "output": "ai_context/generated/SRC_CODE.md",
+        "exclude": collect_files.DEFAULT_EXCLUDE + ["lib/**/*"],
+        "include": ["README.md", "setup.py"],
     },
     {
-        "patterns": ["src/plugins/**"],
-        "output": f"{OUTPUT_DIR}/PLUGINS_CODE_FILES.md",
+        "patterns": ["lib/**/*.py"],
+        "output": "ai_context/generated/LIB_CODE.md",
         "exclude": collect_files.DEFAULT_EXCLUDE,
         "include": [],
     },
 ]
-
-# (keep the rest of the script unchanged)
 ```
 
-**Key fields**
-- `patterns`: glob or directory path(s) to scan (supports `**`, `*`, relative navigation).
-- `exclude`: list of fnmatch patterns to skip (defaults in `collect_files.py`).
-- `include`: override exclusions to re-include files (e.g. docs, configs).
-- `output`: Markdown file under your `OUTPUT_DIR`.
-
-
-### 2. One-Off collect_files Command
-
-If you need ad-hoc roll-ups, call `collect_files.py` directly from your shell:
+## Example 2: Apps and Components Structure
 
 ```bash
-python tools/collect_files.py \
-  "src/**/*.py" \
-  --exclude ".venv,node_modules,*.pyc,build" \
-  --include "README.md,pyproject.toml" \
-  --format markdown \
-  > ai_context/generated/SRC_CODE_ROLLUP.md
+project_root/
+├── apps/
+│   ├── app1/
+│   └── app2/
+└── components/
+    ├── component1/
+    └── component2/
 ```
 
-- Use commas to separate multiple exclude/include patterns.
-- `--format markdown` wraps each file in triple-backtick fences and headers.
+For a project divided into applications under `apps/` and shared components under `components/`, configure your tasks as follows:
 
-
-### 3. Makefile Integration Snippet
-
-Add an `ai-context-files` target to your root `Makefile` so teammates can regenerate contexts with one command:
-
-```makefile
-.PHONY: ai-context-files
-ai-context-files:  ## Generate AI context bundles
-	@echo "→ Building code roll-ups..."
-	@python tools/build_ai_context_files.py
-	@python tools/build_git_collector_files.py
-	@echo "✓ AI context files written to ai_context/generated/ and ai_context/git_collector/"
+```python
+tasks = [
+    {
+        "patterns": ["apps/**/app*.py"],
+        "output": "ai_context/generated/APPS_CODE.md",
+        "exclude": collect_files.DEFAULT_EXCLUDE,
+        "include": ["apps/**/README.md"],
+    },
+    {
+        "patterns": ["components/**/*.py"],
+        "output": "ai_context/generated/COMPONENTS_CODE.md",
+        "exclude": collect_files.DEFAULT_EXCLUDE,
+        "include": ["components/**/docs/*"],
+    },
+]
 ```
 
+## Example 3: Mixed Code and Documentation
 
-### 4. Troubleshooting Tips
+```bash
+project_root/
+├── source/
+└── docs/
+```
 
-• **No files found**: Check your `patterns` syntax—ensure globs match your directory structure and you’re running from the repo root.
+For projects with a clear separation of code and documentation, such as source files in `source/` and markdown documentation in `docs/`, you should adapt as:
 
-• **Excluded files still appear**: Verify that your `exclude` list is being applied component-wise (folder names, file names). Use `--include` to re-include specific files.
+```python
+tasks = [
+    {
+        "patterns": ["source/**/*.py"],
+        "output": "ai_context/generated/SOURCE_CODE.md",
+        "exclude": collect_files.DEFAULT_EXCLUDE,
+        "include": [],
+    },
+    {
+        "patterns": ["docs/**/*.md"],
+        "output": "ai_context/generated/DOCUMENTATION.md",
+        "exclude": collect_files.DEFAULT_EXCLUDE,
+        "include": [],
+    },
+]
+```
 
-• **Output not updating**: By default, the build script skips writes when only the timestamp changed. Use `--force` on `build_ai_context_files.py` to overwrite everything.
+### Essential Patterns
+Regardless of your project structure, the main patterns involve defining which file patterns to include for collection (`patterns`), where to output the collected data (`output`), and any specific files or directories to explicitly include or exclude (`include`, `exclude`). Tailor these configurations to reflect your project's organization, focusing on directories and extensions crucial for your context generation needs.
 
-• **Permission errors**: Ensure your Python process has write access to `ai_context/generated/`. On Unix, you may need `chmod -R u+w ai_context/generated/`.
+By adjusting these task configurations, you ensure the AI context system accurately reflects and compiles the code and resources most relevant to your project setting.
 
-• **Slow scans**: Split a large codebase into multiple smaller tasks (e.g., core vs. plugins) to reduce I/O per invocation.
+# Configuration Options
 
+To successfully implement the AI context system, it's vital to understand and configure key options related to file selection and output management. Below is a concise guide on essential configuration aspects.
 
-### 5. Best Practices
+## Key Configuration Options
 
-- Leverage `collect_files.DEFAULT_EXCLUDE` and only extend it sparingly for project-specific folders (e.g. `legacy/`, `tests/slow`).
-- Always include top-level docs (`README.md`, `LICENSE`, `pyproject.toml`) via the `include` list.
-- Group logically related modules into separate tasks to speed up incremental runs and isolate changes.
-- Hook the Makefile target into your CI pipeline (e.g. `make ai-context-files`) to guard against stale context docs.
-- Use descriptive output filenames (`CORE_CODE_FILES.md`, `PLUGINS_CODE_FILES.md`) so LLM prompts can reference them unambiguously.
+### Patterns
+- **Patterns**: Used to specify which files or directories to include in the collection process. Patterns can incorporate wildcards and specific path segments that direct the script to gather the appropriate files for context generation. 
+  
+  ```python
+  patterns = ["src/**/*.py"]
+  ```
 
-With these examples and templates in place, you’ll have a turn-key AI context generation system that mirrors the `recipe-tool` implementation—automated, maintainable, and optimized for AI workflows.
+  This example pattern collects all Python files recursively within the `src` directory.
+
+### Exclude/Include Lists
+- **Exclude Lists**: Directs the tool to omit certain files or directories during collection. This is managed by merging user-defined exclusions with the `DEFAULT_EXCLUDE` list embedded in the script. 
+
+  ```python
+  exclude_patterns = collect_files.DEFAULT_EXCLUDE + ["build", "dist"]
+  ```
+
+  Utilize `DEFAULT_EXCLUDE` to efficiently bypass unnecessary directories like `__pycache__` and `node_modules`.
+
+- **Include Lists**: Overrides exclusions for specific files, bringing them back into consideration when matched by the pattern. This ensures important files aren't missed.
+
+  ```python
+  include_patterns = ["README.md", "requirements.txt"]
+  ```
+
+### Output Paths
+- **Output Paths**: Designate where the collected results should be saved. Define this path in the task configuration to manage a structured output of the AI context data.
+
+  ```python
+  output = "ai_context/generated/PROJECT_FILES.md"
+  ```
+
+## Performance Tips
+
+### Efficient File Handling
+- **Splitting Large Codebases**: Divide large projects into smaller, more manageable patterns to enhance performance. This improves manageability and speeds up the process of file collection and context generation.
+
+- **Utilizing DEFAULT_EXCLUDE Effectively**: Make full use of the embedded `DEFAULT_EXCLUDE` list to dismiss non-essential files, thereby focusing resources and speeding up operations.
+
+By correctly setting these configuration options, you ensure the AI context system runs smoothly, collecting relevant data while discarding non-crucial files, all while utilizing the Python standard library for seamless integration.
+
+# Templates and Examples
+
+To streamline the implementation of the AI context system, here are some practical configuration templates and examples that you can readily apply or modify according to your project’s needs.
+
+## Ready-to-Use Task Configuration Templates
+
+### Basic Template
+
+Use this basic configuration template to start collecting files in your project:
+
+```python
+# Basic template for task configuration
+from tools.collect_files import DEFAULT_EXCLUDE
+
+tasks = [
+    {
+        "patterns": ["src/**/*.py"],  # Adjust this pattern to match your source files structure
+        "output": "ai_context/generated/SOURCE_CODE.md",
+        "exclude": DEFAULT_EXCLUDE,  # You can add more items to exclude if needed
+        "include": ["README.md", "LICENSE"],  # Include files that must be part of the context
+    },
+]
+```
+
+### Extended Template with Detailed Customization
+
+For projects with specific requirements, use the following detailed customization template:
+
+```python
+# Extended template for task configuration with detailed exclusions and inclusions
+from tools.collect_files import DEFAULT_EXCLUDE
+
+tasks = [
+    {
+        "patterns": ["project/**/*.py", "libs/**/*.py"],
+        "output": "ai_context/generated/PROJECT_FILES.md",
+        "exclude": DEFAULT_EXCLUDE + ["env", "build", "dist"],  # Add custom excludes
+        "include": [
+            "**/*.md",  # Include all markdown files
+            "setup.py",  # Explicitly include setup files
+        ],
+    },
+    # Add more task entries as needed
+]
+```
+
+## Basic Troubleshooting Tips
+
+While setting up the AI context tool, you may encounter some common issues. Here are quick troubleshooting tips:
+
+- **No Files Found**: Ensure the `patterns` in your configuration accurately match the file paths in your project. Check for typos or misconfigurations in path patterns.
+
+- **Permission Errors**: If permission errors occur, verify that your script has adequate file permissions. This might involve changing permissions of directories or running the script with elevated privileges (e.g., using `sudo` on Unix-based systems).
+
+### Example Problem and Quick Fix
+
+**Problem:**
+   - Your script returns "No files matched the patterns".
+
+**Quick Fix:**
+   - Check the pattern syntax. Ensure your path patterns include proper wildcard usage (`*` for matching any set of characters). An example would be: `"src/**/*.py"` for matching all Python files in `src` and its subdirectories.
+
+By employing these templates and tips, developers can quickly overcome common hurdles and configure the AI context system efficiently for their needs.
