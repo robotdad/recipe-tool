@@ -2,6 +2,7 @@
 members = [
     "recipe-tool",
     "recipe-executor",
+    "shared/gradio-components",
     "apps/document-generator",
     "apps/recipe-executor",
     "apps/recipe-tool",
@@ -14,6 +15,7 @@ members = [
 # Core libraries
 recipe-executor = { workspace = true }
 recipe-tool = { workspace = true }
+gradio-components = { workspace = true }
 # Apps
 document-generator-app = { workspace = true }
 recipe-executor-app = { workspace = true }

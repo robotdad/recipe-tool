@@ -11,6 +11,7 @@ resolution-markers = [
 members = [
     "docs-mcp-server",
     "document-generator",
+    "gradio-components",
     "python-code-tools",
     "recipe-executor",
     "recipe-executor-app",
@@ -666,6 +667,11 @@ sdist = { url = "https://files.pythonhosted.org/packages/b9/5e/f0e513041613aacc9
 wheels = [
     { url = "https://files.pythonhosted.org/packages/55/6f/03eb8e0e0ec80eced5ed35a63376dabfc7391b1538502f8e85e9dc5bab02/gradio_client-1.10.1-py3-none-any.whl", hash = "sha256:fcff53f6aad3dfa9dd082adedb94256172d6b20666b1ef66480d82023e1907db", size = 323141, upload-time = "2025-05-14T21:05:53.411Z" },
 ]
+
+[[package]]
+name = "gradio-components"
+version = "0.1.0"
+source = { editable = "shared/gradio-components" }
 
 [[package]]
 name = "griffe"
@@ -1815,6 +1821,7 @@ version = "0.1.0"
 source = { editable = "apps/recipe-executor" }
 dependencies = [
     { name = "gradio" },
+    { name = "gradio-components" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
     { name = "python-dotenv" },
@@ -1833,6 +1840,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "gradio", specifier = ">=5.30.0" },
+    { name = "gradio-components", editable = "shared/gradio-components" },
     { name = "pydantic", specifier = ">=2.0.0" },
     { name = "pydantic-settings", specifier = ">=2.0.0" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
@@ -1865,6 +1873,7 @@ version = "0.1.0"
 source = { editable = "apps/recipe-tool" }
 dependencies = [
     { name = "gradio", extra = ["mcp"] },
+    { name = "gradio-components" },
     { name = "python-dotenv" },
     { name = "recipe-executor-app" },
 ]
@@ -1881,6 +1890,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "gradio", extras = ["mcp"], specifier = ">=5.30.0" },
+    { name = "gradio-components", editable = "shared/gradio-components" },
     { name = "python-dotenv", specifier = ">=1.1.0" },
     { name = "recipe-executor-app", editable = "apps/recipe-executor" },
 ]

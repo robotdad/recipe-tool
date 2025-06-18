@@ -6,7 +6,6 @@ from typing import Any, Dict, List, Optional
 
 from recipe_executor.context import Context
 from recipe_executor.executor import Executor
-from recipe_executor_app.settings_sidebar import get_model_string_from_env
 from recipe_executor_app.utils import (
     create_temp_file,
     parse_context_vars,
@@ -75,6 +74,7 @@ class RecipeToolCore:
 
             # Add max_tokens if set in config/environment
             from recipe_tool_app.settings_sidebar import get_setting
+
             max_tokens = get_setting("MAX_TOKENS")
             if max_tokens:
                 try:

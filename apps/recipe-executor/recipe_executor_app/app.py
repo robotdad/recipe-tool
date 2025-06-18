@@ -17,7 +17,9 @@ logger = init_logger(settings.log_dir)
 logger.setLevel(settings.log_level.upper())
 
 
-def create_executor_block(core: Optional[RecipeExecutorCore] = None, include_header: bool = True, include_settings: bool = True) -> gr.Blocks:
+def create_executor_block(
+    core: Optional[RecipeExecutorCore] = None, include_header: bool = True, include_settings: bool = True
+) -> gr.Blocks:
     """Create a reusable Recipe Executor block."""
     if core is None:
         core = RecipeExecutorCore()
@@ -37,7 +39,9 @@ def create_executor_block(core: Optional[RecipeExecutorCore] = None, include_hea
                 def on_settings_save(settings: Dict[str, Any]) -> None:
                     """Callback when settings are saved."""
                     core.current_settings = settings
-                    logger.info(f"Settings updated: model={settings.get('model')}, max_tokens={settings.get('max_tokens')}")
+                    logger.info(
+                        f"Settings updated: model={settings.get('model')}, max_tokens={settings.get('max_tokens')}"
+                    )
 
                 create_settings_sidebar(on_save=on_settings_save)
 

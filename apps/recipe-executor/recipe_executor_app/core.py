@@ -17,7 +17,7 @@ from recipe_executor_app.utils import (
     read_file,
     safe_json_dumps,
 )
-from recipe_executor_app.settings_sidebar import get_model_string_from_env, get_model_string, get_setting
+from recipe_executor_app.settings_sidebar import get_model_string, get_setting
 
 logger = logging.getLogger(__name__)
 
