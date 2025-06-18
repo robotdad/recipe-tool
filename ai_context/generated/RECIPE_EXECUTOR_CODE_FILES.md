@@ -5,7 +5,7 @@
 **Search:** ['recipe-executor/recipe_executor']
 **Exclude:** ['.venv', 'node_modules', '*.lock', '.git', '__pycache__', '*.pyc', '*.ruff_cache', 'logs', 'output']
 **Include:** ['README.md', 'pyproject.toml', '.env.example']
-**Date:** 6/18/2025, 1:40:48 PM
+**Date:** 6/18/2025, 3:22:46 PM
 **Files:** 29
 
 === File: .env.example ===
@@ -436,6 +436,7 @@ Any use of third-party trademarks or logos are subject to those third-party's po
 members = [
     "recipe-tool",
     "recipe-executor",
+    "shared/gradio-components",
     "apps/document-generator",
     "apps/recipe-executor",
     "apps/recipe-tool",
@@ -448,6 +449,7 @@ members = [
 # Core libraries
 recipe-executor = { workspace = true }
 recipe-tool = { workspace = true }
+gradio-components = { workspace = true }
 # Apps
 document-generator-app = { workspace = true }
 recipe-executor-app = { workspace = true }
