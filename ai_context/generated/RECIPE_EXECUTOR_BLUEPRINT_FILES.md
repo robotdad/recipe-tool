@@ -5,10 +5,11 @@
 **Search:** ['blueprints/recipe_executor']
 **Exclude:** ['.venv', 'node_modules', '*.lock', '.git', '__pycache__', '*.pyc', '*.ruff_cache', 'logs', 'output']
 **Include:** []
-**Date:** 6/4/2025, 5:26:47 PM
-**Files:** 51
+**Date:** 6/6/2025, 3:45:22 PM
+**Files:** 53
 
 === File: blueprints/recipe_executor/README.md ===
+
 # Recipe Executor Recipes
 
 This directory contains the recipes used for generating the Recipe Executor components. These recipes demonstrate the self-generating capability of the Recipe Executor system.
@@ -60,153 +61,165 @@ This command will create documentation from a structured outline configuration f
 
 See the [document_generator](../../recipes/document_generator/README.md) recipe documentation for more details on the parameters you can specify.
 
-
 === File: blueprints/recipe_executor/components.json ===
 [
-  {
-    "id": "config",
-    "deps": [],
-    "refs": []
-  },
-  {
-    "id": "context",
-    "deps": ["protocols"],
-    "refs": []
-  },
-  {
-    "id": "executor",
-    "deps": ["protocols", "logger", "models", "steps.registry"],
-    "refs": []
-  },
-  {
-    "id": "logger",
-    "deps": ["protocols"],
-    "refs": []
-  },
-  {
-    "id": "main",
-    "deps": ["config", "context", "executor", "logger", "protocols"],
-    "refs": []
-  },
-  {
-    "id": "models",
-    "deps": ["protocols"],
-    "refs": []
-  },
-  {
-    "id": "protocols",
-    "deps": ["models"],
-    "refs": []
-  },
-  {
-    "id": "llm_utils.azure_openai",
-    "deps": ["context", "logger", "protocols"],
-    "refs": [
-      "AZURE_IDENTITY_CLIENT_DOCS.md",
-      "git_collector/PYDANTIC_AI_DOCS.md"
-    ]
-  },
-  {
-    "id": "llm_utils.llm",
-    "deps": ["context", "logger", "llm_utils.azure_openai", "llm_utils.mcp", "protocols"],
-    "refs": ["git_collector/PYDANTIC_AI_DOCS.md"]
-  },
-  {
-    "id": "llm_utils.mcp",
-    "deps": ["logger"],
-    "refs": ["git_collector/PYDANTIC_AI_DOCS.md"]
-  },
-  {
-    "id": "steps.base",
-    "deps": ["logger", "protocols"],
-    "refs": []
-  },
-  {
-    "id": "steps.conditional",
-    "deps": ["context", "protocols", "steps.base", "utils.templates"],
-    "refs": []
-  },
-  {
-    "id": "steps.execute_recipe",
-    "deps": [
-      "context",
-      "executor",
-      "protocols",
-      "steps.base",
-      "utils.templates"
-    ],
-    "refs": []
-  },
-  {
-    "id": "steps.llm_generate",
-    "deps": [
-      "context",
-      "models",
-      "llm_utils.llm",
-      "llm_utils.mcp",
-      "protocols",
-      "steps.base",
-      "utils.models",
-      "utils.templates"
-    ],
-    "refs": []
-  },
-  {
-    "id": "steps.loop",
-    "deps": [
-      "context",
-      "executor",
-      "protocols",
-      "steps.base",
-      "steps.registry",
-      "utils.templates"
-    ],
-    "refs": []
-  },
-  {
-    "id": "steps.mcp",
-    "deps": ["context", "protocols", "steps.base", "utils.templates"],
-    "refs": ["git_collector/MCP_PYTHON_SDK_DOCS.md"]
-  },
-  {
-    "id": "steps.parallel",
-    "deps": ["protocols", "steps.base", "steps.registry"],
-    "refs": []
-  },
-  {
-    "id": "steps.read_files",
-    "deps": ["context", "protocols", "steps.base", "utils.templates"],
-    "refs": []
-  },
-  {
-    "id": "steps.registry",
-    "deps": [],
-    "refs": []
-  },
-  {
-    "id": "steps.set_context",
-    "deps": ["context", "protocols", "steps.base", "utils.templates"],
-    "refs": []
-  },
-  {
-    "id": "steps.write_files",
-    "deps": ["context", "models", "protocols", "steps.base", "utils.templates"],
-    "refs": []
-  },
-  {
-    "id": "utils.models",
-    "deps": [],
-    "refs": []
-  },
-  {
-    "id": "utils.templates",
-    "deps": ["protocols"],
-    "refs": ["git_collector/LIQUID_PYTHON_DOCS.md"]
-  }
+{
+"id": "config",
+"deps": [],
+"refs": []
+},
+{
+"id": "context",
+"deps": ["protocols"],
+"refs": []
+},
+{
+"id": "executor",
+"deps": ["protocols", "logger", "models", "steps.registry"],
+"refs": []
+},
+{
+"id": "logger",
+"deps": ["protocols"],
+"refs": []
+},
+{
+"id": "main",
+"deps": ["config", "context", "executor", "logger", "protocols"],
+"refs": []
+},
+{
+"id": "models",
+"deps": ["protocols"],
+"refs": []
+},
+{
+"id": "protocols",
+"deps": ["models"],
+"refs": []
+},
+{
+"id": "llm_utils.azure_openai",
+"deps": ["context", "logger", "protocols"],
+"refs": [
+"AZURE_IDENTITY_CLIENT_DOCS.md",
+"git_collector/PYDANTIC_AI_DOCS.md"
+]
+},
+{
+"id": "llm_utils.llm",
+"deps": ["logger", "llm_utils.azure_openai", "llm_utils.mcp", "llm_utils.responses", "llm_utils.azure_responses"],
+"refs": ["git_collector/PYDANTIC_AI_DOCS.md"]
+},
+{
+"id": "llm_utils.mcp",
+"deps": ["logger"],
+"refs": ["git_collector/PYDANTIC_AI_DOCS.md"]
+},
+{
+"id": "llm_utils.responses",
+"deps": [],
+"refs": ["git_collector/PYDANTIC_AI_DOCS.md"]
+},
+{
+"id": "llm_utils.azure_responses",
+"deps": [],
+"refs": [
+"AZURE_IDENTITY_CLIENT_DOCS.md",
+"git_collector/PYDANTIC_AI_DOCS.md"
+]
+},
+{
+"id": "steps.base",
+"deps": ["logger", "protocols"],
+"refs": []
+},
+{
+"id": "steps.conditional",
+"deps": ["context", "protocols", "steps.base", "utils.templates"],
+"refs": []
+},
+{
+"id": "steps.execute_recipe",
+"deps": [
+"context",
+"executor",
+"protocols",
+"steps.base",
+"utils.templates"
+],
+"refs": []
+},
+{
+"id": "steps.llm_generate",
+"deps": [
+"context",
+"models",
+"llm_utils.llm",
+"llm_utils.mcp",
+"protocols",
+"steps.base",
+"utils.models",
+"utils.templates"
+],
+"refs": []
+},
+{
+"id": "steps.loop",
+"deps": [
+"context",
+"executor",
+"protocols",
+"steps.base",
+"steps.registry",
+"utils.templates"
+],
+"refs": []
+},
+{
+"id": "steps.mcp",
+"deps": ["context", "protocols", "steps.base", "utils.templates"],
+"refs": ["git_collector/MCP_PYTHON_SDK_DOCS.md"]
+},
+{
+"id": "steps.parallel",
+"deps": ["protocols", "steps.base", "steps.registry"],
+"refs": []
+},
+{
+"id": "steps.read_files",
+"deps": ["context", "protocols", "steps.base", "utils.templates"],
+"refs": []
+},
+{
+"id": "steps.registry",
+"deps": [],
+"refs": []
+},
+{
+"id": "steps.set_context",
+"deps": ["context", "protocols", "steps.base", "utils.templates"],
+"refs": []
+},
+{
+"id": "steps.write_files",
+"deps": ["context", "models", "protocols", "steps.base", "utils.templates"],
+"refs": []
+},
+{
+"id": "utils.models",
+"deps": [],
+"refs": []
+},
+{
+"id": "utils.templates",
+"deps": ["protocols"],
+"refs": ["git_collector/LIQUID_PYTHON_DOCS.md"]
+}
 ]
 
-
 === File: blueprints/recipe_executor/components/config/config_docs.md ===
+
 # Config Component Usage
 
 ## Importing
@@ -374,8 +387,8 @@ Endpoint: {{ azure_openai_base_url | default: "https://api.openai.com" }}
 - Use environment variables or .env files (not committed to version control)
 - The config component automatically excludes None values
 
-
 === File: blueprints/recipe_executor/components/config/config_spec.md ===
+
 # Config Component Specification
 
 ## Purpose
@@ -450,6 +463,7 @@ None
 None
 
 === File: blueprints/recipe_executor/components/context/context_docs.md ===
+
 # Context Component Usage
 
 ## Importing
@@ -570,8 +584,8 @@ context.set_config(config)
 - **Protocols Interface**: The `Context` class implements the `ContextProtocol` interface defined in the Protocols component. When writing code that interacts with contexts, you can use `ContextProtocol` in type hints to allow any context implementation. In practice, you will typically use the provided `Context` class unless you extend the system.
 - **Configuration vs Artifacts**: Remember that context configuration is only available via `context.get_config()` and `context.set_config()`. It is not manipulated via the dictionary interface (`__getitem__`/`__setitem__`). This separation is by convention; Context does not prevent you from modifying the configuration, so it is up to developers to decide how to manage configuration values.
 
-
 === File: blueprints/recipe_executor/components/context/context_spec.md ===
+
 # Context Component Specification
 
 ## Purpose
@@ -639,8 +653,8 @@ The Context component is the shared state container for the Recipe Executor syst
 - **Namespacing or Hierarchies**: In larger workflows, there might be a need to namespace context data (e.g., per step or per sub-recipe) to avoid key collisions. Future versions might introduce optional namespacing schemes or structured keys.
 - **Immutable Context Option**: Possibly provide a mode or subclass for an immutable context (read-only once created) for scenarios where you want to ensure no step modifies the data.
 
-
 === File: blueprints/recipe_executor/components/executor/executor_docs.md ===
+
 # Executor Component Usage
 
 ## Importing
@@ -711,8 +725,8 @@ In each case, the Executor will parse the input (if needed) and sequentially exe
 - **Error Handling**: If any step fails (raises an exception), Executor will halt the execution of the remaining steps. The exception will bubble up as a `ValueError` with context about which step failed. You should be prepared to catch exceptions around `await executor.execute(...)` in contexts where a failure is possible or should not crash the entire program.
 - **Context After Execution**: After `execute` completes (successfully), the context contains all the artifacts that steps have placed into it. You can inspect `context` to get results (for example, if a step writes an output, it might be found in `context["output_key"]`). The context is your way to retrieve outcomes from the recipe.
 
-
 === File: blueprints/recipe_executor/components/executor/executor_spec.md ===
+
 # Executor Component Specification
 
 ## Purpose
@@ -798,8 +812,8 @@ The Executor component is responsible for executing recipes defined in JSON form
 
 - `recipe_executor/executor.py`
 
-
 === File: blueprints/recipe_executor/components/llm_utils/azure_openai/azure_openai_docs.md ===
+
 # Azure OpenAI Component Usage
 
 ## Importing
@@ -866,20 +880,22 @@ The component accesses configuration through context.get_config(). The configura
 Depending on your authentication method:
 
 #### Option 1: API Key Authentication
+
 - `AZURE_OPENAI_API_KEY` - API key for Azure OpenAI
 - `AZURE_OPENAI_BASE_URL` - Base URL for Azure OpenAI endpoint
 - `AZURE_OPENAI_API_VERSION` - (Optional) API version, defaults to "2025-03-01-preview"
 - `AZURE_OPENAI_DEPLOYMENT_NAME` - (Optional) Deployment name, defaults to model_name
 
 #### Option 2: Managed Identity
+
 - `AZURE_USE_MANAGED_IDENTITY=true` - Enable managed identity authentication
 - `AZURE_OPENAI_BASE_URL` - Base URL for Azure OpenAI endpoint
 - `AZURE_OPENAI_API_VERSION` - (Optional) API version, defaults to "2025-03-01-preview"
 - `AZURE_OPENAI_DEPLOYMENT_NAME` - (Optional) Deployment name, defaults to model_name
 - `AZURE_CLIENT_ID` - (Optional) Specific managed identity client ID
 
-
 === File: blueprints/recipe_executor/components/llm_utils/azure_openai/azure_openai_spec.md ===
+
 # Azure OpenAI Component Specification
 
 ## Purpose
@@ -983,8 +999,184 @@ All configuration is accessed through context.get_config():
 
 - `recipe_executor/llm_utils/azure_openai.py`
 
+=== File: blueprints/recipe_executor/components/llm_utils/azure_responses/azure_responses_docs.md ===
+
+# Azure Responses Component Documentation
+
+The Azure Responses component provides Azure OpenAI built-in tool integration for Recipe Executor.
+
+## Overview
+
+This component handles Azure OpenAI's Responses API built-in tools (web search, code execution)
+by creating configured `OpenAIResponsesModel` instances with Azure authentication and appropriate tool settings.
+
+## Usage
+
+### Basic Usage (Phase 2)
+
+```python
+from recipe_executor.llm_utils.azure_responses import create_azure_responses_model
+
+# Create basic Azure responses model
+model = create_azure_responses_model("gpt-4o")
+
+# Use with PydanticAI Agent
+from pydantic_ai import Agent
+agent = Agent(model=model)
+result = await agent.run("Hello, what can you do with the Azure Responses API?")
+```
+
+### Phase 3 Features (Future)
+
+Built-in tools support (web search, code execution) will be added in Phase 3 via the `llm_generate` step, not in this component.
+
+## Integration with LLM Component
+
+The LLM component routes `azure_responses/*` model identifiers to this component:
+
+```python
+# In llm.py get_model() function:
+if provider == "azure_responses":
+    from recipe_executor.llm_utils.azure_responses import create_azure_responses_model
+    model_name = parts[1]
+    deployment_name = parts[2] if len(parts) > 2 else None
+    model = create_azure_responses_model(model_name, deployment_name)
+    return model
+```
+
+## Environment Variables
+
+The component uses environment variables for authentication and configuration. Depending upon the authentication method, set the following environment variables:
+
+### Option 1: Managed Identity with Default Managed Identity
+
+```bash
+AZURE_USE_MANAGED_IDENTITY=true # Set to true to use managed identity
+AZURE_OPENAI_BASE_URL= # Required
+AZURE_OPENAI_API_VERSION= # Optional, defaults to 2025-03-01-preview
+AZURE_OPENAI_DEPLOYMENT_NAME= # Optional, defaults to model_name
+```
+
+### Option 2: Managed Identity with Custom Client ID
+
+```bash
+AZURE_USE_MANAGED_IDENTITY=true # Set to true to use managed identity
+AZURE_CLIENT_ID= # Required
+AZURE_OPENAI_BASE_URL= # Required
+AZURE_OPENAI_API_VERSION= # Optional, defaults to 2025-03-01-preview
+AZURE_OPENAI_DEPLOYMENT_NAME= # Optional, defaults to model_name
+```
+
+### Option 3: API Key Authentication
+
+```bash
+AZURE_OPENAI_API_KEY= # Required
+AZURE_OPENAI_BASE_URL= # Required
+AZURE_OPENAI_API_VERSION= # Optional, defaults to 2025-03-01-preview
+AZURE_OPENAI_DEPLOYMENT_NAME= # Optional, defaults to model_name
+```
+
+## Phase 2 Scope
+
+Provides full Azure OpenAI Responses API model creation with proper Azure authentication and endpoint configuration. Built-in tools (web search, code execution) will be added in Phase 3.
+
+## Error Handling
+
+- **Model initialization errors**: Clear error messages for Azure OpenAI model creation failures
+- **Authentication errors**: Detailed error messages for Azure Identity or API key issues
+- **Invalid model names**: Validation errors with helpful context
+
+=== File: blueprints/recipe_executor/components/llm_utils/azure_responses/azure_responses_spec.md ===
+
+# Azure Responses Component Specification
+
+## Purpose
+
+The Azure Responses component provides a PydanticAI wrapper for Azure OpenAI Responses API models for use with PydanticAI Agents. It handles model initialization, authentication, and built-in tools configuration.
+
+## Core Requirements
+
+- Provide a PydanticAI-compatible OpenAIResponsesModel instance for Azure OpenAI
+- Use proper Azure OpenAI authentication (API key or Azure Identity)
+- Support Azure OpenAI endpoints and deployments
+- Implement basic error handling and parameter validation
+- Export `create_azure_responses_model` function
+- Follow same patterns as existing `azure_openai` component
+
+## Implementation Considerations
+
+- Use `OpenAIResponsesModel` with `provider='azure'` parameter
+- Create `AsyncAzureOpenAI` client following same patterns as `azure_openai` component
+- Pass Azure client via `OpenAIProvider(openai_client=azure_client)`
+- Support both API key and Azure Identity authentication
+- Return a `pydantic_ai.models.openai.OpenAIResponsesModel` configured for Azure
+
+## Implementation Hints
+
+```python
+# Use sync credentials for token provider (important for Azure AD)
+if use_managed_identity:
+    credential = DefaultAzureCredential()  # sync, not async
+    token_provider = get_bearer_token_provider(credential, scope)
+    azure_client = AsyncAzureOpenAI(
+        azure_endpoint=AZURE_OPENAI_BASE_URL,
+        api_version=AZURE_OPENAI_API_VERSION,
+        azure_ad_token_provider=token_provider,
+    )
+else:
+    azure_client = AsyncAzureOpenAI(
+        azure_endpoint=AZURE_OPENAI_BASE_URL,
+        api_version=AZURE_OPENAI_API_VERSION,
+        api_key=AZURE_OPENAI_API_KEY,
+    )
+
+# Create Azure Responses model
+model = OpenAIResponsesModel(
+    model_name,
+    provider=OpenAIProvider(openai_client=azure_client),
+)
+```
+
+## Logging
+
+- Debug: Log the loaded environment variables (masking all but first/last character of api keys)
+- Info: Log the model name and auth method (api key or Azure Identity)
+
+## Component Dependencies
+
+### Internal Components
+
+None required for Phase 2.
+
+### External Libraries
+
+- **pydantic-ai**: Uses PydanticAI's `OpenAIResponsesModel` for model management
+- **azure-identity**: Uses `DefaultAzureCredential`, `ManagedIdentityCredential`, and `get_bearer_token_provider` for token provision
+
+### Configuration Dependencies
+
+- **AZURE_USE_MANAGED_IDENTITY**: (Optional) Boolean flag to use Azure Identity for authentication
+- **AZURE_OPENAI_API_KEY**: (Required for API key auth) API key for Azure OpenAI authentication
+- **AZURE_OPENAI_BASE_URL**: (Required) Endpoint URL for Azure OpenAI service
+- **AZURE_OPENAI_DEPLOYMENT_NAME**: (Required) Deployment name in Azure OpenAI
+- **AZURE_OPENAI_API_VERSION**: (Required) API version to use with Azure OpenAI, defaults to "2025-03-01-preview"
+- **AZURE_CLIENT_ID**: (Optional) Client ID for managed identity authentication
+
+## Error Handling
+
+- Debug: Log detailed error messages for failed authentication or model creation
+- Info: Log successful authentication and model creation
+
+## Output Files
+
+- `recipe_executor/llm_utils/azure_responses.py`
+
+## Dependency Integration Considerations
+
+None
 
 === File: blueprints/recipe_executor/components/llm_utils/llm/llm_docs.md ===
+
 # LLM Component Usage
 
 ## Importing
@@ -1134,8 +1326,8 @@ except Exception as e:
 - The component logs full request details at debug level
 - API keys are read from context configuration, not directly from environment
 
-
 === File: blueprints/recipe_executor/components/llm_utils/llm/llm_spec.md ===
+
 # LLM Component Specification
 
 ## Purpose
@@ -1144,7 +1336,7 @@ The LLM component provides a unified interface for interacting with various larg
 
 ## Core Requirements
 
-- Support multiple LLM providers (Azure OpenAI, OpenAI, Anthropic, Ollama)
+- Support multiple LLM providers (Azure OpenAI, OpenAI, Anthropic, Ollama, OpenAI Responses, Azure Responses)
 - Provide model initialization based on a standardized model identifier format
 - Encapsulate LLM API details behind a unified interface
 - Use PydanticAI's async interface for non-blocking LLM calls
@@ -1153,7 +1345,7 @@ The LLM component provides a unified interface for interacting with various larg
 - Support optional structured output format
 - Accept an optional `mcp_servers: Optional[List[MCPServer]]` to enable remote MCP tool integration
 
-## Implementation Considerations
+## Implementation Hints
 
 - Use a clear `provider/model_name` identifier format
 - Configuration values are accessed through context.get_config() instead of directly from environment
@@ -1165,13 +1357,130 @@ The LLM component provides a unified interface for interacting with various larg
 - Use PydanticAI's provider-specific model classes:
   - pydantic_ai.models.openai.OpenAIModel (used also for Azure OpenAI and Ollama)
   - pydantic_ai.models.anthropic.AnthropicModel
+- For `openai_responses` provider: call `create_openai_responses_model(model_name)` which returns the model directly
+- For `azure_responses` provider: call `create_azure_responses_model(model_name, deployment_name)` which returns the model directly
 - Create a PydanticAI Agent with the model, structured output type, and optional MCP servers
 - Support: `output_type: Type[Union[str, BaseModel]] = str`
+- Support: `openai_builtin_tools: Optional[List[Dict[str, Any]]] = None` parameter for built-in tools with Responses API models
+  - We only want to support `WebSearchToolParam` and `FileSearchToolParam` at this
 - Pass provided `mcp_servers` (or empty list) to the Agent constructor (e.g. `Agent(model, mcp_servers=mcp_servers, output_type=output_type)`)
-- Implement fully asynchronous execution:
-  - Make `generate` an async function (`async def generate`)
+- For Responses API models with built-in tools, configure the model with `OpenAIResponsesModelSettings` that includes properly typed tools
+- Convert raw dict tools to PydanticAI tool parameter types (e.g., `WebSearchToolParam`, which are TypedDict) before passing to `OpenAIResponsesModelSettings`
+- Import required tool parameter types from `pydantic_ai.models.openai` for type conversion
+- Implement fully asynchronous execution with the following signature:
+  ```python
+  async def generate(
+      self,
+      prompt: str,
+      model: Optional[str] = None,
+      max_tokens: Optional[int] = None,
+      output_type: Type[Union[str, BaseModel]] = str,
+      mcp_servers: Optional[List[MCPServer]] = None,
+      openai_builtin_tools: Optional[List[Dict[str, Any]]] = None,
+  ) -> Union[str, BaseModel]:
+  ```
   - Use `await agent.run(prompt)` method of the Agent to make requests
 - CRITICAL: make sure to return the `result.output` in the `generate` method to return only the structured output
+
+### PydanticAI Model Creation
+
+Create a PydanticAI model for the LLM provider and model name:
+
+```python
+def get_model(model_id: str) -> OpenAIModel | AnthropicModel:
+    """
+    Initialize an LLM model based on a standardized model_id string.
+    Expected format: 'provider/model_name' or 'provider/model_name/deployment_name'.
+
+    Supported providers:
+    - openai
+    - azure (for Azure OpenAI, use 'azure/model_name/deployment_name' or 'azure/model_name')
+    - anthropic
+    - ollama
+    - openai_responses (for OpenAI Responses API with built-in tools)
+    - azure_responses (for Azure Responses API with built-in tools)
+
+    Args:
+        model_id (str): Model identifier in format 'provider/model_name'
+            or 'provider/model_name/deployment_name'.
+            If None, defaults to 'openai/gpt-4o'.
+
+    Returns:
+        The model instance for the specified provider and model.
+
+    Raises:
+        ValueError: If model_id format is invalid or if the provider is unsupported.
+    """
+
+    # If 'azure' is the model provider, use the `get_azure_openai_model` function
+    # If 'openai_responses' is the model provider, use the `create_openai_responses_model` function from responses component
+    # If 'azure_responses' is the model provider, use the `create_azure_responses_model` function from azure_responses component
+```
+
+Usage example:
+
+```python
+# Get an OpenAI model
+openai_model = get_model("openai/o4-mini")
+# Uses OpenAIModel('o4-mini')
+
+# Get an Anthropic model
+anthropic_model = get_model("anthropic/claude-3-7-sonnet-latest")
+# Uses AnthropicModel('claude-3-7-sonnet-latest')
+
+# Get an Ollama model
+ollama_model = get_model("ollama/phi4")
+# Uses OllamaModel('phi4')
+
+# Get an OpenAI Responses model
+responses_model = get_model("openai_responses/gpt-4o")
+# Uses create_openai_responses_model('gpt-4o') from responses component
+
+# Get an Azure Responses model
+azure_responses_model = get_model("azure_responses/gpt-4o")
+# Uses create_azure_responses_model('gpt-4o', None) from azure_responses component
+
+# Get an Azure Responses model with deployment
+azure_responses_model = get_model("azure_responses/gpt-4o/my-deployment")
+# Uses create_azure_responses_model('gpt-4o', 'my-deployment') from azure_responses component
+```
+
+Getting an agent:
+
+```python
+from pydantic_ai import Agent
+
+# Create an agent with the model
+agent: Agent[None, Union[str, BaseModel]] = Agent(model=ollama_model, output_type=str, mcp_servers=mcp_servers)
+
+# Call the agent with a prompt
+async with agent.run_mcp_servers():
+  result = await agent.run("What is the capital of France?")
+
+# Process the result
+print(result.data)  # This will print the structured output
+```
+
+### Ollama Integration
+
+The Ollama model requires an endpoint to be specified:
+
+```python
+from pydantic_ai.models.openai import OpenAIModel
+from pydantic_ai.providers import OpenAIProvider
+import dotenv
+import os
+
+# Load environment variables from .env file
+dotenv.load_dotenv()
+OLLAMA_BASE_URL = os.getenv('OLLAMA_BASE_URL', 'http://localhost:11434')
+
+# inside the get_model function
+return OpenAIModel(
+    model_name='qwen2.5-coder:7b',
+    provider=OpenAIProvider(base_url=f'{OLLAMA_BASE_URL}/v1'),
+)
+```
 
 ## Logging
 
@@ -1183,6 +1492,8 @@ The LLM component provides a unified interface for interacting with various larg
 ### Internal Components
 
 - **Azure OpenAI**: Uses `get_azure_openai_model` for Azure OpenAI model initialization
+- **Responses**: Uses `create_openai_responses_model` for OpenAI Responses API model initialization
+- **Azure Responses**: Uses `create_azure_responses_model` for Azure Responses API model initialization
 - **Logger**: Uses the logger for logging LLM calls
 - **MCP**: Integrates remote MCP tools when `mcp_servers` are provided (uses `pydantic_ai.mcp`)
 
@@ -1190,6 +1501,7 @@ The LLM component provides a unified interface for interacting with various larg
 
 - **pydantic-ai**: Uses PydanticAI for model initialization, Agent-based request handling, and structured-output processing
 - **pydantic-ai.mcp**: Provides `MCPServer`, `MCPServerHTTP` and `MCPServerStdio` classes for MCP server transports
+- **openai.types.responses**: Provides types for the responses API `WebSearchToolParam`, `FileSearchToolParam`
 
 ### Configuration Dependencies
 
@@ -1211,90 +1523,9 @@ The LLM component provides a unified interface for interacting with various larg
 
 ## Dependency Integration Considerations
 
-### PydanticAI
+Implement a standardized `get_model` function that routes to appropriate provider-specific model creation functions based on the provider prefix in the model identifier. Use existing component functions for Azure OpenAI, Responses API, and Azure Responses API integration.
 
-Create a PydanticAI model for the LLM provider and model name. This will be used to initialize the model and make requests.
-
-```python
-def get_model(model_id: str, context: ContextProtocol) -> OpenAIModel | AnthropicModel:
-    """
-    Initialize an LLM model based on a standardized model_id string.
-    Expected format: 'provider/model_name' or 'provider/model_name/deployment_name'.
-
-    Supported providers:
-    - openai
-    - azure (for Azure OpenAI, use 'azure/model_name/deployment_name' or 'azure/model_name')
-    - anthropic
-    - ollama
-
-    Args:
-        model_id (str): Model identifier in format 'provider/model_name'
-            or 'provider/model_name/deployment_name'.
-            If None, defaults to 'openai/gpt-4o'.
-        context (ContextProtocol): Context containing configuration values.
-
-    Returns:
-        The model instance for the specified provider and model.
-
-    Raises:
-        ValueError: If model_id format is invalid or if the provider is unsupported.
-    """
-
-    # If 'azure' is the model provider, use the `get_azure_openai_model` function
-    # Access configuration dictionary through context.get_config() and then retrieve the necessary values
-```
-
-Usage example:
-
-```python
-# Get an OpenAI model
-openai_model = get_model("openai/gpt-4o", context)
-# Uses OpenAIModel('gpt-4o') with API key from context.get_config().get('openai_api_key')
-
-# Get an Anthropic model
-anthropic_model = get_model("anthropic/claude-3-5-sonnet-latest", context)
-# Uses AnthropicModel('claude-3-5-sonnet-latest') with API key from context.get_config().get('anthropic_api_key')
-
-# Get an Ollama model
-ollama_model = get_model("ollama/phi4", context)
-# Uses OllamaModel('phi4') with base URL from context.get_config().get('ollama_base_url')
-```
-
-Getting an agent:
-
-```python
-from pydantic_ai import Agent
-
-# Create an agent with the model
-agent: Agent[None, Union[str, BaseModel]] = Agent(model=ollama_model, output_type=str, mcp_servers=mcp_servers)
-
-# Call the agent with a prompt
-async with agent.run_mcp_servers():
-  result = await agent.run("What is the capital of France?")
-
-# Process the result
-print(result.data)  # This will print the structured output
-```
-
-#### Ollama
-
-- The Ollama model requires an endpoint to be specified. This can be done by passing the `endpoint` parameter to the `get_model` function.
-- The endpoint should be in the format `http://<host>:<port>`, where `<host>` is the hostname or IP address of the Ollama server and `<port>` is the port number on which the server is running.
-
-Then you can use the `OpenAIModel` class to create an instance of the model and make requests to the Ollama server.
-
-```python
-from pydantic_ai.models.openai import OpenAIModel
-from pydantic_ai.providers import OpenAIProvider
-
-# inside the get_model function, context is passed as parameter
-ollama_base_url = context.get_config().get('ollama_base_url', 'http://localhost:11434')
-
-return OpenAIModel(
-    model_name='qwen2.5-coder:7b',
-    provider=OpenAIProvider(base_url=f'{ollama_base_url}/v1'),
-)
-```
+````
 
 
 === File: blueprints/recipe_executor/components/llm_utils/mcp/mcp_docs.md ===
@@ -1304,7 +1535,7 @@ return OpenAIModel(
 
 ```python
 from recipe_executor.llm_utils.mcp import get_mcp_server
-```
+````
 
 ## Basic Usage
 
@@ -1381,8 +1612,8 @@ except RuntimeError as e:
 
 - **MCPServer** does not maintain an active connection to the server. Each tool list/call creates a new connection.
 
-
 === File: blueprints/recipe_executor/components/llm_utils/mcp/mcp_spec.md ===
+
 # MCP Utility Component Specification
 
 ## Purpose
@@ -1432,8 +1663,112 @@ None
 
 - `recipe_executor/llm_utils/mcp.py`
 
+=== File: blueprints/recipe_executor/components/llm_utils/responses/responses_docs.md ===
+
+# Responses Component Documentation
+
+The Responses component provides OpenAI built-in tool integration for Recipe Executor.
+
+## Overview
+
+This component handles OpenAI's Responses API built-in tools (web search, code execution)
+by creating configured `OpenAIResponsesModel` instances with appropriate tool settings.
+
+## Usage
+
+### Basic Usage (Phase 1)
+
+```python
+from recipe_executor.llm_utils.responses import create_openai_responses_model
+
+# Create basic responses model
+model = create_openai_responses_model("gpt-4o")
+
+# Use with PydanticAI Agent
+from pydantic_ai import Agent
+agent = Agent(model=model)
+result = await agent.run("Hello, what can you do with the Responses API?")
+```
+
+### Phase 3 Features (Future)
+
+Built-in tools support (web search, code execution) will be added in Phase 3 via the `llm_generate` step, not in this component.
+
+## Integration with LLM Component
+
+The LLM component routes `openai_responses/*` model identifiers to this component:
+
+```python
+# In llm.py get_model() function:
+if provider == "openai_responses":
+    from recipe_executor.llm_utils.responses import create_openai_responses_model
+    model_name = parts[1]
+    model = create_openai_responses_model(model_name)
+    return model
+```
+
+## Phase 1 Scope
+
+Currently provides basic OpenAI Responses API model creation. Built-in tools (web search, code execution) will be added in Phase 3.
+
+## Error Handling
+
+- **Model initialization errors**: Clear error messages for OpenAI model creation failures
+- **Invalid model names**: Validation errors with helpful context
+
+=== File: blueprints/recipe_executor/components/llm_utils/responses/responses_spec.md ===
+
+# Responses Component Specification
+
+## Purpose
+
+The Responses component provides OpenAI built-in tool integration using the PydanticAI Responses API.
+It enables recipes to request OpenAI's built-in capabilities (web search, code execution)
+via the `openai_responses` provider.
+
+## Provider Identifiers
+
+- `openai_responses` (OpenAI only - Azure handled by separate component)
+
+## Core Requirements
+
+- `create_openai_responses_model(model_name: str) -> OpenAIResponsesModel`
+
+## Component Dependencies
+
+- **LLM**: Invoked by `LLMGenerateStep` when model provider is `openai_responses`
+- **PydanticAI**: Uses `OpenAIResponsesModel` for basic OpenAI Responses API access
+
+## Implementation Considerations
+
+- Generate a function `create_openai_responses_model` that:
+  - Takes `model_name` (e.g., "gpt-4o") only
+  - For OpenAI responses, instantiate `OpenAIResponsesModel(model_name)`
+  - Return the `OpenAIResponsesModel` instance directly
+  - Built-in tools functionality will be added in Phase 3 via `llm_generate` step
+
+## External Libraries
+
+- **pydantic-ai**: Uses PydanticAI's `OpenAIResponsesModel`
+
+## Error Handling
+
+- Handle model initialization errors gracefully with clear error messages
+
+## Output Files
+
+- `recipe_executor/llm_utils/responses.py`
+
+## Logging
+
+None
+
+## Dependency Integration Considerations
+
+None
 
 === File: blueprints/recipe_executor/components/logger/logger_docs.md ===
+
 # Logger Component Usage
 
 ## Importing
@@ -1529,8 +1864,8 @@ Example:
 - The log directory is created if it doesn't exist
 - The logger is thread-safe and can be used in multi-threaded applications
 
-
 === File: blueprints/recipe_executor/components/logger/logger_spec.md ===
+
 # Logger Component Specification
 
 ## Purpose
@@ -1589,8 +1924,8 @@ None
 
 - `recipe_executor/logger.py`
 
-
 === File: blueprints/recipe_executor/components/main/main_docs.md ===
+
 # Main Component Usage
 
 ## Command-Line Interface
@@ -1670,6 +2005,7 @@ The Main component uses a hierarchical approach to configuration:
 3. **CLI Overrides**: `--config` arguments override any environment-based configuration
 
 Example flow:
+
 ```python
 # 1. Load .env file
 load_dotenv()
@@ -1700,8 +2036,8 @@ context = Context(artifacts=artifacts, config=merged_config)
 - Configuration values are accessible to steps through `context.get_config()` method, allowing centralized access to all configuration.
 - Logging is configured at runtime when Main calls `init_logger`. The logs (including debug information and errors) are saved in the directory specified by `--log-dir`. Each run may append to these logs, so it's advisable to monitor or clean the log directory if running many recipes.
 
-
 === File: blueprints/recipe_executor/components/main/main_spec.md ===
+
 # Main Component Specification
 
 ## Purpose
@@ -1774,8 +2110,8 @@ The Main component serves as the command-line entry point for the Recipe Executo
 
 - `recipe_executor/main.py`
 
-
 === File: blueprints/recipe_executor/components/models/models_docs.md ===
+
 # Models Component Usage
 
 ## Importing
@@ -1949,8 +2285,8 @@ valid_file = FileSpec(path="file.txt", content="File content")
 - Models can be converted to JSON with `.model_dump_json()` method
 - Models can be created from JSON with `Model.model_validate_json(json_data)`
 
-
 === File: blueprints/recipe_executor/components/models/models_spec.md ===
+
 # Models Component Specification
 
 ## Purpose
@@ -1976,7 +2312,6 @@ The Models component defines the core data structures used throughout the Recipe
 - Focus on essential fields without over-engineering
 - Support optional fields for forward compatibility
 
-
 ## Logging
 
 - Debug: None
@@ -2000,8 +2335,8 @@ None
 
 - `recipe_executor/models.py`
 
-
 === File: blueprints/recipe_executor/components/protocols/protocols_docs.md ===
+
 # Protocols Component Usage
 
 The Protocols component provides **interface definitions** for key parts of the Recipe Executor system. By defining formal contracts (`Protocol` classes) for the `Executor`, `Context`, and `Step`, this component decouples implementations from each other and serves as the single source of truth for how components interact. All components that implement or use these interfaces should refer to the `Protocols` component to ensure consistency. Where the concrete implementations are needed, consider importing them inside the method or class that requires them, rather than at the top of the file. This helps to prevent circular imports and keeps the code clean.
@@ -2150,8 +2485,8 @@ In this example, `MyCustomStep` implements the `StepProtocol`, ensuring it adher
 
 All developers and AI recipes should reference **this protocols documentation** when implementing or using components. This ensures that all components are consistent and adhere to the same interface definitions, enables decoupling, and prevents import cycles. It also allows for easier testing and swapping of implementations, as all components can be treated as interchangeable as long as they adhere to the defined protocols.
 
-
 === File: blueprints/recipe_executor/components/protocols/protocols_spec.md ===
+
 # Protocols Component Specification
 
 ## Purpose
@@ -2203,8 +2538,8 @@ The Protocols component defines the core interfaces for the Recipe Executor syst
 
 - `recipe_executor/protocols.py`
 
-
 === File: blueprints/recipe_executor/components/steps/base/base_docs.md ===
+
 # Steps Base Component Usage
 
 ## Importing
@@ -2260,8 +2595,8 @@ Now, any recipe with a step like `{"type": "echo", "config": {"message": "Hello 
 - **Step Lifecycle**: There is no explicit "tear down" method for steps. If your step allocates resources (files, network connections, etc.), you should handle those within the step itself (and possibly in the `finally` block or context managers inside `execute`). Each step instance is short-lived (used only for one execution and then discarded).
 - **Adhering to StepProtocol**: By following the pattern above, your custom step automatically adheres to `StepProtocol` because it implements `execute(context: ContextProtocol)`.
 
-
 === File: blueprints/recipe_executor/components/steps/base/base_spec.md ===
+
 # Steps Base Component Specification
 
 ## Purpose
@@ -2319,8 +2654,8 @@ The purpose of the Steps Base component is to provide a foundational structure f
 
 - `recipe_executor/steps/base.py`
 
-
 === File: blueprints/recipe_executor/components/steps/conditional/conditional_docs.md ===
+
 # Conditional Step Documentation
 
 ## Importing
@@ -2532,8 +2867,8 @@ The ConditionalStep allows you to branch execution paths based on evaluating exp
 - Nested conditional steps are supported for complex decision trees
 - The conditional step is specifically designed to reduce unnecessary LLM calls in recipes
 
-
 === File: blueprints/recipe_executor/components/steps/conditional/conditional_spec.md ===
+
 # Conditional Step Type Specification
 
 ## Purpose
@@ -2594,8 +2929,8 @@ None
 
 - `recipe_executor/steps/conditional.py`
 
-
 === File: blueprints/recipe_executor/components/steps/execute_recipe/execute_recipe_docs.md ===
+
 # ExecuteRecipeStep Component Usage
 
 ## Importing
@@ -2787,8 +3122,8 @@ Sub-recipes can be composed to create more complex workflows:
 - Template variables in both `recipe_path` and `context_overrides` are resolved before execution
 - Sub-recipes can execute their own sub-recipes (nested execution)
 
-
 === File: blueprints/recipe_executor/components/steps/execute_recipe/execute_recipe_spec.md ===
+
 # ExecuteRecipeStep Component Specification
 
 ## Purpose
@@ -2856,8 +3191,8 @@ None
 
 - `recipe_executor/steps/execute_recipe.py`
 
-
 === File: blueprints/recipe_executor/components/steps/llm_generate/llm_generate_docs.md ===
+
 # LLMGenerateStep Component Usage
 
 ## Importing
@@ -3202,8 +3537,8 @@ Context after execution:
 }
 ```
 
-
 === File: blueprints/recipe_executor/components/steps/llm_generate/llm_generate_spec.md ===
+
 # LLMGenerateStep Component Specification
 
 ## Purpose
@@ -3215,16 +3550,34 @@ The LLMGenerateStep component enables recipes to generate content using large la
 - Process prompt templates using context data
 - Support configurable model selection
 - Support MCP server configuration for tool access
+- Support OpenAI built-in tools (web search) for Responses API models via `openai_builtin_tools` config field
 - Support multiple output formats (text, files, object, list)
 - Call LLMs to generate content
 - Store generated results in the context with dynamic key support
 - Include appropriate logging for LLM operations
+
+## Configuration Schema
+
+The LLMGenerateConfig must include these fields:
+
+- `prompt: str` - The prompt template
+- `model: str` - Model identifier in provider/model format
+- `max_tokens: Optional[Union[str, int]]` - Token limit
+- `mcp_servers: Optional[List[Dict[str, Any]]]` - MCP server configs
+- `openai_builtin_tools: Optional[List[Dict[str, Any]]]` - Built-in tools for Responses API models
+- `output_format: Union[str, Dict[str, Any], List[Dict[str, Any]]]` - Output format specification
+- `output_key: str` - Context key for storing results
 
 ## Implementation Considerations
 
 - Use `render_template` for templating prompts, model identifiers, mcp server configs, and output key
 - Convert any MCP Server configurations to `MCPServer` instances (via `get_mcp_server`) to pass as `mcp_servers` to the LLM component
 - Accept a string for `max_tokens` and convert it to an integer to pass to the LLM component
+- Support `openai_builtin_tools` parameter with validation:
+  - Only allow for models with `openai_responses` or `azure_responses` providers
+  - Support tool types: `web_search_preview` only
+  - Validate tool configuration before making LLM calls
+  - Pass built-in tools to the LLM component for Responses API configuration
 - In order to support dyanmic output keys, set the result type to `Any` prior to determining the output format and then set the output key immediately after the LLM call
 - If `output_format` is an object (JSON schema) or list:
   - Use `json_object_to_pydantic_model` to create a dynamic Pydantic model from the JSON schema
@@ -3259,7 +3612,24 @@ The LLMGenerateStep component enables recipes to generate content using large la
   mcp_servers = [get_mcp_server(logger=self.logger, config=mcp_server_config) for mcp_server_config in mcp_server_configs]
   llm = LLM(logger, model=config.model, mcp_servers=mcp_servers)
   ```
-- Use `await llm.generate(prompt, output_type=...)` to perform the generation call
+- Use `await llm.generate(prompt, output_type=..., openai_builtin_tools=validated_tools)` to perform the generation call
+- Always pass `openai_builtin_tools` parameter to the LLM generate method (pass None if not provided)
+- Example LLM call with built-in tools:
+
+  ```python
+  # Validate built-in tools if provided
+  validated_tools = None
+  if self.config.openai_builtin_tools:
+      # Validation logic here
+      validated_tools = self.config.openai_builtin_tools
+
+  # Call LLM with tools parameter
+  result = await llm.generate(
+      prompt,
+      output_type=output_type,
+      openai_builtin_tools=validated_tools
+  )
+  ```
 
 ## Logging
 
@@ -3293,13 +3663,19 @@ None
 - Log LLM call failures with meaningful context
 - Ensure proper error propagation for debugging
 - Validate configuration before making LLM calls
+- Validate `openai_builtin_tools` parameter:
+  - Raise error if tools are specified with non-Responses API models
+  - Raise error for unsupported tool types (only `web_search_preview` allowed)
+  - Example error messages:
+    - "Built-in tools only supported with Responses API models (openai_responses/_ or azure_responses/_)"
+    - "Unsupported tool type: {type}. Supported: web_search_preview"
 
 ## Output Files
 
 - `recipe_executor/steps/llm_generate.py`
 
-
 === File: blueprints/recipe_executor/components/steps/loop/loop_docs.md ===
+
 # LoopStep Component Usage
 
 The **LoopStep** component allows you to iterate over a collection of items and execute specified sub-steps for each item. It is useful for processing lists or arrays of data in a structured manner.
@@ -3626,8 +4002,8 @@ With `fail_fast: false`, the LoopStep will:
 - Collection elements can be of any type (objects, strings, numbers, etc.)
 - The LoopStep supports both array and object collections
 
-
 === File: blueprints/recipe_executor/components/steps/loop/loop_spec.md ===
+
 # LoopStep Component Specification
 
 ## Purpose
@@ -3711,8 +4087,8 @@ None
 
 - `recipe_executor/steps/loop.py` - (LoopStep implementation)
 
-
 === File: blueprints/recipe_executor/components/steps/mcp/mcp_docs.md ===
+
 # MCPStep Component Usage
 
 ## Importing
@@ -3800,8 +4176,8 @@ After execution, the context contains:
 
 All string configuration fields support templating using context variables.
 
-
 === File: blueprints/recipe_executor/components/steps/mcp/mcp_spec.md ===
+
 # MCPStep Component Specification
 
 ## Purpose
@@ -3862,8 +4238,8 @@ None
 
 - `recipe_executor/steps/mcp.py`
 
-
 === File: blueprints/recipe_executor/components/steps/parallel/parallel_docs.md ===
+
 # ParallelStep Component Usage
 
 The **ParallelStep** component enables the concurrent execution of multiple sub-steps within a recipe. It is ideal for improving performance when independent tasks can be executed in parallel.
@@ -3961,8 +4337,8 @@ The ParallelStep is designed to integrate seamlessly with the rest of your recip
 - **Resource Constraints:** Adjust `max_concurrency` based on system resources to avoid overwhelming the executor.
 - **Delay Between Sub-steps:** Use the `delay` parameter to control the timing of sub-step execution, which can help manage resource contention.
 
-
 === File: blueprints/recipe_executor/components/steps/parallel/parallel_spec.md ===
+
 # ParallelStep Component Specification
 
 ## Purpose
@@ -4026,8 +4402,8 @@ None
 
 - `recipe_executor/steps/parallel.py` (ParallelStep implementation)
 
-
 === File: blueprints/recipe_executor/components/steps/read_files/read_files_docs.md ===
+
 # ReadFilesStep Component Usage
 
 ## Importing
@@ -4291,8 +4667,8 @@ Then in the recipe you can use that context value:
 - When using `merge_mode: "dict"`, the keys in the output are the full paths of the files
 - All paths support template rendering (including each path in a list)
 
-
 === File: blueprints/recipe_executor/components/steps/read_files/read_files_spec.md ===
+
 # ReadFilesStep Component Specification
 
 ## Purpose
@@ -4359,8 +4735,8 @@ None
 
 - `recipe_executor/steps/read_files.py`
 
-
 === File: blueprints/recipe_executor/components/steps/registry/registry_docs.md ===
+
 # Step Registry Component Usage
 
 ## Importing
@@ -4429,8 +4805,8 @@ from recipe_executor.steps.registry import STEP_REGISTRY
 - Standard steps are automatically registered when the package is imported
 - Custom steps need to be explicitly registered by the user
 
-
 === File: blueprints/recipe_executor/components/steps/registry/registry_spec.md ===
+
 # Step Registry Component Specification
 
 ## Purpose
@@ -4502,8 +4878,8 @@ STEP_REGISTRY.update({
 })
 ```
 
-
 === File: blueprints/recipe_executor/components/steps/set_context/set_context_docs.md ===
+
 # SetContextStep Component Usage
 
 ## Importing
@@ -4646,8 +5022,8 @@ After execution, the target keys (`document`, `section_md`) are available for an
 - `if_exists` defaults to `"overwrite"` for consistent behavior.
 - Merging is intentionally **shallow** for dictionaries to keep the step lightweight; if you need deep-merge semantics, perform that in a custom step or LLM call.
 
-
 === File: blueprints/recipe_executor/components/steps/set_context/set_context_spec.md ===
+
 # SetContextStep Component Specification
 
 ## Purpose
@@ -4712,8 +5088,8 @@ None.
 
 - `recipe_executor/steps/set_context.py` – implementation of **SetContextStep**.
 
-
 === File: blueprints/recipe_executor/components/steps/write_files/write_files_docs.md ===
+
 # WriteFilesStep Component Usage
 
 ## Importing
@@ -4982,8 +5358,8 @@ When `config_data` is a Python dictionary or list, it will be automatically seri
 - Python dictionaries and lists are automatically serialized to properly formatted JSON with indentation
 - JSON serialization uses `json.dumps(content, ensure_ascii=False, indent=2)` for consistent formatting
 
-
 === File: blueprints/recipe_executor/components/steps/write_files/write_files_spec.md ===
+
 # WriteFilesStep Component Specification
 
 ## Purpose
@@ -5049,8 +5425,8 @@ None
 
 - `recipe_executor/steps/write_files.py`
 
-
 === File: blueprints/recipe_executor/components/utils/models/models_docs.md ===
+
 # Pydantic-Model Utilities
 
 ## Importing
@@ -5111,8 +5487,8 @@ print(instance.model_dump())      # {'name': 'Alice', 'age': 30, 'email': 'alice
 
 NOTE: An **object** is required at the root level of the schema. If the root type is not an object, a `ValueError` will be raised.
 
-
 === File: blueprints/recipe_executor/components/utils/models/models_spec.md ===
+
 # Models-Utility Component Specification
 
 ## Purpose
@@ -5174,8 +5550,8 @@ None
 
 - `recipe_executor/utils/models.py`
 
-
 === File: blueprints/recipe_executor/components/utils/templates/templates_docs.md ===
+
 # Template Utility Component Usage
 
 ## Importing
@@ -5277,8 +5653,8 @@ The following "extra filters" are also available:
   - Example: `{{ dt | datetime: format: 'MMM d, y' }}` results in `2007-04-01`.
   - Example: `{{ dt | datetime: format: 'short' }}` results in `01/04/2007, 03:30`.
 
-
 === File: blueprints/recipe_executor/components/utils/templates/templates_spec.md ===
+
 # Utils Component Specification
 
 ## Purpose
@@ -5329,153 +5705,150 @@ None
 
 - `recipe_executor/utils/templates.py`
 
-
 === File: blueprints/recipe_executor/generate_authoring_guide.json ===
 {
-  "steps": [
-    {
-      "type": "set_context",
-      "config": {
-        "key": "outline_file",
-        "value": "{{ outline_file | default: 'blueprints/recipe_executor/outlines/recipe-json-authoring-guide.json' }}"
-      }
-    },
-    {
-      "type": "set_context",
-      "config": {
-        "key": "output_root",
-        "value": "{{ output_root | default: 'output/docs' }}"
-      }
-    },
-    {
-      "type": "execute_recipe",
-      "config": {
-        "recipe_path": "{{ recipe_root | default: 'recipes/document_generator' }}/document_generator_recipe.json"
-      }
-    }
-  ]
+"steps": [
+{
+"type": "set_context",
+"config": {
+"key": "outline_file",
+"value": "{{ outline_file | default: 'blueprints/recipe_executor/outlines/recipe-json-authoring-guide.json' }}"
 }
-
+},
+{
+"type": "set_context",
+"config": {
+"key": "output_root",
+"value": "{{ output_root | default: 'output/docs' }}"
+}
+},
+{
+"type": "execute_recipe",
+"config": {
+"recipe_path": "{{ recipe_root | default: 'recipes/document_generator' }}/document_generator_recipe.json"
+}
+}
+]
+}
 
 === File: blueprints/recipe_executor/generate_codebase.json ===
 {
-  "steps": [
-    {
-      "type": "set_context",
-      "config": {
-        "key": "project_blueprints_root",
-        "value": "{{ project_blueprints_root | default: 'blueprints/recipe_executor' }}"
-      }
-    },
-    {
-      "type": "set_context",
-      "config": {
-        "key": "edit",
-        "value": "{{ edit | default: false }}"
-      }
-    },
-    {
-      "type": "set_context",
-      "config": {
-        "key": "component_id",
-        "value": "{{ component_id | default: 'all' }}"
-      }
-    },
-    {
-      "type": "execute_recipe",
-      "config": {
-        "recipe_path": "{{ recipe_root | default: 'recipes/codebase_generator' }}/codebase_generator_recipe.json"
-      }
-    }
-  ]
+"steps": [
+{
+"type": "set_context",
+"config": {
+"key": "project_blueprints_root",
+"value": "{{ project_blueprints_root | default: 'blueprints/recipe_executor' }}"
 }
-
+},
+{
+"type": "set_context",
+"config": {
+"key": "edit",
+"value": "{{ edit | default: false }}"
+}
+},
+{
+"type": "set_context",
+"config": {
+"key": "component_id",
+"value": "{{ component_id | default: 'all' }}"
+}
+},
+{
+"type": "execute_recipe",
+"config": {
+"recipe_path": "{{ recipe_root | default: 'recipes/codebase_generator' }}/codebase_generator_recipe.json"
+}
+}
+]
+}
 
 === File: blueprints/recipe_executor/outlines/recipe-json-authoring-guide.json ===
 {
-  "title": "Recipe JSON Authoring Guide",
-  "general_instruction": "This document serves as a guide for effectively writing recipe JSON files for simple to complex levels of automation. Recipients of this file will not have access to the resource files that are available during the drafting of this document, so please be sure to include all relevant information in the document itself. The document should be structured in a way that is easy to read and understand, with clear headings and sections. Use the provided outline as a guide for the structure of the document. The document should be written in a way that is accessible to users who may not have a technical background.",
-  "resources": [
-    {
-      "key": "recipe_executor_code",
-      "path": "ai_context/generated/RECIPE_EXECUTOR_CODE_FILES.md",
-      "description": "Roll-up of the recipe executor code files. These files were generated by the recipe executor itself, using the recipe executor recipe files."
-    },
-    {
-      "key": "recipe_executor_blueprints",
-      "path": "ai_context/generated/RECIPE_EXECUTOR_BLUEPRINT_FILES.md",
-      "description": "Blueprint files used with the codebase generator recipes for generating the recipe executor code files. This roll-up includes the individual component 'docs' and 'spec' files that define each component. The component `docs` files can serve as documentation for the component."
-    },
-    {
-      "key": "codebase_generator_recipes",
-      "path": "ai_context/generated/CODEBASE_GENERATOR_RECIPE_FILES.md",
-      "description": "Recipe files used to generate code from blueprint files (component manifest and then per-component 'docs' and 'spec' files)."
-    },
-    {
-      "key": "sample_recipes",
-      "path": "ai_context/generated/BLUEPRINT_GENERATOR_V4_RECIPE_FILES.md, ai_context/generated/DOCUMENT_GENERATOR_RECIPE_FILES.md",
-      "description": "Additional sample recipes that show other ways to use the recipe tools for different use cases and ways to use Python Liquid templating, the various step types, etc."
-    },
-    {
-      "key": "modular_design_philosophy",
-      "path": "ai_context/MODULAR_DESIGN_PHILOSOPHY.md",
-      "description": "The modular design philosophy document. This document describes the modular design philosophy of our work, with can be applied to how we construct recipes as well."
-    },
-    {
-      "key": "implementation_philosophy",
-      "path": "ai_context/IMPLEMENTATION_PHILOSOPHY.md",
-      "description": "The implementation philosophy document. This document describes the implementation philosophy of our work, with can be applied to how we construct recipes as well."
-    },
-    {
-      "key": "liquid_docs",
-      "path": "ai_context/git_collector/LIQUID_PYTHON_DOCS.md",
-      "description": "Documentation for the Python Liquid templating engine. This includes the Liquid syntax, filters, and tags that can be used in recipe JSON files. Consider the contents of actual recipe files and the generated code as the primary source of truth for how to use Liquid templating in recipes, as we have discovered some issues with the Liquid documentation."
-    }
-  ],
-  "sections": [
-    {
-      "title": "Introduction",
-      "prompt": "Write an opening that:\n- Defines what the overall recipe framework is, what a recipe JSON file is and how the Recipe Executor runs it.\n- States that this guide targets both *human* developers and *LLM* assistants that must generate valid recipes from natural-language requests.\n- Lists the main topics that will follow (basic structure → context → step types → templating → best practices → snippets).",
-      "refs": [
-        "recipe_executor_code",
-        "recipe_executor_blueprints",
-        "codebase_generator_recipes"
-      ]
-    },
-    {
-      "title": "Basic Recipe Structure",
-      "prompt": "Using the executor's code & example recipes as ground truth, explain:\n1. The required top-level `\"steps\"` array (must be valid/strict JSON without comments, etc.; unknown step `type` raises an error).\n2. Optional blocks (`inputs`, `outputs`, `description`) and how the executor ignores unknown keys.\n3. A **minimal runnable example** (just one step) plus a **slightly larger skeleton** showing `set_context`, `read_files`, `execute_recipe`, `loop`, `write_files`.\nKeep prose to a useful, but not overly verbose length; rely on code snippets, mermaid diagrams, and bullet lists where appropriate.",
-      "refs": [
-        "recipe_executor_code",
-        "sample_recipes",
-        "recipe_executor_blueprints",
-        "codebase_generator_recipes"
-      ]
-    },
-    {
-      "title": "Working with Objects Between Recipe Steps",
-      "prompt": "Describe the shared *context* object:\n- How each step reads/writes keys (pass by reference, no manual serialization needed).\n- Common patterns (`set_context`, `context_overrides` in `execute_recipe`).\n- Call out **common mistakes** (e.g., unnecessary JSON filters, forgetting to set a `result_key` in loops).\nProvide at least *three* code snippets: simple value pass, complex object pass, loop iteration collecting results.",
-      "refs": ["recipe_executor_code", "sample_recipes"]
-    },
-    {
-      "title": "Built-in Step Types and Configuration",
-      "prompt": "Give a concise overview (≤ 2 short paragraphs) of the Recipe Executor's built-in step types: why they matter, how the reference entries below are structured, and when to consult them. Finish with a simple table list of all current step type pulled from the resource code, so readers know what is going to be covered in the subsections.",
-      "refs": [
-        "recipe_executor_code",
-        "recipe_executor_blueprints",
-        "sample_recipes",
-        "codebase_generator_recipes"
-      ],
-      "sections": [
-        {
-          "title": "`read_files`",
-          "prompt": "From the resource docs, write a full reference entry for this step: purpose, when to use, key configuration (with defaults), notable pitfalls, and at least one runnable example (more if important to show variants of use cases).",
-          "refs": [
-            "recipe_executor_blueprints",
-            "sample_recipes",
-            "codebase_generator_recipes"
-          ]
-        },
+"title": "Recipe JSON Authoring Guide",
+"general_instruction": "This document serves as a guide for effectively writing recipe JSON files for simple to complex levels of automation. Recipients of this file will not have access to the resource files that are available during the drafting of this document, so please be sure to include all relevant information in the document itself. The document should be structured in a way that is easy to read and understand, with clear headings and sections. Use the provided outline as a guide for the structure of the document. The document should be written in a way that is accessible to users who may not have a technical background.",
+"resources": [
+{
+"key": "recipe_executor_code",
+"path": "ai_context/generated/RECIPE_EXECUTOR_CODE_FILES.md",
+"description": "Roll-up of the recipe executor code files. These files were generated by the recipe executor itself, using the recipe executor recipe files."
+},
+{
+"key": "recipe_executor_blueprints",
+"path": "ai_context/generated/RECIPE_EXECUTOR_BLUEPRINT_FILES.md",
+"description": "Blueprint files used with the codebase generator recipes for generating the recipe executor code files. This roll-up includes the individual component 'docs' and 'spec' files that define each component. The component `docs` files can serve as documentation for the component."
+},
+{
+"key": "codebase_generator_recipes",
+"path": "ai_context/generated/CODEBASE_GENERATOR_RECIPE_FILES.md",
+"description": "Recipe files used to generate code from blueprint files (component manifest and then per-component 'docs' and 'spec' files)."
+},
+{
+"key": "sample_recipes",
+"path": "ai_context/generated/BLUEPRINT_GENERATOR_V4_RECIPE_FILES.md, ai_context/generated/DOCUMENT_GENERATOR_RECIPE_FILES.md",
+"description": "Additional sample recipes that show other ways to use the recipe tools for different use cases and ways to use Python Liquid templating, the various step types, etc."
+},
+{
+"key": "modular_design_philosophy",
+"path": "ai_context/MODULAR_DESIGN_PHILOSOPHY.md",
+"description": "The modular design philosophy document. This document describes the modular design philosophy of our work, with can be applied to how we construct recipes as well."
+},
+{
+"key": "implementation_philosophy",
+"path": "ai_context/IMPLEMENTATION_PHILOSOPHY.md",
+"description": "The implementation philosophy document. This document describes the implementation philosophy of our work, with can be applied to how we construct recipes as well."
+},
+{
+"key": "liquid_docs",
+"path": "ai_context/git_collector/LIQUID_PYTHON_DOCS.md",
+"description": "Documentation for the Python Liquid templating engine. This includes the Liquid syntax, filters, and tags that can be used in recipe JSON files. Consider the contents of actual recipe files and the generated code as the primary source of truth for how to use Liquid templating in recipes, as we have discovered some issues with the Liquid documentation."
+}
+],
+"sections": [
+{
+"title": "Introduction",
+"prompt": "Write an opening that:\n- Defines what the overall recipe framework is, what a recipe JSON file is and how the Recipe Executor runs it.\n- States that this guide targets both _human_ developers and _LLM_ assistants that must generate valid recipes from natural-language requests.\n- Lists the main topics that will follow (basic structure → context → step types → templating → best practices → snippets).",
+"refs": [
+"recipe_executor_code",
+"recipe_executor_blueprints",
+"codebase_generator_recipes"
+]
+},
+{
+"title": "Basic Recipe Structure",
+"prompt": "Using the executor's code & example recipes as ground truth, explain:\n1. The required top-level `\"steps\"` array (must be valid/strict JSON without comments, etc.; unknown step `type` raises an error).\n2. Optional blocks (`inputs`, `outputs`, `description`) and how the executor ignores unknown keys.\n3. A **minimal runnable example** (just one step) plus a **slightly larger skeleton** showing `set_context`, `read_files`, `execute_recipe`, `loop`, `write_files`.\nKeep prose to a useful, but not overly verbose length; rely on code snippets, mermaid diagrams, and bullet lists where appropriate.",
+"refs": [
+"recipe_executor_code",
+"sample_recipes",
+"recipe_executor_blueprints",
+"codebase_generator_recipes"
+]
+},
+{
+"title": "Working with Objects Between Recipe Steps",
+"prompt": "Describe the shared _context_ object:\n- How each step reads/writes keys (pass by reference, no manual serialization needed).\n- Common patterns (`set_context`, `context_overrides` in `execute_recipe`).\n- Call out **common mistakes** (e.g., unnecessary JSON filters, forgetting to set a `result_key` in loops).\nProvide at least _three_ code snippets: simple value pass, complex object pass, loop iteration collecting results.",
+"refs": ["recipe_executor_code", "sample_recipes"]
+},
+{
+"title": "Built-in Step Types and Configuration",
+"prompt": "Give a concise overview (≤ 2 short paragraphs) of the Recipe Executor's built-in step types: why they matter, how the reference entries below are structured, and when to consult them. Finish with a simple table list of all current step type pulled from the resource code, so readers know what is going to be covered in the subsections.",
+"refs": [
+"recipe_executor_code",
+"recipe_executor_blueprints",
+"sample_recipes",
+"codebase_generator_recipes"
+],
+"sections": [
+{
+"title": "`read_files`",
+"prompt": "From the resource docs, write a full reference entry for this step: purpose, when to use, key configuration (with defaults), notable pitfalls, and at least one runnable example (more if important to show variants of use cases).",
+"refs": [
+"recipe_executor_blueprints",
+"sample_recipes",
+"codebase_generator_recipes"
+]
+},
 
         {
           "title": "`write_files`",
@@ -5604,7 +5977,6 @@ None
       "prompt": "Write a wrap-up that recaps the major points (structure, context, templating, best practices) and encourages readers/LLMs to apply these principles when generating new recipes. End with an invitation to iterate and refine recipes as requirements evolve.",
       "refs": []
     }
-  ]
+
+]
 }
-
-

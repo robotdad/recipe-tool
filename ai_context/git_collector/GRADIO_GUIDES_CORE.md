@@ -3,7 +3,7 @@
 [git-collector-data]
 
 **URL:** https://github.com/gradio-app/gradio/tree/main/guides  
-**Date:** 6/4/2025, 2:36:42 PM  
+**Date:** 6/6/2025, 3:45:42 PM  
 **Files:** 34
 
 === File: guides/01_getting-started/01_quickstart.md ===
