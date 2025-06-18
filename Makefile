@@ -7,11 +7,24 @@ include $(this_dir)/tools/makefiles/recursive.mk
 
 
 # Helper function to list available commands
+ifeq ($(OS),Windows_NT)
+define list_commands
+	@echo "Available project commands:"
+	@if exist .venv\Scripts\ ( \
+		dir /b .venv\Scripts\ | findstr /I "recipe document" || echo "  (run 'make install' first)" \
+	) else ( \
+		echo "  (run 'make install' first)" \
+	)
+	@echo ""
+endef
+else
 define list_commands
 	@echo "Available project commands:"
 	@ls .venv/bin/ 2>/dev/null | grep -E "(recipe|document)" | sed 's/^/  /' || echo "  (run 'make install' first)"
 	@echo ""
 endef
+
+
 
 # Helper function to list discovered projects
 define list_projects
@@ -19,6 +32,8 @@ define list_projects
 	@for dir in $(MAKE_DIRS); do echo "  - $$dir"; done
 	@echo ""
 endef
+
+endif
 
 
 # Workspace-specific targets that don't need to be recursive
@@ -63,7 +78,11 @@ install: ## Install/update all workspace dependencies
 	$(call list_commands)
 	@$(MAKE) -s activate
 
-# Activate virtual environment
+ifeq ($(OS),Windows_NT)
+activate: ## Show command to activate virtual environment
+	@if exist .venv\Scripts\activate @echo "→ Run this command in your shell: .venv\Scripts\activate"
+	@if not exist .venv\Scripts\activate @echo "✗ No virtual environment found. Run 'make install' first."
+else
 activate: ## Show command to activate virtual environment
 	@if [ -n "$$VIRTUAL_ENV" ]; then \
 		echo "\033[32m✓ Virtual environment already active\033[0m"; \
@@ -71,12 +90,10 @@ activate: ## Show command to activate virtual environment
 	elif [ -f .venv/bin/activate ]; then \
 		echo "\033[33m→ Run this command: source .venv/bin/activate\033[0m"; \
 		echo ""; \
-	elif [ -f .venv/Scripts/activate ]; then \
-		echo "\033[33m→ Run this command: .venv\\Scripts\\activate\033[0m"; \
-		echo ""; \
 	else \
 		echo "\033[31m✗ No virtual environment found. Run 'make install' first.\033[0m"; \
 	fi
+endif
 
 # Default goal is to show help
 .DEFAULT_GOAL := help

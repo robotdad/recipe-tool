@@ -4,10 +4,10 @@
 
 **URL:** https://github.com/gradio-app/gradio/tree/main/gradio  
 **Date:** 6/4/2025, 2:36:35 PM  
-**Files:** 11  
+**Files:** 11
 
 === File: gradio/blocks.py ===
-from __future__ import annotations
+from **future** import annotations
 
 import asyncio
 import contextlib
@@ -42,43 +42,43 @@ from gradio_client.documentation import document
 from groovy import transpile
 
 from gradio import (
-    analytics,
-    components,
-    networking,
-    processing_utils,
-    queueing,
-    themes,
-    utils,
-    wasm_utils,
+analytics,
+components,
+networking,
+processing_utils,
+queueing,
+themes,
+utils,
+wasm_utils,
 )
 from gradio.blocks_events import BLOCKS_EVENTS, BlocksEvents, BlocksMeta
 from gradio.context import (
-    Context,
-    LocalContext,
-    get_blocks_context,
-    get_render_context,
-    set_render_context,
+Context,
+LocalContext,
+get_blocks_context,
+get_render_context,
+set_render_context,
 )
 from gradio.data_classes import (
-    APIEndpointInfo,
-    APIInfo,
-    BlocksConfigDict,
-    DeveloperPath,
-    FileData,
-    GradioModel,
-    GradioRootModel,
-    Layout,
+APIEndpointInfo,
+APIInfo,
+BlocksConfigDict,
+DeveloperPath,
+FileData,
+GradioModel,
+GradioRootModel,
+Layout,
 )
 from gradio.events import (
-    EventData,
-    EventListener,
-    EventListenerMethod,
+EventData,
+EventListener,
+EventListenerMethod,
 )
 from gradio.exceptions import (
-    ChecksumMismatchError,
-    DuplicateBlockError,
-    InvalidApiNameError,
-    InvalidComponentError,
+ChecksumMismatchError,
+DuplicateBlockError,
+InvalidApiNameError,
+InvalidComponentError,
 )
 from gradio.helpers import create_tracker, skip, special_args
 from gradio.i18n import I18n, I18nData
@@ -89,91 +89,89 @@ from gradio.state_holder import SessionState, StateHolder
 from gradio.themes import Default as DefaultTheme
 from gradio.themes import ThemeClass as Theme
 from gradio.tunneling import (
-    BINARY_FILENAME,
-    BINARY_FOLDER,
-    BINARY_PATH,
-    BINARY_URL,
-    CURRENT_TUNNELS,
+BINARY_FILENAME,
+BINARY_FOLDER,
+BINARY_PATH,
+BINARY_URL,
+CURRENT_TUNNELS,
 )
 from gradio.utils import (
-    TupleNoPrint,
-    check_function_inputs_match,
-    component_or_layout_class,
-    get_cancelled_fn_indices,
-    get_node_path,
-    get_package_version,
-    get_upload_folder,
+TupleNoPrint,
+check_function_inputs_match,
+component_or_layout_class,
+get_cancelled_fn_indices,
+get_node_path,
+get_package_version,
+get_upload_folder,
 )
 
 try:
-    import spaces  # type: ignore
+import spaces # type: ignore
 except Exception:
-    spaces = None
+spaces = None
 
-
-if TYPE_CHECKING:  # Only import for type checking (is False at runtime).
-    from gradio.components.base import Component
-    from gradio.renderable import Renderable
+if TYPE_CHECKING: # Only import for type checking (is False at runtime).
+from gradio.components.base import Component
+from gradio.renderable import Renderable
 
 BUILT_IN_THEMES: dict[str, Theme] = {
-    t.name: t
-    for t in [
-        themes.Base(),
-        themes.Default(),
-        themes.Monochrome(),
-        themes.Soft(),
-        themes.Glass(),
-        themes.Origin(),
-        themes.Citrus(),
-        themes.Ocean(),
-    ]
+t.name: t
+for t in [
+themes.Base(),
+themes.Default(),
+themes.Monochrome(),
+themes.Soft(),
+themes.Glass(),
+themes.Origin(),
+themes.Citrus(),
+themes.Ocean(),
+]
 }
 
-
 class Block:
-    def __init__(
-        self,
-        *,
-        elem_id: str | None = None,
-        elem_classes: list[str] | str | None = None,
-        render: bool = True,
-        key: int | str | tuple[int | str, ...] | None = None,
-        preserved_by_key: list[str] | str | None = "value",
-        visible: bool = True,
-        proxy_url: str | None = None,
-    ):
-        key_to_id_map = LocalContext.key_to_id_map.get()
-        if key is not None and key_to_id_map and key in key_to_id_map:
-            self.is_render_replacement = True
-            self._id = key_to_id_map[key]
-        else:
-            self.is_render_replacement = False
-            self._id = Context.id
-            Context.id += 1
-            if key is not None and key_to_id_map is not None:
-                key_to_id_map[key] = self._id
-        self.visible = visible
-        self.elem_id = elem_id
-        self.elem_classes = (
-            [elem_classes] if isinstance(elem_classes, str) else elem_classes
-        )
-        self.proxy_url = proxy_url
-        self.share_token = secrets.token_urlsafe(32)
-        self.parent: BlockContext | None = None
-        self.rendered_in: Renderable | None = None
-        self.page: str
-        self.is_rendered: bool = False
-        self._constructor_args: list[dict]
-        self.state_session_capacity = 10000
-        self.temp_files: set[str] = set()
-        self.GRADIO_CACHE = get_upload_folder()
-        self.key = key
-        self.preserved_by_key = (
-            [preserved_by_key]
-            if isinstance(preserved_by_key, str)
-            else (preserved_by_key or [])
-        )
-        self.mcp_server_obj = None
+def **init**(
+self,
+\*,
+elem_id: str | None = None,
+elem_classes: list[str] | str | None = None,
+render: bool = True,
+key: int | str | tuple[int | str, ...] | None = None,
+preserved_by_key: list[str] | str | None = "value",
+visible: bool = True,
+proxy_url: str | None = None,
+):
+key_to_id_map = LocalContext.key_to_id_map.get()
+if key is not None and key_to_id_map and key in key_to_id_map:
+self.is_render_replacement = True
+self.\_id = key_to_id_map[key]
+else:
+self.is_render_replacement = False
+self.\_id = Context.id
+Context.id += 1
+if key is not None and key_to_id_map is not None:
+key_to_id_map[key] = self.\_id
+self.visible = visible
+self.elem_id = elem_id
+self.elem_classes = (
+[elem_classes] if isinstance(elem_classes, str) else elem_classes
+)
+self.proxy_url = proxy_url
+self.share_token = secrets.token_urlsafe(32)
+self.parent: BlockContext | None = None
+self.rendered_in: Renderable | None = None
+self.page: str
+self.is_rendered: bool = False
+self.\_constructor_args: list[dict]
+self.state_session_capacity = 10000
+self.temp_files: set[str] = set()
+self.GRADIO_CACHE = get_upload_folder()
+self.key = key
+self.preserved_by_key = (
+[preserved_by_key]
+if isinstance(preserved_by_key, str)
+else (preserved_by_key or [])
+)
+self.mcp_server_obj = None
 
         # Keep tracks of files that should not be deleted when the delete_cache parmameter is set
         # These files are the default value of the component and files that are used in examples
@@ -430,34 +428,33 @@ class Block:
             except AttributeError:  # Can be raised if this function is called before the Block is fully initialized.
                 return data
 
-
 class BlockContext(Block):
-    def __init__(
-        self,
-        elem_id: str | None = None,
-        elem_classes: list[str] | str | None = None,
-        visible: bool = True,
-        render: bool = True,
-        key: int | str | tuple[int | str, ...] | None = None,
-        preserved_by_key: list[str] | str | None = None,
-    ):
-        """
-        Parameters:
-            elem_id: An optional string that is assigned as the id of this component in the HTML DOM. Can be used for targeting CSS styles.
-            elem_classes: An optional string or list of strings that are assigned as the class of this component in the HTML DOM. Can be used for targeting CSS styles.
-            visible: If False, this will be hidden but included in the Blocks config file (its visibility can later be updated).
-            render: If False, this will not be included in the Blocks config file at all.
-        """
-        self.children: list[Block] = []
-        Block.__init__(
-            self,
-            elem_id=elem_id,
-            elem_classes=elem_classes,
-            visible=visible,
-            render=render,
-            key=key,
-            preserved_by_key=preserved_by_key,
-        )
+def **init**(
+self,
+elem_id: str | None = None,
+elem_classes: list[str] | str | None = None,
+visible: bool = True,
+render: bool = True,
+key: int | str | tuple[int | str, ...] | None = None,
+preserved_by_key: list[str] | str | None = None,
+):
+"""
+Parameters:
+elem_id: An optional string that is assigned as the id of this component in the HTML DOM. Can be used for targeting CSS styles.
+elem_classes: An optional string or list of strings that are assigned as the class of this component in the HTML DOM. Can be used for targeting CSS styles.
+visible: If False, this will be hidden but included in the Blocks config file (its visibility can later be updated).
+render: If False, this will not be included in the Blocks config file at all.
+"""
+self.children: list[Block] = []
+Block.**init**(
+self,
+elem_id=elem_id,
+elem_classes=elem_classes,
+visible=visible,
+render=render,
+key=key,
+preserved_by_key=preserved_by_key,
+)
 
     TEMPLATE_DIR = DeveloperPath("./templates/")
     FRONTEND_DIR = "../../frontend/"
@@ -536,85 +533,84 @@ class BlockContext(Block):
         """
         return y
 
-
 class BlockFunction:
-    def __init__(
-        self,
-        fn: Callable | None,
-        inputs: Sequence[Component | BlockContext],
-        outputs: Sequence[Component | BlockContext],
-        preprocess: bool,
-        postprocess: bool,
-        inputs_as_dict: bool,
-        targets: list[tuple[int | None, str]],
-        _id: int,
-        batch: bool = False,
-        max_batch_size: int = 4,
-        concurrency_limit: int | None | Literal["default"] = "default",
-        concurrency_id: str | None = None,
-        tracks_progress: bool = False,
-        api_name: str | Literal[False] = False,
-        js: str | Literal[True] | None = None,
-        show_progress: Literal["full", "minimal", "hidden"] = "full",
-        show_progress_on: Sequence[Component] | None = None,
-        cancels: list[int] | None = None,
-        collects_event_data: bool = False,
-        trigger_after: int | None = None,
-        trigger_only_on_success: bool = False,
-        trigger_mode: Literal["always_last", "once", "multiple"] = "once",
-        queue: bool = True,
-        scroll_to_output: bool = False,
-        show_api: bool = True,
-        renderable: Renderable | None = None,
-        rendered_in: Renderable | None = None,
-        render_iteration: int | None = None,
-        is_cancel_function: bool = False,
-        connection: Literal["stream", "sse"] = "sse",
-        time_limit: float | None = None,
-        stream_every: float = 0.5,
-        like_user_message: bool = False,
-        event_specific_args: list[str] | None = None,
-        page: str = "",
-        js_implementation: str | None = None,
-        key: str | int | tuple[int | str, ...] | None = None,
-    ):
-        self.fn = fn
-        self._id = _id
-        self.inputs = inputs
-        self.outputs = outputs
-        self.preprocess = preprocess
-        self.postprocess = postprocess
-        self.tracks_progress = tracks_progress
-        self.concurrency_limit: int | None | Literal["default"] = concurrency_limit
-        self.concurrency_id = concurrency_id or str(id(fn))
-        self.batch = batch
-        self.max_batch_size = max_batch_size
-        self.total_runtime = 0
-        self.total_runs = 0
-        self.inputs_as_dict = inputs_as_dict
-        self.targets = targets
-        self.name = getattr(fn, "__name__", "fn") if fn is not None else None
-        self.api_name = api_name
-        self.js = js
-        self.show_progress = show_progress
-        self.show_progress_on = show_progress_on
-        self.cancels = cancels or []
-        self.collects_event_data = collects_event_data
-        self.trigger_after = trigger_after
-        self.trigger_only_on_success = trigger_only_on_success
-        self.trigger_mode = trigger_mode
-        self.queue = False if fn is None else queue
-        self.scroll_to_output = False if utils.get_space() else scroll_to_output
-        self.show_api = show_api
-        self.types_generator = inspect.isgeneratorfunction(
-            self.fn
-        ) or inspect.isasyncgenfunction(self.fn)
-        self.renderable = renderable
-        self.rendered_in = rendered_in
-        self.render_iteration = render_iteration
-        self.page = page
-        if js_implementation:
-            self.fn.__js_implementation__ = js_implementation  # type: ignore
+def **init**(
+self,
+fn: Callable | None,
+inputs: Sequence[Component | BlockContext],
+outputs: Sequence[Component | BlockContext],
+preprocess: bool,
+postprocess: bool,
+inputs_as_dict: bool,
+targets: list[tuple[int | None, str]],
+\_id: int,
+batch: bool = False,
+max_batch_size: int = 4,
+concurrency_limit: int | None | Literal["default"] = "default",
+concurrency_id: str | None = None,
+tracks_progress: bool = False,
+api_name: str | Literal[False] = False,
+js: str | Literal[True] | None = None,
+show_progress: Literal["full", "minimal", "hidden"] = "full",
+show_progress_on: Sequence[Component] | None = None,
+cancels: list[int] | None = None,
+collects_event_data: bool = False,
+trigger_after: int | None = None,
+trigger_only_on_success: bool = False,
+trigger_mode: Literal["always_last", "once", "multiple"] = "once",
+queue: bool = True,
+scroll_to_output: bool = False,
+show_api: bool = True,
+renderable: Renderable | None = None,
+rendered_in: Renderable | None = None,
+render_iteration: int | None = None,
+is_cancel_function: bool = False,
+connection: Literal["stream", "sse"] = "sse",
+time_limit: float | None = None,
+stream_every: float = 0.5,
+like_user_message: bool = False,
+event_specific_args: list[str] | None = None,
+page: str = "",
+js_implementation: str | None = None,
+key: str | int | tuple[int | str, ...] | None = None,
+):
+self.fn = fn
+self.\_id = \_id
+self.inputs = inputs
+self.outputs = outputs
+self.preprocess = preprocess
+self.postprocess = postprocess
+self.tracks_progress = tracks_progress
+self.concurrency_limit: int | None | Literal["default"] = concurrency_limit
+self.concurrency_id = concurrency_id or str(id(fn))
+self.batch = batch
+self.max_batch_size = max_batch_size
+self.total_runtime = 0
+self.total_runs = 0
+self.inputs_as_dict = inputs_as_dict
+self.targets = targets
+self.name = getattr(fn, "**name**", "fn") if fn is not None else None
+self.api_name = api_name
+self.js = js
+self.show_progress = show_progress
+self.show_progress_on = show_progress_on
+self.cancels = cancels or []
+self.collects_event_data = collects_event_data
+self.trigger_after = trigger_after
+self.trigger_only_on_success = trigger_only_on_success
+self.trigger_mode = trigger_mode
+self.queue = False if fn is None else queue
+self.scroll_to_output = False if utils.get_space() else scroll_to_output
+self.show_api = show_api
+self.types_generator = inspect.isgeneratorfunction(
+self.fn
+) or inspect.isasyncgenfunction(self.fn)
+self.renderable = renderable
+self.rendered_in = rendered_in
+self.render_iteration = render_iteration
+self.page = page
+if js_implementation:
+self.fn.**js_implementation** = js_implementation # type: ignore
 
         # We need to keep track of which events are cancel events
         # so that the client can call the /cancel route directly
@@ -684,66 +680,63 @@ class BlockFunction:
             "js_implementation": getattr(self.fn, "__js_implementation__", None),
         }
 
-
 def postprocess_update_dict(
-    block: Component | BlockContext, update_dict: dict, postprocess: bool = True
+block: Component | BlockContext, update_dict: dict, postprocess: bool = True
 ):
-    """
-    Converts a dictionary of updates into a format that can be sent to the frontend to update the component.
-    E.g. {"value": "2", "visible": True, "invalid_arg": "hello"}
-    Into -> {"__type__": "update", "value": 2.0, "visible": True}
-    Parameters:
-        block: The Block that is being updated with this update dictionary.
-        update_dict: The original update dictionary
-        postprocess: Whether to postprocess the "value" key of the update dictionary.
-    """
-    value = update_dict.pop("value", components._Keywords.NO_VALUE)
-    update_dict = {k: getattr(block, k) for k in update_dict if hasattr(block, k)}
-    if value is not components._Keywords.NO_VALUE:
-        if postprocess:
-            update_dict["value"] = block.postprocess(value)
-            if isinstance(update_dict["value"], (GradioModel, GradioRootModel)):
-                update_dict["value"] = update_dict["value"].model_dump()
-        else:
-            update_dict["value"] = value
-    update_dict["__type__"] = "update"
-    return update_dict
+"""
+Converts a dictionary of updates into a format that can be sent to the frontend to update the component.
+E.g. {"value": "2", "visible": True, "invalid_arg": "hello"}
+Into -> {"**type**": "update", "value": 2.0, "visible": True}
+Parameters:
+block: The Block that is being updated with this update dictionary.
+update_dict: The original update dictionary
+postprocess: Whether to postprocess the "value" key of the update dictionary.
+"""
+value = update_dict.pop("value", components.\_Keywords.NO_VALUE)
+update_dict = {k: getattr(block, k) for k in update_dict if hasattr(block, k)}
+if value is not components.\_Keywords.NO_VALUE:
+if postprocess:
+update_dict["value"] = block.postprocess(value)
+if isinstance(update_dict["value"], (GradioModel, GradioRootModel)):
+update_dict["value"] = update_dict["value"].model_dump()
+else:
+update_dict["value"] = value
+update_dict["__type__"] = "update"
+return update_dict
 
-
-def convert_component_dict_to_list(
-    outputs_ids: list[int], predictions: dict
+def convert*component_dict_to_list(
+outputs_ids: list[int], predictions: dict
 ) -> list | dict:
-    """
-    Converts a dictionary of component updates into a list of updates in the order of
-    the outputs_ids and including every output component. Leaves other types of dictionaries unchanged.
-    E.g. {"textbox": "hello", "number": {"__type__": "generic_update", "value": "2"}}
-    Into -> ["hello", {"__type__": "generic_update"}, {"__type__": "generic_update", "value": "2"}]
-    """
-    keys_are_blocks = [isinstance(key, Block) for key in predictions]
-    if all(keys_are_blocks):
-        reordered_predictions = [skip() for _ in outputs_ids]
-        for component, value in predictions.items():
-            if component._id not in outputs_ids:
-                raise ValueError(
-                    f"Returned component {component} not specified as output of function."
-                )
-            output_index = outputs_ids.index(component._id)
-            reordered_predictions[output_index] = value
-        predictions = utils.resolve_singleton(reordered_predictions)
-    elif any(keys_are_blocks):
-        raise ValueError(
-            "Returned dictionary included some keys as Components. Either all keys must be Components to assign Component values, or return a List of values to assign output values in order."
-        )
-    return predictions
-
+"""
+Converts a dictionary of component updates into a list of updates in the order of
+the outputs_ids and including every output component. Leaves other types of dictionaries unchanged.
+E.g. {"textbox": "hello", "number": {"**type**": "generic_update", "value": "2"}}
+Into -> ["hello", {"__type__": "generic_update"}, {"__type__": "generic_update", "value": "2"}]
+"""
+keys_are_blocks = [isinstance(key, Block) for key in predictions]
+if all(keys_are_blocks):
+reordered_predictions = [skip() for * in outputs_ids]
+for component, value in predictions.items():
+if component.\_id not in outputs_ids:
+raise ValueError(
+f"Returned component {component} not specified as output of function."
+)
+output_index = outputs_ids.index(component.\_id)
+reordered_predictions[output_index] = value
+predictions = utils.resolve_singleton(reordered_predictions)
+elif any(keys_are_blocks):
+raise ValueError(
+"Returned dictionary included some keys as Components. Either all keys must be Components to assign Component values, or return a List of values to assign output values in order."
+)
+return predictions
 
 class BlocksConfig:
-    def __init__(self, root_block: Blocks):
-        self._id: int = 0
-        self.root_block = root_block
-        self.blocks: dict[int, Component | Block] = {}
-        self.fns: dict[int, BlockFunction] = {}
-        self.fn_id: int = 0
+def **init**(self, root_block: Blocks):
+self.\_id: int = 0
+self.root_block = root_block
+self.blocks: dict[int, Component | Block] = {}
+self.fns: dict[int, BlockFunction] = {}
+self.fn_id: int = 0
 
     def set_event_trigger(
         self,
@@ -1108,13 +1101,11 @@ class BlocksConfig:
                 )[0]
                 component.load_event = dep.get_config()
 
-
 @document("launch", "queue", "integrate", "load", "unload")
 class Blocks(BlockContext, BlocksEvents, metaclass=BlocksMeta):
-    """
-    Blocks is Gradio's low-level API that allows you to create more custom web
-    applications and demos than Interfaces (yet still entirely in Python).
-
+"""
+Blocks is Gradio's low-level API that allows you to create more custom web
+applications and demos than Interfaces (yet still entirely in Python).
 
     Compared to the Interface class, Blocks offers more flexibility and control over:
     (1) the layout of components (2) the events that
@@ -1837,12 +1828,13 @@ class Blocks(BlockContext, BlocksEvents, metaclass=BlocksMeta):
             # JS func didn't pass enough arguments
             raise ValueError(
                 f"""An event handler{name} didn't receive enough input values (needed: {len(dep_inputs)}, got: {len(inputs)}).
+
 Check if the event handler calls a Javascript function, and make sure its return value is correct.
 Wanted inputs:
-    [{wanted}]
+[{wanted}]
 Received inputs:
-    [{received}]"""
-            )
+[{received}]"""
+)
 
     async def preprocess_data(
         self,
@@ -3343,13 +3335,12 @@ Received inputs:
         self.current_page = path
         return self
 
-
 === File: gradio/chat_interface.py ===
 """
 This file defines a useful high-level abstraction to build Gradio chatbots: ChatInterface.
 """
 
-from __future__ import annotations
+from **future** import annotations
 
 import builtins
 import copy
@@ -3368,43 +3359,42 @@ from gradio_client.documentation import document
 from gradio import utils
 from gradio.blocks import Blocks
 from gradio.components import (
-    JSON,
-    BrowserState,
-    Button,
-    Chatbot,
-    Component,
-    Dataset,
-    Markdown,
-    MultimodalTextbox,
-    State,
-    Textbox,
-    get_component_instance,
+JSON,
+BrowserState,
+Button,
+Chatbot,
+Component,
+Dataset,
+Markdown,
+MultimodalTextbox,
+State,
+Textbox,
+get_component_instance,
 )
 from gradio.components.chatbot import (
-    ChatMessage,
-    ExampleMessage,
-    Message,
-    MessageDict,
-    TupleFormat,
+ChatMessage,
+ExampleMessage,
+Message,
+MessageDict,
+TupleFormat,
 )
 from gradio.components.multimodal_textbox import MultimodalPostprocess, MultimodalValue
 from gradio.context import get_blocks_context
 from gradio.events import Dependency, EditData, SelectData
 from gradio.flagging import ChatCSVLogger
-from gradio.helpers import create_examples as Examples  # noqa: N812
+from gradio.helpers import create_examples as Examples # noqa: N812
 from gradio.helpers import special_args, update
 from gradio.i18n import I18nData
 from gradio.layouts import Accordion, Column, Group, Row
 from gradio.themes import ThemeClass as Theme
 
-
 @document()
 class ChatInterface(Blocks):
-    """
-    ChatInterface is Gradio's high-level abstraction for creating chatbot UIs, and allows you to create
-    a web-based demo around a chatbot model in a few lines of code. Only one parameter is required: fn, which
-    takes a function that governs the response of the chatbot based on the user input and chat history. Additional
-    parameters can be used to control the appearance and behavior of the demo.
+"""
+ChatInterface is Gradio's high-level abstraction for creating chatbot UIs, and allows you to create
+a web-based demo around a chatbot model in a few lines of code. Only one parameter is required: fn, which
+takes a function that governs the response of the chatbot based on the user input and chat history. Additional
+parameters can be used to control the appearance and behavior of the demo.
 
     Example:
         import gradio as gr
@@ -4481,13 +4471,12 @@ class ChatInterface(Blocks):
             super().render()
         return self
 
-
 === File: gradio/interface.py ===
 """
 This file defines two useful high-level abstractions to build Gradio apps: Interface and TabbedInterface.
 """
 
-from __future__ import annotations
+from **future** import annotations
 
 import inspect
 import json
@@ -4503,14 +4492,14 @@ from gradio_client.documentation import document
 from gradio import Examples, utils, wasm_utils
 from gradio.blocks import Blocks
 from gradio.components import (
-    Button,
-    ClearButton,
-    Component,
-    DeepLinkButton,
-    DuplicateButton,
-    Markdown,
-    State,
-    get_component_instance,
+Button,
+ClearButton,
+Component,
+DeepLinkButton,
+DuplicateButton,
+Markdown,
+State,
+get_component_instance,
 )
 from gradio.data_classes import InterfaceTypes
 from gradio.events import Dependency, Events, on
@@ -4521,19 +4510,18 @@ from gradio.layouts import Accordion, Column, Row, Tab, Tabs
 from gradio.pipelines import load_from_js_pipeline, load_from_pipeline
 from gradio.themes import ThemeClass as Theme
 
-if TYPE_CHECKING:  # Only import for type checking (is False at runtime).
-    from diffusers import DiffusionPipeline  # type: ignore
-    from transformers.pipelines.base import Pipeline
-
+if TYPE_CHECKING: # Only import for type checking (is False at runtime).
+from diffusers import DiffusionPipeline # type: ignore
+from transformers.pipelines.base import Pipeline
 
 @document("launch", "load", "from_pipeline", "integrate", "queue")
 class Interface(Blocks):
-    """
-    Interface is Gradio's main high-level class, and allows you to create a web-based GUI / demo
-    around a machine learning model (or any Python function) in a few lines of code.
-    You must specify three parameters: (1) the function to create a GUI for (2) the desired input components and
-    (3) the desired output components. Additional parameters can be used to control the appearance
-    and behavior of the demo.
+"""
+Interface is Gradio's main high-level class, and allows you to create a web-based GUI / demo
+around a machine learning model (or any Python function) in a few lines of code.
+You must specify three parameters: (1) the function to create a GUI for (2) the desired input components and
+(3) the desired output components. Additional parameters can be used to control the appearance
+and behavior of the demo.
 
     Example:
         import gradio as gr
@@ -5458,13 +5446,12 @@ class Interface(Blocks):
             repr += f"\n|-{component}"
         return repr
 
-
 @document()
 class TabbedInterface(Blocks):
-    """
-    A TabbedInterface is created by providing a list of Interfaces or Blocks, each of which gets
-    rendered in a separate tab. Only the components from the Interface/Blocks will be rendered in the tab.
-    Certain high-level attributes of the Blocks (e.g. custom `css`, `js`, and `head` attributes) will not be loaded.
+"""
+A TabbedInterface is created by providing a list of Interfaces or Blocks, each of which gets
+rendered in a separate tab. Only the components from the Interface/Blocks will be rendered in the tab.
+Certain high-level attributes of the Blocks (e.g. custom `css`, `js`, and `head` attributes) will not be loaded.
 
     Demos: tabbed_interface_lite
     """
@@ -5518,13 +5505,11 @@ class TabbedInterface(Blocks):
                     ):
                         interface.render()
 
-
 def close_all(verbose: bool = True) -> None:
-    for io in Interface.get_instances():
-        io.close(verbose)
+for io in Interface.get_instances():
+io.close(verbose)
 
-
-=== File: gradio/layouts/__init__.py ===
+=== File: gradio/layouts/**init**.py ===
 from .accordion import Accordion
 from .column import Column
 from .form import Form
@@ -5533,21 +5518,20 @@ from .row import Row
 from .sidebar import Sidebar
 from .tabs import Tab, TabItem, Tabs
 
-__all__ = [
-    "Accordion",
-    "Column",
-    "Form",
-    "Row",
-    "Group",
-    "Tabs",
-    "Tab",
-    "TabItem",
-    "Sidebar",
+**all** = [
+"Accordion",
+"Column",
+"Form",
+"Row",
+"Group",
+"Tabs",
+"Tab",
+"TabItem",
+"Sidebar",
 ]
 
-
 === File: gradio/layouts/accordion.py ===
-from __future__ import annotations
+from **future** import annotations
 
 from typing import TYPE_CHECKING
 
@@ -5559,17 +5543,16 @@ from gradio.events import Events
 from gradio.i18n import I18nData
 
 if TYPE_CHECKING:
-    pass
-
+pass
 
 @document()
 class Accordion(BlockContext, metaclass=ComponentMeta):
-    """
-    Accordion is a layout element which can be toggled to show/hide the contained content.
-    Example:
-        with gr.Accordion("See Details"):
-            gr.Markdown("lorem ipsum")
-    """
+"""
+Accordion is a layout element which can be toggled to show/hide the contained content.
+Example:
+with gr.Accordion("See Details"):
+gr.Markdown("lorem ipsum")
+"""
 
     EVENTS = [Events.expand, Events.collapse]
 
@@ -5607,9 +5590,8 @@ class Accordion(BlockContext, metaclass=ComponentMeta):
             preserved_by_key=preserved_by_key,
         )
 
-
 === File: gradio/layouts/column.py ===
-from __future__ import annotations
+from **future** import annotations
 
 import warnings
 from typing import Literal
@@ -5619,23 +5601,22 @@ from gradio_client.documentation import document
 from gradio.blocks import BlockContext
 from gradio.component_meta import ComponentMeta
 
-
 @document()
 class Column(BlockContext, metaclass=ComponentMeta):
-    """
-    Column is a layout element within Blocks that renders all children vertically. The widths of columns can be set through the `scale` and `min_width` parameters.
-    If a certain scale results in a column narrower than min_width, the min_width parameter will win.
-    Example:
-        with gr.Blocks() as demo:
-            with gr.Row():
-                with gr.Column(scale=1):
-                    text1 = gr.Textbox()
-                    text2 = gr.Textbox()
-                with gr.Column(scale=4):
-                    btn1 = gr.Button("Button 1")
-                    btn2 = gr.Button("Button 2")
-    Guides: controlling-layout
-    """
+"""
+Column is a layout element within Blocks that renders all children vertically. The widths of columns can be set through the `scale` and `min_width` parameters.
+If a certain scale results in a column narrower than min_width, the min_width parameter will win.
+Example:
+with gr.Blocks() as demo:
+with gr.Row():
+with gr.Column(scale=1):
+text1 = gr.Textbox()
+text2 = gr.Textbox()
+with gr.Column(scale=4):
+btn1 = gr.Button("Button 1")
+btn2 = gr.Button("Button 2")
+Guides: controlling-layout
+"""
 
     EVENTS = []
 
@@ -5687,9 +5668,8 @@ class Column(BlockContext, metaclass=ComponentMeta):
             preserved_by_key=preserved_by_key,
         )
 
-
 === File: gradio/layouts/form.py ===
-from __future__ import annotations
+from **future** import annotations
 
 from typing import TYPE_CHECKING
 
@@ -5699,11 +5679,10 @@ from gradio.layouts.column import Column
 from gradio.layouts.row import Row
 
 if TYPE_CHECKING:
-    from gradio.blocks import Block
-
+from gradio.blocks import Block
 
 class Form(BlockContext, metaclass=ComponentMeta):
-    EVENTS = []
+EVENTS = []
 
     def __init__(
         self,
@@ -5748,26 +5727,24 @@ class Form(BlockContext, metaclass=ComponentMeta):
             self.scale += 0 if scale is None else scale
         BlockContext.add_child(self, child)
 
-
 === File: gradio/layouts/group.py ===
-from __future__ import annotations
+from **future** import annotations
 
 from gradio_client.documentation import document
 
 from gradio.blocks import BlockContext
 from gradio.component_meta import ComponentMeta
 
-
 @document()
 class Group(BlockContext, metaclass=ComponentMeta):
-    """
-    Group is a layout element within Blocks which groups together children so that
-    they do not have any padding or margin between them.
-    Example:
-        with gr.Group():
-            gr.Textbox(label="First")
-            gr.Textbox(label="Last")
-    """
+"""
+Group is a layout element within Blocks which groups together children so that
+they do not have any padding or margin between them.
+Example:
+with gr.Group():
+gr.Textbox(label="First")
+gr.Textbox(label="Last")
+"""
 
     EVENTS = []
 
@@ -5800,9 +5777,8 @@ class Group(BlockContext, metaclass=ComponentMeta):
             preserved_by_key=preserved_by_key,
         )
 
-
 === File: gradio/layouts/row.py ===
-from __future__ import annotations
+from **future** import annotations
 
 import warnings
 from typing import Literal
@@ -5812,19 +5788,18 @@ from gradio_client.documentation import document
 from gradio.blocks import BlockContext
 from gradio.component_meta import ComponentMeta
 
-
 @document()
 class Row(BlockContext, metaclass=ComponentMeta):
-    """
-    Row is a layout element within Blocks that renders all children horizontally.
-    Example:
-        with gr.Blocks() as demo:
-            with gr.Row():
-                gr.Image("lion.jpg", scale=2)
-                gr.Image("tiger.jpg", scale=1)
-        demo.launch()
-    Guides: controlling-layout
-    """
+"""
+Row is a layout element within Blocks that renders all children horizontally.
+Example:
+with gr.Blocks() as demo:
+with gr.Row():
+gr.Image("lion.jpg", scale=2)
+gr.Image("tiger.jpg", scale=1)
+demo.launch()
+Guides: controlling-layout
+"""
 
     EVENTS = []
 
@@ -5895,9 +5870,8 @@ class Row(BlockContext, metaclass=ComponentMeta):
             "__type__": "update",
         }
 
-
 === File: gradio/layouts/sidebar.py ===
-from __future__ import annotations
+from **future** import annotations
 
 from typing import Literal
 
@@ -5908,18 +5882,17 @@ from gradio.component_meta import ComponentMeta
 from gradio.events import Events
 from gradio.i18n import I18nData
 
-
 @document()
 class Sidebar(BlockContext, metaclass=ComponentMeta):
-    """
-    Sidebar is a collapsible panel that renders child components on the left side of the screen within a Blocks layout.
-    Example:
-        with gr.Blocks() as demo:
-            with gr.Sidebar():
-                gr.Textbox()
-                gr.Button()
-    Guides: controlling-layout
-    """
+"""
+Sidebar is a collapsible panel that renders child components on the left side of the screen within a Blocks layout.
+Example:
+with gr.Blocks() as demo:
+with gr.Sidebar():
+gr.Textbox()
+gr.Button()
+Guides: controlling-layout
+"""
 
     EVENTS = [Events.expand, Events.collapse]
 
@@ -5963,9 +5936,8 @@ class Sidebar(BlockContext, metaclass=ComponentMeta):
             preserved_by_key=preserved_by_key,
         )
 
-
 === File: gradio/layouts/tabs.py ===
-from __future__ import annotations
+from **future** import annotations
 
 from gradio_client.documentation import document
 
@@ -5974,11 +5946,10 @@ from gradio.component_meta import ComponentMeta
 from gradio.events import Events
 from gradio.i18n import I18nData
 
-
 class Tabs(BlockContext, metaclass=ComponentMeta):
-    """
-    Tabs is a layout element within Blocks that can contain multiple "Tab" Components.
-    """
+"""
+Tabs is a layout element within Blocks that can contain multiple "Tab" Components.
+"""
 
     EVENTS = [Events.change, Events.select]
 
@@ -6014,21 +5985,20 @@ class Tabs(BlockContext, metaclass=ComponentMeta):
         )
         self.selected = selected
 
-
 @document()
 class Tab(BlockContext, metaclass=ComponentMeta):
-    """
-    Tab (or its alias TabItem) is a layout element. Components defined within the Tab will be visible when this tab is selected tab.
-    Example:
-        with gr.Blocks() as demo:
-            with gr.Tab("Lion"):
-                gr.Image("lion.jpg")
-                gr.Button("New Lion")
-            with gr.Tab("Tiger"):
-                gr.Image("tiger.jpg")
-                gr.Button("New Tiger")
-    Guides: controlling-layout
-    """
+"""
+Tab (or its alias TabItem) is a layout element. Components defined within the Tab will be visible when this tab is selected tab.
+Example:
+with gr.Blocks() as demo:
+with gr.Tab("Lion"):
+gr.Image("lion.jpg")
+gr.Button("New Lion")
+with gr.Tab("Tiger"):
+gr.Image("tiger.jpg")
+gr.Button("New Tiger")
+Guides: controlling-layout
+"""
 
     EVENTS = [Events.select]
 
@@ -6077,6 +6047,4 @@ class Tab(BlockContext, metaclass=ComponentMeta):
     def get_block_name(self):
         return "tabitem"
 
-
 TabItem = Tab
-
