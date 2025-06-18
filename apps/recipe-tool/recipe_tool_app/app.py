@@ -48,7 +48,7 @@ def create_app() -> gr.Blocks:
             # Execute Recipe Tab (reuse from recipe-executor)
             with gr.TabItem("Execute Recipe"):
                 executor_core = RecipeExecutorCore()
-                create_executor_block(executor_core, include_header=False)
+                create_executor_block(executor_core, include_header=False, include_settings=False)
 
     return app
 
