@@ -1,15 +1,14 @@
-# recipes/example\_\*
+# recipes/example_*
 
 [collect-files]
 
 **Search:** ['recipes/example_*']
 **Exclude:** ['.venv', 'node_modules', '*.lock', '.git', '__pycache__', '*.pyc', '*.ruff_cache', 'logs', 'output']
 **Include:** []
-**Date:** 6/6/2025, 3:45:22 PM
+**Date:** 6/18/2025, 12:10:57 PM
 **Files:** 24
 
 === File: recipes/example_brave_search/README.md ===
-
 # Brave Search Recipe
 
 This recipe demonstrates use of the Brave Search API to perform a search and retrieve results.
@@ -39,44 +38,45 @@ recipe-tool --execute recipes/example_brave_search/search.json \
    brave_api_key=your_api_key
 ```
 
+
 === File: recipes/example_brave_search/search.json ===
 {
-"steps": [
-{
-"type": "llm_generate",
-"config": {
-"prompt": "Perform a search for {{ query }} using the Brave Search API. Format the results, summarizing the content and extracting the most relevant information. The output should be a list of URLs and their corresponding summaries. Ensure that the search is comprehensive and covers various aspects of the query. Current date: {{ now }}",
-"model": "{{ model | default: 'openai/gpt-4o' }}",
-"mcp_servers": [
-{
-"command": "npx",
-"args": ["-y", "@modelcontextprotocol/server-brave-search"],
-"env": {
-"BRAVE_API_KEY": "{{ brave_api_key }}"
+  "steps": [
+    {
+      "type": "llm_generate",
+      "config": {
+        "prompt": "Perform a search for {{ query }} using the Brave Search API. Format the results, summarizing the content and extracting the most relevant information. The output should be a list of URLs and their corresponding summaries. Ensure that the search is comprehensive and covers various aspects of the query. Current date: {{ now }}",
+        "model": "{{ model | default: 'openai/gpt-4o' }}",
+        "mcp_servers": [
+          {
+            "command": "npx",
+            "args": ["-y", "@modelcontextprotocol/server-brave-search"],
+            "env": {
+              "BRAVE_API_KEY": "{{ brave_api_key }}"
+            }
+          }
+        ],
+        "output_format": "text",
+        "output_key": "search_results"
+      }
+    },
+    {
+      "type": "write_files",
+      "config": {
+        "files": [
+          {
+            "path": "search_results.md",
+            "content_key": "search_results"
+          }
+        ],
+        "root": "{{ output_root | default: 'output' }}"
+      }
+    }
+  ]
 }
-}
-],
-"output_format": "text",
-"output_key": "search_results"
-}
-},
-{
-"type": "write_files",
-"config": {
-"files": [
-{
-"path": "search_results.md",
-"content_key": "search_results"
-}
-],
-"root": "{{ output_root | default: 'output' }}"
-}
-}
-]
-}
+
 
 === File: recipes/example_builtin_tools/README.md ===
-
 # Built-in Tools Examples
 
 This directory contains example recipes demonstrating the use of OpenAI's built-in tools with the Recipe Tool.
@@ -84,31 +84,28 @@ This directory contains example recipes demonstrating the use of OpenAI's built-
 ## What are Built-in Tools?
 
 Built-in tools are OpenAI's Responses API features that provide models with access to:
-
 - **Web Search** (`web_search_preview`) - Search the web for current information
 
 ## Model Support
 
 Built-in tools are only supported with Responses API models:
-
 - `openai_responses/*` - OpenAI Responses API models
 - `azure_responses/*` - Azure OpenAI Responses API models
 
 ## Examples
 
 ### Web Search Demo (`web_search_demo.json`)
-
 Demonstrates using the web search tool to find current information about Python 3.13 features.
 
 **Usage:**
-
 ```bash
 # With OpenAI
 recipe-tool --execute recipes/example_builtin_tools/web_search_demo.json model=openai_responses/gpt-4o
 
-# With Azure OpenAI
+# With Azure OpenAI  
 recipe-tool --execute recipes/example_builtin_tools/web_search_demo.json model=azure_responses/gpt-4o
 ```
+
 
 ## Recipe Structure
 
@@ -118,7 +115,9 @@ Built-in tools are specified using the `openai_builtin_tools` parameter in `llm_
 {
   "step_type": "llm_generate",
   "model": "openai_responses/gpt-4o",
-  "openai_builtin_tools": [{ "type": "web_search_preview" }]
+  "openai_builtin_tools": [
+    {"type": "web_search_preview"}
+  ]
 }
 ```
 
@@ -130,34 +129,34 @@ Built-in tools are specified using the `openai_builtin_tools` parameter in `llm_
 
 === File: recipes/example_builtin_tools/web_search_demo.json ===
 {
-"steps": [
-{
-"type": "llm_generate",
-"config": {
-"model": "{{ model | default: 'openai_responses/gpt-4o' }}",
-"openai_builtin_tools": [{ "type": "web_search_preview" }],
-"prompt": "Search the web for 'latest Python 3.13 features' and provide a comprehensive summary of the new features and improvements introduced in Python 3.13. Focus on the most significant changes that developers should know about.",
-"output_format": "text",
-"output_key": "features_summary"
+  "steps": [
+    {
+      "type": "llm_generate",
+      "config": {
+        "model": "{{ model | default: 'openai_responses/gpt-4o' }}",
+        "openai_builtin_tools": [{ "type": "web_search_preview" }],
+        "prompt": "Search the web for 'latest Python 3.13 features' and provide a comprehensive summary of the new features and improvements introduced in Python 3.13. Focus on the most significant changes that developers should know about.",
+        "output_format": "text",
+        "output_key": "features_summary"
+      }
+    },
+    {
+      "type": "write_files",
+      "config": {
+        "files": [
+          {
+            "path": "features_summary.md",
+            "content_key": "features_summary"
+          }
+        ],
+        "root": "{{ output_root | default: 'output' }}"
+      }
+    }
+  ]
 }
-},
-{
-"type": "write_files",
-"config": {
-"files": [
-{
-"path": "features_summary.md",
-"content_key": "features_summary"
-}
-],
-"root": "{{ output_root | default: 'output' }}"
-}
-}
-]
-}
+
 
 === File: recipes/example_complex/README.md ===
-
 # Complex Recipe Example
 
 Multi-step workflow demonstrating file reading, LLM generation, and sub-recipe execution.
@@ -166,80 +165,82 @@ Multi-step workflow demonstrating file reading, LLM generation, and sub-recipe e
 recipe-tool --execute recipes/example_complex/complex_example.json
 ```
 
+
 === File: recipes/example_complex/complex_example.json ===
 {
-"steps": [
-{
-"type": "read_files",
-"config": {
-"path": "ai_context/git_collector/PYDANTIC_AI_DOCS.md",
-"content_key": "pydantic_ai_docs"
+  "steps": [
+    {
+      "type": "read_files",
+      "config": {
+        "path": "ai_context/git_collector/PYDANTIC_AI_DOCS.md",
+        "content_key": "pydantic_ai_docs"
+      }
+    },
+    {
+      "type": "parallel",
+      "config": {
+        "substeps": [
+          {
+            "type": "llm_generate",
+            "config": {
+              "prompt": "You are an expert Python developer. Using the PydanticAI documentation below:\n\n{{pydantic_ai_docs}}\n\nGenerate a module named 'chat_client.py' that implements a simple chat client which connects to an LLM for conversation. The code should be well-structured and include error handling.",
+              "model": "openai/gpt-4o",
+              "mcp_servers": [
+                { "command": "python-code-tools", "args": ["stdio"] }
+              ],
+              "output_format": "files",
+              "output_key": "chat_client_file"
+            }
+          },
+          {
+            "type": "llm_generate",
+            "config": {
+              "prompt": "You are an expert Python developer. Using the PydanticAI documentation below:\n\n{{pydantic_ai_docs}}\n\nGenerate a module named 'chat_server.py' that implements a simple chat server which interacts with an LLM for handling conversations. Ensure the code structure is clear. IMPORTANT: Intentionally include a couple of deliberate syntax errors in the code to test error detection (for example, missing colon, unbalanced parentheses).",
+              "model": "openai/gpt-4o",
+              "mcp_servers": [
+                { "command": "python-code-tools", "args": ["stdio"] }
+              ],
+              "output_format": "files",
+              "output_key": "chat_server_file"
+            }
+          },
+          {
+            "type": "llm_generate",
+            "config": {
+              "prompt": "You are an expert Python developer. Using the PydanticAI documentation below:\n\n{{pydantic_ai_docs}}\n\nGenerate a module named 'linting_tool.py' that creates a function to lint Python code. The module should call an external linting tool, capture its output (lint report), and return both the possibly corrected code files and the lint report. Make sure the output is structured as a list of file specifications.\n",
+              "model": "openai/gpt-4o",
+              "mcp_servers": [
+                { "command": "python-code-tools", "args": ["stdio"] }
+              ],
+              "output_format": "files",
+              "output_key": "linting_result"
+            }
+          }
+        ],
+        "max_concurrency": 3,
+        "delay": 0
+      }
+    },
+    {
+      "type": "llm_generate",
+      "config": {
+        "prompt": "You are given three JSON arrays representing file specifications from previous steps:\n\nChat Client Files: {{chat_client_file}}\n\nChat Server Files: {{chat_server_file}}\n\nLinting Result Files: {{linting_result}}\n\nCombine these arrays into a single JSON array of file specifications without modifying the content of the files. Return the result as a JSON array.",
+        "model": "openai/gpt-4o",
+        "mcp_servers": [{ "command": "python-code-tools", "args": ["stdio"] }],
+        "output_format": "files",
+        "output_key": "final_files"
+      }
+    },
+    {
+      "type": "write_files",
+      "config": {
+        "files_key": "final_files",
+        "root": "output/complex_example"
+      }
+    }
+  ]
 }
-},
-{
-"type": "parallel",
-"config": {
-"substeps": [
-{
-"type": "llm_generate",
-"config": {
-"prompt": "You are an expert Python developer. Using the PydanticAI documentation below:\n\n{{pydantic_ai_docs}}\n\nGenerate a module named 'chat_client.py' that implements a simple chat client which connects to an LLM for conversation. The code should be well-structured and include error handling.",
-"model": "openai/gpt-4o",
-"mcp_servers": [
-{ "command": "python-code-tools", "args": ["stdio"] }
-],
-"output_format": "files",
-"output_key": "chat_client_file"
-}
-},
-{
-"type": "llm_generate",
-"config": {
-"prompt": "You are an expert Python developer. Using the PydanticAI documentation below:\n\n{{pydantic_ai_docs}}\n\nGenerate a module named 'chat_server.py' that implements a simple chat server which interacts with an LLM for handling conversations. Ensure the code structure is clear. IMPORTANT: Intentionally include a couple of deliberate syntax errors in the code to test error detection (for example, missing colon, unbalanced parentheses).",
-"model": "openai/gpt-4o",
-"mcp_servers": [
-{ "command": "python-code-tools", "args": ["stdio"] }
-],
-"output_format": "files",
-"output_key": "chat_server_file"
-}
-},
-{
-"type": "llm_generate",
-"config": {
-"prompt": "You are an expert Python developer. Using the PydanticAI documentation below:\n\n{{pydantic_ai_docs}}\n\nGenerate a module named 'linting_tool.py' that creates a function to lint Python code. The module should call an external linting tool, capture its output (lint report), and return both the possibly corrected code files and the lint report. Make sure the output is structured as a list of file specifications.\n",
-"model": "openai/gpt-4o",
-"mcp_servers": [
-{ "command": "python-code-tools", "args": ["stdio"] }
-],
-"output_format": "files",
-"output_key": "linting_result"
-}
-}
-],
-"max_concurrency": 3,
-"delay": 0
-}
-},
-{
-"type": "llm_generate",
-"config": {
-"prompt": "You are given three JSON arrays representing file specifications from previous steps:\n\nChat Client Files: {{chat_client_file}}\n\nChat Server Files: {{chat_server_file}}\n\nLinting Result Files: {{linting_result}}\n\nCombine these arrays into a single JSON array of file specifications without modifying the content of the files. Return the result as a JSON array.",
-"model": "openai/gpt-4o",
-"mcp_servers": [{ "command": "python-code-tools", "args": ["stdio"] }],
-"output_format": "files",
-"output_key": "final_files"
-}
-},
-{
-"type": "write_files",
-"config": {
-"files_key": "final_files",
-"root": "output/complex_example"
-}
-}
-]
-}
+
 
 === File: recipes/example_complex/recipe_creator_idea/complex_example_idea.md ===
 Create a recipe file named `complex_example.json` that generates a recipe file based on the following scenario:
@@ -252,8 +253,8 @@ Here are the details for the python code tools MCP server:
 command: `python-code-tools`
 args: `stdio`
 
-=== File: recipes/example_content_writer/data/ai_took_my_job-what_now.md ===
 
+=== File: recipes/example_content_writer/data/ai_took_my_job-what_now.md ===
 # [AI Took My Job — What Now?!](https://medium.com/@paradox921/ai-took-my-job-what-now-d08132c8f1ad)
 
 [Brian Krabach](https://medium.com/@paradox921) | Apr, 2025 | Medium
@@ -361,8 +362,8 @@ You don’t have to have it all figured out. Your *real* job might be waiting 
 
 It’s still uniquely human. Still uniquely yours.Still bursting with potential.
 
-=== File: recipes/example_content_writer/data/embracing_ai_for_adhd_assistance.md ===
 
+=== File: recipes/example_content_writer/data/embracing_ai_for_adhd_assistance.md ===
 # [Embracing AI for ADHD Assistance](https://medium.com/@paradox921/embracing-ai-for-adhd-assistance-29dcb23a9d35)
 
 [Brian Krabach](http://medium.com/@paradox921) | Apr, 2025 | Medium
@@ -441,72 +442,74 @@ Someone asked me about how I create that "verbal space" to transform raw ideas i
 
 _Exploring AI, one conversation at a time._
 
+
 === File: recipes/example_content_writer/generate_content.json ===
 {
-"description": "Generate new Markdown content from an idea file plus optional context and reference style.",
-"steps": [
-{
-"type": "read_files",
-"config": {
-"path": "{{ idea }}",
-"content_key": "idea_content"
+  "description": "Generate new Markdown content from an idea file plus optional context and reference style.",
+  "steps": [
+    {
+      "type": "read_files",
+      "config": {
+        "path": "{{ idea }}",
+        "content_key": "idea_content"
+      }
+    },
+    {
+      "type": "conditional",
+      "config": {
+        "condition": "{% if files %}true{% else %}false{% endif %}",
+        "if_true": {
+          "steps": [
+            {
+              "type": "read_files",
+              "config": {
+                "path": "{{ files }}",
+                "content_key": "additional_files_content",
+                "merge_mode": "concat",
+                "optional": true
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "conditional",
+      "config": {
+        "condition": "{% if reference_content %}true{% else %}false{% endif %}",
+        "if_true": {
+          "steps": [
+            {
+              "type": "read_files",
+              "config": {
+                "path": "{{ reference_content }}",
+                "content_key": "reference_content",
+                "merge_mode": "concat",
+                "optional": true
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "llm_generate",
+      "config": {
+        "prompt": "You are a professional writer.\\n\\n<IDEA>\\n{{ idea_content }}\\n</IDEA>\\n\\n{% if additional_files_content %}<ADDITIONAL_FILES>\\n{{ additional_files_content }}\\n</ADDITIONAL_FILES>\\n{% endif %}\\n\\n{% if reference_content %}<REFERENCE_CONTENT>\\n{{ reference_content }}\\n</REFERENCE_CONTENT>\\n{% endif %}\\n\\nUsing the IDEA (and ADDITIONAL_FILES for context if provided), write a complete Markdown article in the style of the REFERENCE_CONTENT if that section exists; otherwise use a crisp, conversational tech-blog tone.\\n\\nReturn exactly one JSON array with a single object matching this schema:\\n[\\n  {\\n    \\\"path\\\": \\\"{{ output_root | default: 'output' }}/<slugified_title>.md\\\",\\n    \\\"content\\\": \\\"<full_markdown_document>\\\"\\n  }\\n]\\n*Replace* <slugified_title> with a kebab-case version of the article title (e.g. \\\"AI-and-you\\\").\\nDo not add any keys or commentary outside that JSON array.",
+        "model": "{{ model | default: 'openai/gpt-4o' }}",
+        "output_format": "files",
+        "output_key": "generated_files"
+      }
+    },
+    {
+      "type": "write_files",
+      "config": {
+        "files_key": "generated_files"
+      }
+    }
+  ]
 }
-},
-{
-"type": "conditional",
-"config": {
-"condition": "{% if files %}true{% else %}false{% endif %}",
-"if_true": {
-"steps": [
-{
-"type": "read_files",
-"config": {
-"path": "{{ files }}",
-"content_key": "additional_files_content",
-"merge_mode": "concat",
-"optional": true
-}
-}
-]
-}
-}
-},
-{
-"type": "conditional",
-"config": {
-"condition": "{% if reference_content %}true{% else %}false{% endif %}",
-"if_true": {
-"steps": [
-{
-"type": "read_files",
-"config": {
-"path": "{{ reference_content }}",
-"content_key": "reference_content",
-"merge_mode": "concat",
-"optional": true
-}
-}
-]
-}
-}
-},
-{
-"type": "llm_generate",
-"config": {
-"prompt": "You are a professional writer.\\n\\n<IDEA>\\n{{ idea_content }}\\n</IDEA>\\n\\n{% if additional_files_content %}<ADDITIONAL_FILES>\\n{{ additional_files_content }}\\n</ADDITIONAL_FILES>\\n{% endif %}\\n\\n{% if reference_content %}<REFERENCE_CONTENT>\\n{{ reference_content }}\\n</REFERENCE_CONTENT>\\n{% endif %}\\n\\nUsing the IDEA (and ADDITIONAL_FILES for context if provided), write a complete Markdown article in the style of the REFERENCE_CONTENT if that section exists; otherwise use a crisp, conversational tech-blog tone.\\n\\nReturn exactly one JSON array with a single object matching this schema:\\n[\\n {\\n \\\"path\\\": \\\"{{ output_root | default: 'output' }}/<slugified_title>.md\\\",\\n \\\"content\\\": \\\"<full_markdown_document>\\\"\\n }\\n]\\n*Replace* <slugified_title> with a kebab-case version of the article title (e.g. \\\"AI-and-you\\\").\\nDo not add any keys or commentary outside that JSON array.",
-"model": "{{ model | default: 'openai/gpt-4o' }}",
-"output_format": "files",
-"output_key": "generated_files"
-}
-},
-{
-"type": "write_files",
-"config": {
-"files_key": "generated_files"
-}
-}
-]
-}
+
 
 === File: recipes/example_content_writer/recipe_creator_idea/content_from_idea.md ===
 Create a recipe file named `generate_content.json` that generates new content based on the following scenario:
@@ -523,52 +526,54 @@ Read in the content of the files above and then:
 
 Generate some new content based the combined context of the idea + any additional files and then, if provided, tartget the style of the reference content. The generated content should be saved in a file named `<content_title>.md` in the specified output directory.
 
+
 === File: recipes/example_mcp_step/mcp_step_example.json ===
 {
-"steps": [
-{
-"type": "read_files",
-"config": {
-"path": "{{input}}",
-"content_key": "code",
-"optional": false,
-"merge_mode": "concat"
+  "steps": [
+    {
+      "type": "read_files",
+      "config": {
+        "path": "{{input}}",
+        "content_key": "code",
+        "optional": false,
+        "merge_mode": "concat"
+      }
+    },
+    {
+      "type": "mcp",
+      "config": {
+        "server": {
+          "command": "python-code-tools",
+          "args": ["stdio"]
+        },
+        "tool_name": "lint_code",
+        "arguments": {
+          "code": "{{code}}",
+          "fix": true,
+          "config": "{}"
+        },
+        "result_key": "code_analysis"
+      }
+    },
+    {
+      "type": "llm_generate",
+      "config": {
+        "prompt": "Generate a comprehensive report based on the following code analysis results:\n{{ code }}\n{{ code_analysis }}\n\nSave to: {{ input | split: '.' | first }}_code_analysis.md",
+        "model": "openai/gpt-4o",
+        "output_format": "files",
+        "output_key": "generated_report"
+      }
+    },
+    {
+      "type": "write_files",
+      "config": {
+        "files_key": "generated_report",
+        "root": "output"
+      }
+    }
+  ]
 }
-},
-{
-"type": "mcp",
-"config": {
-"server": {
-"command": "python-code-tools",
-"args": ["stdio"]
-},
-"tool_name": "lint_code",
-"arguments": {
-"code": "{{code}}",
-"fix": true,
-"config": "{}"
-},
-"result_key": "code_analysis"
-}
-},
-{
-"type": "llm_generate",
-"config": {
-"prompt": "Generate a comprehensive report based on the following code analysis results:\n{{ code }}\n{{ code_analysis }}\n\nSave to: {{ input | split: '.' | first }}\_code_analysis.md",
-"model": "openai/gpt-4o",
-"output_format": "files",
-"output_key": "generated_report"
-}
-},
-{
-"type": "write_files",
-"config": {
-"files_key": "generated_report",
-"root": "output"
-}
-}
-]
-}
+
 
 === File: recipes/example_mcp_step/prompt/mcp_step_idea.md ===
 Create a recipe named `mcp_step_example.json` that demonstrates the use of the MCP step in a recipe. The recipe should:
@@ -607,6 +612,7 @@ Save to: [{{ input }} file name w/o extension] + `_code_analysis.md`.
 ```
 
 - Write the file to the `output` directory.
+
 
 === File: recipes/example_quarterly_report/demo-data/historical-sales.csv ===
 Region,Product,Revenue,Units,Customers,Quarter
@@ -650,117 +656,118 @@ West,Product A,1420000,5920,510,Q2 2025
 West,Product B,960000,3840,330,Q2 2025
 West,Product C,720000,2880,246,Q2 2025
 
-=== File: recipes/example*quarterly_report/demo_quarterly_report_recipe.json ===
+
+=== File: recipes/example_quarterly_report/demo_quarterly_report_recipe.json ===
 {
-"steps": [
-{
-"type": "read_files",
-"config": {
-"path": "{{ new_data_file }}",
-"content_key": "new_data_csv"
+  "steps": [
+    {
+      "type": "read_files",
+      "config": {
+        "path": "{{ new_data_file }}",
+        "content_key": "new_data_csv"
+      }
+    },
+    {
+      "type": "conditional",
+      "config": {
+        "condition": "file_exists('{{ historical_data_file }}')",
+        "if_true": {
+          "steps": [
+            {
+              "type": "read_files",
+              "config": {
+                "path": "{{ historical_data_file }}",
+                "content_key": "historical_data_csv",
+                "optional": true
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "set_context",
+      "config": {
+        "key": "company_name",
+        "value": "{{ company_name | default: 'Our Company' }}"
+      }
+    },
+    {
+      "type": "set_context",
+      "config": {
+        "key": "quarter",
+        "value": "{{ quarter | default: 'auto-detect' }}"
+      }
+    },
+    {
+      "type": "set_context",
+      "config": {
+        "key": "output_root",
+        "value": "{{ output_root | default: 'output' }}"
+      }
+    },
+    {
+      "type": "set_context",
+      "config": {
+        "key": "model",
+        "value": "{{ model | default: 'openai/o4-mini' }}"
+      }
+    },
+    {
+      "type": "llm_generate",
+      "config": {
+        "prompt": "You are a business analyst generating a quarterly business report for {{ company_name }} for {{ quarter }}. Use the new quarterly data CSV:\n{{ new_data_csv }}\n{% if historical_data_csv %}Also use the historical data CSV:\n{{ historical_data_csv }}\n{% endif %}Calculate key performance metrics (revenue growth, customer acquisition, etc.), compare the current quarter with historical trends, and identify significant patterns and outliers. Provide the results as a JSON object with the following structure:{\n  \"executive_summary\": \"...\",\n  \"metrics\": {\"revenue_growth\": \"...\", \"customer_acquisition\": \"...\"},\n  \"trends_chart\": \"<mermaid flowchart>...\",\n  \"product_performance_chart\": \"<mermaid pie>...\",\n  \"regional_analysis\": \"...\",\n  \"recommendations\": \"...\"\n}Only output valid JSON.",
+        "model": "{{ model }}",
+        "output_format": {
+          "type": "object",
+          "properties": {
+            "company_name": {"type": "string"},
+            "executive_summary": {"type": "string"},
+            "metrics": {
+              "type": "object",
+              "properties": {
+                "revenue_growth": {"type": "string"},
+                "customer_acquisition": {"type": "string"}
+              },
+              "required": ["revenue_growth", "customer_acquisition"]
+            },
+            "trends_chart": {"type": "string"},
+            "product_performance_chart": {"type": "string"},
+            "quarter": {"type": "string"},
+            "regional_analysis": {"type": "string"},
+            "recommendations": {"type": "string"}
+          },
+          "required": ["executive_summary", "metrics", "trends_chart", "product_performance_chart", "regional_analysis", "recommendations"]
+        },
+        "output_key": "analysis"
+      }
+    },
+    {
+      "type": "llm_generate",
+      "config": {
+        "prompt": "Using the analysis in context and original data, generate a comprehensive markdown-formatted business report for {{ company_name }} for {{ quarter }}. Include an Executive Summary, Key Metrics table, Mermaid charts for trends and product performance using {{ analysis.trends_chart }} and {{ analysis.product_performance_chart }}, a Regional Performance Analysis section, and Strategic Recommendations. Reported generated on {{ 'now' | date: '%m-%d-%Y %H:%M' }}. Output the report in valid markdown.",
+        "model": "{{ model }}",
+        "output_format": "text",
+        "output_key": "report_md"
+      }
+    },
+    {
+      "type": "write_files",
+      "config": {
+        "root": "{{ output_root }}/{{ analysis.company_name | replace: ' ', '_' }}",
+        "files": [
+          {
+            "path": "Business_Report_{{ analysis.quarter | replace: ' ', '_' }}.md",
+            "content_key": "report_md"
+          }
+        ]
+      }
+    }
+  ]
 }
-},
-{
-"type": "conditional",
-"config": {
-"condition": "file_exists('{{ historical_data_file }}')",
-"if_true": {
-"steps": [
-{
-"type": "read_files",
-"config": {
-"path": "{{ historical_data_file }}",
-"content_key": "historical_data_csv",
-"optional": true
-}
-}
-]
-}
-}
-},
-{
-"type": "set_context",
-"config": {
-"key": "company_name",
-"value": "{{ company_name | default: 'Our Company' }}"
-}
-},
-{
-"type": "set_context",
-"config": {
-"key": "quarter",
-"value": "{{ quarter | default: 'auto-detect' }}"
-}
-},
-{
-"type": "set_context",
-"config": {
-"key": "output_root",
-"value": "{{ output_root | default: 'output' }}"
-}
-},
-{
-"type": "set_context",
-"config": {
-"key": "model",
-"value": "{{ model | default: 'openai/o4-mini' }}"
-}
-},
-{
-"type": "llm_generate",
-"config": {
-"prompt": "You are a business analyst generating a quarterly business report for {{ company_name }} for {{ quarter }}. Use the new quarterly data CSV:\n{{ new_data_csv }}\n{% if historical_data_csv %}Also use the historical data CSV:\n{{ historical_data_csv }}\n{% endif %}Calculate key performance metrics (revenue growth, customer acquisition, etc.), compare the current quarter with historical trends, and identify significant patterns and outliers. Provide the results as a JSON object with the following structure:{\n \"executive_summary\": \"...\",\n \"metrics\": {\"revenue_growth\": \"...\", \"customer_acquisition\": \"...\"},\n \"trends_chart\": \"<mermaid flowchart>...\",\n \"product_performance_chart\": \"<mermaid pie>...\",\n \"regional_analysis\": \"...\",\n \"recommendations\": \"...\"\n}Only output valid JSON.",
-"model": "{{ model }}",
-"output_format": {
-"type": "object",
-"properties": {
-"company_name": {"type": "string"},
-"executive_summary": {"type": "string"},
-"metrics": {
-"type": "object",
-"properties": {
-"revenue_growth": {"type": "string"},
-"customer_acquisition": {"type": "string"}
-},
-"required": ["revenue_growth", "customer_acquisition"]
-},
-"trends_chart": {"type": "string"},
-"product_performance_chart": {"type": "string"},
-"quarter": {"type": "string"},
-"regional_analysis": {"type": "string"},
-"recommendations": {"type": "string"}
-},
-"required": ["executive_summary", "metrics", "trends_chart", "product_performance_chart", "regional_analysis", "recommendations"]
-},
-"output_key": "analysis"
-}
-},
-{
-"type": "llm_generate",
-"config": {
-"prompt": "Using the analysis in context and original data, generate a comprehensive markdown-formatted business report for {{ company_name }} for {{ quarter }}. Include an Executive Summary, Key Metrics table, Mermaid charts for trends and product performance using {{ analysis.trends_chart }} and {{ analysis.product_performance_chart }}, a Regional Performance Analysis section, and Strategic Recommendations. Reported generated on {{ 'now' | date: '%m-%d-%Y %H:%M' }}. Output the report in valid markdown.",
-"model": "{{ model }}",
-"output_format": "text",
-"output_key": "report_md"
-}
-},
-{
-"type": "write_files",
-"config": {
-"root": "{{ output_root }}/{{ analysis.company_name | replace: ' ', '*' }}",
-"files": [
-{
-"path": "Business_Report_{{ analysis.quarter | replace: ' ', '_' }}.md",
-"content_key": "report_md"
-}
-]
-}
-}
-]
-}
+
 
 === File: recipes/example_simple/README.md ===
-
 # Simple Recipe Example
 
 Basic workflow demonstrating file reading, code generation, and writing.
@@ -785,34 +792,36 @@ recipe-tool --execute recipes/example_simple/code_from_spec_recipe.json \
    spec_file=recipes/example_simple/specs/file-rollup-tool-spec.md
 ```
 
+
 === File: recipes/example_simple/code_from_spec_recipe.json ===
 {
-"steps": [
-{
-"type": "read_files",
-"config": {
-"path": "{{ spec_file | default: 'recipes/example_simple/specs/sample_spec.txt' }}",
-"content_key": "spec_text"
+  "steps": [
+    {
+      "type": "read_files",
+      "config": {
+        "path": "{{ spec_file | default: 'recipes/example_simple/specs/sample_spec.txt' }}",
+        "content_key": "spec_text"
+      }
+    },
+    {
+      "type": "llm_generate",
+      "config": {
+        "prompt": "Using the following specification, generate a Python script:\n\n{{ spec_text }}",
+        "model": "{{ model | default: 'openai/o4-mini' }}",
+        "output_format": "files",
+        "output_key": "generated_files"
+      }
+    },
+    {
+      "type": "write_files",
+      "config": {
+        "files_key": "generated_files",
+        "root": "{{ output_root | default: 'output' }}"
+      }
+    }
+  ]
 }
-},
-{
-"type": "llm_generate",
-"config": {
-"prompt": "Using the following specification, generate a Python script:\n\n{{ spec_text }}",
-"model": "{{ model | default: 'openai/o4-mini' }}",
-"output_format": "files",
-"output_key": "generated_files"
-}
-},
-{
-"type": "write_files",
-"config": {
-"files_key": "generated_files",
-"root": "{{ output_root | default: 'output' }}"
-}
-}
-]
-}
+
 
 === File: recipes/example_simple/specs/file-rollup-tool-spec.md ===
 A simple tool for creating a roll-up file of all of the text files in a directory.
@@ -829,14 +838,16 @@ Requirements:
 - Any non-text files should be ignored.
 - The tool should be named `rollup.py`.
 
+
 === File: recipes/example_simple/specs/hello-world-gradio-spec.md ===
 Create a simple "Hello World" app using Gradio in python.
+
 
 === File: recipes/example_simple/specs/hello-world-spec.txt ===
 Print "Hello, Test!" to the console.
 
-=== File: recipes/example_templates/README.md ===
 
+=== File: recipes/example_templates/README.md ===
 # Example Templates
 
 # Extras Demo
@@ -862,78 +873,82 @@ recipe-tool --execute recipes/example_templates/extras_demo.json \
   - pretty-prints `item.metadata` with `json`
 - **`write_files`** spits out one Markdown file per item, using those context vars in both filename and body.
 
+
 === File: recipes/example_templates/data/items.json ===
 [
-{
-"name": "Sample Item",
-"timestamp": "2025-05-07T09:00:00Z",
-"metadata": {
-"color": "red",
-"size": "L"
-}
-},
-{
-"name": "Another Item",
-"timestamp": "2025-01-01T12:30:45Z",
-"metadata": {
-"color": "blue",
-"size": "M"
-}
-}
+  {
+    "name": "Sample Item",
+    "timestamp": "2025-05-07T09:00:00Z",
+    "metadata": {
+      "color": "red",
+      "size": "L"
+    }
+  },
+  {
+    "name": "Another Item",
+    "timestamp": "2025-01-01T12:30:45Z",
+    "metadata": {
+      "color": "blue",
+      "size": "M"
+    }
+  }
 ]
+
 
 === File: recipes/example_templates/extras_demo.json ===
 {
-"steps": [
-{
-"type": "read_files",
-"config": {
-"path": "{{ input_file }}",
-"content_key": "items"
+  "steps": [
+    {
+      "type": "read_files",
+      "config": {
+        "path": "{{ input_file }}",
+        "content_key": "items"
+      }
+    },
+    {
+      "type": "loop",
+      "config": {
+        "items": "items",
+        "item_key": "item",
+        "result_key": "item.content",
+        "substeps": [
+          {
+            "type": "set_context",
+            "config": {
+              "key": "slug",
+              "value": "{{ item.name | snakecase }}"
+            }
+          },
+          {
+            "type": "set_context",
+            "config": {
+              "key": "readable_date",
+              "value": "{{ item.timestamp | datetime: format: 'MMM d, y' }}"
+            }
+          },
+          {
+            "type": "set_context",
+            "config": {
+              "key": "file_content",
+              "value": "# {{ item.name }}\n\n- **Slug**: `{{ slug }}`\n- **Date**: {{ readable_date }}\n- **Metadata**:\n```json\n{{ item.metadata | json: indent: 2 }}\n```"
+            }
+          },
+          {
+            "type": "write_files",
+            "config": {
+              "files": [
+                {
+                  "path": "{{ slug }}.md",
+                  "content_key": "file_content"
+                }
+              ],
+              "root": "{{ output_root | default: 'output' }}"
+            }
+          }
+        ]
+      }
+    }
+  ]
 }
-},
-{
-"type": "loop",
-"config": {
-"items": "items",
-"item_key": "item",
-"result_key": "item.content",
-"substeps": [
-{
-"type": "set_context",
-"config": {
-"key": "slug",
-"value": "{{ item.name | snakecase }}"
-}
-},
-{
-"type": "set_context",
-"config": {
-"key": "readable_date",
-"value": "{{ item.timestamp | datetime: format: 'MMM d, y' }}"
-}
-},
-{
-"type": "set_context",
-"config": {
-"key": "file_content",
-"value": "# {{ item.name }}\n\n- **Slug**: `{{ slug }}`\n- **Date**: {{ readable_date }}\n- **Metadata**:\n`json\n{{ item.metadata | json: indent: 2 }}\n`"
-}
-},
-{
-"type": "write_files",
-"config": {
-"files": [
-{
-"path": "{{ slug }}.md",
-"content_key": "file_content"
-}
-],
-"root": "{{ output_root | default: 'output' }}"
-}
-}
-]
-}
-}
-]
-}
+
+

@@ -5,7 +5,7 @@
 **Search:** ['apps/recipe-tool/recipe_tool_app']
 **Exclude:** ['.venv', 'node_modules', '*.lock', '.git', '__pycache__', '*.pyc', '*.ruff_cache', 'logs', 'output']
 **Include:** []
-**Date:** 6/4/2025, 2:36:24 PM
+**Date:** 6/18/2025, 12:10:57 PM
 **Files:** 8
 
 === File: apps/recipe-tool/recipe_tool_app/__init__.py ===
@@ -198,6 +198,7 @@ from typing import Any, Dict, List, Optional
 
 from recipe_executor.context import Context
 from recipe_executor.executor import Executor
+from recipe_executor_app.settings_sidebar import get_model_string_from_env
 from recipe_executor_app.utils import (
     create_temp_file,
     parse_context_vars,
@@ -257,8 +258,24 @@ class RecipeToolCore:
             # Add input
             context_dict["input"] = idea_source
 
-            # Create context
-            context = Context(artifacts=context_dict)
+            # Add model configuration from environment
+            model_str = get_model_string_from_env()
+            context_dict["model"] = model_str
+
+            # Add max_tokens if set in environment
+            max_tokens = os.getenv("MAX_TOKENS")
+            if max_tokens:
+                try:
+                    context_dict["max_tokens"] = str(int(max_tokens))
+                except ValueError:
+                    pass
+
+            # Load configuration from environment
+            from recipe_executor.config import load_configuration
+            config = load_configuration()
+            
+            # Create context with both artifacts and config
+            context = Context(artifacts=context_dict, config=config)
 
             # Find recipe creator
             creator_path = find_recipe_creator()
@@ -526,7 +543,7 @@ class SettingsConfig(BaseModel):
 
     # Model settings
     model_providers: List[str] = ["openai", "azure", "anthropic", "ollama"]
-    default_model: str = "openai/gpt-4o"
+    default_model: str = "openai/o4-mini"
 
     # Environment variable definitions
     env_vars: Dict[str, Dict[str, Any]] = {
@@ -600,8 +617,8 @@ class SettingsConfig(BaseModel):
 
     # Model configurations
     model_configs: Dict[str, List[str]] = {
-        "openai": ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-3.5-turbo"],
-        "azure": ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-3.5-turbo"],
+        "openai": ["gpt-4o", "gpt-4.1", "o3", "o4-mini"],
+        "azure": ["gpt-4o", "gpt-4.1", "o3", "o4-mini"],
         "anthropic": ["claude-3-5-sonnet", "claude-3-opus", "claude-3-haiku"],
         "ollama": ["llama3.2", "mistral", "gemma2", "phi3"],
     }
@@ -752,7 +769,7 @@ def create_settings_sidebar(
         try:
             # Build model string
             provider = kwargs.get("provider", "openai")
-            model_name = kwargs.get("model_name", "gpt-4o")
+            model_name = kwargs.get("model_name", "o4-mini")
             azure_deployment = kwargs.get("azure_deployment", "")
 
             if provider == "azure" and azure_deployment:
@@ -774,6 +791,11 @@ def create_settings_sidebar(
                         os.environ[var_name] = "true" if value else "false"
                     else:
                         os.environ[var_name] = str(value)
+
+            # Also save max_tokens if provided
+            max_tokens_value = kwargs.get("max_tokens")
+            if max_tokens_value is not None and max_tokens_value != "":
+                os.environ["MAX_TOKENS"] = str(int(max_tokens_value))
 
             # Add env vars to settings
             settings.update({k: v for k, v in kwargs.items() if k in config.env_vars})
@@ -809,18 +831,23 @@ def get_model_string_from_env() -> str:
     """Get the current model string from environment or use default."""
     # Check for explicit model env var first
     if os.getenv("MODEL"):
-        return os.getenv("MODEL", "openai/gpt-4o")
+        return os.getenv("MODEL", "openai/o4-mini")
 
     # Otherwise, try to construct from available info
-    if os.getenv("AZURE_OPENAI_BASE_URL"):
-        deployment = os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME", "gpt-4o")
-        return f"azure/gpt-4o/{deployment}"
+    # Default to OpenAI if available
+    if os.getenv("OPENAI_API_KEY"):
+        return "openai/o4-mini"
+    elif os.getenv("AZURE_OPENAI_BASE_URL"):
+        deployment = os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME", "o4-mini")
+        return f"azure/o4-mini/{deployment}"
     elif os.getenv("ANTHROPIC_API_KEY"):
         return "anthropic/claude-3-5-sonnet"
     elif os.getenv("OLLAMA_BASE_URL"):
-        return "ollama/llama3.2"
+        # Use environment variable or default to a more common model
+        return os.getenv("OLLAMA_DEFAULT_MODEL", "ollama/llama3.1")
     else:
-        return "openai/gpt-4o"
+        # Final fallback to OpenAI
+        return "openai/o4-mini"
 
 
 === File: apps/recipe-tool/recipe_tool_app/ui.py ===

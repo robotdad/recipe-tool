@@ -3,22 +3,23 @@
 [git-collector-data]
 
 **URL:** https://github.com/gradio-app/gradio/tree/main/guides  
-**Date:** 6/6/2025, 3:45:42 PM  
-**Files:** 34
+**Date:** 6/18/2025, 12:11:17 PM  
+**Files:** 34  
 
 === File: guides/01_getting-started/01_quickstart.md ===
-
 # Quickstart
 
-Gradio is an open-source Python package that allows you to quickly **build** a demo or web application for your machine learning model, API, or any arbitrary Python function. You can then **share** a link to your demo or web application in just a few seconds using Gradio's built-in sharing features. _No JavaScript, CSS, or web hosting experience needed!_
+Gradio is an open-source Python package that allows you to quickly **build** a demo or web application for your machine learning model, API, or any arbitrary Python function. You can then **share** a link to your demo or web application in just a few seconds using Gradio's built-in sharing features. *No JavaScript, CSS, or web hosting experience needed!*
 
 <img src="https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/gradio-guides/gif-version.gif" style="padding-bottom: 10px">
 
 It just takes a few lines of Python to create your own demo, so let's get started 💫
 
+
 ## Installation
 
 **Prerequisite**: Gradio requires [Python 3.10 or higher](https://www.python.org/downloads/).
+
 
 We recommend installing Gradio using `pip`, which is included by default in Python. Run this in your terminal or command prompt:
 
@@ -26,15 +27,18 @@ We recommend installing Gradio using `pip`, which is included by default in Pyth
 pip install --upgrade gradio
 ```
 
-Tip: It is best to install Gradio in a virtual environment. Detailed installation instructions for all common operating systems <a href="https://www.gradio.app/main/guides/installing-gradio-in-a-virtual-environment">are provided here</a>.
+
+Tip: It is best to install Gradio in a virtual environment. Detailed installation instructions for all common operating systems <a href="https://www.gradio.app/main/guides/installing-gradio-in-a-virtual-environment">are provided here</a>. 
 
 ## Building Your First Demo
 
 You can run Gradio in your favorite code editor, Jupyter notebook, Google Colab, or anywhere else you write Python. Let's write your first Gradio app:
 
+
 $code_hello_world_4
 
-Tip: We shorten the imported name from <code>gradio</code> to <code>gr</code>. This is a widely adopted convention for better readability of code.
+
+Tip: We shorten the imported name from <code>gradio</code> to <code>gr</code>. This is a widely adopted convention for better readability of code. 
 
 Now, run your code. If you've written the Python code in a file named `app.py`, then you would run `python app.py` from the terminal.
 
@@ -46,9 +50,10 @@ Type your name in the textbox on the left, drag the slider, and then press the S
 
 Tip: When developing locally, you can run your Gradio app in <strong>hot reload mode</strong>, which automatically reloads the Gradio app whenever you make changes to the file. To do this, simply type in <code>gradio</code> before the name of the file instead of <code>python</code>. In the example above, you would type: `gradio app.py` in your terminal. Learn more in the <a href="https://www.gradio.app/guides/developing-faster-with-reload-mode">Hot Reloading Guide</a>.
 
+
 **Understanding the `Interface` Class**
 
-You'll notice that in order to make your first demo, you created an instance of the `gr.Interface` class. The `Interface` class is designed to create demos for machine learning models which accept one or more inputs, and return one or more outputs.
+You'll notice that in order to make your first demo, you created an instance of the `gr.Interface` class. The `Interface` class is designed to create demos for machine learning models which accept one or more inputs, and return one or more outputs. 
 
 The `Interface` class has three core arguments:
 
@@ -56,9 +61,9 @@ The `Interface` class has three core arguments:
 - `inputs`: the Gradio component(s) to use for the input. The number of components should match the number of arguments in your function.
 - `outputs`: the Gradio component(s) to use for the output. The number of components should match the number of return values from your function.
 
-The `fn` argument is very flexible -- you can pass _any_ Python function that you want to wrap with a UI. In the example above, we saw a relatively simple function, but the function could be anything from a music generator to a tax calculator to the prediction function of a pretrained machine learning model.
+The `fn` argument is very flexible -- you can pass *any* Python function that you want to wrap with a UI. In the example above, we saw a relatively simple function, but the function could be anything from a music generator to a tax calculator to the prediction function of a pretrained machine learning model.
 
-The `inputs` and `outputs` arguments take one or more Gradio components. As we'll see, Gradio includes more than [30 built-in components](https://www.gradio.app/docs/gradio/introduction) (such as the `gr.Textbox()`, `gr.Image()`, and `gr.HTML()` components) that are designed for machine learning applications.
+The `inputs` and `outputs` arguments take one or more Gradio components. As we'll see, Gradio includes more than [30 built-in components](https://www.gradio.app/docs/gradio/introduction) (such as the `gr.Textbox()`, `gr.Image()`, and `gr.HTML()` components) that are designed for machine learning applications. 
 
 Tip: For the `inputs` and `outputs` arguments, you can pass in the name of these components as a string (`"textbox"`) or an instance of the class (`gr.Textbox()`).
 
@@ -68,7 +73,7 @@ We'll dive deeper into the `gr.Interface` on our series on [building Interfaces]
 
 ## Sharing Your Demo
 
-What good is a beautiful demo if you can't share it? Gradio lets you easily share a machine learning demo without having to worry about the hassle of hosting on a web server. Simply set `share=True` in `launch()`, and a publicly accessible URL will be created for your demo. Let's revisit our example demo, but change the last line as follows:
+What good is a beautiful demo if you can't share it? Gradio lets you easily share a machine learning demo without having to worry about the hassle of hosting on a web server. Simply set `share=True` in `launch()`, and a publicly accessible URL will be created for your demo. Let's revisit our example demo,  but change the last line as follows:
 
 ```python
 import gradio as gr
@@ -77,7 +82,7 @@ def greet(name):
     return "Hello " + name + "!"
 
 demo = gr.Interface(fn=greet, inputs="textbox", outputs="textbox")
-
+    
 demo.launch(share=True)  # Share your demo with just 1 extra parameter 🚀
 ```
 
@@ -89,13 +94,14 @@ Now, anyone around the world can try your Gradio demo from their browser, while 
 
 To learn more about sharing your demo, read our dedicated guide on [sharing your Gradio application](https://www.gradio.app/guides/sharing-your-app).
 
+
 ## An Overview of Gradio
 
 So far, we've been discussing the `Interface` class, which is a high-level class that lets to build demos quickly with Gradio. But what else does Gradio include?
 
 ### Custom Demos with `gr.Blocks`
 
-Gradio offers a low-level approach for designing web apps with more customizable layouts and data flows with the `gr.Blocks` class. Blocks supports things like controlling where components appear on the page, handling multiple data flows and more complex interactions (e.g. outputs can serve as inputs to other functions), and updating properties/visibility of components based on user interaction — still all in Python.
+Gradio offers a low-level approach for designing web apps with more customizable layouts and data flows with the `gr.Blocks` class. Blocks supports things like controlling where components appear on the page, handling multiple data flows and more complex interactions (e.g. outputs can serve as inputs to other functions), and updating properties/visibility of components based on user interaction — still all in Python. 
 
 You can build very custom and complex applications using `gr.Blocks()`. For example, the popular image generation [Automatic1111 Web UI](https://github.com/AUTOMATIC1111/stable-diffusion-webui) is built using Gradio Blocks. We dive deeper into the `gr.Blocks` on our series on [building with Blocks](https://www.gradio.app/guides/blocks-and-event-listeners).
 
@@ -107,10 +113,10 @@ Gradio includes another high-level class, `gr.ChatInterface`, which is specifica
 
 That's the gist of the core `gradio` Python library, but Gradio is actually so much more! It's an entire ecosystem of Python and JavaScript libraries that let you build machine learning applications, or query them programmatically, in Python or JavaScript. Here are other related parts of the Gradio ecosystem:
 
-- [Gradio Python Client](https://www.gradio.app/guides/getting-started-with-the-python-client) (`gradio_client`): query any Gradio app programmatically in Python.
-- [Gradio JavaScript Client](https://www.gradio.app/guides/getting-started-with-the-js-client) (`@gradio/client`): query any Gradio app programmatically in JavaScript.
-- [Gradio-Lite](https://www.gradio.app/guides/gradio-lite) (`@gradio/lite`): write Gradio apps in Python that run entirely in the browser (no server needed!), thanks to Pyodide.
-- [Hugging Face Spaces](https://huggingface.co/spaces): the most popular place to host Gradio applications — for free!
+* [Gradio Python Client](https://www.gradio.app/guides/getting-started-with-the-python-client) (`gradio_client`): query any Gradio app programmatically in Python.
+* [Gradio JavaScript Client](https://www.gradio.app/guides/getting-started-with-the-js-client) (`@gradio/client`): query any Gradio app programmatically in JavaScript.
+* [Gradio-Lite](https://www.gradio.app/guides/gradio-lite) (`@gradio/lite`): write Gradio apps in Python that run entirely in the browser (no server needed!), thanks to Pyodide. 
+* [Hugging Face Spaces](https://huggingface.co/spaces): the most popular place to host Gradio applications — for free!
 
 ## What's Next?
 
@@ -118,17 +124,18 @@ Keep learning about Gradio sequentially using the Gradio Guides, which include e
 
 Or, if you already know the basics and are looking for something specific, you can search the more [technical API documentation](https://www.gradio.app/docs/).
 
+
 ## Gradio Sketch
 
 You can also build Gradio applications without writing any code. Simply type `gradio sketch` into your terminal to open up an editor that lets you define and modify Gradio components, adjust their layouts, add events, all through a web editor. Or [use this hosted version of Gradio Sketch, running on Hugging Face Spaces](https://huggingface.co/spaces/aliabid94/Sketch).
 
 === File: guides/02_building-interfaces/00_the-interface-class.md ===
-
 # The `Interface` class
 
 As mentioned in the [Quickstart](/main/guides/quickstart), the `gr.Interface` class is a high-level abstraction in Gradio that allows you to quickly create a demo for any Python function simply by specifying the input types and the output types. Revisiting our first demo:
 
 $code_hello_world_4
+
 
 We see that the `Interface` class is initialized with three required parameters:
 
@@ -140,7 +147,7 @@ In this Guide, we'll dive into `gr.Interface` and the various ways it can be cus
 
 ## Gradio Components
 
-Gradio includes more than 30 pre-built components (as well as many [community-built _custom components_](https://www.gradio.app/custom-components/gallery)) that can be used as inputs or outputs in your demo. These components correspond to common data types in machine learning and data science, e.g. the `gr.Image` component is designed to handle input or output images, the `gr.Label` component displays classification labels and probabilities, the `gr.LinePlot` component displays line plots, and so on.
+Gradio includes more than 30 pre-built components (as well as many [community-built _custom components_](https://www.gradio.app/custom-components/gallery)) that can be used as inputs or outputs in your demo. These components correspond to common data types in machine learning and data science, e.g. the `gr.Image` component is designed to handle input or output images, the `gr.Label` component displays classification labels and probabilities, the `gr.LinePlot` component displays line plots, and so on. 
 
 ## Components Attributes
 
@@ -155,7 +162,7 @@ $demo_hello_world_2
 
 ## Multiple Input and Output Components
 
-Suppose you had a more complex function, with multiple outputs as well. In the example below, we define a function that takes a string, boolean, and number, and returns a string and number.
+Suppose you had a more complex function, with multiple outputs as well. In the example below, we define a function that takes a string, boolean, and number, and returns a string and number. 
 
 $code_hello_world_3
 $demo_hello_world_3
@@ -169,7 +176,7 @@ Gradio supports many types of components, such as `Image`, `DataFrame`, `Video`,
 $code_sepia_filter
 $demo_sepia_filter
 
-When using the `Image` component as input, your function will receive a NumPy array with the shape `(height, width, 3)`, where the last dimension represents the RGB values. We'll return an image as well in the form of a NumPy array.
+When using the `Image` component as input, your function will receive a NumPy array with the shape `(height, width, 3)`, where the last dimension represents the RGB values. We'll return an image as well in the form of a NumPy array. 
 
 Gradio handles the preprocessing and postprocessing to convert images to NumPy arrays and vice versa. You can also control the preprocessing performed with the `type=` keyword argument. For example, if you wanted your function to take a file path to an image instead of a NumPy array, the input `Image` component could be written as:
 
@@ -219,8 +226,9 @@ Here's an example:
 $code_interface_with_additional_inputs
 $demo_interface_with_additional_inputs
 
-=== File: guides/02_building-interfaces/01_more-on-examples.md ===
 
+
+=== File: guides/02_building-interfaces/01_more-on-examples.md ===
 # More on Examples
 
 In the [previous Guide](/main/guides/the-interface-class), we discussed how to provide example inputs for your demo to make it easier for users to try it out. Here, we dive into more details.
@@ -264,6 +272,7 @@ Whenever a user clicks on an example, the output will automatically be populated
 Alternatively, you can set `cache_examples="lazy"`. This means that each particular example will only get cached after it is first used (by any user) in the Gradio app. This is helpful if your prediction function is long-running and you do not want to wait a long time for your Gradio app to start.
 
 Keep in mind once the cache is generated, it will not be updated automatically in future launches. If the examples or function logic change, delete the cache folder to clear the cache and rebuild it with another `launch()`.
+
 
 === File: guides/02_building-interfaces/02_flagging.md ===
 
@@ -311,11 +320,13 @@ im/1.png,Output/1.png
 
 If you wish for the user to provide a reason for flagging, you can pass a list of strings to the `flagging_options` argument of Interface. Users will have to select one of the strings when flagging, which will be saved as an additional column to the CSV.
 
-=== File: guides/02_building-interfaces/03_interface-state.md ===
 
+
+
+=== File: guides/02_building-interfaces/03_interface-state.md ===
 # Interface State
 
-So far, we've assumed that your demos are _stateless_: that they do not persist information beyond a single function call. What if you want to modify the behavior of your demo based on previous interactions with the demo? There are two approaches in Gradio: _global state_ and _session state_.
+So far, we've assumed that your demos are *stateless*: that they do not persist information beyond a single function call. What if you want to modify the behavior of your demo based on previous interactions with the demo? There are two approaches in Gradio: *global state* and *session state*.
 
 ## Global State
 
@@ -335,17 +346,19 @@ Another type of data persistence Gradio supports is session state, where data pe
 
 Here's a simple app to illustrate session state - this app simply stores users previous submissions and displays them back to the user:
 
+
 $code_interface_state
 $demo_interface_state
 
+
 Notice how the state persists across submits within each page, but if you load this demo in another tab (or refresh the page), the demos will not share chat history. Here, we could not store the submission history in a global variable, otherwise the submission history would then get jumbled between different users.
 
-The initial value of the `State` is `None` by default. If you pass a parameter to the `value` argument of `gr.State()`, it is used as the default value of the state instead.
+The initial value of the `State` is `None` by default. If you pass a parameter to the `value` argument of `gr.State()`, it is used as the default value of the state instead. 
 
 Note: the `Interface` class only supports a single session state variable (though it can be a list with multiple elements). For more complex use cases, you can use Blocks, [which supports multiple `State` variables](/guides/state-in-blocks/). Alternatively, if you are building a chatbot that maintains user state, consider using the `ChatInterface` abstraction, [which manages state automatically](/guides/creating-a-chatbot-fast).
 
-=== File: guides/02_building-interfaces/04_reactive-interfaces.md ===
 
+=== File: guides/02_building-interfaces/04_reactive-interfaces.md ===
 # Reactive Interfaces
 
 Finally, we cover how to get Gradio demos to refresh automatically or continuously stream data.
@@ -371,8 +384,8 @@ $code_stream_frames
 
 Streaming can also be done in an output component. A `gr.Audio(streaming=True)` output component can take a stream of audio data yielded piece-wise by a generator function and combines them into a single audio file. For a detailed example, see our guide on performing [automatic speech recognition](/guides/real-time-speech-recognition) with Gradio.
 
-=== File: guides/02_building-interfaces/05_four-kinds-of-interfaces.md ===
 
+=== File: guides/02_building-interfaces/05_four-kinds-of-interfaces.md ===
 # The 4 Kinds of Gradio Interfaces
 
 So far, we've always assumed that in order to build an Gradio demo, you need both inputs and outputs. But this isn't always the case for machine learning demos: for example, _unconditional image generation models_ don't take any input but produce an image as the output.
@@ -421,10 +434,10 @@ $demo_unified_demo_text_generation
 It may be the case that none of the 4 cases fulfill your exact needs. In this case, you need to use the `gr.Blocks()` approach!
 
 === File: guides/03_building-with-blocks/01_blocks-and-event-listeners.md ===
-
 # Blocks and Event Listeners
 
-We briefly described the Blocks class in the [Quickstart](/main/guides/quickstart#custom-demos-with-gr-blocks) as a way to build custom demos. Let's dive deeper.
+We briefly described the Blocks class in the [Quickstart](/main/guides/quickstart#custom-demos-with-gr-blocks) as a way to build custom demos. Let's dive deeper. 
+
 
 ## Blocks Structure
 
@@ -522,7 +535,9 @@ with gr.Blocks() as demo:
 
 Above, each return statement returns two values corresponding to `food_box` and `status_box`, respectively.
 
-Instead of returning a list of values corresponding to each output component in order, you can also return a dictionary, with the key corresponding to the output component and the value as the new value. This also allows you to skip updating some output components.
+**Note:** if your event listener has a single output component, you should **not** return it as a single-item list. This will not work, since Gradio does not know whether to interpret that outer list as part of your return value. You should instead just return that value directly.
+
+Now, let's see option (2). Instead of returning a list of values corresponding to each output component in order, you can also return a dictionary, with the key corresponding to the output component and the value as the new value. This also allows you to skip updating some output components.
 
 ```python
 with gr.Blocks() as demo:
@@ -609,7 +624,6 @@ with gr.Blocks() as demo:
 ```
 
 This functionally the same as:
-
 ```python
 with gr.Blocks() as demo:
   num1 = gr.Number()
@@ -617,15 +631,15 @@ with gr.Blocks() as demo:
   product = gr.Number()
 
   gr.on(
-    [num1.change, num2.change, demo.load],
-    lambda a, b: a * b,
-    inputs=[num1, num2],
+    [num1.change, num2.change, demo.load], 
+    lambda a, b: a * b, 
+    inputs=[num1, num2], 
     outputs=product
   )
 ```
 
-=== File: guides/03_building-with-blocks/02_controlling-layout.md ===
 
+=== File: guides/03_building-with-blocks/02_controlling-layout.md ===
 # Controlling Layout
 
 By default, Components in Blocks are arranged vertically. Let's take a look at how we can rearrange Components. Under the hood, this layout structure uses the [flexbox model of web development](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Flexible_Box_Layout/Basic_Concepts_of_Flexbox).
@@ -679,7 +693,7 @@ Learn more about Columns in the [docs](https://gradio.app/docs/column).
 
 # Fill Browser Height / Width
 
-To make an app take the full width of the browser by removing the side padding, use `gr.Blocks(fill_width=True)`.
+To make an app take the full width of the browser by removing the side padding, use `gr.Blocks(fill_width=True)`. 
 
 To make top level Components expand to take the full height of the browser, use `fill_height` and apply scale to the expanding Components.
 
@@ -772,15 +786,15 @@ with gr.Blocks() as demo:
 demo.launch()
 ```
 
-=== File: guides/03_building-with-blocks/03_state-in-blocks.md ===
 
+=== File: guides/03_building-with-blocks/03_state-in-blocks.md ===
 # Managing State
 
 When building a Gradio application with `gr.Blocks()`, you may want to share certain values between users (e.g. a count of visitors to your page), or persist values for a single user across certain interactions (e.g. a chat history). This referred to as **state** and there are three general ways to manage state in a Gradio application:
 
-- **Global state**: persist and share values among all users of your Gradio application while your Gradio application is running
-- **Session state**: persist values for each user of your Gradio application while they are using your Gradio application in a single session. If they refresh the page, session state will be reset.
-- **Browser state**: persist values for each user of your Gradio application in the browser's localStorage, allowing data to persist even after the page is refreshed or closed.
+* **Global state**: persist and share values among all users of your Gradio application while your Gradio application is running
+* **Session state**: persist values for each user of your Gradio application while they are using your Gradio application in a single session. If they refresh the page, session state will be reset.
+* **Browser state**: persist values for each user of your Gradio application in the browser's localStorage, allowing data to persist even after the page is refreshed or closed.
 
 ## Global State
 
@@ -799,7 +813,7 @@ def increment_counter():
     visitor_count += 1
     return visitor_count
 
-with gr.Blocks() as demo:
+with gr.Blocks() as demo:    
     number = gr.Textbox(label="Total Visitors", value="Counting...")
     demo.load(increment_counter, inputs=None, outputs=number)
 
@@ -823,12 +837,12 @@ $code_simple_state
 Notice how we do this with state:
 
 1. We store the cart items in a `gr.State()` object, initialized here to be an empty list.
-2. When adding items to the cart, the event listener uses the cart as both input and output - it returns the updated cart with all the items inside.
+2. When adding items to the cart, the event listener uses the cart as both input and output - it returns the updated cart with all the items inside. 
 3. We can attach a `.change` listener to cart, that uses the state variable as input as well.
 
 You can think of `gr.State` as an invisible Gradio component that can store any kind of value. Here, `cart` is not visible in the frontend but is used for calculations.
 
-The `.change` listener for a state variable triggers after any event listener changes the value of a state variable. If the state variable holds a sequence (like a `list`, `set`, or `dict`), a change is triggered if any of the elements inside change. If it holds an object or primitive, a change is triggered if the **hash** of the value changes. So if you define a custom class and create a `gr.State` variable that is an instance of that class, make sure that the the class includes a sensible `__hash__` implementation.
+The `.change` listener for a state variable triggers after any event listener changes the value of a state variable. If the state variable holds a sequence (like a `list`, `set`, or `dict`), a change is triggered if any of the elements inside change. If it holds an object or primitive, a change is triggered if the **hash** of the  value changes. So if you define a custom class and create a `gr.State` variable that is an instance of that class, make sure that the the class includes a sensible `__hash__` implementation.
 
 The value of a session State variable is cleared when the user refreshes the page. The value is stored on in the app backend for 60 minutes after the user closes the tab (this can be configured by the `delete_cache` parameter in `gr.Blocks`).
 
@@ -846,7 +860,7 @@ class NonDeepCopyable:
         from threading import Lock
         self.counter = 0
         self.lock = Lock()  # Lock objects cannot be deepcopied
-
+    
     def increment(self):
         with self.lock:
             self.counter += 1
@@ -874,11 +888,11 @@ with gr.Blocks() as demo:
     counter = gr.Number(label="Counter Value")
     increment_btn = gr.Button("Increment Counter")
     increment_btn.click(increment_counter, inputs=None, outputs=counter)
-
+    
     # Initialize instance when page loads
-    demo.load(initialize_instance, inputs=None, outputs=output)
+    demo.load(initialize_instance, inputs=None, outputs=output)    
     # Clean up instance when page is closed/refreshed
-    demo.unload(cleanup_instance)
+    demo.unload(cleanup_instance)    
 
 demo.launch()
 ```
@@ -896,13 +910,13 @@ $code_browserstate
 
 Note: The value stored in `gr.BrowserState` does not persist if the Grado app is restarted. To persist it, you can hardcode specific values of `storage_key` and `secret` in the `gr.BrowserState` component and restart the Gradio app on the same server name and server port. However, this should only be done if you are running trusted Gradio apps, as in principle, this can allow one Gradio app to access localStorage data that was created by a different Gradio app.
 
-=== File: guides/03_building-with-blocks/04_dynamic-apps-with-render-decorator.md ===
 
+=== File: guides/03_building-with-blocks/04_dynamic-apps-with-render-decorator.md ===
 # Dynamic Apps with the Render Decorator
 
-The components and event listeners you define in a Blocks so far have been fixed - once the demo was launched, new components and listeners could not be added, and existing one could not be removed.
+The components and event listeners you define in a Blocks so far have been fixed - once the demo was launched, new components and listeners could not be added, and existing one could not be removed. 
 
-The `@gr.render` decorator introduces the ability to dynamically change this. Let's take a look.
+The `@gr.render` decorator introduces the ability to dynamically change this. Let's take a look. 
 
 ## Dynamic Number of Components
 
@@ -922,7 +936,7 @@ Now whenever the inputs change, the function re-runs, and replaces the component
 $code_render_split
 $demo_render_split
 
-By default, `@gr.render` re-runs are triggered by the `.load` listener to the app and the `.change` listener to any input component provided. We can override this by explicitly setting the triggers in the decorator, as we have in this app to only trigger on `input_text.submit` instead.
+By default, `@gr.render` re-runs are triggered by the `.load` listener to the app and the `.change` listener to any input component provided. We can override this by explicitly setting the triggers in the decorator, as we have in this app to only trigger on `input_text.submit` instead. 
 If you are setting custom triggers, and you also want an automatic render at the start of the app, make sure to add `demo.load` to your list of triggers.
 
 ## Dynamic Event Listeners
@@ -938,9 +952,9 @@ Let's take a look at what's happening here:
 2. Note that in every single Textbox we create in the render function, we explicitly set a `key=` argument. This key allows us to preserve the value of this Component between re-renders. If you type in a value in a textbox, and then click the Add button, all the Textboxes re-render, but their values aren't cleared because the `key=` maintains the the value of a Component across a render.
 3. We've stored the Textboxes created in a list, and provide this list as input to the merge button event listener. Note that **all event listeners that use Components created inside a render function must also be defined inside that render function**. The event listener can still reference Components outside the render function, as we do here by referencing `merge_btn` and `output` which are both defined outside the render function.
 
-Just as with Components, whenever a function re-renders, the event listeners created from the previous render are cleared and the new event listeners from the latest run are attached.
+Just as with Components, whenever a function re-renders, the event listeners created from the previous render are cleared and the new event listeners from the latest run are attached. 
 
-This allows us to create highly customizable and complex interactions!
+This allows us to create highly customizable and complex interactions! 
 
 ## Closer Look at `keys=` parameter
 
@@ -956,18 +970,18 @@ $demo_render_preserve_key
 
 You'll see in this example, when you change the `number_of_boxes` slider, there's a new re-render to update the number of box rows. If you click the "Change Label" buttons, they change the `label` and `info` properties of the corresponding textbox. You can also enter text in any textbox to change its value. If you change number of boxes after this, the re-renders "reset" the `info`, but the `label` and any entered `value` is still preserved.
 
-Note you can also key any event listener, e.g. `button.click(key=...)` if the same listener is being recreated with the same inputs and outputs across renders. This gives performance benefits, and also prevents errors from occuring if an event was triggered in a previous render, then a re-render occurs, and then the previous event finishes processing. By keying your listener, Gradio knows where to send the data properly.
+Note you can also key any event listener, e.g. `button.click(key=...)` if the same listener is being recreated with the same inputs and outputs across renders. This gives performance benefits, and also prevents errors from occuring if an event was triggered in a previous render, then a re-render occurs, and then the previous event finishes processing. By keying your listener, Gradio knows where to send the data properly. 
 
 ## Putting it Together
 
-Let's look at two examples that use all the features above. First, try out the to-do list app below:
+Let's look at two examples that use all the features above. First, try out the to-do list app below: 
 
 $code_todo_list
 $demo_todo_list
 
 Note that almost the entire app is inside a single `gr.render` that reacts to the tasks `gr.State` variable. This variable is a nested list, which presents some complexity. If you design a `gr.render` to react to a list or dict structure, ensure you do the following:
 
-1. Any event listener that modifies a state variable in a manner that should trigger a re-render must set the state variable as an output. This lets Gradio know to check if the variable has changed behind the scenes.
+1. Any event listener that modifies a state variable in a manner that should trigger a re-render must set the state variable as an output. This lets Gradio know to check if the variable has changed behind the scenes. 
 2. In a `gr.render`, if a variable in a loop is used inside an event listener function, that variable should be "frozen" via setting it to itself as a default argument in the function header. See how we have `task=task` in both `mark_done` and `delete`. This freezes the variable to its "loop-time" value.
 
 Let's take a look at one last example that uses everything we learned. Below is an audio mixer. Provide multiple audio tracks and mix them together.
@@ -976,34 +990,33 @@ $code_audio_mixer
 $demo_audio_mixer
 
 Two things to note in this app:
-
 1. Here we provide `key=` to all the components! We need to do this so that if we add another track after setting the values for an existing track, our input values to the existing track do not get reset on re-render.
 2. When there are lots of components of different types and arbitrary counts passed to an event listener, it is easier to use the set and dictionary notation for inputs rather than list notation. Above, we make one large set of all the input `gr.Audio` and `gr.Slider` components when we pass the inputs to the `merge` function. In the function body we query the component values as a dict.
 
-The `gr.render` expands gradio capabilities extensively - see what you can make out of it!
+The `gr.render` expands gradio capabilities extensively - see what you can make out of it! 
+
 
 === File: guides/03_building-with-blocks/05_more-blocks-features ===
-
 # More Blocks Features
 
 ## Examples
 
 Just like with `gr.Interface`, you can also add examples for your functions when you are working with `gr.Blocks`. In this case, instantiate a `gr.Examples` similar to how you would instantiate any other component. The constructor of `gr.Examples` takes two required arguments:
 
-- `examples`: a nested list of examples, in which the outer list consists of examples and each inner list consists of an input corresponding to each input component
-- `inputs`: the component or list of components that should be populated when the examples are clicked
+* `examples`: a nested list of examples, in which the outer list consists of examples and each inner list consists of an input corresponding to each input component
+* `inputs`: the component or list of components that should be populated when the examples are clicked
 
 You can also set `cache_examples=True` or `cache_examples='lazy'`, similar to [the caching API in `gr.Interface`](https://www.gradio.app/guides/more-on-examples), in which case two additional arguments must be provided:
 
-- `outputs`: the component or list of components corresponding to the output of the examples
-- `fn`: the function to run to generate the outputs corresponding to the examples
+* `outputs`: the component or list of components corresponding to the output of the examples
+* `fn`: the function to run to generate the outputs corresponding to the examples
 
 Here's an example showing how to use `gr.Examples` in a `gr.Blocks` app:
 
 $code_calculator_blocks
 $demo_calculator_blocks
 
-**Note**: When you click on examples, not only does the value of the input component update to the example value, but the component's configuration also reverts to the properties with which you constructed the component. This ensures that the examples are compatible with the component even if its configuration has been changed.
+**Note**: When you click on examples, not only does the value of the input component update to the example value, but the component's configuration also reverts to the properties with which you constructed the component. This ensures that the examples are compatible with the component even if its configuration has been changed. 
 
 ## Running Events Continuously
 
@@ -1037,7 +1050,7 @@ You can gather specific data about an event by adding the associated event data 
 
 For example, event data for `.select()` can be type hinted by a `gradio.SelectData` argument. This event is triggered when a user selects some part of the triggering component, and the event data includes information about what the user specifically selected. For example, if a user selected a specific word in a `Textbox`, a specific pixel in an `Image`, a specific image in a `Gallery`, or a specific cell in a `DataFrame`, the event data argument would contain information about the specific selection.
 
-The `SelectData` includes the value that was selected, and the index where the selection occurred. A simple example that shows what text was selected in a `Textbox`.
+The `SelectData` includes the value that was selected, and the index where the selection occurred. A simple example that shows what text was selected in a `Textbox`. 
 
 ```python
 import gradio as gr
@@ -1045,20 +1058,20 @@ import gradio as gr
 with gr.Blocks() as demo:
     textbox = gr.Textbox("The quick brown fox jumped.")
     selection = gr.Textbox()
-
+    
     def get_selection(select_evt: gr.SelectData):
         return select_evt.value
 
     textbox.select(get_selection, None, selection)
 ```
 
-In the 2 player tic-tac-toe demo below, a user can select a cell in the `DataFrame` to make a move. The event data argument contains information about the specific cell that was selected. We can first check to see if the cell is empty, and then update the cell with the user's move.
+In the  2 player tic-tac-toe demo below, a user can select a cell in the `DataFrame` to make a move. The event data argument contains information about the specific cell that was selected. We can first check to see if the cell is empty, and then update the cell with the user's move.
 
 $code_tictactoe
 $demo_tictactoe
 
-=== File: guides/03_building-with-blocks/06_custom-CSS-and-JS.md ===
 
+=== File: guides/03_building-with-blocks/06_custom-CSS-and-JS.md ===
 # Customizing your demo with CSS and Javascript
 
 Gradio allows you to customize your demo in several ways. You can customize the layout of your demo, add custom HTML, and add custom theming as well. This tutorial will go beyond that and walk you through how to add custom CSS and JavaScript code to your demo in order to add custom styling, animations, custom UI functionality, analytics, and more.
@@ -1094,6 +1107,7 @@ with gr.Blocks(css=".gradio-container {background: url('/gradio_api/file=clouds.
 
 Note: By default, most files in the host machine are not accessible to users running the Gradio app. As a result, you should make sure that any referenced files (such as `clouds.jpg` here) are either URLs or [allowed paths, as described here](/main/guides/file-access).
 
+
 ## The `elem_id` and `elem_classes` Arguments
 
 You can `elem_id` to add an HTML element `id` to any component, and `elem_classes` to add a class or list of classes. This will allow you to select elements more easily with CSS. This approach is also more likely to be stable across Gradio versions as built-in class names or ids may change (however, as mentioned in the warning above, we cannot guarantee complete compatibility between Gradio versions if you use custom CSS as the DOM elements may themselves change).
@@ -1122,12 +1136,14 @@ Below is an example of adding custom js to show an animated welcome message when
 $code_blocks_js_load
 $demo_blocks_js_load
 
-2. When using `Blocks` and event listeners, events have a `js` argument that can take a JavaScript function as a string and treat it just like a Python event listener function. You can pass both a JavaScript function and a Python function (in which case the JavaScript function is run first) or only Javascript (and set the Python `fn` to `None`). Take a look at the code below:
 
+2. When using `Blocks` and event listeners, events have a `js` argument that can take a JavaScript function as a string and treat it just like a Python event listener function. You can pass both a JavaScript function and a Python function (in which case the JavaScript function is run first) or only Javascript (and set the Python `fn` to `None`). Take a look at the code below:
+   
 $code_blocks_js_methods
 $demo_blocks_js_methods
 
 3. Lastly, you can add JavaScript code to the `head` param of the `Blocks` initializer. This will add the code to the head of the HTML document. For example, you can add Google Analytics to your demo like so:
+
 
 ```python
 head = f"""
@@ -1170,7 +1186,7 @@ custom_head = """
 <meta name="twitter:description" content="An open-source web application showcasing various features and capabilities.">
 <meta name="twitter:image" content="https://cdn.britannica.com/98/152298-050-8E45510A/Cheetah.jpg">
 <meta property="twitter:domain" content="example.com">
-<meta property="twitter:url" content="https://example.com">
+<meta property="twitter:url" content="https://example.com">  
 """
 
 with gr.Blocks(title="My App", head=custom_head) as demo:
@@ -1178,6 +1194,8 @@ with gr.Blocks(title="My App", head=custom_head) as demo:
 
 demo.launch()
 ```
+
+
 
 Note that injecting custom JS can affect browser behavior and accessibility (e.g. keyboard shortcuts may be lead to unexpected behavior if your Gradio app is embedded in another webpage). You should test your interface across different browsers and be mindful of how scripts may interact with browser defaults. Here's an example where pressing `Shift + s` triggers the `click` event of a specific `Button` component if the browser focus is _not_ on an input component (e.g. `Textbox` component):
 
@@ -1206,12 +1224,13 @@ with gr.Blocks(head=shortcut_js) as demo:
     action_button = gr.Button(value="Name", elem_id="my_btn")
     textbox = gr.Textbox()
     action_button.click(lambda : "button pressed", None, textbox)
-
+    
 demo.launch()
 ```
 
-=== File: guides/03_building-with-blocks/07_using-blocks-like-functions.md ===
 
+
+=== File: guides/03_building-with-blocks/07_using-blocks-like-functions.md ===
 # Using Gradio Blocks Like Functions
 
 Tags: TRANSLATION, HUB, SPACES
@@ -1303,8 +1322,8 @@ You can also load models hosted on the [Hugging Face Model Hub](https://huggingf
 
 Happy building! ⚒️
 
-=== File: guides/04_additional-features/01_queuing.md ===
 
+=== File: guides/04_additional-features/01_queuing.md ===
 # Queuing
 
 Every Gradio app comes with a built-in queuing system that can scale to thousands of concurrent users. Because many of your event listeners may involve heavy processing, Gradio automatically creates a queue to handle every event listener in the backend. Every event listener in your app automatically has a queue to process incoming events.
@@ -1349,13 +1368,13 @@ In this example, all three event listeners share a queue identified by `"gpu_que
 
 ### Notes
 
-- To ensure unlimited concurrency for an event listener, set `concurrency_limit=None`. This is useful if your function is calling e.g. an external API which handles the rate limiting of requests itself.
-- The default concurrency limit for all queues can be set globally using the `default_concurrency_limit` parameter in `Blocks.queue()`.
+- To ensure unlimited concurrency for an event listener, set `concurrency_limit=None`.  This is useful if your function is calling e.g. an external API which handles the rate limiting of requests itself.
+- The default concurrency limit for all queues can be set globally using the `default_concurrency_limit` parameter in `Blocks.queue()`. 
 
 These configurations make it easy to manage the queuing behavior of your Gradio app.
 
-=== File: guides/04_additional-features/02_streaming-outputs.md ===
 
+=== File: guides/04_additional-features/02_streaming-outputs.md ===
 # Streaming outputs
 
 In some cases, you may want to stream a sequence of outputs rather than show a single output at once. For example, you might have an image generation model and you want to show the image that is generated at each step, leading up to the final image. Or you might have a chatbot which streams its response one token at a time instead of returning it all at once.
@@ -1375,13 +1394,13 @@ $demo_fake_diffusion
 
 Note that we've added a `time.sleep(1)` in the iterator to create an artificial pause between steps so that you are able to observe the steps of the iterator (in a real image generation model, this probably wouldn't be necessary).
 
-Similarly, Gradio can handle streaming inputs, e.g. an image generation model that reruns every time a user types a letter in a textbox. This is covered in more details in our guide on building [reactive Interfaces](/guides/reactive-interfaces).
+Similarly, Gradio can handle streaming inputs, e.g. an image generation model that reruns every time a user types a letter in a textbox. This is covered in more details in our guide on building [reactive Interfaces](/guides/reactive-interfaces). 
 
 ## Streaming Media
 
 Gradio can stream audio and video directly from your generator function.
 This lets your user hear your audio or see your video nearly as soon as it's `yielded` by your function.
-All you have to do is
+All you have to do is 
 
 1. Set `streaming=True` in your `gr.Audio` or `gr.Video` output component.
 2. Write a python generator that yields the next "chunk" of audio or video.
@@ -1432,7 +1451,6 @@ gr.Interface(keep_repeating,
 For an end-to-end example of streaming media, see the object detection from video [guide](/main/guides/object-detection-from-video) or the streaming AI-generated audio with [transformers](https://huggingface.co/docs/transformers/index) [guide](/main/guides/streaming-ai-generated-audio).
 
 === File: guides/04_additional-features/03_streaming-inputs.md ===
-
 # Streaming inputs
 
 In the previous guide, we covered how to stream a sequence of outputs from an event handler. Gradio also allows you to stream images from a user's camera or audio chunks from their microphone **into** your event handler. This can be used to create real-time object detection apps or conversational chat applications with Gradio.
@@ -1447,9 +1465,9 @@ Try it out! The streaming event is triggered when the user starts recording. Und
 
 There are two unique keyword arguments for the `stream` event:
 
-- `time_limit` - This is the amount of time the gradio server will spend processing the event. Media streams are naturally unbounded so it's important to set a time limit so that one user does not hog the Gradio queue. The time limit only counts the time spent processing the stream, not the time spent waiting in the queue. The orange bar displayed at the bottom of the input image represents the remaining time. When the time limit expires, the user will automatically rejoin the queue.
+* `time_limit` - This is the amount of time the gradio server will spend processing the event. Media streams are naturally unbounded so it's important to set a time limit so that one user does not hog the Gradio queue. The time limit only counts the time spent processing the stream, not the time spent waiting in the queue. The orange bar displayed at the bottom of the input image represents the remaining time. When the time limit expires, the user will automatically rejoin the queue.
 
-- `stream_every` - This is the frequency (in seconds) with which the stream will capture input and send it to the server. For demos like image detection or manipulation, setting a smaller value is desired to get a "real-time" effect. For demos like speech transcription, a higher value is useful so that the transcription algorithm has more context of what's being said.
+* `stream_every` - This is the frequency (in seconds) with which the stream will capture input and send it to the server. For demos like image detection or manipulation, setting a smaller value is desired to get a "real-time" effect. For demos like speech transcription, a higher value is useful so that the transcription algorithm has more context of what's being said.
 
 ## A Realistic Image Demo
 
@@ -1458,7 +1476,7 @@ Let's create a demo where a user can choose a filter to apply to their webcam st
 $code_streaming_filter
 $demo_streaming_filter
 
-You will notice that if you change the filter value it will immediately take effect in the output stream. That is an important difference of stream events in comparison to other Gradio events. The input values of the stream can be changed while the stream is being processed.
+You will notice that if you change the filter value it will immediately take effect in the output stream. That is an important difference of stream events in comparison to other Gradio events. The input values of the stream can be changed while the stream is being processed. 
 
 Tip: We set the "streaming" parameter of the image output component to be "True". Doing so lets the server automatically convert our output images into base64 format, a format that is efficient for streaming.
 
@@ -1503,12 +1521,11 @@ demo.launch()
 For an end-to-end example of streaming from the webcam, see the object detection from webcam [guide](/main/guides/object-detection-from-webcam-with-webrtc).
 
 === File: guides/04_additional-features/04_alerts.md ===
-
 # Alerts
 
 You may wish to display alerts to the user. To do so, raise a `gr.Error("custom message")` in your function to halt the execution of your function and display an error message to the user.
 
-You can also issue `gr.Warning("custom message")` or `gr.Info("custom message")` by having them as standalone lines in your function, which will immediately display modals while continuing the execution of your function. The only difference between `gr.Info()` and `gr.Warning()` is the color of the alert.
+You can also issue `gr.Warning("custom message")` or `gr.Info("custom message")` by having them as standalone lines in your function, which will immediately display modals while continuing the execution of your function. The only difference between `gr.Info()` and `gr.Warning()` is the color of the alert. 
 
 ```python
 def start_process(name):
@@ -1522,8 +1539,9 @@ def start_process(name):
 
 Tip: Note that `gr.Error()` is an exception that has to be raised, while `gr.Warning()` and `gr.Info()` are functions that are called directly.
 
-=== File: guides/04_additional-features/05_progress-bars.md ===
 
+
+=== File: guides/04_additional-features/05_progress-bars.md ===
 # Progress Bars
 
 Gradio supports the ability to create custom Progress Bars so that you have customizability and control over the progress update that you show to the user. In order to enable this, simply add an argument to your method that has a default value of a `gr.Progress` instance. Then you can update the progress levels by calling this instance directly with a float between 0 and 1, or using the `tqdm()` method of the `Progress` instance to track progress over an iterable, as shown below.
@@ -1533,8 +1551,8 @@ $demo_progress_simple
 
 If you use the `tqdm` library, you can even report progress updates automatically from any `tqdm.tqdm` that already exists within your function by setting the default argument as `gr.Progress(track_tqdm=True)`!
 
-=== File: guides/04_additional-features/06_batch-functions.md ===
 
+=== File: guides/04_additional-features/06_batch-functions.md ===
 # Batch functions
 
 Gradio supports the ability to pass _batch_ functions. Batch functions are just
@@ -1561,10 +1579,10 @@ With the `gr.Interface` class:
 
 ```python
 demo = gr.Interface(
-    fn=trim_words,
-    inputs=["textbox", "number"],
+    fn=trim_words, 
+    inputs=["textbox", "number"], 
     outputs=["output"],
-    batch=True,
+    batch=True, 
     max_batch_size=16
 )
 
@@ -1593,8 +1611,10 @@ In the example above, 16 requests could be processed in parallel (for a total in
 inference time of 80 seconds). Many Hugging Face `transformers` and `diffusers` models work very naturally with Gradio's batch mode: here's [an example demo using diffusers to
 generate images in batches](https://github.com/gradio-app/gradio/blob/main/demo/diffusers_with_batching/run.py)
 
-=== File: guides/04_additional-features/07_sharing-your-app.md ===
 
+
+
+=== File: guides/04_additional-features/07_sharing-your-app.md ===
 # Sharing Your App
 
 In this Guide, we dive more deeply into the various aspects of sharing a Gradio app with others. We will cover:
@@ -1629,11 +1649,13 @@ This generates a public, shareable link that you can send to anybody! When you s
 
 ![sharing](https://github.com/gradio-app/gradio/blob/main/guides/assets/sharing.svg?raw=true)
 
+
 A share link usually looks something like this: **https://07ff8706ab.gradio.live**. Although the link is served through the Gradio Share Servers, these servers are only a proxy for your local server, and do not store any data sent through your app. Share links expire after 1 week. (it is [also possible to set up your own Share Server](https://github.com/huggingface/frp/) on your own cloud server to overcome this restriction.)
 
 Tip: Keep in mind that share links are publicly accessible, meaning that anyone can use your model for prediction! Therefore, make sure not to expose any sensitive information through the functions you write, or allow any critical changes to occur on your device. Or you can [add authentication to your Gradio app](#authentication) as discussed below.
 
 Note that by default, `share=False`, which means that your server is only running locally. (This is the default, except in Google Colab notebooks, where share links are automatically created). As an alternative to using share links, you can use use [SSH port-forwarding](https://www.ssh.com/ssh/tunneling/example) to share your local server with specific users.
+
 
 ## Hosting on HF Spaces
 
@@ -1661,6 +1683,7 @@ Let's see an example of how this works. Here's a simple Gradio chat ap that uses
 $code_deep_link
 $demo_deep_link
 
+
 ## Embedding Hosted Spaces
 
 Once you have hosted your app on Hugging Face Spaces (or on your own server), you may want to embed the demo on a different website, such as your blog or your portfolio. Embedding an interactive demo allows people to try out the machine learning model that you have built, without needing to download or install anything — right in their browser! The best part is that you can embed interactive demos even in static websites, such as GitHub pages.
@@ -1679,8 +1702,8 @@ To embed with Web Components:
 
 ```html
 <script
-  type="module"
-  src="https://gradio.s3-us-west-2.amazonaws.com/{GRADIO_VERSION}/gradio.js"
+	type="module"
+	src="https://gradio.s3-us-west-2.amazonaws.com/{GRADIO_VERSION}/gradio.js"
 ></script>
 ```
 
@@ -1694,7 +1717,7 @@ element where you want to place the app. Set the `src=` attribute to your Space'
 
 ```html
 <gradio-app
-  src="https://abidlabs-pytorch-image-classifier.hf.space"
+	src="https://abidlabs-pytorch-image-classifier.hf.space"
 ></gradio-app>
 ```
 
@@ -1727,9 +1750,9 @@ Here's an example of how to use these attributes to create a Gradio app that doe
 
 ```html
 <gradio-app
-  space="gradio/Echocardiogram-Segmentation"
-  eager="true"
-  initial_height="0px"
+	space="gradio/Echocardiogram-Segmentation"
+	eager="true"
+	initial_height="0px"
 ></gradio-app>
 ```
 
@@ -1737,12 +1760,12 @@ Here's another example of how to use the `render` event. An event listener is us
 
 ```html
 <script>
-  function handleLoadComplete() {
-    console.log("Embedded space has finished rendering");
-  }
+	function handleLoadComplete() {
+		console.log("Embedded space has finished rendering");
+	}
 
-  const gradioApp = document.querySelector("gradio-app");
-  gradioApp.addEventListener("render", handleLoadComplete);
+	const gradioApp = document.querySelector("gradio-app");
+	gradioApp.addEventListener("render", handleLoadComplete);
 </script>
 ```
 
@@ -1811,6 +1834,7 @@ $code_custom_path
 
 Note that this approach also allows you run your Gradio apps on custom paths (`http://localhost:8000/gradio` in the example above).
 
+
 ## Authentication
 
 ### Password-protected app
@@ -1832,6 +1856,7 @@ demo.launch(auth=same_auth)
 ```
 
 If you have multiple users, you may wish to customize the content that is shown depending on the user that is logged in. You can retrieve the logged in user by [accessing the network request directly](#accessing-the-network-request-directly) as discussed above, and then reading the `.username` attribute of the request. Here's an example:
+
 
 ```python
 import gradio as gr
@@ -1864,7 +1889,7 @@ with gr.Blocks() as demo:
 demo.launch(auth=[("Pete", "Pete"), ("Dawood", "Dawood")])
 ```
 
-Note: Gradio's built-in authentication provides a straightforward and basic layer of access control but does not offer robust security features for applications that require stringent access controls (e.g. multi-factor authentication, rate limiting, or automatic lockout policies).
+Note: Gradio's built-in authentication provides a straightforward and basic layer of access control but does not offer robust security features for applications that require stringent access controls (e.g.  multi-factor authentication, rate limiting, or automatic lockout policies).
 
 ### OAuth (Login via Hugging Face)
 
@@ -1895,9 +1920,10 @@ locally before deploying it. To test OAuth features locally, your machine must b
 
 **Security Note**: It is important to note that adding a `gr.LoginButton` does not restrict users from using your app, in the same way that adding [username-password authentication](/guides/sharing-your-app#password-protected-app) does. This means that users of your app who have not logged in with Hugging Face can still access and run events in your Gradio app -- the difference is that the `gr.OAuthProfile` or `gr.OAuthToken` will be `None` in the corresponding functions.
 
+
 ### OAuth (with external providers)
 
-It is also possible to authenticate with external OAuth providers (e.g. Google OAuth) in your Gradio apps. To do this, first mount your Gradio app within a FastAPI app ([as discussed above](#mounting-within-another-fast-api-app)). Then, you must write an _authentication function_, which gets the user's username from the OAuth provider and returns it. This function should be passed to the `auth_dependency` parameter in `gr.mount_gradio_app`.
+It is also possible to authenticate with external OAuth providers (e.g. Google OAuth) in your Gradio apps. To do this, first mount your Gradio app within a FastAPI app ([as discussed above](#mounting-within-another-fast-api-app)). Then, you must write an *authentication function*, which gets the user's username from the OAuth provider and returns it. This function should be passed to the `auth_dependency` parameter in `gr.mount_gradio_app`.
 
 Similar to [FastAPI dependency functions](https://fastapi.tiangolo.com/tutorial/dependencies/), the function specified by `auth_dependency` will run before any Gradio-related route in your FastAPI app. The function should accept a single parameter: the FastAPI `Request` and return either a string (representing a user's username) or `None`. If a string is returned, the user will be able to access the Gradio-related routes in your FastAPI app.
 
@@ -2012,19 +2038,20 @@ if __name__ == '__main__':
 
 There are actually two separate Gradio apps in this example! One that simply displays a log in button (this demo is accessible to any user), while the other main demo is only accessible to users that are logged in. You can try this example out on [this Space](https://huggingface.co/spaces/gradio/oauth-example).
 
+
 ## Analytics
 
 By default, Gradio collects certain analytics to help us better understand the usage of the `gradio` library. This includes the following information:
 
-- What environment the Gradio app is running on (e.g. Colab Notebook, Hugging Face Spaces)
-- What input/output components are being used in the Gradio app
-- Whether the Gradio app is utilizing certain advanced features, such as `auth` or `show_error`
-- The IP address which is used solely to measure the number of unique developers using Gradio
-- The version of Gradio that is running
+* What environment the Gradio app is running on (e.g. Colab Notebook, Hugging Face Spaces)
+* What input/output components are being used in the Gradio app
+* Whether the Gradio app is utilizing certain advanced features, such as `auth` or `show_error`
+* The IP address which is used solely to measure the number of unique developers using Gradio
+* The version of Gradio that is running
 
 No information is collected from _users_ of your Gradio app. If you'd like to diable analytics altogether, you can do so by setting the `analytics_enabled` parameter to `False` in `gr.Blocks`, `gr.Interface`, or `gr.ChatInterface`. Or, you can set the GRADIO_ANALYTICS_ENABLED environment variable to `"False"` to apply this to all Gradio apps created across your system.
 
-_Note_: this reflects the analytics policy as of `gradio>=4.32.0`.
+*Note*: this reflects the analytics policy as of `gradio>=4.32.0`.
 
 ## Progressive Web App (PWA)
 
@@ -2055,8 +2082,8 @@ demo.launch(pwa=True, favicon_path="./hf-logo.svg")  # Use a custom icon for you
 
 ![Custom PWA Icon](https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/gradio-guides/pwa-favicon.png)
 
-=== File: guides/04_additional-features/08_file-access.md ===
 
+=== File: guides/04_additional-features/08_file-access.md ===
 # Security and File Access
 
 Sharing your Gradio app with others (by hosting it on Spaces, on your own server, or through temporary share links) **exposes** certain files on your machine to the internet. Files that are exposed can be accessed at a special URL:
@@ -2067,19 +2094,20 @@ http://<your-gradio-app-url>/gradio_api/file=<local-file-path>
 
 This guide explains which files are exposed as well as some best practices for making sure the files on your machine are secure.
 
-## Files Gradio allows users to access
+## Files Gradio allows users to access 
 
-- **1. Static files**. You can designate static files or directories using the `gr.set_static_paths` function. Static files are not be copied to the Gradio cache (see below) and will be served directly from your computer. This can help save disk space and reduce the time your app takes to launch but be mindful of possible security implications as any static files are accessible to all useres of your Gradio app.
+- **1. Static files**. You can designate static files or directories using the `gr.set_static_paths` function. Static files  are not be copied to the Gradio cache (see below) and will be served directly from your computer. This can help save disk space and reduce the time your app takes to launch but be mindful of possible security implications as any static files are accessible to all useres of your Gradio app.
 
 - **2. Files in the `allowed_paths` parameter in `launch()`**. This parameter allows you to pass in a list of additional directories or exact filepaths you'd like to allow users to have access to. (By default, this parameter is an empty list).
 
 - **3. Files in Gradio's cache**. After you launch your Gradio app, Gradio copies certain files into a temporary cache and makes these files accessible to users. Let's unpack this in more detail below.
 
+
 ## The Gradio cache
 
 First, it's important to understand why Gradio has a cache at all. Gradio copies files to a cache directory before returning them to the frontend. This prevents files from being overwritten by one user while they are still needed by another user of your application. For example, if your prediction function returns a video file, then Gradio will move that video to the cache after your prediction function runs and returns a URL the frontend can use to show the video. Any file in the cache is available via URL to all users of your running application.
 
-Tip: You can customize the location of the cache by setting the `GRADIO_TEMP_DIR` environment variable to an absolute path, such as `/home/usr/scripts/project/temp/`.
+Tip: You can customize the location of the cache by setting the `GRADIO_TEMP_DIR` environment variable to an absolute path, such as `/home/usr/scripts/project/temp/`. 
 
 ### Files Gradio moves to the cache
 
@@ -2089,11 +2117,11 @@ Gradio moves three kinds of files into the cache
 
 2. File paths returned by a prediction function in your Gradio application, if they ALSO meet one of the conditions below:
 
-- It is in the `allowed_paths` parameter of the `Blocks.launch` method.
-- It is in the current working directory of the python interpreter.
-- It is in the temp directory obtained by `tempfile.gettempdir()`.
+* It is in the `allowed_paths` parameter of the `Blocks.launch` method.
+* It is in the current working directory of the python interpreter.
+* It is in the temp directory obtained by `tempfile.gettempdir()`.
 
-**Note:** files in the current working directory whose name starts with a period (`.`) will not be moved to the cache, even if they are returned from a prediction function, since they often contain sensitive information.
+**Note:** files in the current working directory whose name starts with a period (`.`) will not be moved to the cache, even if they are returned from a prediction function, since they often contain sensitive information. 
 
 If none of these criteria are met, the prediction function that is returning that file will raise an exception instead of moving the file to cache. Gradio performs this check so that arbitrary files on your machine cannot be accessed.
 
@@ -2125,13 +2153,13 @@ demo.launch(max_file_size=5 * gr.FileSize.MB)
 
 ## Best Practices
 
-- Set a `max_file_size` for your application.
-- Do not return arbitrary user input from a function that is connected to a file-based output component (`gr.Image`, `gr.File`, etc.). For example, the following interface would allow anyone to move an arbitrary file in your local directory to the cache: `gr.Interface(lambda s: s, "text", "file")`. This is because the user input is treated as an arbitrary file path.
-- Make `allowed_paths` as small as possible. If a path in `allowed_paths` is a directory, any file within that directory can be accessed. Make sure the entires of `allowed_paths` only contains files related to your application.
-- Run your gradio application from the same directory the application file is located in. This will narrow the scope of files Gradio will be allowed to move into the cache. For example, prefer `python app.py` to `python Users/sources/project/app.py`.
+* Set a `max_file_size` for your application.
+* Do not return arbitrary user input from a function that is connected to a file-based output component (`gr.Image`, `gr.File`, etc.). For example, the following interface would allow anyone to move an arbitrary file in your local directory to the cache: `gr.Interface(lambda s: s, "text", "file")`. This is because the user input is treated as an arbitrary file path. 
+* Make `allowed_paths` as small as possible. If a path in `allowed_paths` is a directory, any file within that directory can be accessed. Make sure the entires of `allowed_paths` only contains files related to your application.
+* Run your gradio application from the same directory the application file is located in. This will narrow the scope of files Gradio will be allowed to move into the cache. For example, prefer `python app.py` to `python Users/sources/project/app.py`.
+
 
 ## Example: Accessing local files
-
 Both `gr.set_static_paths` and the `allowed_paths` parameter in launch expect absolute paths. Below is a minimal example to display a local `.png` image file in an HTML block.
 
 ```txt
@@ -2139,7 +2167,6 @@ Both `gr.set_static_paths` and the `allowed_paths` parameter in launch expect ab
 │   └── logo.png
 └── app.py
 ```
-
 For the example directory structure, `logo.png` and any other files in the `assets` folder can be accessed from your Gradio app in `app.py` as follows:
 
 ```python
@@ -2155,8 +2182,8 @@ with gr.Blocks() as demo:
 demo.launch()
 ```
 
-=== File: guides/04_additional-features/09_multipage-apps.md ===
 
+=== File: guides/04_additional-features/09_multipage-apps.md ===
 # Multipage Apps
 
 Your Gradio app can support multiple pages with the `Blocks.route()` method. Here's what a multipage Gradio app generally looks like:
@@ -2172,7 +2199,7 @@ with demo.route("Test", "/test"):
 demo.launch()
 ```
 
-This allows you to define links to separate pages, each with a separate URL, which are linked to the top of the Gradio app in an automatically-generated navbar.
+This allows you to define links to separate pages, each with a separate URL, which are  linked to the top of the Gradio app in an automatically-generated navbar. 
 
 Here's a complete example:
 
@@ -2241,8 +2268,10 @@ if __name__ == "__main__":
 
 This allows you to run each page as an independent Gradio app for testing, while also creating a single file `app.py` that serves as the entrypoint for the complete multipage app.
 
-=== File: guides/04_additional-features/10_environment-variables.md ===
 
+
+
+=== File: guides/04_additional-features/10_environment-variables.md ===
 # Environment Variables
 
 Environment variables in Gradio provide a way to customize your applications and launch settings without changing the codebase. In this guide, we'll explore the key environment variables supported in Gradio and how to set them.
@@ -2261,7 +2290,7 @@ Environment variables in Gradio provide a way to customize your applications and
 ### 2. `GRADIO_SERVER_NAME`
 
 - **Description**: Defines the host name for the Gradio server. To make Gradio accessible from any IP address, set this to `"0.0.0.0"`
-- **Default**: `"127.0.0.1"`
+- **Default**: `"127.0.0.1"` 
 - **Example**:
   ```bash
   export GRADIO_SERVER_NAME="0.0.0.0"
@@ -2278,7 +2307,7 @@ Environment variables in Gradio provide a way to customize your applications and
 
 ### 4. `GRADIO_ANALYTICS_ENABLED`
 
-- **Description**: Whether Gradio should provide
+- **Description**: Whether Gradio should provide 
 - **Default**: `"True"`
 - **Options**: `"True"`, `"False"`
 - **Example**:
@@ -2369,6 +2398,7 @@ Environment variables in Gradio provide a way to customize your applications and
   export GRADIO_CACHE_EXAMPLES="true"
   ```
 
+
 ### 14. `GRADIO_CACHE_MODE`
 
 - **Description**: How to cache examples. Only applies if `cache_examples` is set to `True` either via enviornment variable or by an explicit parameter, AND no no explicit argument is passed for the `cache_mode` parameter in `gr.Interface()`, `gr.ChatInterface()` or in `gr.Examples()`. Can be set to either the strings "lazy" or "eager." If "lazy", examples are cached after their first use for all users of the app. If "eager", all examples are cached at app launch.
@@ -2379,14 +2409,16 @@ Environment variables in Gradio provide a way to customize your applications and
   export GRADIO_CACHE_MODE="lazy"
   ```
 
+
 ### 15. `GRADIO_EXAMPLES_CACHE`
 
-- **Description**: If you set `cache_examples=True` in `gr.Interface()`, `gr.ChatInterface()` or in `gr.Examples()`, Gradio will run your prediction function and save the results to disk. By default, this is in the `.gradio/cached_examples//` subdirectory within your app's working directory. You can customize the location of cached example files created by Gradio by setting the environment variable `GRADIO_EXAMPLES_CACHE` to an absolute path or a path relative to your working directory.
+- **Description**:  If you set `cache_examples=True` in `gr.Interface()`, `gr.ChatInterface()` or in `gr.Examples()`, Gradio will run your prediction function and save the results to disk. By default, this is in the `.gradio/cached_examples//` subdirectory within your app's working directory. You can customize the location of cached example files created by Gradio by setting the environment variable `GRADIO_EXAMPLES_CACHE` to an absolute path or a path relative to your working directory.
 - **Default**: `".gradio/cached_examples/"`
 - **Example**:
   ```sh
   export GRADIO_EXAMPLES_CACHE="custom_cached_examples/"
   ```
+
 
 ### 16. `GRADIO_SSR_MODE`
 
@@ -2419,7 +2451,7 @@ Environment variables in Gradio provide a way to customize your applications and
 
 ### 19. `GRADIO_RESET_EXAMPLES_CACHE`
 
-- **Description**: If set to "True", Gradio will delete and recreate the examples cache directory when the app starts instead of reusing the cached example if they already exist.
+- **Description**: If set to "True", Gradio will delete and recreate the examples cache directory when the app starts instead of reusing the cached example if they already exist. 
 - **Default**: `"False"`
 - **Options**: `"True"`, `"False"`
 - **Example**:
@@ -2436,6 +2468,8 @@ Environment variables in Gradio provide a way to customize your applications and
   ```sh
   export GRADIO_CHAT_FLAGGING_MODE="manual"
   ```
+
+
 
 ## How to Set Environment Variables
 
@@ -2454,19 +2488,22 @@ GRADIO_SERVER_NAME="localhost"
 
 Then, use a tool like `dotenv` to load these variables when running your application.
 
-=== File: guides/04_additional-features/11_resource-cleanup.md ===
 
+
+
+
+=== File: guides/04_additional-features/11_resource-cleanup.md ===
 # Resource Cleanup
 
 Your Gradio application may create resources during its lifetime.
-Examples of resources are `gr.State` variables, any variables you create and explicitly hold in memory, or files you save to disk.
+Examples of resources are `gr.State` variables, any variables you create and explicitly hold in memory, or files you save to disk. 
 Over time, these resources can use up all of your server's RAM or disk space and crash your application.
 
 Gradio provides some tools for you to clean up the resources created by your app:
 
 1. Automatic deletion of `gr.State` variables.
 2. Automatic cache cleanup with the `delete_cache` parameter.
-3. The `Blocks.unload` event.
+2. The `Blocks.unload` event.
 
 Let's take a look at each of them individually.
 
@@ -2483,9 +2520,9 @@ You can control the deletion behavior further with the following two parameters 
 
 Your Gradio application will save uploaded and generated files to a special directory called the cache directory. Gradio uses a hashing scheme to ensure that duplicate files are not saved to the cache but over time the size of the cache will grow (especially if your app goes viral 😉).
 
-Gradio can periodically clean up the cache for you if you specify the `delete_cache` parameter of `gr.Blocks()`, `gr.Interface()`, or `gr.ChatInterface()`.
+Gradio can periodically clean up the cache for you if you specify the `delete_cache` parameter of `gr.Blocks()`, `gr.Interface()`, or `gr.ChatInterface()`. 
 This parameter is a tuple of the form `[frequency, age]` both expressed in number of seconds.
-Every `frequency` seconds, the temporary files created by this Blocks instance will be deleted if more than `age` seconds have passed since the file was created.
+Every `frequency` seconds, the temporary files created by this Blocks instance will be deleted if more than `age` seconds have passed since the file was created. 
 For example, setting this to (86400, 86400) will delete temporary files every day if they are older than a day old.
 Additionally, the cache will be deleted entirely when the server restarts.
 
@@ -2506,7 +2543,6 @@ $code_state_cleanup
 $demo_state_cleanup
 
 === File: guides/04_additional-features/12_themes.md ===
-
 # Gradio Themes
 
 Gradio themes are the easiest way to customize the look and feel of your app. You can choose from a variety of themes, or create your own. To do so, pass the `theme=` kwarg to the `Interface` constructor. For example:
@@ -2526,8 +2562,9 @@ Gradio comes with a set of prebuilt themes which you can load from `gr.themes.*`
 
 For additional styling ability, you can pass any CSS (as well as custom JavaScript) to your Gradio application. This is discussed in more detail in our [custom JS and CSS guide](/guides/custom-CSS-and-JS).
 
-=== File: guides/04_additional-features/13_client-side-functions.md ===
 
+
+=== File: guides/04_additional-features/13_client-side-functions.md ===
 # Client Side Functions
 
 Gradio allows you to run certain "simple" functions directly in the browser by setting `js=True` in your event listeners. This will **automatically convert your Python code into JavaScript**, which significantly improves the responsiveness of your app by avoiding a round trip to the server for simple UI updates.
@@ -2536,7 +2573,7 @@ The difference in responsiveness is most noticeable on hosted applications (like
 
 ## When to Use Client Side Functions
 
-Client side functions are ideal for updating component properties (like visibility, placeholders, interactive state, or styling).
+Client side functions are ideal for updating component properties (like visibility, placeholders, interactive state, or styling). 
 
 Here's a basic example:
 
@@ -2546,24 +2583,24 @@ import gradio as gr
 with gr.Blocks() as demo:
     with gr.Row() as row:
         btn = gr.Button("Hide this row")
-
+    
     # This function runs in the browser without a server roundtrip
     btn.click(
-        lambda: gr.Row(visible=False),
-        None,
-        row,
+        lambda: gr.Row(visible=False), 
+        None, 
+        row, 
         js=True
     )
 
 demo.launch()
 ```
 
+
 ## Limitations
 
 Client side functions have some important restrictions:
-
-- They can only update component properties (not values)
-- They cannot take any inputs
+* They can only update component properties (not values)
+* They cannot take any inputs
 
 Here are some functions that will work with `js=True`:
 
@@ -2580,11 +2617,13 @@ lambda: gr.update(visible=True, interactive=False)
 
 We are working to increase the space of functions that can be transpiled to JavaScript so that they can be run in the browser. [Follow the Groovy library for more info](https://github.com/abidlabs/groovy-transpiler).
 
+
 ## Complete Example
 
 Here's a more complete example showing how client side functions can improve the user experience:
 
 $code_todo_list_js
+
 
 ## Behind the Scenes
 
@@ -2598,8 +2637,8 @@ When you set `js=True`, Gradio:
 
 This provides immediate visual feedback while ensuring your application state remains consistent.
 
-=== File: guides/04_additional-features/14_view-api-page.md ===
 
+=== File: guides/04_additional-features/14_view-api-page.md ===
 # API Page
 
 You can use almost any Gradio app programmatically via the built-in API! In the footer of any Gradio app, you'll see a "Use via API" link. Clicking on the link opens up a detailed documentation page for the API that Gradio generates based on the function signatures in your Gradio app.
@@ -2618,7 +2657,7 @@ btn.click(add, [num1, num2], output, api_name="addition")
 
 **Hiding API endpoints**
 
-When building a complex Gradio app, you might want to hide certain API endpoints from appearing on the view API page, e.g. if they correspond to functions that simply update the UI. You can set the `show_api` parameter to `False` in any `Blocks` event listener to achieve this, e.g.
+When building a complex Gradio app, you might want to hide certain API endpoints from appearing on the view API page, e.g. if they correspond to functions that simply update the UI. You can set the  `show_api` parameter to `False` in any `Blocks` event listener to achieve this, e.g. 
 
 ```python
 btn.click(add, [num1, num2], output, show_api=False)
@@ -2626,7 +2665,7 @@ btn.click(add, [num1, num2], output, show_api=False)
 
 **Disabling API endpoints**
 
-Hiding the API endpoint doesn't disable it. A user can still programmatically call the API endpoint if they know the name. If you want to disable an API endpoint altogether, set `api_name=False`, e.g.
+Hiding the API endpoint doesn't disable it. A user can still programmatically call the API endpoint if they know the name. If you want to disable an API endpoint altogether, set `api_name=False`, e.g. 
 
 ```python
 btn.click(add, [num1, num2], output, api_name=False)
@@ -2638,7 +2677,7 @@ Note: setting an `api_name=False` also means that downstream apps will not be ab
 
 You can also add new API routes to your Gradio application that do not correspond to events in your UI.
 
-For example, in this Gradio applicaiton, we add a new route that adds numbers and slices a list:
+For example, in this Gradio application, we add a new route that adds numbers and slices a list:
 
 ```py
 import gradio as gr
@@ -2671,11 +2710,12 @@ print(result)
 
 ## The Clients
 
-This API page not only lists all of the endpoints that can be used to query the Gradio app, but also shows the usage of both [the Gradio Python client](https://gradio.app/guides/getting-started-with-the-python-client/), and [the Gradio JavaScript client](https://gradio.app/guides/getting-started-with-the-js-client/).
+This API page not only lists all of the endpoints that can be used to query the Gradio app, but also shows the usage of both [the Gradio Python client](https://gradio.app/guides/getting-started-with-the-python-client/), and [the Gradio JavaScript client](https://gradio.app/guides/getting-started-with-the-js-client/). 
 
 For each endpoint, Gradio automatically generates a complete code snippet with the parameters and their types, as well as example inputs, allowing you to immediately test an endpoint. Here's an example showing an image file input and `str` output:
 
 ![](https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/gradio-guides/view-api-snippet.png)
+
 
 ## The API Recorder 🪄
 
@@ -2685,7 +2725,7 @@ Instead of reading through the view API page, you can also use Gradio's built-in
 
 ## MCP Server
 
-The API page also includes instructions on how to use the Gradio app as an Model Context Protocol (MCP) server, which is a standardized way to expose functions as tools so that they can be used by LLMs.
+The API page also includes instructions on how to use the Gradio app as an Model Context Protocol (MCP) server, which is a standardized way to expose functions as tools so that they can be used by LLMs. 
 
 ![](https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/gradio-guides/view-api-mcp.png)
 
@@ -2694,6 +2734,7 @@ For the MCP sever, each tool, its description, and its parameters are listed, al
 ## OpenAPI Specification
 
 You can access the complete OpenAPI (formerly Swagger) specification of your Gradio app's API at the endpoint `<your-gradio-app-url>/gradio_api/openapi.json`. The OpenAPI specification is a standardized, language-agnostic interface description for REST APIs that enables both humans and computers to discover and understand the capabilities of your service.
+
 
 === File: guides/04_additional-features/15_internationalization.md ===
 Tags: internationalization, i18n, language
@@ -2726,7 +2767,7 @@ with gr.Blocks() as demo:
     with gr.Row():
         input_text = gr.Textbox(label="Input")
         output_text = gr.Textbox(label="Output")
-
+    
     submit_btn = gr.Button(i18n("submit"))
 
 # Pass the i18n instance to the launch method
@@ -2757,10 +2798,9 @@ The following component properties typically support internationalization:
 Note that support may vary depending on the component, and some properties might have exceptions where internationalization is not applicable. You can check this by referring to the typehint for the parameter and if it contains `I18nData`, then it supports internationalization.
 
 === File: guides/10_other-tutorials/02_building-an-mcp-client-with-gradio.md ===
-
 # Using the Gradio Chatbot as an MCP Client
 
-This guide will walk you through a Model Context Protocol (MCP) Client and Server implementation with Gradio. You'll build a Gradio Chatbot that uses Anthropic's Claude API to respond to user messages, but also, as an MCP Client, generates images (by connecting to an MCP Server, which is a separate Gradio app).
+This guide will walk you through a Model Context Protocol (MCP) Client and Server implementation with Gradio. You'll build a Gradio Chatbot that uses Anthropic's Claude API to respond to user messages, but also, as an MCP Client, generates images (by connecting to an MCP Server, which is a separate Gradio app). 
 
 <video src="https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/gradio-guides/mcp-guides.mp4" style="width:100%" controls preload> </video>
 
@@ -2810,14 +2850,14 @@ mcp = FastMCP("huggingface_spaces_image_display")
 @mcp.tool()
 async def generate_image(prompt: str, width: int = 512, height: int = 512) -> str:
     """Generate an image using SanaSprint model.
-
+    
     Args:
         prompt: Text prompt describing the image to generate
         width: Image width (default: 512)
         height: Image height (default: 512)
     """
     client = Client("https://ysharma-sanasprint.hf.space/")
-
+    
     try:
         result = client.predict(
             prompt,
@@ -2830,7 +2870,7 @@ async def generate_image(prompt: str, width: int = 512, height: int = 512) -> st
             2,
             api_name="/infer"
         )
-
+        
         if isinstance(result, list) and len(result) >= 1:
             image_data = result[0]
             if isinstance(image_data, dict) and "url" in image_data:
@@ -2839,12 +2879,12 @@ async def generate_image(prompt: str, width: int = 512, height: int = 512) -> st
                     "url": image_data["url"],
                     "message": f"Generated image for prompt: {prompt}"
                 })
-
+        
         return json.dumps({
             "type": "error",
             "message": "Failed to generate image"
         })
-
+        
     except Exception as e:
         return json.dumps({
             "type": "error",
@@ -2868,7 +2908,7 @@ Now let's create a Gradio chat interface as MCP Client that connects Claude to o
 
 Create a file named `app.py`:
 
-````python
+```python
 import asyncio
 import os
 import json
@@ -2893,51 +2933,51 @@ class MCPClientWrapper:
         self.exit_stack = None
         self.anthropic = Anthropic()
         self.tools = []
-
+    
     def connect(self, server_path: str) -> str:
         return loop.run_until_complete(self._connect(server_path))
-
+    
     async def _connect(self, server_path: str) -> str:
         if self.exit_stack:
             await self.exit_stack.aclose()
-
+        
         self.exit_stack = AsyncExitStack()
-
+        
         is_python = server_path.endswith('.py')
         command = "python" if is_python else "node"
-
+        
         server_params = StdioServerParameters(
             command=command,
             args=[server_path],
             env={"PYTHONIOENCODING": "utf-8", "PYTHONUNBUFFERED": "1"}
         )
-
+        
         stdio_transport = await self.exit_stack.enter_async_context(stdio_client(server_params))
         self.stdio, self.write = stdio_transport
-
+        
         self.session = await self.exit_stack.enter_async_context(ClientSession(self.stdio, self.write))
         await self.session.initialize()
-
+        
         response = await self.session.list_tools()
-        self.tools = [{
+        self.tools = [{ 
             "name": tool.name,
             "description": tool.description,
             "input_schema": tool.inputSchema
         } for tool in response.tools]
-
+        
         tool_names = [tool["name"] for tool in self.tools]
         return f"Connected to MCP server. Available tools: {', '.join(tool_names)}"
-
+    
     def process_message(self, message: str, history: List[Union[Dict[str, Any], ChatMessage]]) -> tuple:
         if not self.session:
             return history + [
-                {"role": "user", "content": message},
+                {"role": "user", "content": message}, 
                 {"role": "assistant", "content": "Please connect to an MCP server first."}
             ], gr.Textbox(value="")
-
+        
         new_messages = loop.run_until_complete(self._process_query(message, history))
         return history + [{"role": "user", "content": message}] + new_messages, gr.Textbox(value="")
-
+    
     async def _process_query(self, message: str, history: List[Union[Dict[str, Any], ChatMessage]]):
         claude_messages = []
         for msg in history:
@@ -2945,12 +2985,12 @@ class MCPClientWrapper:
                 role, content = msg.role, msg.content
             else:
                 role, content = msg.get("role"), msg.get("content")
-
+            
             if role in ["user", "assistant", "system"]:
                 claude_messages.append({"role": role, "content": content})
-
+        
         claude_messages.append({"role": "user", "content": message})
-
+        
         response = self.anthropic.messages.create(
             model="claude-3-5-sonnet-20241022",
             max_tokens=1000,
@@ -2959,18 +2999,18 @@ class MCPClientWrapper:
         )
 
         result_messages = []
-
+        
         for content in response.content:
             if content.type == 'text':
                 result_messages.append({
-                    "role": "assistant",
+                    "role": "assistant", 
                     "content": content.text
                 })
-
+                
             elif content.type == 'tool_use':
                 tool_name = content.name
                 tool_args = content.input
-
+                
                 result_messages.append({
                     "role": "assistant",
                     "content": f"I'll use the {tool_name} tool to help answer your question.",
@@ -2981,7 +3021,7 @@ class MCPClientWrapper:
                         "id": f"tool_call_{tool_name}"
                     }
                 })
-
+                
                 result_messages.append({
                     "role": "assistant",
                     "content": "```json\n" + json.dumps(tool_args, indent=2, ensure_ascii=True) + "\n```",
@@ -2991,12 +3031,12 @@ class MCPClientWrapper:
                         "title": "Tool Parameters"
                     }
                 })
-
+                
                 result = await self.session.call_tool(tool_name, tool_args)
-
+                
                 if result_messages and "metadata" in result_messages[-2]:
                     result_messages[-2]["metadata"]["status"] = "done"
-
+                
                 result_messages.append({
                     "role": "assistant",
                     "content": "Here are the results from the tool:",
@@ -3006,11 +3046,11 @@ class MCPClientWrapper:
                         "id": f"result_{tool_name}"
                     }
                 })
-
+                
                 result_content = result.content
                 if isinstance(result_content, list):
                     result_content = "\n".join(str(item) for item in result_content)
-
+                
                 try:
                     result_json = json.loads(result_content)
                     if isinstance(result_json, dict) and "type" in result_json:
@@ -3044,14 +3084,14 @@ class MCPClientWrapper:
                             "title": "Raw Output"
                         }
                     })
-
+                
                 claude_messages.append({"role": "user", "content": f"Tool result for {tool_name}: {result_content}"})
                 next_response = self.anthropic.messages.create(
                     model="claude-3-5-sonnet-20241022",
                     max_tokens=1000,
                     messages=claude_messages,
                 )
-
+                
                 if next_response.content and next_response.content[0].type == 'text':
                     result_messages.append({
                         "role": "assistant",
@@ -3066,7 +3106,7 @@ def gradio_interface():
     with gr.Blocks(title="MCP Weather Client") as demo:
         gr.Markdown("# MCP Weather Assistant")
         gr.Markdown("Connect to your MCP weather server and chat with the assistant")
-
+        
         with gr.Row(equal_height=True):
             with gr.Column(scale=4):
                 server_path = gr.Textbox(
@@ -3076,17 +3116,17 @@ def gradio_interface():
                 )
             with gr.Column(scale=1):
                 connect_btn = gr.Button("Connect")
-
+        
         status = gr.Textbox(label="Connection Status", interactive=False)
-
+        
         chatbot = gr.Chatbot(
-            value=[],
+            value=[], 
             height=500,
             type="messages",
             show_copy_button=True,
             avatar_images=("👤", "🤖")
         )
-
+        
         with gr.Row(equal_height=True):
             msg = gr.Textbox(
                 label="Your Question",
@@ -3094,20 +3134,20 @@ def gradio_interface():
                 scale=4
             )
             clear_btn = gr.Button("Clear Chat", scale=1)
-
+        
         connect_btn.click(client.connect, inputs=server_path, outputs=status)
         msg.submit(client.process_message, [msg, chatbot], [chatbot, msg])
         clear_btn.click(lambda: [], None, chatbot)
-
+        
     return demo
 
 if __name__ == "__main__":
     if not os.getenv("ANTHROPIC_API_KEY"):
         print("Warning: ANTHROPIC_API_KEY not found in environment. Please set it in your .env file.")
-
+    
     interface = gradio_interface()
     interface.launch(debug=True)
-````
+```
 
 ### What this MCP Client does:
 
@@ -3124,9 +3164,9 @@ if __name__ == "__main__":
 To run your MCP application:
 
 - Start a terminal window and run the MCP Client:
-  ```bash
-  python app.py
-  ```
+   ```bash
+   python app.py
+   ```
 - Open the Gradio interface at the URL shown (typically http://127.0.0.1:7860)
 - In the Gradio interface, you'll see a field for the MCP Server path. It should default to `gradio_mcp_server.py`.
 - Click "Connect" to establish the connection to the MCP server.
@@ -3137,12 +3177,12 @@ To run your MCP application:
 Now you can chat with Claude and it will be able to generate images based on your descriptions.
 
 Try prompts like:
-
 - "Can you generate an image of a mountain landscape at sunset?"
 - "Create an image of a cool tabby cat"
 - "Generate a picture of a panda wearing sunglasses"
 
 Claude will recognize these as image generation requests and automatically use the `generate_image` tool from your MCP server.
+
 
 ## How it Works
 
@@ -3158,12 +3198,13 @@ Here's the high-level flow of what happens during a chat session:
 8. Claude provides a response that references the generated image
 9. The Gradio chat interface displays both Claude's response and the image
 
+
 ## Next Steps
 
 Now that you have a working MCP system, here are some ideas to extend it:
 
 - Add more tools to your server
-- Improve error handling
+- Improve error handling 
 - Add private Huggingface Spaces with authentication for secure tool access
 - Create custom tools that connect to your own APIs or services
 - Implement streaming responses for better user experience
@@ -3174,15 +3215,15 @@ Congratulations! You've successfully built an MCP Client and Server that allows 
 
 Read our other Guide on using [Gradio apps as MCP Servers](./building-mcp-server-with-gradio).
 
-=== File: guides/10_other-tutorials/03_building-mcp-server-with-gradio.md ===
 
+=== File: guides/10_other-tutorials/03_building-mcp-server-with-gradio.md ===
 # Building an MCP Server with Gradio
 
 Tags: MCP, TOOL, LLM, SERVER
 
 In this guide, we will describe how to launch your Gradio app so that it functions as an MCP Server.
 
-Punchline: it's as simple as setting `mcp_server=True` in `.launch()`.
+Punchline: it's as simple as setting `mcp_server=True` in `.launch()`. 
 
 ### Prerequisites
 
@@ -3196,7 +3237,7 @@ This will install the necessary dependencies, including the `mcp` package. Also,
 
 ## What is an MCP Server?
 
-An MCP (Model Control Protocol) server is a standardized way to expose tools so that they can be used by LLMs. A tool can provide an LLM functionality that it does not have natively, such as the ability to generate images or calculate the prime factors of a number.
+An MCP (Model Control Protocol) server is a standardized way to expose tools so that they can be used by  LLMs. A tool can provide an LLM functionality that it does not have natively, such as the ability to generate images or calculate the prime factors of a number. 
 
 ## Example: Counting Letters in a Word
 
@@ -3211,7 +3252,6 @@ Notice that we have: (1) included a detailed docstring for our function, and (2)
 3. Print the MCP server URL in the console
 
 The MCP server will be accessible at:
-
 ```
 http://your-server:port/gradio_api/mcp/sse
 ```
@@ -3238,26 +3278,26 @@ Now, all you need to do is add this URL endpoint to your MCP Client (e.g. Claude
 
 1. **Tool Conversion**: Each API endpoint in your Gradio app is automatically converted into an MCP tool with a corresponding name, description, and input schema. To view the tools and schemas, visit http://your-server:port/gradio_api/mcp/schema or go to the "View API" link in the footer of your Gradio app, and then click on "MCP".
 
+
 2. **Environment variable support**. There are two ways to enable the MCP server functionality:
 
-- Using the `mcp_server` parameter, as shown above:
+*  Using the `mcp_server` parameter, as shown above:
+   ```python
+   demo.launch(mcp_server=True)
+   ```
 
-  ```python
-  demo.launch(mcp_server=True)
-  ```
-
-- Using environment variables:
-  ```bash
-  export GRADIO_MCP_SERVER=True
-  ```
+* Using environment variables:
+   ```bash
+   export GRADIO_MCP_SERVER=True
+   ```
 
 3. **File Handling**: The server automatically handles file data conversions, including:
-
    - Converting base64-encoded strings to file data
    - Processing image files and returning them in the correct format
    - Managing temporary file storage
 
-   It is **strongly** recommended that input images and files be passed as full URLs ("http://..." or "https:/...") as MCP Clients do not always handle local files correctly.
+    It is **strongly** recommended that input images and files be passed as full URLs ("http://..." or "https:/...") as MCP Clients do not always handle local files correctly.
+
 
 4. **Hosted MCP Servers on 󠀠🤗 Spaces**: You can publish your Gradio application for free on Hugging Face Spaces, which will allow you to have a free hosted MCP server. Here's an example of such a Space: https://huggingface.co/spaces/abidlabs/mcp-tools. Notice that you can add this config to your MCP Client to start using the tools from this Space immediately:
 
@@ -3272,6 +3312,7 @@ Now, all you need to do is add this URL endpoint to your MCP Client (e.g. Claude
 ```
 
 <video src="https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/gradio-guides/mcp_guide1.mp4" style="width:100%" controls preload> </video>
+
 
 ## Converting an Existing Space
 
@@ -3300,15 +3341,45 @@ You can use either a public Space or a private Space as an MCP server. If you'd 
 }
 ```
 
+## Authentication and Credentials
+
+You may wish to authenticate users more precisely or let them provide other kinds of credentials or tokens in order to provide a custom experience for different users. 
+
+Gradio allows you to access the underlying `starlette.Request` that has made the tool call, which means that you can access headers, originating IP address, or any other information that is part of the network request. To do this, simply add a parameter in your function of the type `gr.Request`, and Gradio will automatically inject the request object as the parameter.
+
+Here's an example:
+
+```py
+import gradio as gr
+
+def echo_headers(x, request: gr.Request):
+    return str(dict(request.headers))
+
+gr.Interface(echo_headers, "textbox", "textbox").launch(mcp_server=True)
+```
+
+This MCP server will simply ignore the user's input and echo back all of the headers from a user's request. One can build more complex apps using the same idea. See the [docs on `gr.Request`](https://www.gradio.app/main/docs/gradio/request) for more information (note that only the core Starlette attributes of the `gr.Request` object will be present, attributes such as Gradio's `.session_hash` will not be present).
+
+## Adding MCP-Only Tools
+
+So far, all of our MCP tools have corresponded to event listeners in the UI. This works well for functions that directly update the UI, but may not work if you wish to expose a "pure logic" function that should return raw data (e.g., a JSON object) without directly causing a UI update.
+
+In order to expose such an MCP tool, you can create a pure Gradio API endpoint using `gr.api` (see [full docs here](https://www.gradio.app/main/docs/gradio/api)). Here's an example of creating an MCP tool that slices a list:
+
+$code_mcp_tool_only
+
+Note that if you use this approach, your function signature must be fully typed, including the return value, as these signature are used to determine the typing information for the MCP tool.
+
 ## Limitations
 
 The approach outlined above provides an easy way to use any Gradio app as an MCP server. But there are a few limitations to keep in mind:
 
-1. There is no way to identify specific users within the MCP tool call. This means that you cannot store user state between calls within the Gradio app. If you use a `gr.State` component in your app, it will always be passed in with its original, default value. Similarly, you cannot obtain user-specific information with `gr.Request`.
+1. There is no way to identify specific users within the MCP tool call. This means that you cannot store user state between calls within the Gradio app. If you use a `gr.State` component in your app, it will always be passed in with its original, default value.
 
-2. You cannot select specific endpoints in your Gradio expose as your tools (all endpoints with `show_api=True` are treated as tools), or change the descriptions of your tools unless you change the docstrings of your functions.
+2. You cannot select specific endpoints in your Gradio expose as your tools (all endpoints with `show_api=True` are treated as tools), or  change the descriptions of your tools unless you change the docstrings of your functions.
 
-If you need to overcome these limitations, you'll need to create a custom MCP server to call your Gradio application, as we describe next.
+If you need to overcome these limitations, you'll need to create **a custom MCP server** to call your Gradio application, which we describe next.
+
 
 ## Custom MCP Servers
 
@@ -3326,7 +3397,7 @@ from mcp.server.fastmcp import FastMCP
 from gradio_client import Client
 import sys
 import io
-import json
+import json 
 
 mcp = FastMCP("gradio-spaces")
 
@@ -3342,10 +3413,10 @@ def get_client(space_id: str) -> Client:
 @mcp.tool()
 async def generate_image(prompt: str, space_id: str = "ysharma/SanaSprint") -> str:
     """Generate an image using Flux.
-
+    
     Args:
         prompt: Text prompt describing the image to generate
-        space_id: HuggingFace Space ID to use
+        space_id: HuggingFace Space ID to use 
     """
     client = get_client(space_id)
     result = client.predict(
@@ -3365,15 +3436,15 @@ async def generate_image(prompt: str, space_id: str = "ysharma/SanaSprint") -> s
 @mcp.tool()
 async def run_dia_tts(prompt: str, space_id: str = "ysharma/Dia-1.6B") -> str:
     """Text-to-Speech Synthesis.
-
+    
     Args:
         prompt: Text prompt describing the conversation between speakers S1, S2
-        space_id: HuggingFace Space ID to use
+        space_id: HuggingFace Space ID to use 
     """
     client = get_client(space_id)
     result = client.predict(
             text_input=f"""{prompt}""",
-            audio_prompt_input=None,
+            audio_prompt_input=None, 
             max_new_tokens=3072,
             cfg_scale=3,
             temperature=1.3,
@@ -3389,12 +3460,11 @@ if __name__ == "__main__":
     import sys
     import io
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
-
+    
     mcp.run(transport='stdio')
 ```
 
 This server exposes two tools:
-
 1. `run_dia_tts` - Generates a conversation for the given transcript in the form of `[S1]first-sentence. [S2]second-sentence. [S1]...`
 2. `generate_image` - Generates images using a fast text-to-image model
 
@@ -3406,18 +3476,21 @@ To use this MCP Server with Claude Desktop (as MCP Client):
 
 ```json
 {
-  "mcpServers": {
-    "gradio-spaces": {
-      "command": "python",
-      "args": ["/absolute/path/to/gradio_mcp_server.py"]
+    "mcpServers": {
+        "gradio-spaces": {
+            "command": "python",
+            "args": [
+                "/absolute/path/to/gradio_mcp_server.py"
+            ]
+        }
     }
-  }
 }
 ```
 
 4. Restart Claude Desktop
 
 Now, when you ask Claude about generating an image or transcribing audio, it can use your Gradio-powered tools to accomplish these tasks.
+
 
 ## Troubleshooting your MCP Servers
 
@@ -3498,8 +3571,9 @@ Some MCP Clients, notably [Claude Desktop](https://claude.ai/download), do not y
 
 Some MCP Clients require you to restart them every time you update the MCP configuration. Other times, if the connection between the MCP Client and servers breaks, you might need to restart the MCP server. If all else fails, try restarting both your MCP Client and MCP Servers!
 
-=== File: guides/10_other-tutorials/developing-faster-with-reload-mode.md ===
 
+
+=== File: guides/10_other-tutorials/developing-faster-with-reload-mode.md ===
 # Developing Faster with Auto-Reloading
 
 **Prerequisite**: This Guide requires you to know about Blocks. Make sure to [read the Guide to Blocks first](https://gradio.app/blocks-and-event-listeners).
@@ -3575,7 +3649,7 @@ Then you would launch it in reload mode like this: `gradio run.py --demo-name=my
 By default, the Gradio use UTF-8 encoding for scripts. **For reload mode**, If you are using encoding formats other than UTF-8 (such as cp1252), make sure you've done like this:
 
 1. Configure encoding declaration of python script, for example: `# -*- coding: cp1252 -*-`
-2. Confirm that your code editor has identified that encoding format.
+2. Confirm that your code editor has identified that encoding format. 
 3. Run like this: `gradio run.py --encoding cp1252`
 
 🔥 If your application accepts command line arguments, you can pass them in as well. Here's an example:
@@ -3603,13 +3677,14 @@ Which you could run like this: `gradio run.py --name Gretel`
 
 As a small aside, this auto-reloading happens if you change your `run.py` source code or the Gradio source code. Meaning that this can be useful if you decide to [contribute to Gradio itself](https://github.com/gradio-app/gradio/blob/main/CONTRIBUTING.md) ✅
 
+
 ## Controlling the Reload 🎛️
 
 By default, reload mode will re-run your entire script for every change you make.
 But there are some cases where this is not desirable.
 For example, loading a machine learning model should probably only happen once to save time. There are also some Python libraries that use C or Rust extensions that throw errors when they are reloaded, like `numpy` and `tiktoken`.
 
-In these situations, you can place code that you do not want to be re-run inside an `if gr.NO_RELOAD:` codeblock. Here's an example of how you can use it to only load a transformers model once during the development process.
+In these situations, you can place code that you do not want to be re-run inside an `if gr.NO_RELOAD:`  codeblock. Here's an example of how you can use it to only load a transformers model once during the development process.
 
 Tip: The value of `gr.NO_RELOAD` is `True`. So you don't have to change your script when you are done developing and want to run it in production. Simply run the file with `python` instead of `gradio`.
 
@@ -3625,6 +3700,7 @@ demo = gr.Interface(lambda s: {d["label"]: d["score"] for d in pipe(s)}, gr.Text
 if __name__ == "__main__":
     demo.launch()
 ```
+
 
 ## Jupyter Notebook Magic 🔮
 
@@ -3673,8 +3749,8 @@ Now that you know how to develop quickly using Gradio, start building your own!
 
 If you are looking for inspiration, try exploring demos other people have built with Gradio, [browse public Hugging Face Spaces](http://hf.space/) 🤗
 
-=== File: guides/10_other-tutorials/theming-guide.md ===
 
+=== File: guides/10_other-tutorials/theming-guide.md ===
 # Theming
 
 Tags: THEMES
@@ -3697,14 +3773,16 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
 
 Gradio comes with a set of prebuilt themes which you can load from `gr.themes.*`. These are:
 
-- `gr.themes.Base()` - the `"base"` theme sets the primary color to blue but otherwise has minimal styling, making it particularly useful as a base for creating new, custom themes.
-- `gr.themes.Default()` - the `"default"` Gradio 5 theme, with a vibrant orange primary color and gray secondary color.
-- `gr.themes.Origin()` - the `"origin"` theme is most similar to Gradio 4 styling. Colors, especially in light mode, are more subdued than the Gradio 5 default theme.
-- `gr.themes.Citrus()` - the `"citrus"` theme uses a yellow primary color, highlights form elements that are in focus, and includes fun 3D effects when buttons are clicked.
-- `gr.themes.Monochrome()` - the `"monochrome"` theme uses a black primary and white secondary color, and uses serif-style fonts, giving the appearance of a black-and-white newspaper.
-- `gr.themes.Soft()` - the `"soft"` theme uses a purple primary color and white secondary color. It also increases the border radius around buttons and form elements and highlights labels.
-- `gr.themes.Glass()` - the `"glass"` theme has a blue primary color and a transclucent gray secondary color. The theme also uses vertical gradients to create a glassy effect.
-- `gr.themes.Ocean()` - the `"ocean"` theme has a blue-green primary color and gray secondary color. The theme also uses horizontal gradients, especially for buttons and some form elements.
+
+* `gr.themes.Base()` - the `"base"` theme sets the primary color to blue but otherwise has minimal styling, making it particularly useful as a base for creating new, custom themes.
+* `gr.themes.Default()` - the `"default"` Gradio 5 theme, with a vibrant orange primary color and gray secondary color.
+* `gr.themes.Origin()` - the `"origin"` theme is most similar to Gradio 4 styling. Colors, especially in light mode, are more subdued than the Gradio 5 default theme.
+* `gr.themes.Citrus()` - the `"citrus"` theme uses a yellow primary color, highlights form elements that are in focus, and includes fun 3D effects when buttons are clicked.
+* `gr.themes.Monochrome()` - the `"monochrome"` theme uses a black primary and white secondary color, and uses serif-style fonts, giving the appearance of a black-and-white newspaper. 
+* `gr.themes.Soft()` - the `"soft"` theme uses a purple primary color and white secondary color. It also increases the border radius around buttons and form elements and highlights labels.
+* `gr.themes.Glass()` - the `"glass"` theme has a blue primary color and a transclucent gray secondary color. The theme also uses vertical gradients to create a glassy effect.
+* `gr.themes.Ocean()` - the `"ocean"` theme has a blue-green primary color and gray secondary color. The theme also uses horizontal gradients, especially for buttons and some form elements.
+
 
 Each of these themes set values for hundreds of CSS variables. You can use prebuilt themes as a starting point for your own custom themes, or you can create your own themes from scratch. Let's take a look at each approach.
 
@@ -4106,8 +4184,8 @@ If you tag us on [Twitter](https://twitter.com/gradio) we can give your theme a 
 }
 </style>
 
-=== File: guides/10_other-tutorials/wrapping-layouts.md ===
 
+=== File: guides/10_other-tutorials/wrapping-layouts.md ===
 # Wrapping Layouts
 
 Tags: LAYOUTS
@@ -4128,17 +4206,17 @@ space="gradio/wrapping-layouts">
 
 ## Implementation
 
-The wrapping utility has two important classes. The first one is the `LayoutBase` class and the other one is the `Application` class.
+The wrapping utility has two important classes. The first one is the ```LayoutBase``` class and the other one is the ```Application``` class.
 
-We are going to look at the `render` and `attach_event` functions of them for brevity. You can look at the full implementation from [the example code](https://huggingface.co/spaces/WoWoWoWololo/wrapping-layouts/blob/main/app.py).
+We are going to look at the ```render``` and ```attach_event``` functions of them for brevity. You can look at the full implementation from [the example code](https://huggingface.co/spaces/WoWoWoWololo/wrapping-layouts/blob/main/app.py).
 
-So let's start with the `LayoutBase` class.
+So let's start with the ```LayoutBase``` class.
 
 ### LayoutBase Class
 
 1. Render Function
 
-   Let's look at the `render` function in the `LayoutBase` class:
+    Let's look at the ```render``` function in the ```LayoutBase``` class:
 
 ```python
 # other LayoutBase implementations
@@ -4150,7 +4228,6 @@ def render(self) -> None:
 
     self.main_layout.render()
 ```
-
 This is a little confusing at first but if you consider the default implementation you can understand it easily.
 Let's look at an example:
 
@@ -4162,15 +4239,15 @@ with Row():
     right_textbox = Textbox(value="right_textbox")
 ```
 
-Now, pay attention to the Textbox variables. These variables' `render` parameter is true by default. So as we use the `with` syntax and create these variables, they are calling the `render` function under the `with` syntax.
+Now, pay attention to the Textbox variables. These variables' ```render``` parameter is true by default. So as we use the ```with``` syntax and create these variables, they are calling the ```render``` function under the ```with``` syntax.
 
-We know the render function is called in the constructor with the implementation from the `gradio.blocks.Block` class:
+We know the render function is called in the constructor with the implementation from the ```gradio.blocks.Block``` class:
 
 ```python
 class Block:
     # constructor parameters are omitted for brevity
     def __init__(self, ...):
-        # other assign functions
+        # other assign functions 
 
         if render:
             self.render()
@@ -4185,9 +4262,9 @@ with self.main_layout:
     right_textbox.render()
 ```
 
-What this means is by calling the components' render functions under the `with` syntax, we are actually simulating the default implementation.
+What this means is by calling the components' render functions under the ```with``` syntax, we are actually simulating the default implementation.
 
-So now let's consider two nested `with`s to see how the outer one works. For this, let's expand our example with the `Tab` component:
+So now let's consider two nested ```with```s to see how the outer one works. For this, let's expand our example with the ```Tab``` component:
 
 ```python
 with Tab():
@@ -4196,9 +4273,9 @@ with Tab():
         second_textbox = Textbox(value="second_textbox")
 ```
 
-Pay attention to the Row and Tab components this time. We have created the Textbox variables above and added them to Row with the `with` syntax. Now we need to add the Row component to the Tab component. You can see that the Row component is created with default parameters, so its render parameter is true, that's why the render function is going to be executed under the Tab component's `with` syntax.
+Pay attention to the Row and Tab components this time. We have created the Textbox variables above and added them to Row with the ```with``` syntax. Now we need to add the Row component to the Tab component. You can see that the Row component is created with default parameters, so its render parameter is true, that's why the render function is going to be executed under the Tab component's ```with``` syntax.
 
-To mimic this implementation, we need to call the `render` function of the `main_layout` variable after the `with` syntax of the `main_layout` variable.
+To mimic this implementation, we need to call the ```render``` function of the ```main_layout``` variable after the ```with``` syntax of the ```main_layout``` variable.
 
 So the implementation looks like this:
 
@@ -4215,11 +4292,11 @@ tab_main_layout.render()
 
 The default implementation and our implementation are the same, but we are using the render function ourselves. So it requires a little work.
 
-Now, let's take a look at the `attach_event` function.
+Now, let's take a look at the ```attach_event``` function.
 
 2. Attach Event Function
 
-   The function is left as not implemented because it is specific to the class, so each class has to implement its `attach_event` function.
+    The function is left as not implemented because it is specific to the class, so each class has to implement its `attach_event` function.
 
 ```python
     # other LayoutBase implementations
@@ -4228,7 +4305,7 @@ Now, let's take a look at the `attach_event` function.
         raise NotImplementedError
 ```
 
-Check out the `block_dict` variable in the `Application` class's `attach_event` function.
+Check out the ```block_dict``` variable in the ```Application``` class's ```attach_event``` function.
 
 ### Application Class
 
@@ -4245,13 +4322,13 @@ Check out the `block_dict` variable in the `Application` class's `attach_event` 
         self.app.render()
 ```
 
-From the explanation of the `LayoutBase` class's `render` function, we can understand the `child.render` part.
+From the explanation of the ```LayoutBase``` class's ```render``` function, we can understand the ```child.render``` part.
 
-So let's look at the bottom part, why are we calling the `app` variable's `render` function? It's important to call this function because if we look at the implementation in the `gradio.blocks.Blocks` class, we can see that it is adding the components and event functions into the root component. To put it another way, it is creating and structuring the gradio application.
+So let's look at the bottom part, why are we calling the ```app``` variable's ```render``` function? It's important to call this function because if we look at the implementation in the ```gradio.blocks.Blocks``` class, we can see that it is adding the components and event functions into the root component. To put it another way, it is creating and structuring the gradio application.
 
 2. Attach Event Function
 
-   Let's see how we can attach events to components:
+    Let's see how we can attach events to components:
 
 ```python
     # other Application implementations
@@ -4270,11 +4347,11 @@ So let's look at the bottom part, why are we calling the `app` variable's `rende
                     print(f"{child.name}'s attach_event is not implemented")
 ```
 
-You can see why the `global_children_list` is used in the `LayoutBase` class from the example code. With this, all the components in the application are gathered into one dictionary, so the component can access all the components with their names.
+You can see why the ```global_children_list``` is used in the ```LayoutBase``` class from the example code. With this, all the components in the application are gathered into one dictionary, so the component can access all the components with their names.
 
-The `with` syntax is used here again to attach events to components. If we look at the `__exit__` function in the `gradio.blocks.Blocks` class, we can see that it is calling the `attach_load_events` function which is used for setting event triggers to components. So we have to use the `with` syntax to trigger the `__exit__` function.
+The ```with``` syntax is used here again to attach events to components. If we look at the ```__exit__``` function in the ```gradio.blocks.Blocks``` class, we can see that it is calling the ```attach_load_events``` function which is used for setting event triggers to components. So we have to use the ```with``` syntax to trigger the ```__exit__``` function.
 
-Of course, we can call `attach_load_events` without using the `with` syntax, but the function needs a `Context.root_block`, and it is set in the `__enter__` function. So we used the `with` syntax here rather than calling the function ourselves.
+Of course, we can call ```attach_load_events``` without using the ```with``` syntax, but the function needs a ```Context.root_block```, and it is set in the ```__enter__``` function. So we used the ```with``` syntax here rather than calling the function ourselves.
 
 ## Conclusion
 
@@ -4287,3 +4364,4 @@ In this guide, we saw
 Because the classes used in this guide are used for demonstration purposes, they may still not be totally optimized or modular. But that would make the guide much longer!
 
 I hope this guide helps you gain another view of the layout classes and gives you an idea about how you can use them for your needs. See the full implementation of our example [here](https://huggingface.co/spaces/WoWoWoWololo/wrapping-layouts/blob/main/app.py).
+

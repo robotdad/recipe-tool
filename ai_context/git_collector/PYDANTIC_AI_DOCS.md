@@ -3,7 +3,7 @@
 [git-collector-data]
 
 **URL:** https://github.com/pydantic/pydantic-ai/tree/main/docs  
-**Date:** 6/6/2025, 3:45:48 PM  
+**Date:** 6/18/2025, 12:11:22 PM  
 **Files:** 12  
 
 === File: docs/agents.md ===
@@ -710,6 +710,8 @@ _(This example is complete, it can be run "as is")_
 
 You can also dynamically change the instructions for an agent by using the `@agent.instructions` decorator.
 
+Note that returning an empty string will result in no instruction message added.
+
 ```python {title="dynamic_instructions.py"}
 from datetime import date
 
@@ -1193,6 +1195,7 @@ The following examples demonstrate how to use dependencies in PydanticAI:
 
 Some LLMs are now capable of understanding audio, video, image and document content.
 
+
 ## Image Input
 
 !!! info
@@ -1255,14 +1258,6 @@ You can provide video input using either [`VideoUrl`][pydantic_ai.VideoUrl] or [
 !!! info
     Some models do not support document input. Please check the model's documentation to confirm whether it supports document input.
 
-!!! warning
-    When using Gemini models, the document content will always be sent as binary data, regardless of whether you use `DocumentUrl` or `BinaryContent`. This is due to differences in how Vertex AI and Google AI handle document inputs.
-
-    For more details, see [this discussion](https://discuss.ai.google.dev/t/i-am-using-google-generative-ai-model-gemini-1-5-pro-for-image-analysis-but-getting-error/34866/4).
-
-    If you are unsatisfied with this behavior, please let us know by opening an issue on
-    [GitHub](https://github.com/pydantic/pydantic-ai/issues).
-
 You can provide document input using either [`DocumentUrl`][pydantic_ai.DocumentUrl] or [`BinaryContent`][pydantic_ai.BinaryContent]. The process is similar to the examples above.
 
 If you have a direct URL for the document, you can use [`DocumentUrl`][pydantic_ai.DocumentUrl]:
@@ -1301,6 +1296,26 @@ print(result.output)
 # > The document discusses...
 ```
 
+## User-side download vs. direct file URL
+
+As a general rule, when you provide a URL using any of `ImageUrl`, `AudioUrl`, `VideoUrl` or `DocumentUrl`, PydanticAI downloads the file content and then sends it as part of the API request.
+
+The situation is different for certain models:
+
+- [`AnthropicModel`][pydantic_ai.models.anthropic.AnthropicModel]: if you provide a PDF document via `DocumentUrl`, the URL is sent directly in the API request, so no download happens on the user side.
+
+- [`GeminiModel`][pydantic_ai.models.gemini.GeminiModel] and [`GoogleModel`][pydantic_ai.models.google.GoogleModel] on Vertex AI: any URL provided using `ImageUrl`, `AudioUrl`, `VideoUrl`, or `DocumentUrl` is sent as-is in the API request and no data is downloaded beforehand.
+
+    See the [Gemini API docs for Vertex AI](https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/inference#filedata) to learn more about supported URLs, formats and limitations:
+
+    - Cloud Storage bucket URIs (with protocol `gs://`)
+    - Public HTTP(S) URLs
+    - Public YouTube video URL (maximum one URL per request)
+
+    However, because of crawling restrictions, it may happen that Gemini can't access certain URLs. In that case, you can instruct PydanticAI to download the file content and send that instead of the URL by setting the boolean flag `force_download` to `True`. This attribute is available on all objects that inherit from [`FileUrl`][pydantic_ai.messages.FileUrl].
+
+- [`GeminiModel`][pydantic_ai.models.gemini.GeminiModel] and [`GoogleModel`][pydantic_ai.models.google.GoogleModel] on GLA: YouTube video URLs are sent directly in the request to the model.
+
 
 === File: docs/mcp/client.md ===
 # Client
@@ -1323,17 +1338,18 @@ pip/uv-add "pydantic-ai-slim[mcp]"
 
 PydanticAI comes with two ways to connect to MCP servers:
 
-- [`MCPServerHTTP`][pydantic_ai.mcp.MCPServerHTTP] which connects to an MCP server using the [HTTP SSE](https://spec.modelcontextprotocol.io/specification/2024-11-05/basic/transports/#http-with-sse) transport
+- [`MCPServerSSE`][pydantic_ai.mcp.MCPServerSSE] which connects to an MCP server using the [HTTP SSE](https://spec.modelcontextprotocol.io/specification/2024-11-05/basic/transports/#http-with-sse) transport
+- [`MCPServerStreamableHTTP`][pydantic_ai.mcp.MCPServerStreamableHTTP] which connects to an MCP server using the [Streamable HTTP](https://modelcontextprotocol.io/introduction#streamable-http) transport
 - [`MCPServerStdio`][pydantic_ai.mcp.MCPServerStdio] which runs the server as a subprocess and connects to it using the [stdio](https://spec.modelcontextprotocol.io/specification/2024-11-05/basic/transports/#stdio) transport
 
 Examples of both are shown below; [mcp-run-python](run-python.md) is used as the MCP server in both examples.
 
 ### SSE Client
 
-[`MCPServerHTTP`][pydantic_ai.mcp.MCPServerHTTP] connects over HTTP using the [HTTP + Server Sent Events transport](https://spec.modelcontextprotocol.io/specification/2024-11-05/basic/transports/#http-with-sse) to a server.
+[`MCPServerSSE`][pydantic_ai.mcp.MCPServerSSE] connects over HTTP using the [HTTP + Server Sent Events transport](https://spec.modelcontextprotocol.io/specification/2024-11-05/basic/transports/#http-with-sse) to a server.
 
 !!! note
-    [`MCPServerHTTP`][pydantic_ai.mcp.MCPServerHTTP] requires an MCP server to be running and accepting HTTP connections before calling [`agent.run_mcp_servers()`][pydantic_ai.Agent.run_mcp_servers]. Running the server is not managed by PydanticAI.
+    [`MCPServerSSE`][pydantic_ai.mcp.MCPServerSSE] requires an MCP server to be running and accepting HTTP connections before calling [`agent.run_mcp_servers()`][pydantic_ai.Agent.run_mcp_servers]. Running the server is not managed by PydanticAI.
 
 The name "HTTP" is used since this implemented will be adapted in future to use the new
 [Streamable HTTP](https://github.com/modelcontextprotocol/specification/pull/206) currently in development.
@@ -1348,9 +1364,9 @@ deno run \
 
 ```python {title="mcp_sse_client.py" py="3.10"}
 from pydantic_ai import Agent
-from pydantic_ai.mcp import MCPServerHTTP
+from pydantic_ai.mcp import MCPServerSSE
 
-server = MCPServerHTTP(url='http://localhost:3001/sse')  # (1)!
+server = MCPServerSSE(url='http://localhost:3001/sse')  # (1)!
 agent = Agent('openai:gpt-4o', mcp_servers=[server])  # (2)!
 
 
@@ -1389,6 +1405,53 @@ Will display as follows:
 
 ![Logfire run python code](../img/logfire-run-python-code.png)
 
+### Streamable HTTP Client
+
+[`MCPServerStreamableHTTP`][pydantic_ai.mcp.MCPServerStreamableHTTP] connects over HTTP using the
+[Streamable HTTP](https://modelcontextprotocol.io/introduction#streamable-http) transport to a server.
+
+!!! note
+    [`MCPServerStreamableHTTP`][pydantic_ai.mcp.MCPServerStreamableHTTP] requires an MCP server to be
+    running and accepting HTTP connections before calling
+    [`agent.run_mcp_servers()`][pydantic_ai.Agent.run_mcp_servers]. Running the server is not
+    managed by PydanticAI.
+
+Before creating the Streamable HTTP client, we need to run a server that supports the Streamable HTTP transport.
+
+```python {title="streamable_http_server.py" py="3.10" test="skip"}
+from mcp.server.fastmcp import FastMCP
+
+app = FastMCP()
+
+@app.tool()
+def add(a: int, b: int) -> int:
+    return a + b
+
+app.run(transport='streamable-http')
+```
+
+Then we can create the client:
+
+```python {title="mcp_streamable_http_client.py" py="3.10"}
+from pydantic_ai import Agent
+from pydantic_ai.mcp import MCPServerStreamableHTTP
+
+server = MCPServerStreamableHTTP('http://localhost:8000/mcp')  # (1)!
+agent = Agent('openai:gpt-4o', mcp_servers=[server])  # (2)!
+
+async def main():
+    async with agent.run_mcp_servers():  # (3)!
+        result = await agent.run('How many days between 2000-01-01 and 2025-03-18?')
+    print(result.output)
+    #> There are 9,208 days between January 1, 2000, and March 18, 2025.
+```
+
+1. Define the MCP server with the URL used to connect.
+2. Create an agent with the MCP server attached.
+3. Create a client session to connect to the server.
+
+_(This example is complete, it can be run "as is" with Python 3.10+ — you'll need to add `asyncio.run(main())` to run `main`)_
+
 ### MCP "stdio" Server
 
 The other transport offered by MCP is the [stdio transport](https://spec.modelcontextprotocol.io/specification/2024-11-05/basic/transports/#stdio) where the server is run as a subprocess and communicates with the client over `stdin` and `stdout`. In this case, you'd use the [`MCPServerStdio`][pydantic_ai.mcp.MCPServerStdio] class.
@@ -1424,6 +1487,48 @@ async def main():
 
 1. See [MCP Run Python](run-python.md) for more information.
 
+## Tool call customisation
+
+The MCP servers provide the ability to set a `process_tool_call` which allows
+the customisation of tool call requests and their responses.
+
+A common use case for this is to inject metadata to the requests which the server
+call needs.
+
+```python {title="mcp_process_tool_call.py" py="3.10"}
+from typing import Any
+
+from pydantic_ai import Agent
+from pydantic_ai.mcp import CallToolFunc, MCPServerStdio, ToolResult
+from pydantic_ai.models.test import TestModel
+from pydantic_ai.tools import RunContext
+
+
+async def process_tool_call(
+    ctx: RunContext[int],
+    call_tool: CallToolFunc,
+    tool_name: str,
+    args: dict[str, Any],
+) -> ToolResult:
+    """A tool call processor that passes along the deps."""
+    return await call_tool(tool_name, args, metadata={'deps': ctx.deps})
+
+
+server = MCPServerStdio('python', ['-m', 'tests.mcp_server'], process_tool_call=process_tool_call)
+agent = Agent(
+    model=TestModel(call_tools=['echo_deps']),
+    deps_type=int,
+    mcp_servers=[server]
+)
+
+
+async def main():
+    async with agent.run_mcp_servers():
+        result = await agent.run('Echo with deps set to 42', deps=42)
+    print(result.output)
+    #> {"echo_deps":{"echo":"This is an echo message","deps":42}}
+```
+
 ## Using Tool Prefixes to Avoid Naming Conflicts
 
 When connecting to multiple MCP servers that might provide tools with the same name, you can use the `tool_prefix` parameter to avoid naming conflicts. This parameter adds a prefix to all tool names from a specific server.
@@ -1440,15 +1545,15 @@ This allows you to use multiple servers that might have overlapping tool names w
 
 ```python {title="mcp_tool_prefix_http_client.py" py="3.10"}
 from pydantic_ai import Agent
-from pydantic_ai.mcp import MCPServerHTTP
+from pydantic_ai.mcp import MCPServerSSE
 
 # Create two servers with different prefixes
-weather_server = MCPServerHTTP(
+weather_server = MCPServerSSE(
     url='http://localhost:3001/sse',
     tool_prefix='weather'  # Tools will be prefixed with 'weather_'
 )
 
-calculator_server = MCPServerHTTP(
+calculator_server = MCPServerSSE(
     url='http://localhost:3002/sse',
     tool_prefix='calc'  # Tools will be prefixed with 'calc_'
 )
@@ -2090,6 +2195,206 @@ print(result2.all_messages())
 ]
 """
 ```
+
+## Processing Message History
+
+Sometimes you may want to modify the message history before it's sent to the model. This could be for privacy
+reasons (filtering out sensitive information), to save costs on tokens, to give less context to the LLM, or
+custom processing logic.
+
+PydanticAI provides a `history_processors` parameter on `Agent` that allows you to intercept and modify
+the message history before each model request.
+
+### Usage
+
+The `history_processors` is a list of callables that take a list of
+[`ModelMessage`][pydantic_ai.messages.ModelMessage] and return a modified list of the same type.
+
+Each processor is applied in sequence, and processors can be either synchronous or asynchronous.
+
+```python {title="simple_history_processor.py"}
+from pydantic_ai import Agent
+from pydantic_ai.messages import (
+    ModelMessage,
+    ModelRequest,
+    ModelResponse,
+    TextPart,
+    UserPromptPart,
+)
+
+
+def filter_responses(messages: list[ModelMessage]) -> list[ModelMessage]:
+    """Remove all ModelResponse messages, keeping only ModelRequest messages."""
+    return [msg for msg in messages if isinstance(msg, ModelRequest)]
+
+# Create agent with history processor
+agent = Agent('openai:gpt-4o', history_processors=[filter_responses])
+
+# Example: Create some conversation history
+message_history = [
+    ModelRequest(parts=[UserPromptPart(content='What is 2+2?')]),
+    ModelResponse(parts=[TextPart(content='2+2 equals 4')]),  # This will be filtered out
+]
+
+# When you run the agent, the history processor will filter out ModelResponse messages
+# result = agent.run_sync('What about 3+3?', message_history=message_history)
+```
+
+#### Keep Only Recent Messages
+
+You can use the `history_processor` to only keep the recent messages:
+
+```python {title="keep_recent_messages.py"}
+from pydantic_ai import Agent
+from pydantic_ai.messages import ModelMessage
+
+
+async def keep_recent_messages(messages: list[ModelMessage]) -> list[ModelMessage]:
+    """Keep only the last 5 messages to manage token usage."""
+    return messages[-5:] if len(messages) > 5 else messages
+
+agent = Agent('openai:gpt-4o', history_processors=[keep_recent_messages])
+
+# Example: Even with a long conversation history, only the last 5 messages are sent to the model
+long_conversation_history: list[ModelMessage] = []  # Your long conversation history here
+# result = agent.run_sync('What did we discuss?', message_history=long_conversation_history)
+```
+
+#### `RunContext` parameter
+
+History processors can optionally accept a [`RunContext`][pydantic_ai.tools.RunContext] parameter to access
+additional information about the current run, such as dependencies, model information, and usage statistics:
+
+```python {title="context_aware_processor.py"}
+from pydantic_ai import Agent
+from pydantic_ai.messages import ModelMessage
+from pydantic_ai.tools import RunContext
+
+
+def context_aware_processor(
+    ctx: RunContext[None],
+    messages: list[ModelMessage],
+) -> list[ModelMessage]:
+    # Access current usage
+    current_tokens = ctx.usage.total_tokens
+
+    # Filter messages based on context
+    if current_tokens > 1000:
+        return messages[-3:]  # Keep only recent messages when token usage is high
+    return messages
+
+agent = Agent('openai:gpt-4o', history_processors=[context_aware_processor])
+```
+
+This allows for more sophisticated message processing based on the current state of the agent run.
+
+#### Summarize Old Messages
+
+Use an LLM to summarize older messages to preserve context while reducing tokens.
+
+```python {title="summarize_old_messages.py"}
+from pydantic_ai import Agent
+from pydantic_ai.messages import ModelMessage
+
+# Use a cheaper model to summarize old messages.
+summarize_agent = Agent(
+    'openai:gpt-4o-mini',
+    instructions="""
+Summarize this conversation, omitting small talk and unrelated topics.
+Focus on the technical discussion and next steps.
+""",
+)
+
+
+async def summarize_old_messages(messages: list[ModelMessage]) -> list[ModelMessage]:
+    # Summarize the oldest 10 messages
+    if len(messages) > 10:
+        oldest_messages = messages[:10]
+        summary = await summarize_agent.run(message_history=oldest_messages)
+        # Return the last message and the summary
+        return summary.new_messages() + messages[-1:]
+
+    return messages
+
+
+agent = Agent('openai:gpt-4o', history_processors=[summarize_old_messages])
+```
+
+### Testing History Processors
+
+You can test what messages are actually sent to the model provider using
+[`FunctionModel`][pydantic_ai.models.function.FunctionModel]:
+
+```python {title="test_history_processor.py"}
+import pytest
+
+from pydantic_ai import Agent
+from pydantic_ai.messages import (
+    ModelMessage,
+    ModelRequest,
+    ModelResponse,
+    TextPart,
+    UserPromptPart,
+)
+from pydantic_ai.models.function import AgentInfo, FunctionModel
+
+
+@pytest.fixture
+def received_messages() -> list[ModelMessage]:
+    return []
+
+
+@pytest.fixture
+def function_model(received_messages: list[ModelMessage]) -> FunctionModel:
+    def capture_model_function(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+        # Capture the messages that the provider actually receives
+        received_messages.clear()
+        received_messages.extend(messages)
+        return ModelResponse(parts=[TextPart(content='Provider response')])
+
+    return FunctionModel(capture_model_function)
+
+
+def test_history_processor(function_model: FunctionModel, received_messages: list[ModelMessage]):
+    def filter_responses(messages: list[ModelMessage]) -> list[ModelMessage]:
+        return [msg for msg in messages if isinstance(msg, ModelRequest)]
+
+    agent = Agent(function_model, history_processors=[filter_responses])
+
+    message_history = [
+        ModelRequest(parts=[UserPromptPart(content='Question 1')]),
+        ModelResponse(parts=[TextPart(content='Answer 1')]),
+    ]
+
+    agent.run_sync('Question 2', message_history=message_history)
+    assert received_messages == [
+        ModelRequest(parts=[UserPromptPart(content='Question 1')]),
+        ModelRequest(parts=[UserPromptPart(content='Question 2')]),
+    ]
+```
+
+### Multiple Processors
+
+You can also use multiple processors:
+
+```python {title="multiple_history_processors.py"}
+from pydantic_ai import Agent
+from pydantic_ai.messages import ModelMessage, ModelRequest
+
+
+def filter_responses(messages: list[ModelMessage]) -> list[ModelMessage]:
+    return [msg for msg in messages if isinstance(msg, ModelRequest)]
+
+
+def summarize_old_messages(messages: list[ModelMessage]) -> list[ModelMessage]:
+    return messages[-5:]
+
+
+agent = Agent('openai:gpt-4o', history_processors=[filter_responses, summarize_old_messages])
+```
+
+In this case, the `filter_responses` processor will be applied first, and the
+`summarize_old_messages` processor will be applied second.
 
 ## Examples
 
@@ -3111,7 +3416,7 @@ agent = Agent(
 
 
 @agent.tool_plain  # (3)!
-def roll_die() -> str:
+def roll_dice() -> str:
     """Roll a six-sided die and return the result."""
     return str(random.randint(1, 6))
 
@@ -3158,7 +3463,7 @@ print(dice_result.all_messages())
     ModelResponse(
         parts=[
             ToolCallPart(
-                tool_name='roll_die', args={}, tool_call_id='pyd_ai_tool_call_id'
+                tool_name='roll_dice', args={}, tool_call_id='pyd_ai_tool_call_id'
             )
         ],
         usage=Usage(requests=1, request_tokens=90, response_tokens=2, total_tokens=92),
@@ -3168,7 +3473,7 @@ print(dice_result.all_messages())
     ModelRequest(
         parts=[
             ToolReturnPart(
-                tool_name='roll_die',
+                tool_name='roll_dice',
                 content='4',
                 tool_call_id='pyd_ai_tool_call_id',
                 timestamp=datetime.datetime(...),
@@ -3223,7 +3528,7 @@ sequenceDiagram
     activate LLM
     Note over LLM: LLM decides to use<br>a tool
 
-    LLM ->> Agent: Call tool<br>roll_die()
+    LLM ->> Agent: Call tool<br>roll_dice()
     deactivate LLM
     activate Agent
     Note over Agent: Rolls a six-sided die
@@ -3263,7 +3568,7 @@ Use the player's name in the response.
 """
 
 
-def roll_die() -> str:
+def roll_dice() -> str:
     """Roll a six-sided die and return the result."""
     return str(random.randint(1, 6))
 
@@ -3276,14 +3581,14 @@ def get_player_name(ctx: RunContext[str]) -> str:
 agent_a = Agent(
     'google-gla:gemini-1.5-flash',
     deps_type=str,
-    tools=[roll_die, get_player_name],  # (1)!
+    tools=[roll_dice, get_player_name],  # (1)!
     system_prompt=system_prompt,
 )
 agent_b = Agent(
     'google-gla:gemini-1.5-flash',
     deps_type=str,
     tools=[  # (2)!
-        Tool(roll_die, takes_ctx=False),
+        Tool(roll_dice, takes_ctx=False),
         Tool(get_player_name, takes_ctx=True),
     ],
     system_prompt=system_prompt,
