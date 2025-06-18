@@ -68,8 +68,9 @@ class RecipeExecutorCore:
 
             # Load configuration from environment
             from recipe_executor.config import load_configuration
+
             config = load_configuration()
-            
+
             # Create context with both artifacts and config
             context = Context(artifacts=context_dict, config=config)
 

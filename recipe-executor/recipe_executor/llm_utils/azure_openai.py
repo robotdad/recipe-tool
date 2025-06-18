@@ -49,7 +49,7 @@ def get_azure_openai_model(
     use_managed_identity = config.get("azure_use_managed_identity", False)
     client_id = config.get("azure_client_id")
 
-    deployment = deployment_name or config.get("azure_openai_deployment_name", model_name) or model_name
+    deployment = deployment_name or config.get("azure_openai_deployment_name", model_name)
 
     if not base_url:
         logger.error("Configuration 'azure_openai_base_url' is required")

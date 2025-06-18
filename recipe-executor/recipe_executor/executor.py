@@ -40,7 +40,6 @@ class Executor(ExecutorProtocol):
             except Exception as e:
                 raise ValueError(f"Invalid recipe structure: {e}") from e
         elif isinstance(recipe, (str, Path)):
-            # Normalize to string
             recipe_str = str(recipe)
             # File path
             if os.path.isfile(recipe_str):

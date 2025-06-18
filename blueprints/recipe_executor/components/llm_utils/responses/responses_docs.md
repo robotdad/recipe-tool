@@ -44,5 +44,4 @@ model = get_openai_responses_model("gpt-4o")
 from pydantic_ai import Agent
 agent = Agent(model=model)
 result = await agent.run("Hello, what can you do with the Responses API?")
-
 ```

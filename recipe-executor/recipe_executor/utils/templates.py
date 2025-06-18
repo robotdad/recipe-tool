@@ -64,11 +64,11 @@ def render_template(text: str, context: ContextProtocol) -> str:
     """
     try:
         template = _env.from_string(text)
-        rendered = template.render(**context.dict())
-        return rendered
+        result = template.render(**context.dict())
+        return result
     except LiquidError as e:
-        err_msg = f"Liquid template rendering error: {e}. Template: {text!r}. Context: {context.dict()!r}"
-        raise ValueError(err_msg) from e
+        err = f"Liquid template rendering error: {e}. Template: {text!r}. Context: {context.dict()!r}"
+        raise ValueError(err) from e
     except Exception as e:
-        err_msg = f"Error rendering template: {e}. Template: {text!r}. Context: {context.dict()!r}"
-        raise ValueError(err_msg) from e
+        err = f"Error rendering template: {e}. Template: {text!r}. Context: {context.dict()!r}"
+        raise ValueError(err) from e

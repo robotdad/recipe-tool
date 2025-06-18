@@ -88,7 +88,7 @@ def evaluate_condition(
         logger.debug("Using boolean condition: %s", expr)
         return expr
 
-    # Ensure expression is string for template rendering
+    # Ensure expression is a string for template rendering
     expr_str = expr if isinstance(expr, str) else str(expr)
     try:
         rendered = render_template(expr_str, context)
@@ -127,7 +127,6 @@ def evaluate_condition(
         "false": False,
     }
     try:
-        # Evaluate without builtins
         result = eval(transformed, safe_globals, {})  # nosec
     except Exception as err:
         raise ValueError(f"Invalid condition expression '{transformed}': {err}")
@@ -158,7 +157,6 @@ class ConditionalStep(BaseStep[ConditionalConfig]):
         except ValueError as err:
             raise RuntimeError(f"Condition evaluation error: {err}")
 
-        # Determine which branch to execute
         branch_conf = self.config.if_true if result else self.config.if_false
         branch_name = "if_true" if result else "if_false"
         self.logger.debug(
@@ -168,7 +166,7 @@ class ConditionalStep(BaseStep[ConditionalConfig]):
             branch_name,
         )
 
-        # Execute branch if defined and has step list
+        # Execute the branch if it is defined
         if branch_conf and isinstance(branch_conf, dict):
             steps = branch_conf.get("steps")
             if isinstance(steps, list) and steps:

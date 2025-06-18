@@ -27,29 +27,34 @@ def get_mcp_server(logger: logging.Logger, config: Dict[str, Any]) -> MCPServer:
 
     Raises:
         ValueError: If the configuration is invalid.
-        RuntimeError: On underlying errors when creating the server instance.
+        RuntimeError: On errors creating the server instance.
     """
-    # Validate config type
     if not isinstance(config, dict):
         raise ValueError("MCP server configuration must be a dict")
 
-    # Mask sensitive values for debug logging
+    # Mask sensitive info for logging
+    sensitive = {"api_key", "apikey", "authorization", "auth", "token", "secret", "password"}
     masked: Dict[str, Any] = {}
     for key, value in config.items():
-        if key in ("headers", "env") and isinstance(value, dict):
-            masked[key] = {k: "***" for k in value.keys()}
+        low = key.lower()
+        if low in sensitive:
+            masked[key] = "***"
+        elif key in ("headers", "env") and isinstance(value, dict):
+            masked[key] = {k: "***" for k in value}
         else:
             masked[key] = value
     logger.debug("MCP server configuration: %s", masked)
 
-    # HTTP transport
+    # HTTP(S) transport
     if "url" in config:
         url = config.get("url")
         if not isinstance(url, str) or not url.strip():
             raise ValueError("HTTP MCP server requires a non-empty 'url' string")
+
         headers = config.get("headers")
         if headers is not None and not isinstance(headers, dict):
             raise ValueError("HTTP MCP server 'headers' must be a dict if provided")
+
         tool_prefix = config.get("tool_prefix")
         if tool_prefix is not None and not isinstance(tool_prefix, str):
             raise ValueError("HTTP MCP server 'tool_prefix' must be a string if provided")
@@ -61,10 +66,9 @@ def get_mcp_server(logger: logging.Logger, config: Dict[str, Any]) -> MCPServer:
                 http_kwargs["headers"] = headers
             if tool_prefix is not None:
                 http_kwargs["tool_prefix"] = tool_prefix
-            server = MCPServerHTTP(**http_kwargs)
+            return MCPServerHTTP(**http_kwargs)
         except Exception as exc:
             raise RuntimeError(f"Failed to create HTTP MCP server: {exc}") from exc
-        return server
 
     # Stdio transport
     if "command" in config:
@@ -83,7 +87,7 @@ def get_mcp_server(logger: logging.Logger, config: Dict[str, Any]) -> MCPServer:
         if env_cfg is not None:
             if not isinstance(env_cfg, dict):
                 raise ValueError("Stdio MCP server 'env' must be a dict if provided")
-            # Load .env if any values are empty and dotenv available
+            # load .env if any value is empty and dotenv is available
             if load_dotenv and any(v == "" for v in env_cfg.values()):  # type: ignore
                 load_dotenv()  # type: ignore
             env = {}
@@ -91,18 +95,19 @@ def get_mcp_server(logger: logging.Logger, config: Dict[str, Any]) -> MCPServer:
                 if not isinstance(v, str):
                     raise ValueError(f"Environment variable '{k}' must be a string")
                 if v == "":
-                    system_val = os.getenv(k)
-                    if system_val is not None:
-                        env[k] = system_val
+                    sys_val = os.getenv(k)
+                    if sys_val is not None:
+                        env[k] = sys_val
                 else:
                     env[k] = v
 
-        # Working directory: accept 'cwd' or alias 'working_dir'
-        cwd_cfg = config.get("cwd")
-        if cwd_cfg is None:
-            cwd_cfg = config.get("working_dir")  # alias from usage docs
-        if cwd_cfg is not None and not isinstance(cwd_cfg, str):
+        # Working directory (cwd or alias working_dir)
+        cwd = config.get("cwd")
+        if cwd is None:
+            cwd = config.get("working_dir")
+        if cwd is not None and not isinstance(cwd, str):
             raise ValueError("Stdio MCP server 'cwd' must be a string if provided")
+
         tool_prefix = config.get("tool_prefix")
         if tool_prefix is not None and not isinstance(tool_prefix, str):
             raise ValueError("Stdio MCP server 'tool_prefix' must be a string if provided")
@@ -110,16 +115,15 @@ def get_mcp_server(logger: logging.Logger, config: Dict[str, Any]) -> MCPServer:
         logger.info("Creating stdio MCP server with command: %s %s", command, args)
         try:
             stdio_kwargs: Dict[str, Any] = {"command": command, "args": args}
-            if cwd_cfg is not None:
-                stdio_kwargs["cwd"] = cwd_cfg
+            if cwd is not None:
+                stdio_kwargs["cwd"] = cwd
             if env is not None:
                 stdio_kwargs["env"] = env
             if tool_prefix is not None:
                 stdio_kwargs["tool_prefix"] = tool_prefix
-            server = MCPServerStdio(**stdio_kwargs)
+            return MCPServerStdio(**stdio_kwargs)
         except Exception as exc:
             raise RuntimeError(f"Failed to create stdio MCP server: {exc}") from exc
-        return server
 
-    # Invalid configuration
+    # No valid transport found
     raise ValueError("Invalid MCP server configuration: must contain 'url' for HTTP or 'command' for stdio transport")

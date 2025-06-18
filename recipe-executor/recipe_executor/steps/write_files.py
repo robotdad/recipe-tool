@@ -36,7 +36,7 @@ class WriteFilesStep(BaseStep[WriteFilesConfig]):
         super().__init__(logger, validated)
 
     async def execute(self, context: ContextProtocol) -> None:
-        # Resolve and render the base output directory
+        # Render the base output directory
         raw_root: str = self.config.root or ""
         try:
             root: str = render_template(raw_root, context)
@@ -48,7 +48,7 @@ class WriteFilesStep(BaseStep[WriteFilesConfig]):
         # 1. Direct files in config take precedence
         if self.config.files is not None:
             for entry in self.config.files:
-                # Path extraction
+                # Extract raw path
                 if "path" in entry:
                     raw_path = entry["path"]
                 elif "path_key" in entry:
@@ -65,7 +65,7 @@ class WriteFilesStep(BaseStep[WriteFilesConfig]):
                 except Exception as err:
                     raise ValueError(f"Failed to render file path '{path_str}': {err}")
 
-                # Content extraction
+                # Extract raw content
                 if "content" in entry:
                     raw_content = entry["content"]
                 elif "content_key" in entry:
@@ -98,7 +98,6 @@ class WriteFilesStep(BaseStep[WriteFilesConfig]):
             else:
                 raise ValueError(f"Unsupported type for files_key '{key}': {type(raw)}")
 
-            # Extract path and content from each item
             for item in items:
                 if isinstance(item, FileSpec):
                     raw_path = item.path
@@ -124,12 +123,12 @@ class WriteFilesStep(BaseStep[WriteFilesConfig]):
         else:
             raise ValueError("Either 'files' or 'files_key' must be provided in WriteFilesConfig.")
 
-        # Write each file
+        # Write each file to disk
         for entry in files_to_write:
-            rel_path: str = entry.get("path", "")  # already rendered
+            rel_path: str = entry.get("path", "")
             content = entry.get("content")
 
-            # Compute final filesystem path
+            # Determine final path
             combined = os.path.join(root, rel_path) if root else rel_path
             final_path = os.path.normpath(combined)
 
@@ -156,11 +155,11 @@ class WriteFilesStep(BaseStep[WriteFilesConfig]):
                 # Debug log before writing
                 self.logger.debug(f"[WriteFilesStep] Writing file: {final_path}\nContent:\n{text}")
 
-                # Write file using UTF-8 encoding
+                # Write file using UTF-8
                 with open(final_path, "w", encoding="utf-8") as f:
                     f.write(text)
 
-                # Info log after successful write
+                # Info log after success
                 size = len(text.encode("utf-8"))
                 self.logger.info(f"[WriteFilesStep] Wrote file: {final_path} ({size} bytes)")
 

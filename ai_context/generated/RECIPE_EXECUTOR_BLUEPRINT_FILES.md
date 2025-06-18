@@ -5,7 +5,7 @@
 **Search:** ['blueprints/recipe_executor']
 **Exclude:** ['.venv', 'node_modules', '*.lock', '.git', '__pycache__', '*.pyc', '*.ruff_cache', 'logs', 'output']
 **Include:** []
-**Date:** 6/18/2025, 12:10:57 PM
+**Date:** 6/18/2025, 1:25:39 PM
 **Files:** 55
 
 === File: blueprints/recipe_executor/README.md ===
@@ -238,7 +238,7 @@ from recipe_executor.config import load_configuration, RecipeExecutorConfig
 
 ```python
 from typing import Dict, List, Optional, Any
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field
 
 
@@ -250,25 +250,26 @@ class RecipeExecutorConfig(BaseSettings):
     """
 
     # Standard AI Provider API Keys (following PydanticAI patterns)
-    openai_api_key: Optional[str] = Field(default=None, env="OPENAI_API_KEY")
-    anthropic_api_key: Optional[str] = Field(default=None, env="ANTHROPIC_API_KEY")
+    openai_api_key: Optional[str] = Field(default=None, alias="OPENAI_API_KEY")
+    anthropic_api_key: Optional[str] = Field(default=None, alias="ANTHROPIC_API_KEY")
 
     # Azure OpenAI Credentials
-    azure_openai_api_key: Optional[str] = Field(default=None, env="AZURE_OPENAI_API_KEY")
-    azure_openai_base_url: Optional[str] = Field(default=None, env="AZURE_OPENAI_BASE_URL")
-    azure_openai_api_version: Optional[str] = Field(default="2025-03-01-preview", env="AZURE_OPENAI_API_VERSION")
-    azure_openai_deployment_name: Optional[str] = Field(default=None, env="AZURE_OPENAI_DEPLOYMENT_NAME")
-    azure_use_managed_identity: bool = Field(default=False, env="AZURE_USE_MANAGED_IDENTITY")
-    azure_client_id: Optional[str] = Field(default=None, env="AZURE_CLIENT_ID")
+    azure_openai_api_key: Optional[str] = Field(default=None, alias="AZURE_OPENAI_API_KEY")
+    azure_openai_base_url: Optional[str] = Field(default=None, alias="AZURE_OPENAI_BASE_URL")
+    azure_openai_api_version: Optional[str] = Field(default="2025-03-01-preview", alias="AZURE_OPENAI_API_VERSION")
+    azure_openai_deployment_name: Optional[str] = Field(default=None, alias="AZURE_OPENAI_DEPLOYMENT_NAME")
+    azure_use_managed_identity: bool = Field(default=False, alias="AZURE_USE_MANAGED_IDENTITY")
+    azure_client_id: Optional[str] = Field(default=None, alias="AZURE_CLIENT_ID")
 
     # Ollama Settings
-    ollama_base_url: str = Field(default="http://localhost:11434", env="OLLAMA_BASE_URL")
+    ollama_base_url: str = Field(default="http://localhost:11434", alias="OLLAMA_BASE_URL")
 
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        case_sensitive = False
-        extra = "ignore"
+    model_config = SettingsConfigDict(
+        env_prefix="RECIPE_EXECUTOR_",
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False,
+    )
 
 
 def load_configuration(recipe_env_vars: Optional[List[str]] = None) -> Dict[str, Any]:
@@ -1016,7 +1017,7 @@ by creating configured `OpenAIResponsesModel` instances with Azure authenticatio
 ## Importing
 
 ```python
-from recipe_executor.llm_utils.azure_responses import create_azure_responses_model
+from recipe_executor.llm_utils.azure_responses import get_azure_responses_model
 ```
 
 ### Basic Usage
@@ -1025,7 +1026,8 @@ from recipe_executor.llm_utils.azure_responses import create_azure_responses_mod
 def get_azure_responses_model(
     logger: logging.Logger,
     model_name: str,
-) -> pydantic_ia.models.openai.OpenAIResponsesModel:
+    deployment_name: Optional[str] = None
+) -> pydantic_ai.models.openai.OpenAIResponsesModel:
     """
     Create an OpenAIResponsesModel for the given model name.
 
@@ -1109,7 +1111,7 @@ The Azure Responses component provides a PydanticAI wrapper for Azure OpenAI Res
 - Use proper Azure OpenAI authentication (API key or Azure Identity)
 - Support Azure OpenAI endpoints and deployments
 - Implement basic error handling and parameter validation
-- Export `create_azure_responses_model` function
+- Export `get_azure_responses_model` function
 - Follow same patterns as existing `azure_openai` component
 
 ## Implementation Considerations
@@ -1367,8 +1369,8 @@ The LLM component provides a unified interface for interacting with various larg
 - Use PydanticAI's provider-specific model classes:
   - pydantic_ai.models.openai.OpenAIModel (used also for Azure OpenAI and Ollama)
   - pydantic_ai.models.anthropic.AnthropicModel
-- For `openai_responses` provider: call `create_openai_responses_model(model_name)` which returns the model directly
-- For `azure_responses` provider: call `create_azure_responses_model(model_name, deployment_name)` which returns the model directly
+- For `openai_responses` provider: call `get_openai_responses_model(model_name)` which returns the model directly
+- For `azure_responses` provider: call `get_azure_responses_model(model_name, deployment_name)` which returns the model directly
 - Create a PydanticAI Agent with the model, structured output type, and optional MCP servers
 - Support: `output_type: Type[Union[str, BaseModel]] = str`
 - Support: `openai_builtin_tools: Optional[List[Dict[str, Any]]] = None` parameter for built-in tools with Responses API models
@@ -1425,8 +1427,8 @@ def get_model(model_id: str, context: ContextProtocol) -> OpenAIModel | Anthropi
 
     # If 'azure' is the model provider, use the `get_azure_openai_model` function
     # Access configuration dictionary through context.get_config() and then retrieve the necessary values
-    # If 'openai_responses' is the model provider, use the `create_openai_responses_model` function from responses component
-    # If 'azure_responses' is the model provider, use the `create_azure_responses_model` function from azure_responses component
+    # If 'openai_responses' is the model provider, use the `get_openai_responses_model` function from responses component
+    # If 'azure_responses' is the model provider, use the `get_azure_responses_model` function from azure_responses component
 ```
 
 Usage example:
@@ -1446,15 +1448,15 @@ ollama_model = get_model("ollama/phi4", context)
 
 # Get an OpenAI Responses model
 responses_model = get_model("openai_responses/gpt-4o", context)
-# Uses create_openai_responses_model('gpt-4o') from responses component
+# Uses get_openai_responses_model('gpt-4o') from responses component
 
 # Get an Azure Responses model
 azure_responses_model = get_model("azure_responses/gpt-4o", context)
-# Uses create_azure_responses_model('gpt-4o', None) from azure_responses component
+# Uses get_azure_responses_model('gpt-4o', None) from azure_responses component
 
 # Get an Azure Responses model with deployment
 azure_responses_model = get_model("azure_responses/gpt-4o/my-deployment", context)
-# Uses create_azure_responses_model('gpt-4o', 'my-deployment') from azure_responses component
+# Uses get_azure_responses_model('gpt-4o', 'my-deployment') from azure_responses component
 ```
 
 Getting an agent:
@@ -1532,10 +1534,6 @@ return OpenAIModel(
 ## Dependency Integration Considerations
 
 Implement a standardized `get_model` function that routes to appropriate provider-specific model creation functions based on the provider prefix in the model identifier. Use existing component functions for Azure OpenAI, Responses API, and Azure Responses API integration.
-
-```
-
-```
 
 
 === File: blueprints/recipe_executor/components/llm_utils/mcp/mcp_docs.md ===
@@ -1721,7 +1719,6 @@ model = get_openai_responses_model("gpt-4o")
 from pydantic_ai import Agent
 agent = Agent(model=model)
 result = await agent.run("Hello, what can you do with the Responses API?")
-
 ```
 
 

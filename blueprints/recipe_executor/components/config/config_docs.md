@@ -10,7 +10,7 @@ from recipe_executor.config import load_configuration, RecipeExecutorConfig
 
 ```python
 from typing import Dict, List, Optional, Any
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field
 
 
@@ -22,25 +22,26 @@ class RecipeExecutorConfig(BaseSettings):
     """
 
     # Standard AI Provider API Keys (following PydanticAI patterns)
-    openai_api_key: Optional[str] = Field(default=None, env="OPENAI_API_KEY")
-    anthropic_api_key: Optional[str] = Field(default=None, env="ANTHROPIC_API_KEY")
+    openai_api_key: Optional[str] = Field(default=None, alias="OPENAI_API_KEY")
+    anthropic_api_key: Optional[str] = Field(default=None, alias="ANTHROPIC_API_KEY")
 
     # Azure OpenAI Credentials
-    azure_openai_api_key: Optional[str] = Field(default=None, env="AZURE_OPENAI_API_KEY")
-    azure_openai_base_url: Optional[str] = Field(default=None, env="AZURE_OPENAI_BASE_URL")
-    azure_openai_api_version: Optional[str] = Field(default="2025-03-01-preview", env="AZURE_OPENAI_API_VERSION")
-    azure_openai_deployment_name: Optional[str] = Field(default=None, env="AZURE_OPENAI_DEPLOYMENT_NAME")
-    azure_use_managed_identity: bool = Field(default=False, env="AZURE_USE_MANAGED_IDENTITY")
-    azure_client_id: Optional[str] = Field(default=None, env="AZURE_CLIENT_ID")
+    azure_openai_api_key: Optional[str] = Field(default=None, alias="AZURE_OPENAI_API_KEY")
+    azure_openai_base_url: Optional[str] = Field(default=None, alias="AZURE_OPENAI_BASE_URL")
+    azure_openai_api_version: Optional[str] = Field(default="2025-03-01-preview", alias="AZURE_OPENAI_API_VERSION")
+    azure_openai_deployment_name: Optional[str] = Field(default=None, alias="AZURE_OPENAI_DEPLOYMENT_NAME")
+    azure_use_managed_identity: bool = Field(default=False, alias="AZURE_USE_MANAGED_IDENTITY")
+    azure_client_id: Optional[str] = Field(default=None, alias="AZURE_CLIENT_ID")
 
     # Ollama Settings
-    ollama_base_url: str = Field(default="http://localhost:11434", env="OLLAMA_BASE_URL")
+    ollama_base_url: str = Field(default="http://localhost:11434", alias="OLLAMA_BASE_URL")
 
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        case_sensitive = False
-        extra = "ignore"
+    model_config = SettingsConfigDict(
+        env_prefix="RECIPE_EXECUTOR_",
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False,
+    )
 
 
 def load_configuration(recipe_env_vars: Optional[List[str]] = None) -> Dict[str, Any]:

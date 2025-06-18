@@ -44,152 +44,163 @@ class LoopStep(BaseStep[LoopStepConfig]):
     """
 
     def __init__(self, logger: logging.Logger, config: Dict[str, Any]) -> None:
-        # Validate configuration
         validated = LoopStepConfig.model_validate(config)
         super().__init__(logger, validated)
 
     async def execute(self, context: ContextProtocol) -> None:
-        # Avoid circular import
-        from recipe_executor.executor import Executor  # concrete class
+        # Avoid circular import of concrete Executor
+        from recipe_executor.executor import Executor
 
         cfg = self.config
         # Resolve items definition: render if string
         items_def = cfg.items
         if isinstance(items_def, str):
-            template = render_template(items_def, context)
-            items_obj: Any = _resolve_path(template, context)
+            rendered = render_template(items_def, context)
+            items_obj = _resolve_path(rendered, context)
         else:
             items_obj = items_def
 
-        # Validate resolved collection
+        # Validate collection
         if items_obj is None:
             raise ValueError(f"LoopStep: Items '{items_def}' not found in context.")
         if not isinstance(items_obj, (list, dict)):
             raise ValueError(f"LoopStep: Items must be a list or dict, got {type(items_obj).__name__}.")
 
-        # Flatten to list of (key, value)
-        items_list: List[Tuple[Any, Any]] = (
-            list(enumerate(items_obj)) if isinstance(items_obj, list) else list(items_obj.items())
-        )
+        # Flatten items to list of (key, value)
+        if isinstance(items_obj, list):
+            items_list: List[Tuple[int, Any]] = list(enumerate(items_obj))
+        else:
+            items_list = list(items_obj.items())  # type: ignore
+
         total = len(items_list)
         max_conc = cfg.max_concurrency
         self.logger.info(f"LoopStep: Processing {total} items with max_concurrency={max_conc}.")
 
-        # Handle empty
+        # Handle empty collection
         if total == 0:
-            empty_res = [] if isinstance(items_obj, list) else {}
-            context[cfg.result_key] = empty_res
+            empty = [] if isinstance(items_obj, list) else {}
+            context[cfg.result_key] = empty
             self.logger.info("LoopStep: No items to process.")
             return
 
-        # Prepare result containers
+        # Prepare result and error containers
         results: Union[List[Any], Dict[Any, Any]] = [] if isinstance(items_obj, list) else {}
         errors: Union[List[Dict[str, Any]], Dict[Any, Dict[str, Any]]] = [] if isinstance(items_obj, list) else {}
 
-        # Concurrency semaphore (None means unlimited)
-        semaphore: Optional[asyncio.Semaphore] = None
-        if max_conc > 0:
-            semaphore = asyncio.Semaphore(max_conc)
+        # Concurrency control
+        semaphore: Optional[asyncio.Semaphore]
+        if cfg.max_concurrency > 0:
+            semaphore = asyncio.Semaphore(cfg.max_concurrency)
+        else:
+            semaphore = None  # unlimited
 
         # Executor instance
         executor: ExecutorProtocol = Executor(self.logger)
         plan: Dict[str, Any] = {"steps": cfg.substeps}
 
+        fail_fast = cfg.fail_fast
         fail_fast_triggered = False
         completed = 0
-        tasks: List[asyncio.Task[Tuple[Any, Any, Optional[str]]]] = []
+        tasks: List[asyncio.Task] = []
 
         async def process_item(key: Any, value: Any) -> Tuple[Any, Any, Optional[str]]:
-            # Clone context for isolation
             item_ctx = context.clone()
             item_ctx[cfg.item_key] = value
+            # expose index/key for templates
             if isinstance(items_obj, list):
                 item_ctx["__index"] = key  # type: ignore
             else:
                 item_ctx["__key"] = key  # type: ignore
-
             try:
                 self.logger.debug(f"LoopStep: Starting item {key}.")
                 await executor.execute(plan, item_ctx)
-                out = item_ctx.get(cfg.item_key, value)
+                # collect output, default to original value
+                out_val = item_ctx.get(cfg.item_key, value)
                 self.logger.debug(f"LoopStep: Finished item {key}.")
-                return key, out, None
+                return key, out_val, None
             except Exception as exc:
-                msg = str(exc)
-                self.logger.error(f"LoopStep: Error on item {key}: {msg}")
-                return key, None, msg
+                err_msg = str(exc)
+                self.logger.error(f"LoopStep: Error on item {key}: {err_msg}")
+                return key, None, err_msg
 
         async def run_sequential() -> None:
             nonlocal fail_fast_triggered, completed
             for key, val in items_list:
                 if fail_fast_triggered:
                     break
-                key_i, out, err = await process_item(key, val)
+                k, out, err = await process_item(key, val)
                 if err:
                     if isinstance(errors, list):
-                        errors.append({"index": key_i, "error": err})
+                        errors.append({"index": k, "error": err})
                     else:
-                        errors[key_i] = {"error": err}  # type: ignore
-                    if cfg.fail_fast:
+                        errors[k] = {"error": err}  # type: ignore
+                    if fail_fast:
                         fail_fast_triggered = True
                         break
                 else:
                     if isinstance(results, list):
                         results.append(out)
                     else:
-                        results[key_i] = out  # type: ignore
+                        results[k] = out  # type: ignore
                     completed += 1
 
         async def run_parallel() -> None:
             nonlocal fail_fast_triggered, completed
 
             async def schedule_one(k: Any, v: Any) -> Tuple[Any, Any, Optional[str]]:
-                if semaphore:
+                if semaphore is not None:
                     async with semaphore:
                         return await process_item(k, v)
                 return await process_item(k, v)
 
-            # Launch tasks
+            # launch tasks with optional delay
             for idx, (k, v) in enumerate(items_list):
                 if fail_fast_triggered:
                     break
-                tasks.append(asyncio.create_task(schedule_one(k, v)))
+                task = asyncio.create_task(schedule_one(k, v))
+                tasks.append(task)
                 if cfg.delay and idx < total - 1:
                     await asyncio.sleep(cfg.delay)
 
-            # Collect
-            for task in asyncio.as_completed(tasks):  # type: ignore
+            # collect results
+            for task in asyncio.as_completed(tasks):
                 if fail_fast_triggered:
                     break
                 try:
-                    key_i, out, err = await task
+                    k, out, err = await task
                     if err:
                         if isinstance(errors, list):
-                            errors.append({"index": key_i, "error": err})
+                            errors.append({"index": k, "error": err})
                         else:
-                            errors[key_i] = {"error": err}  # type: ignore
-                        if cfg.fail_fast:
+                            errors[k] = {"error": err}  # type: ignore
+                        if fail_fast:
                             fail_fast_triggered = True
-                            continue
+                            # cancel remaining
+                            break
                     else:
                         if isinstance(results, list):
                             results.append(out)
                         else:
-                            results[key_i] = out  # type: ignore
+                            results[k] = out  # type: ignore
                         completed += 1
-                except Exception as unexpected:
-                    self.logger.error(f"LoopStep: Unexpected error: {unexpected}")
-                    if cfg.fail_fast:
+                except Exception as exc:
+                    self.logger.error(f"LoopStep: Unexpected error: {exc}")
+                    if fail_fast:
                         fail_fast_triggered = True
                         break
+            # cancel pending tasks if fail fast
+            if fail_fast_triggered:
+                for t in tasks:
+                    if not t.done():
+                        t.cancel()
 
-        # Execute according to concurrency
-        if max_conc <= 1:
+        # Choose execution strategy
+        if cfg.max_concurrency == 1:
             await run_sequential()
         else:
             await run_parallel()
 
-        # Store outputs in parent context
+        # store results and errors
         context[cfg.result_key] = results
         if errors:
             context[f"{cfg.result_key}__errors"] = errors
@@ -203,11 +214,11 @@ def _resolve_path(path: str, context: ContextProtocol) -> Any:
     Resolve a dot-notated path against the context or nested dicts.
     """
     current: Any = context
-    for seg in path.split("."):
-        if isinstance(current, ContextProtocol):
-            current = current.get(seg)
-        elif isinstance(current, dict):
-            current = current.get(seg)
+    for segment in path.split("."):
+        if isinstance(current, ContextProtocol):  # context lookup
+            current = current.get(segment)
+        elif isinstance(current, dict):  # dict lookup
+            current = current.get(segment)
         else:
             return None
         if current is None:

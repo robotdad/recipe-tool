@@ -79,3 +79,14 @@ class Recipe(BaseModel):
 
     steps: List[RecipeStep] = Field(..., description="Ordered list of recipe steps")
     env_vars: Optional[List[str]] = Field(None, description="Environment variables required by the recipe")
+
+
+__all__ = [
+    "FileSpec",
+    "ReadFilesConfig",
+    "McpServer",
+    "LLMGenerateConfig",
+    "WriteFilesConfig",
+    "RecipeStep",
+    "Recipe",
+]

@@ -27,8 +27,8 @@ The LLM component provides a unified interface for interacting with various larg
 - Use PydanticAI's provider-specific model classes:
   - pydantic_ai.models.openai.OpenAIModel (used also for Azure OpenAI and Ollama)
   - pydantic_ai.models.anthropic.AnthropicModel
-- For `openai_responses` provider: call `create_openai_responses_model(model_name)` which returns the model directly
-- For `azure_responses` provider: call `create_azure_responses_model(model_name, deployment_name)` which returns the model directly
+- For `openai_responses` provider: call `get_openai_responses_model(model_name)` which returns the model directly
+- For `azure_responses` provider: call `get_azure_responses_model(model_name, deployment_name)` which returns the model directly
 - Create a PydanticAI Agent with the model, structured output type, and optional MCP servers
 - Support: `output_type: Type[Union[str, BaseModel]] = str`
 - Support: `openai_builtin_tools: Optional[List[Dict[str, Any]]] = None` parameter for built-in tools with Responses API models
@@ -85,8 +85,8 @@ def get_model(model_id: str, context: ContextProtocol) -> OpenAIModel | Anthropi
 
     # If 'azure' is the model provider, use the `get_azure_openai_model` function
     # Access configuration dictionary through context.get_config() and then retrieve the necessary values
-    # If 'openai_responses' is the model provider, use the `create_openai_responses_model` function from responses component
-    # If 'azure_responses' is the model provider, use the `create_azure_responses_model` function from azure_responses component
+    # If 'openai_responses' is the model provider, use the `get_openai_responses_model` function from responses component
+    # If 'azure_responses' is the model provider, use the `get_azure_responses_model` function from azure_responses component
 ```
 
 Usage example:
@@ -106,15 +106,15 @@ ollama_model = get_model("ollama/phi4", context)
 
 # Get an OpenAI Responses model
 responses_model = get_model("openai_responses/gpt-4o", context)
-# Uses create_openai_responses_model('gpt-4o') from responses component
+# Uses get_openai_responses_model('gpt-4o') from responses component
 
 # Get an Azure Responses model
 azure_responses_model = get_model("azure_responses/gpt-4o", context)
-# Uses create_azure_responses_model('gpt-4o', None) from azure_responses component
+# Uses get_azure_responses_model('gpt-4o', None) from azure_responses component
 
 # Get an Azure Responses model with deployment
 azure_responses_model = get_model("azure_responses/gpt-4o/my-deployment", context)
-# Uses create_azure_responses_model('gpt-4o', 'my-deployment') from azure_responses component
+# Uses get_azure_responses_model('gpt-4o', 'my-deployment') from azure_responses component
 ```
 
 Getting an agent:
@@ -192,7 +192,3 @@ return OpenAIModel(
 ## Dependency Integration Considerations
 
 Implement a standardized `get_model` function that routes to appropriate provider-specific model creation functions based on the provider prefix in the model identifier. Use existing component functions for Azure OpenAI, Responses API, and Azure Responses API integration.
-
-```
-
-```

@@ -5,7 +5,7 @@
 **Search:** ['apps/recipe-executor/recipe_executor_app']
 **Exclude:** ['.venv', 'node_modules', '*.lock', '.git', '__pycache__', '*.pyc', '*.ruff_cache', 'logs', 'output']
 **Include:** []
-**Date:** 6/18/2025, 12:10:57 PM
+**Date:** 6/18/2025, 12:59:07 PM
 **Files:** 7
 
 === File: apps/recipe-executor/recipe_executor_app/__init__.py ===
@@ -265,8 +265,9 @@ class RecipeExecutorCore:
 
             # Load configuration from environment
             from recipe_executor.config import load_configuration
+
             config = load_configuration()
-            
+
             # Create context with both artifacts and config
             context = Context(artifacts=context_dict, config=config)
 

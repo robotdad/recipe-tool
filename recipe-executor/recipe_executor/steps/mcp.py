@@ -48,11 +48,11 @@ class MCPStep(BaseStep[MCPConfig]):  # type: ignore
         # Render the tool name
         tool_name: str = render_template(self.config.tool_name, context)
 
-        # Render arguments
+        # Render tool arguments
         raw_args: Dict[str, Any] = self.config.arguments or {}
         arguments: Dict[str, Any] = {}
         for key, val in raw_args.items():
-            if isinstance(val, str):
+            if isinstance(val, str):  # templated
                 arguments[key] = render_template(val, context)
             else:
                 arguments[key] = val
@@ -62,7 +62,7 @@ class MCPStep(BaseStep[MCPConfig]):  # type: ignore
         service_desc: str
         client_cm: Any
 
-        # Choose transport based on presence of command
+        # Choose transport: stdio if command provided, otherwise SSE
         if server_conf.get("command") is not None:
             # stdio transport
             cmd: str = render_template(server_conf.get("command", ""), context)
@@ -82,7 +82,7 @@ class MCPStep(BaseStep[MCPConfig]):  # type: ignore
                     if isinstance(env_val, str):
                         rendered = render_template(env_val, context)
                         if rendered == "":
-                            # Try loading from system or .env file
+                            # try system or .env
                             env_path = os.path.join(os.getcwd(), ".env")
                             if os.path.exists(env_path):
                                 load_dotenv(env_path)
@@ -137,13 +137,13 @@ class MCPStep(BaseStep[MCPConfig]):  # type: ignore
                         msg = f"Tool invocation failed for '{tool_name}' on {service_desc}: {exc}"
                         raise ValueError(msg) from exc
         except ValueError:
-            # Propagate invocation errors
+            # re-raise invocation errors
             raise
         except Exception as exc:
             msg = f"Failed to call tool '{tool_name}' on {service_desc}: {exc}"
             raise ValueError(msg) from exc
 
-        # Convert result to a plain dictionary
+        # Convert result to plain dict
         try:
             if hasattr(result, "dict"):
                 result_dict: Dict[str, Any] = result.dict()  # type: ignore
@@ -152,5 +152,5 @@ class MCPStep(BaseStep[MCPConfig]):  # type: ignore
         except Exception:
             result_dict = {k: getattr(result, k) for k in dir(result) if not k.startswith("_")}
 
-        # Store the result in context
+        # Store in context
         context[self.config.result_key] = result_dict

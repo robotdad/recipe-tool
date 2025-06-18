@@ -2,34 +2,44 @@
 import os
 import time
 import logging
-from typing import Optional, List, Type, Union
+from typing import Optional, List, Type, Union, Dict, Any
 
 from pydantic import BaseModel
 from pydantic_ai import Agent
 from pydantic_ai.settings import ModelSettings
-from pydantic_ai.models.openai import OpenAIModel
-from pydantic_ai.providers.openai import OpenAIProvider
+from pydantic_ai.models.openai import OpenAIModel, OpenAIResponsesModel, OpenAIResponsesModelSettings
 from pydantic_ai.models.anthropic import AnthropicModel
+from pydantic_ai.providers.openai import OpenAIProvider
 from pydantic_ai.providers.anthropic import AnthropicProvider
 from pydantic_ai.mcp import MCPServer
 
+from openai.types.responses import WebSearchToolParam, FileSearchToolParam
+
 from recipe_executor.llm_utils.azure_openai import get_azure_openai_model
+from recipe_executor.llm_utils.responses import get_openai_responses_model
+from recipe_executor.llm_utils.azure_responses import get_azure_responses_model
 from recipe_executor.protocols import ContextProtocol
 
 
 def get_model(
-    model_id: str,
-    context: ContextProtocol,
-) -> Union[OpenAIModel, AnthropicModel]:
+    logger: logging.Logger, model_id: str, context: ContextProtocol
+) -> Union[OpenAIModel, AnthropicModel, OpenAIResponsesModel]:
     """
     Initialize an LLM model based on a standardized model_id string.
-    Expected format: 'provider/model_name' or 'provider/model_name/deployment_name'.
+    Expected formats:
+      - 'provider/model_name'
+      - 'provider/model_name/deployment_name'
 
     Supported providers:
-    - openai
-    - azure (for Azure OpenAI)
-    - anthropic
-    - ollama
+      - openai
+      - azure
+      - anthropic
+      - ollama
+      - openai_responses
+      - azure_responses
+
+    Raises:
+        ValueError: If model_id format is invalid or provider unsupported.
     """
     parts = model_id.split("/")
     if len(parts) < 2:
@@ -37,6 +47,7 @@ def get_model(
     provider = parts[0].lower()
     config = context.get_config()
 
+    # OpenAI
     if provider == "openai":
         if len(parts) != 2:
             raise ValueError(f"Invalid OpenAI model_id: '{model_id}'")
@@ -45,8 +56,9 @@ def get_model(
         provider_obj = OpenAIProvider(api_key=api_key)
         return OpenAIModel(model_name=model_name, provider=provider_obj)
 
+    # Azure OpenAI
     if provider == "azure":
-        # format: azure/model_name or azure/model_name/deployment_name
+        # azure/model_name or azure/model_name/deployment_name
         if len(parts) == 2:
             model_name, deployment = parts[1], None
         elif len(parts) == 3:
@@ -54,12 +66,13 @@ def get_model(
         else:
             raise ValueError(f"Invalid Azure model_id: '{model_id}'")
         return get_azure_openai_model(
-            logger=logging.getLogger(__name__),
+            logger=logger,
             model_name=model_name,
             deployment_name=deployment,
             context=context,
         )
 
+    # Anthropic
     if provider == "anthropic":
         if len(parts) != 2:
             raise ValueError(f"Invalid Anthropic model_id: '{model_id}'")
@@ -68,6 +81,7 @@ def get_model(
         provider_obj = AnthropicProvider(api_key=api_key)
         return AnthropicModel(model_name=model_name, provider=provider_obj)
 
+    # Ollama
     if provider == "ollama":
         if len(parts) != 2:
             raise ValueError(f"Invalid Ollama model_id: '{model_id}'")
@@ -75,6 +89,24 @@ def get_model(
         base_url = config.get("ollama_base_url") or os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
         provider_obj = OpenAIProvider(base_url=f"{base_url}/v1")
         return OpenAIModel(model_name=model_name, provider=provider_obj)
+
+    # OpenAI Responses API
+    if provider == "openai_responses":
+        if len(parts) != 2:
+            raise ValueError(f"Invalid OpenAI Responses model_id: '{model_id}'")
+        model_name = parts[1]
+        return get_openai_responses_model(logger, model_name)
+
+    # Azure Responses API
+    if provider == "azure_responses":
+        # azure_responses/model_name or azure_responses/model_name/deployment_name
+        if len(parts) == 2:
+            model_name, deployment = parts[1], None
+        elif len(parts) == 3:
+            model_name, deployment = parts[1], parts[2]
+        else:
+            raise ValueError(f"Invalid Azure Responses model_id: '{model_id}'")
+        return get_azure_responses_model(logger, model_name, deployment)
 
     raise ValueError(f"Unsupported LLM provider: '{provider}' in model_id '{model_id}'")
 
@@ -106,6 +138,7 @@ class LLM:
         max_tokens: Optional[int] = None,
         output_type: Type[Union[str, BaseModel]] = str,
         mcp_servers: Optional[List[MCPServer]] = None,
+        openai_builtin_tools: Optional[List[Dict[str, Any]]] = None,
     ) -> Union[str, BaseModel]:
         """
         Generate an output from the LLM based on the provided prompt.
@@ -114,7 +147,6 @@ class LLM:
         tokens = max_tokens if max_tokens is not None else self.default_max_tokens
         servers = mcp_servers if mcp_servers is not None else self.default_mcp_servers
 
-        # Info: log provider and model
         provider_name = model_id.split("/", 1)[0]
         self.logger.info(
             "LLM generate using provider=%s model_id=%s",
@@ -122,7 +154,6 @@ class LLM:
             model_id,
         )
 
-        # Debug: log request payload (masking sensitive info)
         output_name = getattr(output_type, "__name__", str(output_type))
         self.logger.debug(
             "LLM request prompt=%r model_id=%s max_tokens=%s output_type=%s mcp_servers=%s",
@@ -134,17 +165,28 @@ class LLM:
         )
 
         try:
-            model_instance = get_model(model_id, self.context)
+            model_instance = get_model(self.logger, model_id, self.context)
         except ValueError as err:
             self.logger.error("Invalid model_id '%s': %s", model_id, err)
             raise
 
-        agent_kwargs = {
+        agent_kwargs: Dict[str, Any] = {
             "model": model_instance,
             "output_type": output_type,
             "mcp_servers": servers,
         }
-        if tokens is not None:
+        # Responses API with built-in tools
+        if provider_name in ("openai_responses", "azure_responses") and openai_builtin_tools:
+            typed_tools: List[Union[WebSearchToolParam, FileSearchToolParam]] = []
+            for tool in openai_builtin_tools:
+                try:
+                    typed_tools.append(WebSearchToolParam(**tool))
+                except TypeError:
+                    typed_tools.append(FileSearchToolParam(**tool))
+            settings = OpenAIResponsesModelSettings(openai_builtin_tools=typed_tools)
+            agent_kwargs["model_settings"] = settings
+        # max_tokens for other models
+        elif tokens is not None:
             agent_kwargs["model_settings"] = ModelSettings(max_tokens=tokens)
 
         agent: Agent = Agent(**agent_kwargs)  # type: ignore
@@ -183,7 +225,6 @@ class LLM:
                 duration,
             )
 
-        # Debug: raw data
         self.logger.debug("LLM raw result data=%r", result.data)
 
         return result.output

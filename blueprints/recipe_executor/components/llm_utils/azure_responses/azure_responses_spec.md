@@ -10,7 +10,7 @@ The Azure Responses component provides a PydanticAI wrapper for Azure OpenAI Res
 - Use proper Azure OpenAI authentication (API key or Azure Identity)
 - Support Azure OpenAI endpoints and deployments
 - Implement basic error handling and parameter validation
-- Export `create_azure_responses_model` function
+- Export `get_azure_responses_model` function
 - Follow same patterns as existing `azure_openai` component
 
 ## Implementation Considerations

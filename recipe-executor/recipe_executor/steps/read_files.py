@@ -2,6 +2,7 @@
 import os
 import json
 import logging
+import glob
 from typing import Any, Dict, List, Union
 
 import yaml
@@ -41,25 +42,36 @@ class ReadFilesStep(BaseStep[ReadFilesConfig]):
 
     async def execute(self, context: ContextProtocol) -> None:
         cfg = self.config
-        # Render the storage key in context
+        # Render the key to store content under
         rendered_key = render_template(cfg.content_key, context)
 
-        # Resolve and normalize input paths
+        # Normalize input paths
         raw_path = cfg.path
         paths: List[str] = []
 
         if isinstance(raw_path, str):
             rendered = render_template(raw_path, context)
-            # handle comma-separated list
-            for part in (p.strip() for p in rendered.split(",")):  # type: ignore
-                if part:
+            # split comma-separated
+            parts = [p.strip() for p in rendered.split(",") if p.strip()]
+            for part in parts:
+                matches = glob.glob(part)
+                if matches:
+                    for m in sorted(matches):
+                        paths.append(m)
+                else:
                     paths.append(part)
         elif isinstance(raw_path, list):
             for entry in raw_path:
                 if not isinstance(entry, str):
                     raise ValueError(f"Invalid path entry type: {entry!r}")
                 rendered = render_template(entry, context)
-                if rendered:
+                if not rendered:
+                    continue
+                matches = glob.glob(rendered)
+                if matches:
+                    for m in sorted(matches):
+                        paths.append(m)
+                else:
                     paths.append(rendered)
         else:
             raise ValueError(f"Invalid type for path: {type(raw_path)}")
@@ -83,8 +95,8 @@ class ReadFilesStep(BaseStep[ReadFilesConfig]):
                 raise IOError(f"Error reading file {path}: {exc}")
 
             # Attempt structured parsing
-            ext = os.path.splitext(path)[1].lower()
             content: Any = text
+            ext = os.path.splitext(path)[1].lower()
             if ext == ".json":
                 try:
                     content = json.loads(text)
@@ -104,7 +116,6 @@ class ReadFilesStep(BaseStep[ReadFilesConfig]):
 
         # Determine final content based on merge mode and number of files
         if not results:
-            # No files read
             if len(paths) <= 1:
                 final_content: Any = ""
             elif cfg.merge_mode == "dict":
@@ -112,10 +123,8 @@ class ReadFilesStep(BaseStep[ReadFilesConfig]):
             else:
                 final_content = ""
         elif len(results) == 1:
-            # Single file
             final_content = results[0]
         else:
-            # Multiple files
             if cfg.merge_mode == "dict":
                 final_content = result_map
             else:

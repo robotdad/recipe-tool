@@ -3,7 +3,7 @@
 [git-collector-data]
 
 **URL:** https://github.com/modelcontextprotocol/typescript-sdk  
-**Date:** 6/18/2025, 12:11:20 PM  
+**Date:** 6/18/2025, 12:59:28 PM  
 **Files:** 1  
 
 === File: README.md ===
@@ -939,7 +939,7 @@ Client-side: Handle elicitation requests
 ```typescript
 // This is a placeholder - implement based on your UI framework
 async function getInputFromUser(message: string, schema: any): Promise<{
-  action: "accept" | "decline" | "cancel";
+  action: "accept" | "reject" | "cancel";
   data?: Record<string, any>;
 }> {
   // This should be implemented depending on the app

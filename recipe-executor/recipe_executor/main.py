@@ -6,7 +6,7 @@ import os
 import sys
 import time
 import traceback
-from typing import Dict, List, Any
+from typing import Any, Dict, List
 
 from dotenv import load_dotenv
 from recipe_executor.config import load_configuration
@@ -40,54 +40,64 @@ async def main_async() -> None:
     parser = argparse.ArgumentParser(description="Recipe Executor CLI")
     parser.add_argument("recipe_path", type=str, help="Path to the recipe file to execute")
     parser.add_argument("--log-dir", type=str, default="logs", help="Directory for log files")
-    parser.add_argument("--context", action="append", default=[], help="Context artifact values as key=value pairs")
-    parser.add_argument("--config", action="append", default=[], help="Static configuration values as key=value pairs")
+    parser.add_argument(
+        "--context",
+        action="append",
+        default=[],
+        help="Context artifact values as key=value pairs",
+    )
+    parser.add_argument(
+        "--config",
+        action="append",
+        default=[],
+        help="Static configuration values as key=value pairs",
+    )
     args = parser.parse_args()
 
     # Ensure log directory exists
     try:
         os.makedirs(args.log_dir, exist_ok=True)
-    except Exception as e:
-        sys.stderr.write(f"Logger Initialization Error: cannot create log directory '{args.log_dir}': {e}\n")
+    except Exception as exc:
+        sys.stderr.write(f"Logger Initialization Error: cannot create log directory '{args.log_dir}': {exc}\n")
         raise SystemExit(1)
 
-    # Initialize logging
+    # Initialize logger
     try:
         logger: logging.Logger = init_logger(args.log_dir)
-    except Exception as e:
-        sys.stderr.write(f"Logger Initialization Error: {e}\n")
+    except Exception as exc:
+        sys.stderr.write(f"Logger Initialization Error: {exc}\n")
         raise SystemExit(1)
 
     logger.info("Starting Recipe Executor Tool")
     logger.debug("Parsed arguments: %s", args)
 
-    # Parse context and CLI config key=value pairs
+    # Parse context and CLI config
     try:
-        artifacts = parse_key_value_pairs(args.context)
-        cli_config = parse_key_value_pairs(args.config)
+        artifacts: Dict[str, str] = parse_key_value_pairs(args.context)
+        cli_config: Dict[str, str] = parse_key_value_pairs(args.config)
     except ValueError as ve:
-        # Propagate for main() to handle
+        # Let main() handle printing the error
         raise ve
 
     logger.debug("Initial context artifacts: %s", artifacts)
 
-    # Load and validate the recipe file
+    # Load recipe file
     try:
         with open(args.recipe_path, "r", encoding="utf-8") as f:
             content = f.read()
         recipe: Recipe = Recipe.model_validate_json(content)
-    except Exception as e:
-        logger.error("Failed to load recipe '%s': %s", args.recipe_path, e, exc_info=True)
+    except Exception as exc:
+        logger.error("Failed to load recipe '%s': %s", args.recipe_path, exc, exc_info=True)
         raise SystemExit(1)
 
-    # Load configuration from environment and recipe-specific vars
+    # Load configuration from environment and recipe-specific variables
     try:
         env_config: Dict[str, Any] = load_configuration(getattr(recipe, "env_vars", None))
-    except Exception as e:
-        logger.error("Configuration loading error: %s", e, exc_info=True)
+    except Exception as exc:
+        logger.error("Configuration loading error: %s", exc, exc_info=True)
         raise SystemExit(1)
 
-    # Merge CLI overrides (CLI has priority)
+    # Merge CLI overrides (CLI takes precedence)
     merged_config: Dict[str, Any] = {**env_config, **cli_config}
 
     # Create execution context
@@ -111,12 +121,13 @@ def main() -> None:
     try:
         asyncio.run(main_async())
     except ValueError as ve:
-        # Context or config parsing errors
+        # Handle context or config parsing errors
         sys.stderr.write(f"Context Error: {ve}\n")
         sys.exit(1)
     except SystemExit as se:
         sys.exit(se.code)
     except Exception:
+        # Unexpected errors
         sys.stderr.write(traceback.format_exc())
         sys.exit(1)
     else:
