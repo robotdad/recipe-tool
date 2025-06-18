@@ -11,6 +11,7 @@ resolution-markers = [
 members = [
     "docs-mcp-server",
     "document-generator",
+    "gradio-components",
     "python-code-tools",
     "recipe-executor",
     "recipe-executor-app",
@@ -668,6 +669,11 @@ wheels = [
 ]
 
 [[package]]
+name = "gradio-components"
+version = "0.1.0"
+source = { editable = "shared/gradio-components" }
+
+[[package]]
 name = "griffe"
 version = "1.7.3"
 source = { registry = "https://pypi.org/simple" }
@@ -1043,7 +1049,7 @@ wheels = [
 
 [[package]]
 name = "mcp"
-version = "1.9.1"
+version = "1.9.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyio" },
@@ -1056,9 +1062,9 @@ dependencies = [
     { name = "starlette" },
     { name = "uvicorn", marker = "sys_platform != 'emscripten'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/e7/bc/54aec2c334698cc575ca3b3481eed627125fb66544152fa1af927b1a495c/mcp-1.9.1.tar.gz", hash = "sha256:19879cd6dde3d763297617242888c2f695a95dfa854386a6a68676a646ce75e4", size = 316247, upload-time = "2025-05-22T15:52:21.26Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/06/f2/dc2450e566eeccf92d89a00c3e813234ad58e2ba1e31d11467a09ac4f3b9/mcp-1.9.4.tar.gz", hash = "sha256:cfb0bcd1a9535b42edaef89947b9e18a8feb49362e1cc059d6e7fc636f2cb09f", size = 333294, upload-time = "2025-06-12T08:20:30.158Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a6/c0/4ac795585a22a0a2d09cd2b1187b0252d2afcdebd01e10a68bbac4d34890/mcp-1.9.1-py3-none-any.whl", hash = "sha256:2900ded8ffafc3c8a7bfcfe8bc5204037e988e753ec398f371663e6a06ecd9a9", size = 130261, upload-time = "2025-05-22T15:52:19.702Z" },
+    { url = "https://files.pythonhosted.org/packages/97/fc/80e655c955137393c443842ffcc4feccab5b12fa7cb8de9ced90f90e6998/mcp-1.9.4-py3-none-any.whl", hash = "sha256:7fcf36b62936adb8e63f89346bccca1268eeca9bf6dfb562ee10b1dfbda9dac0", size = 130232, upload-time = "2025-06-12T08:20:28.551Z" },
 ]
 
 [[package]]
@@ -1422,7 +1428,7 @@ wheels = [
 
 [[package]]
 name = "pydantic-ai-slim"
-version = "0.2.15"
+version = "0.3.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "eval-type-backport" },
@@ -1433,9 +1439,9 @@ dependencies = [
     { name = "pydantic-graph" },
     { name = "typing-inspection" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/b3/7d/24a128014c647f047611eea7fa4e18494240eafbc9565fcebafe1a188102/pydantic_ai_slim-0.2.15.tar.gz", hash = "sha256:5c98d1ef74da49d7566c39664cf00d993eb1c167e5a896f833155dffc65a5e82", size = 138333, upload-time = "2025-06-05T19:37:04.175Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/89/cb/c8cdf2c5b16cd1f49ea7dda73166c4ecdba5024375115d9ee5f21b627c52/pydantic_ai_slim-0.3.1.tar.gz", hash = "sha256:2356bcd6af026c6a6c8e08c39aee10127f166b2a8de1b5cfdf6d5e3942f3baa4", size = 149133, upload-time = "2025-06-18T09:09:52.98Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/29/7a/36696ef1284fd8c54c09aea0d9dba87cecfae6f3fe1c561e17cdd843f602/pydantic_ai_slim-0.2.15-py3-none-any.whl", hash = "sha256:33f6211af4b4eaa9cb5139e01f0881a7b91cd42dbfde185ad97f1fd457f41844", size = 186703, upload-time = "2025-06-05T19:36:51.998Z" },
+    { url = "https://files.pythonhosted.org/packages/4b/df/19381d9686a64bd3e079207a954d40eb527d47dc869e5e77ec58bd9594cb/pydantic_ai_slim-0.3.1-py3-none-any.whl", hash = "sha256:b318debfc94aa73c60f2c1b049f22e411b98c2f278cad4b443a181c4e4420516", size = 198533, upload-time = "2025-06-18T09:09:41.294Z" },
 ]
 
 [package.optional-dependencies]
@@ -1516,7 +1522,7 @@ wheels = [
 
 [[package]]
 name = "pydantic-graph"
-version = "0.2.15"
+version = "0.3.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "httpx" },
@@ -1524,9 +1530,9 @@ dependencies = [
     { name = "pydantic" },
     { name = "typing-inspection" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/68/c3/af16b3ca23dc4029cbb8453e81c87079897534402c0da8a548118682ef43/pydantic_graph-0.2.15.tar.gz", hash = "sha256:47d19fa047ed996e7f448ef493462444f626da1046f8cf9bddc2567732e8336f", size = 21844, upload-time = "2025-06-05T19:37:06.378Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/5e/4a/d54c887990a7d8808c4b3e6e126ff5bbfb42d31b70d5a046a3fc59e1acd6/pydantic_graph-0.3.1.tar.gz", hash = "sha256:0c1c5bd2c5ab48003b9bc4cd4265eb47d15080afdd28f48119010e9995f47615", size = 21836, upload-time = "2025-06-18T09:09:55.322Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/4c/f6/94bc071815298a4de961d7e683ea495803fb3a4fae799675c7c80a66983f/pydantic_graph-0.2.15-py3-none-any.whl", hash = "sha256:7bbc9e5eb39ca6f79b51e270c255c5811d3d5b7ee8b9c36e64ad00577ecef365", size = 27486, upload-time = "2025-06-05T19:36:54.967Z" },
+    { url = "https://files.pythonhosted.org/packages/60/dc/48e4bbb735e05004669b446e296990704b806efbdc4311e3fc8dc6e7bda7/pydantic_graph-0.3.1-py3-none-any.whl", hash = "sha256:b0e5f9cf1f24a24b905f7079795c4208f520893f601a4a06054509470156434e", size = 27474, upload-time = "2025-06-18T09:09:44.697Z" },
 ]
 
 [[package]]
@@ -1801,7 +1807,7 @@ requires-dist = [
     { name = "azure-identity", specifier = ">=1.21.0" },
     { name = "dotenv", specifier = ">=0.9.9" },
     { name = "jsonschema", specifier = ">=4.23.0" },
-    { name = "pydantic-ai-slim", extras = ["anthropic", "openai", "mcp"], specifier = ">=0.2.14" },
+    { name = "pydantic-ai-slim", extras = ["anthropic", "openai", "mcp"], specifier = ">=0.3.1" },
     { name = "pydantic-settings", specifier = ">=2.8.1" },
     { name = "python-code-tools", editable = "mcp-servers/python-code-tools" },
     { name = "python-dotenv", specifier = ">=1.1.0" },
@@ -1815,6 +1821,7 @@ version = "0.1.0"
 source = { editable = "apps/recipe-executor" }
 dependencies = [
     { name = "gradio" },
+    { name = "gradio-components" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
     { name = "python-dotenv" },
@@ -1833,6 +1840,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "gradio", specifier = ">=5.30.0" },
+    { name = "gradio-components", editable = "shared/gradio-components" },
     { name = "pydantic", specifier = ">=2.0.0" },
     { name = "pydantic-settings", specifier = ">=2.0.0" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
@@ -1865,6 +1873,7 @@ version = "0.1.0"
 source = { editable = "apps/recipe-tool" }
 dependencies = [
     { name = "gradio", extra = ["mcp"] },
+    { name = "gradio-components" },
     { name = "python-dotenv" },
     { name = "recipe-executor-app" },
 ]
@@ -1881,6 +1890,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "gradio", extras = ["mcp"], specifier = ">=5.30.0" },
+    { name = "gradio-components", editable = "shared/gradio-components" },
     { name = "python-dotenv", specifier = ">=1.1.0" },
     { name = "recipe-executor-app", editable = "apps/recipe-executor" },
 ]

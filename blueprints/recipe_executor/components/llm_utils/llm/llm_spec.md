@@ -18,13 +18,17 @@ The LLM component provides a unified interface for interacting with various larg
 ## Implementation Hints
 
 - Use a clear `provider/model_name` identifier format
-- Do not need to pass api keys directly to model classes
-  - Exception: need to provide to AzureProvider)
-- Use PydanticAI's provider-specific model classes, passing only the model name
+- Configuration values are accessed through context.get_config() instead of directly from environment
+- For API key handling:
+  - OpenAI: Create OpenAIProvider with api_key from context, pass to OpenAIModel
+  - Anthropic: Create AnthropicProvider with api_key from context, pass to AnthropicModel
+  - Azure: Handled by get_azure_openai_model function
+  - Ollama: Create OpenAIProvider with base_url from context
+- Use PydanticAI's provider-specific model classes:
   - pydantic_ai.models.openai.OpenAIModel (used also for Azure OpenAI and Ollama)
   - pydantic_ai.models.anthropic.AnthropicModel
-- For `openai_responses` provider: call `create_openai_responses_model(model_name)` which returns the model directly
-- For `azure_responses` provider: call `create_azure_responses_model(model_name, deployment_name)` which returns the model directly
+- For `openai_responses` provider: call `get_openai_responses_model(model_name)` which returns the model directly
+- For `azure_responses` provider: call `get_azure_responses_model(model_name, deployment_name)` which returns the model directly
 - Create a PydanticAI Agent with the model, structured output type, and optional MCP servers
 - Support: `output_type: Type[Union[str, BaseModel]] = str`
 - Support: `openai_builtin_tools: Optional[List[Dict[str, Any]]] = None` parameter for built-in tools with Responses API models
@@ -53,7 +57,7 @@ The LLM component provides a unified interface for interacting with various larg
 Create a PydanticAI model for the LLM provider and model name:
 
 ```python
-def get_model(model_id: str) -> OpenAIModel | AnthropicModel:
+def get_model(model_id: str, context: ContextProtocol) -> OpenAIModel | AnthropicModel:
     """
     Initialize an LLM model based on a standardized model_id string.
     Expected format: 'provider/model_name' or 'provider/model_name/deployment_name'.
@@ -70,6 +74,7 @@ def get_model(model_id: str) -> OpenAIModel | AnthropicModel:
         model_id (str): Model identifier in format 'provider/model_name'
             or 'provider/model_name/deployment_name'.
             If None, defaults to 'openai/gpt-4o'.
+        context (ContextProtocol): Context containing configuration values.
 
     Returns:
         The model instance for the specified provider and model.
@@ -79,36 +84,37 @@ def get_model(model_id: str) -> OpenAIModel | AnthropicModel:
     """
 
     # If 'azure' is the model provider, use the `get_azure_openai_model` function
-    # If 'openai_responses' is the model provider, use the `create_openai_responses_model` function from responses component
-    # If 'azure_responses' is the model provider, use the `create_azure_responses_model` function from azure_responses component
+    # Access configuration dictionary through context.get_config() and then retrieve the necessary values
+    # If 'openai_responses' is the model provider, use the `get_openai_responses_model` function from responses component
+    # If 'azure_responses' is the model provider, use the `get_azure_responses_model` function from azure_responses component
 ```
 
 Usage example:
 
 ```python
 # Get an OpenAI model
-openai_model = get_model("openai/o4-mini")
-# Uses OpenAIModel('o4-mini')
+openai_model = get_model("openai/gpt-4o", context)
+# Uses OpenAIModel('gpt-4o') with API key from context.get_config().get('openai_api_key')
 
 # Get an Anthropic model
-anthropic_model = get_model("anthropic/claude-3-7-sonnet-latest")
-# Uses AnthropicModel('claude-3-7-sonnet-latest')
+anthropic_model = get_model("anthropic/claude-3-5-sonnet-latest", context)
+# Uses AnthropicModel('claude-3-5-sonnet-latest') with API key from context.get_config().get('anthropic_api_key')
 
 # Get an Ollama model
-ollama_model = get_model("ollama/phi4")
-# Uses OllamaModel('phi4')
+ollama_model = get_model("ollama/phi4", context)
+# Uses OllamaModel('phi4') with base URL from context.get_config().get('ollama_base_url')
 
 # Get an OpenAI Responses model
-responses_model = get_model("openai_responses/gpt-4o")
-# Uses create_openai_responses_model('gpt-4o') from responses component
+responses_model = get_model("openai_responses/gpt-4o", context)
+# Uses get_openai_responses_model('gpt-4o') from responses component
 
 # Get an Azure Responses model
-azure_responses_model = get_model("azure_responses/gpt-4o")
-# Uses create_azure_responses_model('gpt-4o', None) from azure_responses component
+azure_responses_model = get_model("azure_responses/gpt-4o", context)
+# Uses get_azure_responses_model('gpt-4o', None) from azure_responses component
 
 # Get an Azure Responses model with deployment
-azure_responses_model = get_model("azure_responses/gpt-4o/my-deployment")
-# Uses create_azure_responses_model('gpt-4o', 'my-deployment') from azure_responses component
+azure_responses_model = get_model("azure_responses/gpt-4o/my-deployment", context)
+# Uses get_azure_responses_model('gpt-4o', 'my-deployment') from azure_responses component
 ```
 
 Getting an agent:
@@ -134,17 +140,13 @@ The Ollama model requires an endpoint to be specified:
 ```python
 from pydantic_ai.models.openai import OpenAIModel
 from pydantic_ai.providers import OpenAIProvider
-import dotenv
-import os
 
-# Load environment variables from .env file
-dotenv.load_dotenv()
-OLLAMA_BASE_URL = os.getenv('OLLAMA_BASE_URL', 'http://localhost:11434')
+# inside the get_model function, context is passed as parameter
+ollama_base_url = context.get_config().get('ollama_base_url', 'http://localhost:11434')
 
-# inside the get_model function
 return OpenAIModel(
     model_name='qwen2.5-coder:7b',
-    provider=OpenAIProvider(base_url=f'{OLLAMA_BASE_URL}/v1'),
+    provider=OpenAIProvider(base_url=f'{ollama_base_url}/v1'),
 )
 ```
 
@@ -171,10 +173,11 @@ return OpenAIModel(
 
 ### Configuration Dependencies
 
-- **DEFAULT_MODEL**: (Optional) Environment variable specifying the default LLM model in format "provider/model_name"
-- **OPENAI_API_KEY**: (Required for OpenAI) API key for OpenAI access
-- **ANTHROPIC_API_KEY**: (Required for Anthropic) API key for Anthropic access
-- **OLLAMA_BASE_URL**: (Required for Ollama) Endpoint for Ollama models
+- **context.config** - All configuration is accessed through the context:
+  - `openai_api_key`: (Required for OpenAI) API key for OpenAI access
+  - `anthropic_api_key`: (Required for Anthropic) API key for Anthropic access
+  - `ollama_base_url`: (Required for Ollama) Endpoint for Ollama models
+  - `azure_*`: Azure OpenAI configuration values (handled by azure_openai component)
 
 ## Error Handling
 
@@ -189,7 +192,3 @@ return OpenAIModel(
 ## Dependency Integration Considerations
 
 Implement a standardized `get_model` function that routes to appropriate provider-specific model creation functions based on the provider prefix in the model identifier. Use existing component functions for Azure OpenAI, Responses API, and Azure Responses API integration.
-
-```
-
-```

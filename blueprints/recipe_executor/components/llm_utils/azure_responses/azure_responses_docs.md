@@ -10,7 +10,7 @@ by creating configured `OpenAIResponsesModel` instances with Azure authenticatio
 ## Importing
 
 ```python
-from recipe_executor.llm_utils.azure_responses import create_azure_responses_model
+from recipe_executor.llm_utils.azure_responses import get_azure_responses_model
 ```
 
 ### Basic Usage
@@ -19,7 +19,8 @@ from recipe_executor.llm_utils.azure_responses import create_azure_responses_mod
 def get_azure_responses_model(
     logger: logging.Logger,
     model_name: str,
-) -> pydantic_ia.models.openai.OpenAIResponsesModel:
+    deployment_name: Optional[str] = None
+) -> pydantic_ai.models.openai.OpenAIResponsesModel:
     """
     Create an OpenAIResponsesModel for the given model name.
 
