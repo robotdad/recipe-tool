@@ -27,10 +27,10 @@ class Section:
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dict, excluding None values and empty refs to match schema."""
-        result = {"title": self.title}
+        result: Dict[str, Any] = {"title": self.title}
 
         # Use mode to determine which fields to include
-        if self._mode == "Static" and self.resource_key is not None:
+        if self.resource_key is not None:
             result["resource_key"] = self.resource_key
         else:
             # Default to prompt mode
