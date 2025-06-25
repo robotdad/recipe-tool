@@ -49,12 +49,22 @@ jobs:
 
           # Direct prompt for automated review (no @claude mention needed)
           direct_prompt: |
+            First read:
+            - ai_context/IMPLEMENTATION_PHILOSOPHY.md
+            - ai_context/MODULAR_DESIGN_PHILOSOPHY.md
+            - README.md (to understand how the code in this repo is designed to work)
+
             Please review this pull request and provide feedback on:
-            - Code quality and best practices
+            - Code quality and best practices (considering above docs)
             - Potential bugs or issues
             - Performance considerations
             - Security concerns
             - Test coverage
+
+            Ignore changes in any director that contains generated content, such as (but not limited to):
+            - ai_context/generated
+            - ai_context/git-collector
+            - recipe-executor/recipe_executor (all code is generated from blueprints/recipe_executor via recipes/codebase_generator)
 
             Be constructive and helpful in your feedback.
 
