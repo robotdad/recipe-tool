@@ -5,8 +5,8 @@ Following "ruthless simplicity" principle.
 
 import gradio as gr
 import json
-import tempfile
 import os
+import uuid
 from typing import Dict, Any, List, Optional, Tuple
 
 from .models.outline import Outline, Resource, Section, validate_outline
@@ -24,6 +24,7 @@ def create_initial_state() -> Dict[str, Any]:
         "outline": Outline(title="", general_instruction=""),
         "selected_type": None,  # "resource" or "section"
         "selected_id": None,  # e.g., "resource_0" or "section_1_2"
+        "session_id": str(uuid.uuid4()),  # Unique session ID for this UI instance
     }
 
 
@@ -326,12 +327,14 @@ def start_generation() -> List[Any]:
 async def handle_generate(current_state: Dict[str, Any]) -> List[Any]:
     """Generate document from outline."""
     try:
-        content = await generate_document(current_state["outline"])
+        content = await generate_document(current_state["outline"], current_state.get("session_id"))
 
         # Save content to a temporary file for download
         filename = f"{current_state['outline'].title}.md" if current_state["outline"].title else "document.md"
-        temp_dir = tempfile.mkdtemp()
-        file_path = os.path.join(temp_dir, filename)
+        from .session import session_manager
+
+        session_dir = session_manager.get_session_dir(current_state.get("session_id"))
+        file_path = os.path.join(session_dir, filename)
         with open(file_path, "w") as f:
             f.write(content)
 
