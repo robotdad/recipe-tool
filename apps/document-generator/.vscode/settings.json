@@ -1,4 +1,16 @@
 {
-  "cSpell.words": ["dotenv", "OLLAMA"],
+  "cSpell.words": [
+    "asyncio",
+    "azureappservice",
+    "debugpy",
+    "dotenv",
+    "jsonschema",
+    "OLLAMA",
+    "pycache",
+    "pydantic",
+    "pyright",
+    "pytest",
+    "typer"
+  ],
   "appService.defaultWebAppToDeploy": "/subscriptions/8a673afb-d858-4a97-a490-2625396d1484/resourceGroups/rg-made-experiments/providers/Microsoft.Web/sites/document-generator-app"
 }
