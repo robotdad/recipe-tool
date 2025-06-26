@@ -11,6 +11,7 @@ resolution-markers = [
 members = [
     "docs-mcp-server",
     "document-generator",
+    "document-generator-v2-app",
     "gradio-components",
     "python-code-tools",
     "recipe-executor",
@@ -533,6 +534,25 @@ dev = [
     { name = "pytest-asyncio", specifier = ">=0.26.0" },
     { name = "pytest-cov", specifier = ">=6.1.1" },
     { name = "ruff", specifier = ">=0.11.10" },
+]
+
+[[package]]
+name = "document-generator-v2-app"
+version = "0.1.0"
+source = { editable = "apps/experimental/document-generator-v2" }
+dependencies = [
+    { name = "gradio" },
+    { name = "jsonschema" },
+    { name = "python-dotenv" },
+    { name = "recipe-executor" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "gradio", specifier = ">=4.0.0" },
+    { name = "jsonschema" },
+    { name = "python-dotenv" },
+    { name = "recipe-executor", editable = "recipe-executor" },
 ]
 
 [[package]]
