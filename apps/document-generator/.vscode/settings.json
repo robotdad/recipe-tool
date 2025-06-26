@@ -1,3 +1,4 @@
 {
-  "cSpell.words": ["OLLAMA"]
+  "cSpell.words": ["dotenv", "OLLAMA"],
+  "appService.defaultWebAppToDeploy": "/subscriptions/8a673afb-d858-4a97-a490-2625396d1484/resourceGroups/rg-made-experiments/providers/Microsoft.Web/sites/document-generator-app"
 }
