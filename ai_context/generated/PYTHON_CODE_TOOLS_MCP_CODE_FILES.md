@@ -5,43 +5,8 @@
 **Search:** ['mcp-servers/python-code-tools']
 **Exclude:** ['.venv', 'node_modules', '*.lock', '.git', '__pycache__', '*.pyc', '*.ruff_cache', 'logs', 'output']
 **Include:** []
-**Date:** 6/27/2025, 2:29:08 PM
-**Files:** 34
-
-=== File: mcp-servers/python-code-tools/.coverage ===
-[ERROR reading file: 'utf-8' codec can't decode byte 0x89 in position 99: invalid start byte]
-
-
-=== File: mcp-servers/python-code-tools/.pytest_cache/.gitignore ===
-# Created by pytest automatically.
-*
-
-
-=== File: mcp-servers/python-code-tools/.pytest_cache/CACHEDIR.TAG ===
-Signature: 8a477f597d28d172789f06886806bc55
-# This file is a cache directory tag created by pytest.
-# For information about cache directory tags, see:
-#	https://bford.info/cachedir/spec.html
-
-
-=== File: mcp-servers/python-code-tools/.pytest_cache/README.md ===
-# pytest cache directory #
-
-This directory contains data from the pytest's cache plugin,
-which provides the `--lf` and `--ff` options, as well as the `cache` fixture.
-
-**Do not** commit this to version control.
-
-See [the docs](https://docs.pytest.org/en/stable/how-to/cache.html) for more information.
-
-
-=== File: mcp-servers/python-code-tools/.pytest_cache/v/cache/nodeids ===
-[
-  "tests/test_placeholder.py::test_placeholder"
-]
-
-=== File: mcp-servers/python-code-tools/.pytest_cache/v/cache/stepwise ===
-[]
+**Date:** 6/27/2025, 4:24:08 PM
+**Files:** 28
 
 === File: mcp-servers/python-code-tools/.ruff.toml ===
 line-length = 120

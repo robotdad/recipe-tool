@@ -5,8 +5,8 @@
 **Search:** ['apps/document-generator/document_generator_app']
 **Exclude:** ['.venv', 'node_modules', '*.lock', '.git', '__pycache__', '*.pyc', '*.ruff_cache', 'logs', 'output']
 **Include:** []
-**Date:** 6/27/2025, 2:29:08 PM
-**Files:** 11
+**Date:** 6/27/2025, 4:24:08 PM
+**Files:** 13
 
 === File: apps/document-generator/document_generator_app/__init__.py ===
 
@@ -101,11 +101,11 @@ class Settings:
     example_outlines: List[ExampleOutline] = [
         ExampleOutline(
             name="README Generator",
-            path="../../recipes/document_generator/examples/readme.json",
+            path="examples/readme.docpack",
         ),
         ExampleOutline(
             name="Product Launch Documentation",
-            path="../../recipes/document_generator/examples/launch-documentation.json",
+            path="examples/launch-documentation.docpack",
         ),
     ]
 
@@ -140,6 +140,7 @@ from recipe_executor.logger import init_logger
 
 from ..models.outline import Outline
 from ..session import session_manager
+from ..resource_resolver import resolve_all_resources
 from typing import Optional
 
 
@@ -150,8 +151,6 @@ async def generate_document(outline: Optional[Outline], session_id: Optional[str
     # Allow stub invocation without an outline for initial tests
     if outline is None:
         return ""
-    from urllib.parse import urlparse
-    import urllib.request
 
     REPO_ROOT = Path(__file__).resolve().parents[4]
     RECIPE_PATH = REPO_ROOT / "recipes" / "document_generator" / "document_generator_recipe.json"
@@ -163,23 +162,16 @@ async def generate_document(outline: Optional[Outline], session_id: Optional[str
     Path(tmpdir).mkdir(exist_ok=True)
 
     try:
-        # Resolve resource paths: download URLs or locate local files
-        for res in outline.resources:
-            if res.path:
-                parsed = urlparse(res.path)
-                if parsed.scheme in ("http", "https"):
-                    dest = Path(tmpdir) / Path(parsed.path).name
-                    urllib.request.urlretrieve(res.path, dest)
-                    res.path = str(dest)
-                else:
-                    p = Path(res.path)
-                    if not p.exists():
-                        p2 = RECIPE_ROOT / res.path
-                        if p2.exists():
-                            res.path = str(p2)
-                    else:
-                        res.path = str(p)
+        # Resolve all resources using the new resolver
+        outline_data = outline.to_dict()
+        resolved_resources = resolve_all_resources(outline_data, session_id)
 
+        # Update resource paths in outline with resolved paths
+        for resource in outline.resources:
+            if resource.key in resolved_resources:
+                resource.path = str(resolved_resources[resource.key])
+
+        # Create updated outline with resolved paths
         data = outline.to_dict()
         outline_json = json.dumps(data, indent=2)
         outline_path = Path(tmpdir) / "outline.json"
@@ -415,6 +407,195 @@ def validate_outline(data: dict) -> None:
     validate(instance=data, schema=OUTLINE_SCHEMA)
 
 
+=== File: apps/document-generator/document_generator_app/package_handler.py ===
+"""Package handler for .docpack files.
+
+Handles creation and extraction of .docpack files which are zip archives
+containing an outline.json file and associated resource files.
+"""
+
+import json
+import zipfile
+from pathlib import Path
+from typing import Dict, List, Tuple, Any
+
+
+class DocpackHandler:
+    """Handles .docpack file creation and extraction."""
+
+    @staticmethod
+    def create_package(outline_data: Dict[str, Any], resource_files: List[Path], output_path: Path) -> None:
+        """Create a .docpack file from outline data and resource files.
+
+        Args:
+            outline_data: The outline JSON data
+            resource_files: List of resource file paths to include
+            output_path: Where to save the .docpack file
+        """
+        with zipfile.ZipFile(output_path, "w", zipfile.ZIP_DEFLATED) as zf:
+            # Always include outline.json
+            zf.writestr("outline.json", json.dumps(outline_data, indent=2))
+
+            # Add resource files with their original names
+            for resource_file in resource_files:
+                if resource_file.exists():
+                    zf.write(resource_file, resource_file.name)
+
+    @staticmethod
+    def extract_package(package_path: Path, extract_dir: Path) -> Tuple[Dict[str, Any], List[Path]]:
+        """Extract a .docpack file to a directory with organized structure.
+
+        Args:
+            package_path: Path to the .docpack file
+            extract_dir: Session directory to extract to
+
+        Returns:
+            Tuple of (outline_data, list_of_resource_file_paths)
+        """
+        extract_dir.mkdir(parents=True, exist_ok=True)
+
+        # Create files subdirectory for uploaded files
+        files_dir = extract_dir / "files"
+        files_dir.mkdir(exist_ok=True)
+
+        with zipfile.ZipFile(package_path, "r") as zf:
+            # Extract outline.json to extract_dir
+            if "outline.json" in zf.namelist():
+                zf.extract("outline.json", extract_dir)
+
+            # Extract all other files to files/ subdirectory
+            for file_info in zf.filelist:
+                if file_info.filename != "outline.json":
+                    # Extract to files directory
+                    file_info.filename = Path(file_info.filename).name  # Remove any path components
+                    zf.extract(file_info, files_dir)
+
+        # Read outline.json
+        outline_path = extract_dir / "outline.json"
+        if not outline_path.exists():
+            raise ValueError("Package does not contain outline.json")
+
+        with open(outline_path, "r") as f:
+            outline_data = json.load(f)
+
+        # Find all resource files in files directory
+        resource_files = [f for f in files_dir.iterdir() if f.is_file()]
+
+        return outline_data, resource_files
+
+    @staticmethod
+    def validate_package(package_path: Path) -> bool:
+        """Validate that a file is a valid .docpack.
+
+        Args:
+            package_path: Path to check
+
+        Returns:
+            True if valid .docpack, False otherwise
+        """
+        try:
+            with zipfile.ZipFile(package_path, "r") as zf:
+                files = zf.namelist()
+                return "outline.json" in files
+        except zipfile.BadZipFile:
+            return False
+
+
+=== File: apps/document-generator/document_generator_app/resource_resolver.py ===
+"""Resource resolution for document generation.
+
+Handles resolving resources at generation time:
+- Uploaded files: resolved to session files directory
+- URLs: downloaded to session temp directory
+"""
+
+import urllib.request
+import urllib.error
+from pathlib import Path
+from typing import Dict, Any, Optional
+from urllib.parse import urlparse
+
+from .models.outline import Resource
+from .session import session_manager
+
+
+def resolve_resource(resource: Resource, session_id: Optional[str]) -> Path:
+    """Resolve a resource to a local file path for generation.
+
+    Args:
+        resource: Resource object with path (file or URL)
+        session_id: Session ID for directory resolution
+
+    Returns:
+        Path to local file for use in generation
+
+    Raises:
+        FileNotFoundError: If uploaded file doesn't exist
+        urllib.error.URLError: If URL download fails
+    """
+    if resource.path.startswith(("http://", "https://")):
+        # URL: download to temp directory
+        return _download_url_resource(resource, session_id)
+    else:
+        # Uploaded file: resolve to files directory
+        return _resolve_file_resource(resource, session_id)
+
+
+def _resolve_file_resource(resource: Resource, session_id: Optional[str]) -> Path:
+    """Resolve uploaded file resource to local path."""
+    files_dir = session_manager.get_files_dir(session_id)
+    file_path = files_dir / resource.path
+
+    if not file_path.exists():
+        raise FileNotFoundError(f"Resource file not found: {resource.path}")
+
+    return file_path
+
+
+def _download_url_resource(resource: Resource, session_id: Optional[str]) -> Path:
+    """Download URL resource to temp directory."""
+    temp_dir = session_manager.get_temp_dir(session_id)
+
+    # Generate filename from URL
+    parsed_url = urlparse(resource.path)
+    filename = Path(parsed_url.path).name
+
+    # If no filename in URL, use resource key
+    if not filename or filename == "/":
+        filename = f"{resource.key}.downloaded"
+
+    target_path = temp_dir / filename
+
+    # Download the file
+    try:
+        urllib.request.urlretrieve(resource.path, target_path)
+        return target_path
+    except Exception as e:
+        raise urllib.error.URLError(f"Failed to download {resource.path}: {str(e)}")
+
+
+def resolve_all_resources(outline_data: Dict[str, Any], session_id: Optional[str]) -> Dict[str, Path]:
+    """Resolve all resources in an outline to local paths.
+
+    Args:
+        outline_data: Outline dictionary with resources
+        session_id: Session ID for directory resolution
+
+    Returns:
+        Dictionary mapping resource keys to resolved file paths
+    """
+    from .models.outline import Outline
+
+    outline = Outline.from_dict(outline_data)
+    resolved_resources = {}
+
+    for resource in outline.resources:
+        if resource.key:
+            resolved_resources[resource.key] = resolve_resource(resource, session_id)
+
+    return resolved_resources
+
+
 === File: apps/document-generator/document_generator_app/session.py ===
 """
 Session management for multi-user hosting.
@@ -445,9 +626,22 @@ class SessionManager:
         if session_id not in self.session_dirs:
             session_dir = Path(tempfile.gettempdir()) / f"doc-gen-{session_id}"
             session_dir.mkdir(exist_ok=True)
+
+            # Create subdirectories for organized file management
+            (session_dir / "files").mkdir(exist_ok=True)  # Uploaded files (stored in docpack)
+            (session_dir / "temp").mkdir(exist_ok=True)  # Generated files, downloaded URLs
+
             self.session_dirs[session_id] = session_dir
 
         return self.session_dirs[session_id]
+
+    def get_files_dir(self, session_id: Optional[str] = None) -> Path:
+        """Get files directory for session (for uploaded files)"""
+        return self.get_session_dir(session_id) / "files"
+
+    def get_temp_dir(self, session_id: Optional[str] = None) -> Path:
+        """Get temp directory for session (for generated files and downloaded URLs)"""
+        return self.get_session_dir(session_id) / "temp"
 
     def cleanup_all(self):
         """Clean up all session directories on shutdown"""
@@ -473,6 +667,7 @@ from typing import Dict, Any, List, Optional, Tuple
 
 from .models.outline import Outline, Resource, Section, validate_outline
 from .executor.runner import generate_document
+from .package_handler import DocpackHandler
 
 
 # ============================================================================
@@ -558,21 +753,23 @@ def create_resource_editor() -> Dict[str, Any]:
         key = gr.Textbox(label="Key *", placeholder="unique_key")
         description = gr.TextArea(label="Description", placeholder="Describe what this resource contains...", lines=3)
 
-        gr.Markdown("#### File Source")
-        with gr.Tabs() as file_source_tabs:
+        gr.Markdown("#### Resource Source")
+        with gr.Tabs() as resource_source_tabs:
             with gr.TabItem("Upload File", id="upload_file"):
+                bundled_file_info = gr.Markdown(visible=False)
                 file = gr.File(label="Upload File", file_types=None)
 
-            with gr.TabItem("File Path / URL", id="file_path"):
-                path = gr.Textbox(label="File Path / URL", placeholder="/path/to/file.txt or https://example.com/data")
+            with gr.TabItem("URL", id="url_tab"):
+                url = gr.Textbox(label="URL", placeholder="https://example.com/data.md")
 
     return {
         "container": container,
         "key": key,
         "description": description,
+        "bundled_file_info": bundled_file_info,
         "file": file,
-        "path": path,
-        "file_source_tabs": file_source_tabs,
+        "url": url,
+        "resource_source_tabs": resource_source_tabs,
     }
 
 
@@ -664,10 +861,10 @@ def generate_section_choices(state_data: Dict[str, Any]) -> List[Tuple[str, str]
 # ============================================================================
 
 
-def validate_and_preview(state_data: Dict[str, Any]) -> Tuple[str, Any, Any]:
+def validate_and_preview(state_data: Dict[str, Any]) -> Tuple[str, Any, Any, Any]:
     """Validate outline and update JSON preview."""
     if not state_data:
-        return "", gr.update(visible=False), gr.update(interactive=False)
+        return "", gr.update(visible=False), gr.update(interactive=False), gr.update(visible=False)
 
     try:
         outline_dict = state_data["outline"].to_dict()
@@ -675,13 +872,22 @@ def validate_and_preview(state_data: Dict[str, Any]) -> Tuple[str, Any, Any]:
 
         is_valid, message = validate_outline_data(state_data["outline"])
 
+        # Update download visibility
+        has_content = state_data["outline"].title or state_data["outline"].resources or state_data["outline"].sections
+        download_visible = gr.update(visible=has_content)
+
         if is_valid:
-            return json_str, gr.update(visible=False), gr.update(interactive=True)
+            return json_str, gr.update(visible=False), gr.update(interactive=True), download_visible
         else:
-            return json_str, gr.update(value=f"⚠️ {message}", visible=True), gr.update(interactive=False)
+            return (
+                json_str,
+                gr.update(value=f"⚠️ {message}", visible=True),
+                gr.update(interactive=False),
+                download_visible,
+            )
     except Exception as e:
         error_msg = f"❌ Error: {str(e)}"
-        return "", gr.update(value=error_msg, visible=True), gr.update(interactive=False)
+        return "", gr.update(value=error_msg, visible=True), gr.update(interactive=False), gr.update(visible=False)
 
 
 # ============================================================================
@@ -858,8 +1064,8 @@ def build_editor() -> gr.Blocks:
             with gr.Column(scale=3, min_width=300):
                 # Input options
                 with gr.Tabs():
-                    with gr.TabItem("Upload Outline"):
-                        upload_btn = gr.UploadButton("Upload Outline JSON", file_types=[".json"], variant="secondary")
+                    with gr.TabItem("Upload Docpack"):
+                        upload_btn = gr.UploadButton("Upload Docpack", file_types=[".docpack"], variant="secondary")
 
                     with gr.TabItem("Examples"):
                         # Create dropdown choices from example outlines
@@ -928,10 +1134,14 @@ def build_editor() -> gr.Blocks:
 
                 download_doc_btn = gr.DownloadButton("Download Document", visible=False)
 
+                # Download docpack section
+                gr.Markdown("---")
+                download_docpack_btn = gr.DownloadButton("Download Docpack", variant="secondary", visible=False)
+
                 # Live JSON preview
                 with gr.Accordion("Outline Preview (JSON)", open=False):
                     json_preview = gr.Code(
-                        label="Download File to Upload Later",
+                        label="Current Outline Structure",
                         language="json",
                         interactive=False,
                         wrap_lines=True,
@@ -983,6 +1193,7 @@ def build_editor() -> gr.Blocks:
                     gr.update(visible=False),
                     "",
                     "",
+                    gr.update(visible=False),
                     "",
                     "",
                     "",
@@ -1002,7 +1213,8 @@ def build_editor() -> gr.Blocks:
             # Default values
             res_key = ""
             res_desc = ""
-            res_path = ""
+            res_url = ""
+            bundled_file_info = gr.update(visible=False)
             sec_title = ""
             sec_prompt = ""
             sec_refs = []
@@ -1015,10 +1227,32 @@ def build_editor() -> gr.Blocks:
                     res = new_state["outline"].resources[idx]
                     res_key = res.key or ""
                     res_desc = res.description or ""
-                    res_path = res.path or ""
+                    # Handle URL vs bundled file display
+                    if res.path and res.path.startswith(("http://", "https://")):
+                        res_url = res.path
+                        bundled_file_info = gr.update(visible=False)
+                    else:
+                        res_url = ""  # Leave URL field empty for bundled files
+                        if res.path:
+                            # Check if file actually exists in session
+                            from .session import session_manager
 
-            # Determine which file source tab should be selected
-            file_source_tab_selected = "file_path" if show_resource and res_path else "upload_file"
+                            files_dir = session_manager.get_files_dir(new_state.get("session_id"))
+                            file_path = files_dir / res.path
+
+                            if file_path.exists():
+                                bundled_file_info = gr.update(value=f"**Bundled File:** `{res.path}` ✓", visible=True)
+                            else:
+                                bundled_file_info = gr.update(
+                                    value=f"**Referenced File:** `{res.path}` ⚠️ *File not uploaded*", visible=True
+                                )
+                        else:
+                            bundled_file_info = gr.update(visible=False)
+
+            # Determine which resource source tab should be selected
+            # Check if path is a URL
+            is_url = res_url.startswith(("http://", "https://")) if res_url else False
+            resource_source_tab_selected = "url_tab" if show_resource and is_url else "upload_file"
 
             # Update section editor values and determine content mode tab
             sec = None
@@ -1060,7 +1294,8 @@ def build_editor() -> gr.Blocks:
                 gr.update(visible=show_section),
                 res_key,
                 res_desc,
-                res_path,
+                bundled_file_info,
+                res_url,
                 sec_title,
                 sec_prompt,
                 gr.update(
@@ -1072,14 +1307,14 @@ def build_editor() -> gr.Blocks:
                     if sec_resource_key and sec_resource_key in [r.key for r in new_state["outline"].resources if r.key]
                     else None,
                 ),
-                gr.update(selected=file_source_tab_selected),
+                gr.update(selected=resource_source_tab_selected),
                 gr.update(selected=content_mode_tab_selected),
             ]
 
         def handle_resource_click(val, current_state):
             """Handle resource radio click without updating own radio."""
             if not val:
-                return [current_state] + [gr.update()] * 14
+                return [current_state] + [gr.update()] * 15
             result = handle_selection(val, "resource", current_state)
             result[1] = gr.update()  # Don't update the resource radio itself
             return result
@@ -1087,7 +1322,7 @@ def build_editor() -> gr.Blocks:
         def handle_section_click(val, current_state):
             """Handle section radio click without updating own radio."""
             if not val:
-                return [current_state] + [gr.update()] * 14
+                return [current_state] + [gr.update()] * 15
             result = handle_selection(val, "section", current_state)
             result[2] = gr.update()  # Don't update the section radio itself
             return result
@@ -1098,8 +1333,16 @@ def build_editor() -> gr.Blocks:
                 state_data["outline"].title = doc_title or ""
                 state_data["outline"].general_instruction = doc_instructions or ""
             resource_choices, section_choices = update_lists(state_data)
-            json_str, validation_msg, generate_btn_update = validate_and_preview(state_data)
-            return state_data, resource_choices, section_choices, json_str, validation_msg, generate_btn_update
+            json_str, validation_msg, generate_btn_update, download_btn_update = validate_and_preview(state_data)
+            return (
+                state_data,
+                resource_choices,
+                section_choices,
+                json_str,
+                validation_msg,
+                generate_btn_update,
+                download_btn_update,
+            )
 
         def handle_add_resource(current_state):
             """Add a new resource."""
@@ -1114,13 +1357,13 @@ def build_editor() -> gr.Blocks:
         def auto_save_resource_field(field_name, value, current_state):
             """Auto-save a resource field."""
             if not current_state["selected_id"] or current_state["selected_type"] != "resource":
-                json_str, validation_msg, generate_btn_update = validate_and_preview(current_state)
+                json_str, validation_msg, generate_btn_update, download_btn_update = validate_and_preview(current_state)
                 return current_state, gr.update(), gr.update(), json_str, validation_msg, generate_btn_update
 
             # Get current resource data
             idx = int(current_state["selected_id"].split("_")[1])
             if idx >= len(current_state["outline"].resources):
-                json_str, validation_msg, generate_btn_update = validate_and_preview(current_state)
+                json_str, validation_msg, generate_btn_update, _ = validate_and_preview(current_state)
                 return current_state, gr.update(), gr.update(), json_str, validation_msg, generate_btn_update
 
             # Update the specific field
@@ -1132,7 +1375,7 @@ def build_editor() -> gr.Blocks:
             section_choices = generate_section_choices(current_state)
 
             # Validate and preview
-            json_str, validation_msg, generate_btn_update = validate_and_preview(current_state)
+            json_str, validation_msg, generate_btn_update, _ = validate_and_preview(current_state)
 
             # If changing a resource key, clear any section selection to avoid ref conflicts
             if field_name == "key":
@@ -1157,7 +1400,7 @@ def build_editor() -> gr.Blocks:
         def auto_save_section_field(field_name, value, current_state):
             """Auto-save a section field."""
             if not current_state["selected_id"] or current_state["selected_type"] != "section":
-                json_str, validation_msg, generate_btn_update = validate_and_preview(current_state)
+                json_str, validation_msg, generate_btn_update, _ = validate_and_preview(current_state)
                 return current_state, gr.update(), gr.update(), json_str, validation_msg, generate_btn_update
 
             # Get current section
@@ -1165,7 +1408,7 @@ def build_editor() -> gr.Blocks:
             section = get_section_at_path(current_state["outline"].sections, path)
 
             if not section:
-                json_str, validation_msg, generate_btn_update = validate_and_preview(current_state)
+                json_str, validation_msg, generate_btn_update, _ = validate_and_preview(current_state)
                 return current_state, gr.update(), gr.update(), json_str, validation_msg, generate_btn_update
 
             # Set the field value
@@ -1185,7 +1428,7 @@ def build_editor() -> gr.Blocks:
             section_choices = generate_section_choices(current_state)
 
             # Validate and preview
-            json_str, validation_msg, generate_btn_update = validate_and_preview(current_state)
+            json_str, validation_msg, generate_btn_update, _ = validate_and_preview(current_state)
 
             return (
                 current_state,
@@ -1200,7 +1443,7 @@ def build_editor() -> gr.Blocks:
             """Remove selected item."""
             new_state = remove_selected(current_state)
             resource_choices, section_choices = update_lists(new_state)
-            json_str, validation_msg, generate_btn_update = validate_and_preview(new_state)
+            json_str, validation_msg, generate_btn_update, _ = validate_and_preview(new_state)
             return [
                 new_state,
                 resource_choices,
@@ -1214,43 +1457,52 @@ def build_editor() -> gr.Blocks:
             ]
 
         def handle_upload(file, current_state):
-            """Upload outline from JSON."""
+            """Upload docpack file."""
             if file:
-                # Gradio returns the file path as a string
-                with open(file, "r") as f:
-                    content = f.read()
-                data = json.loads(content)
-                current_state["outline"] = Outline.from_dict(data)
-                current_state["selected_id"] = None
-                current_state["selected_type"] = None
+                from pathlib import Path
+                from .session import session_manager
 
-                # Update UI
-                resource_choices, section_choices = update_lists(current_state)
-                json_str, validation_msg, generate_btn_update = validate_and_preview(current_state)
+                # Extract package to session directory
+                session_dir = session_manager.get_session_dir(current_state.get("session_id"))
+                package_path = Path(file)
 
-                return [
-                    current_state,
-                    current_state["outline"].title,
-                    current_state["outline"].general_instruction,
-                    resource_choices,
-                    section_choices,
-                    gr.update(visible=True),
-                    gr.update(visible=False),
-                    gr.update(visible=False),
-                    json_str,
-                    validation_msg,
-                    generate_btn_update,
-                ]
+                try:
+                    outline_data, resource_files = DocpackHandler.extract_package(package_path, session_dir)
+                    current_state["outline"] = Outline.from_dict(outline_data)
+                    current_state["selected_id"] = None
+                    current_state["selected_type"] = None
+
+                    # Update UI
+                    resource_choices, section_choices = update_lists(current_state)
+                    json_str, validation_msg, generate_btn_update, _ = validate_and_preview(current_state)
+
+                    return [
+                        current_state,
+                        current_state["outline"].title,
+                        current_state["outline"].general_instruction,
+                        resource_choices,
+                        section_choices,
+                        gr.update(visible=True),
+                        gr.update(visible=False),
+                        gr.update(visible=False),
+                        json_str,
+                        validation_msg,
+                        generate_btn_update,
+                    ]
+                except Exception as e:
+                    print(f"Error extracting docpack: {str(e)}")
+                    return [current_state] + [gr.update()] * 10
             return [current_state] + [gr.update()] * 10
 
         def handle_load_example(example_idx, current_state):
-            """Load an example outline."""
+            """Load an example docpack."""
             if example_idx is None:
                 return [current_state] + [gr.update()] * 10
 
             try:
                 from .config import settings
                 from pathlib import Path
+                from .session import session_manager
 
                 # Get the example configuration
                 example = settings.example_outlines[example_idx]
@@ -1259,19 +1511,18 @@ def build_editor() -> gr.Blocks:
                 module_dir = Path(__file__).parent.parent
                 example_path = module_dir / example.path
 
-                # Load the JSON file
-                with open(example_path, "r") as f:
-                    content = f.read()
-                data = json.loads(content)
+                # Extract docpack to session directory
+                session_dir = session_manager.get_session_dir(current_state.get("session_id"))
+                outline_data, resource_files = DocpackHandler.extract_package(example_path, session_dir)
 
                 # Update state with loaded outline
-                current_state["outline"] = Outline.from_dict(data)
+                current_state["outline"] = Outline.from_dict(outline_data)
                 current_state["selected_id"] = None
                 current_state["selected_type"] = None
 
                 # Update UI
                 resource_choices, section_choices = update_lists(current_state)
-                json_str, validation_msg, generate_btn_update = validate_and_preview(current_state)
+                json_str, validation_msg, generate_btn_update, _ = validate_and_preview(current_state)
 
                 return [
                     current_state,
@@ -1291,6 +1542,145 @@ def build_editor() -> gr.Blocks:
                 print(f"Error loading example: {str(e)}")
                 return [current_state] + [gr.update()] * 10
 
+        def handle_file_change(file_path, current_state):
+            """Handle file upload or deletion and manage session files directory."""
+            if not current_state["selected_id"] or current_state["selected_type"] != "resource":
+                json_str, validation_msg, generate_btn_update, _ = validate_and_preview(current_state)
+                return (
+                    current_state,
+                    gr.update(),
+                    gr.update(),
+                    gr.update(),
+                    json_str,
+                    validation_msg,
+                    generate_btn_update,
+                )
+
+            try:
+                from pathlib import Path
+                import shutil
+                from .session import session_manager
+
+                # Get current resource index
+                idx = int(current_state["selected_id"].split("_")[1])
+                if idx >= len(current_state["outline"].resources):
+                    json_str, validation_msg, generate_btn_update, _ = validate_and_preview(current_state)
+                    return (
+                        current_state,
+                        gr.update(),
+                        gr.update(),
+                        gr.update(),
+                        json_str,
+                        validation_msg,
+                        generate_btn_update,
+                    )
+
+                resource = current_state["outline"].resources[idx]
+                files_dir = session_manager.get_files_dir(current_state.get("session_id"))
+
+                if file_path is None:
+                    # File was cleared - delete the existing file and clear resource path
+                    if resource.path and not resource.path.startswith(("http://", "https://")):
+                        # Only delete if it's a file (not a URL)
+                        old_file_path = files_dir / resource.path
+                        if old_file_path.exists():
+                            old_file_path.unlink()
+                            print(f"Deleted file: {old_file_path}")
+
+                    # Clear the resource path
+                    resource.path = ""
+
+                    # Update bundled file info to show nothing
+                    bundled_file_info_update = gr.update(visible=False)
+
+                else:
+                    # File was uploaded - copy it and update resource
+                    # First, clean up any existing file
+                    if resource.path and not resource.path.startswith(("http://", "https://")):
+                        old_file_path = files_dir / resource.path
+                        if old_file_path.exists():
+                            old_file_path.unlink()
+                            print(f"Replaced file: {old_file_path}")
+
+                    # Copy uploaded file to files directory
+                    source_path = Path(file_path)
+                    target_path = files_dir / source_path.name
+                    shutil.copy2(source_path, target_path)
+
+                    # Update resource with relative path (just filename)
+                    resource.path = source_path.name
+
+                    # Update bundled file info to show uploaded file
+                    bundled_file_info_update = gr.update(
+                        value=f"**Uploaded File:** `{source_path.name}` ✓", visible=True
+                    )
+
+                # Update radio choices to reflect changes
+                resource_choices = generate_resource_choices(current_state)
+                section_choices = generate_section_choices(current_state)
+
+                # Validate and preview
+                json_str, validation_msg, generate_btn_update, _ = validate_and_preview(current_state)
+
+                return (
+                    current_state,
+                    gr.update(choices=resource_choices, value=current_state["selected_id"]),
+                    gr.update(choices=section_choices),
+                    bundled_file_info_update,
+                    json_str,
+                    validation_msg,
+                    generate_btn_update,
+                )
+
+            except Exception as e:
+                print(f"Error handling file change: {str(e)}")
+                json_str, validation_msg, generate_btn_update, _ = validate_and_preview(current_state)
+                return (
+                    current_state,
+                    gr.update(),
+                    gr.update(),
+                    gr.update(),
+                    json_str,
+                    validation_msg,
+                    generate_btn_update,
+                )
+
+        def handle_download_docpack(current_state):
+            """Create and download a docpack file."""
+            try:
+                from .session import session_manager
+
+                session_dir = session_manager.get_session_dir(current_state.get("session_id"))
+                files_dir = session_manager.get_files_dir(current_state.get("session_id"))
+
+                # Get current outline data
+                outline_data = current_state["outline"].to_dict()
+
+                # Find resource files in session files directory
+                resource_files = []
+                for resource in current_state["outline"].resources:
+                    if resource.path and not resource.path.startswith(("http://", "https://")):
+                        # Only include uploaded files (not URLs)
+                        resource_path = files_dir / resource.path
+                        if resource_path.exists():
+                            resource_files.append(resource_path)
+
+                # Create docpack filename
+                title = current_state["outline"].title or "outline"
+                # Sanitize filename
+                safe_title = "".join(c for c in title if c.isalnum() or c in (" ", "-", "_")).rstrip()
+                filename = f"{safe_title}.docpack"
+
+                # Create docpack in session directory
+                docpack_path = session_dir / filename
+                DocpackHandler.create_package(outline_data, resource_files, docpack_path)
+
+                return gr.update(value=str(docpack_path), label=f"Download {filename}")
+
+            except Exception as e:
+                print(f"Error creating docpack: {str(e)}")
+                return gr.update()
+
         # ====================================================================
         # Connect Event Handlers
         # ====================================================================
@@ -1308,12 +1698,13 @@ def build_editor() -> gr.Blocks:
                 section_editor["container"],
                 resource_editor["key"],
                 resource_editor["description"],
-                resource_editor["path"],
+                resource_editor["bundled_file_info"],
+                resource_editor["url"],
                 section_editor["title"],
                 section_editor["prompt"],
                 section_editor["refs"],
                 section_editor["resource_key"],
-                resource_editor["file_source_tabs"],
+                resource_editor["resource_source_tabs"],
                 section_editor["content_mode_tabs"],
             ],
         )
@@ -1330,12 +1721,13 @@ def build_editor() -> gr.Blocks:
                 section_editor["container"],
                 resource_editor["key"],
                 resource_editor["description"],
-                resource_editor["path"],
+                resource_editor["bundled_file_info"],
+                resource_editor["url"],
                 section_editor["title"],
                 section_editor["prompt"],
                 section_editor["refs"],
                 section_editor["resource_key"],
-                resource_editor["file_source_tabs"],
+                resource_editor["resource_source_tabs"],
                 section_editor["content_mode_tabs"],
             ],
         )
@@ -1344,13 +1736,29 @@ def build_editor() -> gr.Blocks:
         title.change(
             update_metadata,
             inputs=[state, title, instructions],
-            outputs=[state, resource_radio, section_radio, json_preview, validation_message, generate_btn],
+            outputs=[
+                state,
+                resource_radio,
+                section_radio,
+                json_preview,
+                validation_message,
+                generate_btn,
+                download_docpack_btn,
+            ],
         )
 
         instructions.change(
             update_metadata,
             inputs=[state, title, instructions],
-            outputs=[state, resource_radio, section_radio, json_preview, validation_message, generate_btn],
+            outputs=[
+                state,
+                resource_radio,
+                section_radio,
+                json_preview,
+                validation_message,
+                generate_btn,
+                download_docpack_btn,
+            ],
         )
 
         # Add/Remove buttons
@@ -1366,12 +1774,13 @@ def build_editor() -> gr.Blocks:
                 section_editor["container"],
                 resource_editor["key"],
                 resource_editor["description"],
-                resource_editor["path"],
+                resource_editor["bundled_file_info"],
+                resource_editor["url"],
                 section_editor["title"],
                 section_editor["prompt"],
                 section_editor["refs"],
                 section_editor["resource_key"],
-                resource_editor["file_source_tabs"],
+                resource_editor["resource_source_tabs"],
                 section_editor["content_mode_tabs"],
             ],
         )
@@ -1388,12 +1797,13 @@ def build_editor() -> gr.Blocks:
                 section_editor["container"],
                 resource_editor["key"],
                 resource_editor["description"],
-                resource_editor["path"],
+                resource_editor["bundled_file_info"],
+                resource_editor["url"],
                 section_editor["title"],
                 section_editor["prompt"],
                 section_editor["refs"],
                 section_editor["resource_key"],
-                resource_editor["file_source_tabs"],
+                resource_editor["resource_source_tabs"],
                 section_editor["content_mode_tabs"],
             ],
         )
@@ -1410,12 +1820,13 @@ def build_editor() -> gr.Blocks:
                 section_editor["container"],
                 resource_editor["key"],
                 resource_editor["description"],
-                resource_editor["path"],
+                resource_editor["bundled_file_info"],
+                resource_editor["url"],
                 section_editor["title"],
                 section_editor["prompt"],
                 section_editor["refs"],
                 section_editor["resource_key"],
-                resource_editor["file_source_tabs"],
+                resource_editor["resource_source_tabs"],
                 section_editor["content_mode_tabs"],
             ],
         )
@@ -1465,18 +1876,24 @@ def build_editor() -> gr.Blocks:
             outputs=[state, resource_radio, section_radio, json_preview, validation_message, generate_btn],
         )
 
-        resource_editor["path"].change(
+        resource_editor["url"].change(
             lambda v, s: auto_save_resource_field("path", v, s),
-            inputs=[resource_editor["path"], state],
+            inputs=[resource_editor["url"], state],
             outputs=[state, resource_radio, section_radio, json_preview, validation_message, generate_btn],
         )
 
         resource_editor["file"].change(
-            lambda v, s: auto_save_resource_field("path", v, s)
-            if v
-            else (s, gr.update(), gr.update(), gr.update(), gr.update(), gr.update()),
+            handle_file_change,
             inputs=[resource_editor["file"], state],
-            outputs=[state, resource_radio, section_radio, json_preview, validation_message, generate_btn],
+            outputs=[
+                state,
+                resource_radio,
+                section_radio,
+                resource_editor["bundled_file_info"],
+                json_preview,
+                validation_message,
+                generate_btn,
+            ],
         )
 
         # Auto-save section fields
@@ -1508,7 +1925,7 @@ def build_editor() -> gr.Blocks:
         def handle_prompt_tab_select(current_state):
             """Handle switching to prompt mode tab."""
             if not current_state["selected_id"] or current_state["selected_type"] != "section":
-                json_str, validation_msg, generate_btn_update = validate_and_preview(current_state)
+                json_str, validation_msg, generate_btn_update, _ = validate_and_preview(current_state)
                 return (
                     current_state,
                     gr.update(),
@@ -1524,7 +1941,7 @@ def build_editor() -> gr.Blocks:
             section = get_section_at_path(current_state["outline"].sections, path)
 
             if not section:
-                json_str, validation_msg, generate_btn_update = validate_and_preview(current_state)
+                json_str, validation_msg, generate_btn_update, _ = validate_and_preview(current_state)
                 return (
                     current_state,
                     gr.update(),
@@ -1544,7 +1961,7 @@ def build_editor() -> gr.Blocks:
             # Update UI (don't clear fields, just update choices and JSON)
             resource_choices = generate_resource_choices(current_state)
             section_choices = generate_section_choices(current_state)
-            json_str, validation_msg, generate_btn_update = validate_and_preview(current_state)
+            json_str, validation_msg, generate_btn_update, _ = validate_and_preview(current_state)
 
             return (
                 current_state,
@@ -1559,7 +1976,7 @@ def build_editor() -> gr.Blocks:
         def handle_static_tab_select(current_state):
             """Handle switching to static mode tab."""
             if not current_state["selected_id"] or current_state["selected_type"] != "section":
-                json_str, validation_msg, generate_btn_update = validate_and_preview(current_state)
+                json_str, validation_msg, generate_btn_update, _ = validate_and_preview(current_state)
                 return (
                     current_state,
                     gr.update(),
@@ -1576,7 +1993,7 @@ def build_editor() -> gr.Blocks:
             section = get_section_at_path(current_state["outline"].sections, path)
 
             if not section:
-                json_str, validation_msg, generate_btn_update = validate_and_preview(current_state)
+                json_str, validation_msg, generate_btn_update, _ = validate_and_preview(current_state)
                 return (
                     current_state,
                     gr.update(),
@@ -1599,7 +2016,7 @@ def build_editor() -> gr.Blocks:
             # Update UI (don't clear fields, just update choices and JSON)
             resource_choices = generate_resource_choices(current_state)
             section_choices = generate_section_choices(current_state)
-            json_str, validation_msg, generate_btn_update = validate_and_preview(current_state)
+            json_str, validation_msg, generate_btn_update, _ = validate_and_preview(current_state)
 
             return (
                 current_state,
@@ -1689,9 +2106,14 @@ def build_editor() -> gr.Blocks:
             ],
         )
 
+        # Set up download docpack handler to update with file path when clicked
+        download_docpack_btn.click(handle_download_docpack, inputs=[state], outputs=[download_docpack_btn])
+
         # Initial validation on load
         app.load(
-            lambda s: validate_and_preview(s), inputs=[state], outputs=[json_preview, validation_message, generate_btn]
+            lambda s: validate_and_preview(s),
+            inputs=[state],
+            outputs=[json_preview, validation_message, generate_btn, download_docpack_btn],
         )
 
     return app
