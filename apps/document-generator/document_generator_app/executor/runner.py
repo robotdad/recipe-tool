@@ -23,9 +23,19 @@ async def generate_document(outline: Optional[Outline], session_id: Optional[str
     if outline is None:
         return ""
 
-    REPO_ROOT = Path(__file__).resolve().parents[4]
-    RECIPE_PATH = REPO_ROOT / "recipes" / "document_generator" / "document_generator_recipe.json"
-    RECIPE_ROOT = RECIPE_PATH.parent
+    # First try bundled recipes (for deployment), then fall back to repo structure (for development)
+    APP_ROOT = Path(__file__).resolve().parents[2]  # document_generator_app parent
+    BUNDLED_RECIPE_PATH = APP_ROOT / "document_generator_app" / "recipes" / "document_generator_recipe.json"
+
+    if BUNDLED_RECIPE_PATH.exists():
+        # Use bundled recipes (deployment mode)
+        RECIPE_PATH = BUNDLED_RECIPE_PATH
+        RECIPE_ROOT = RECIPE_PATH.parent
+    else:
+        # Fall back to repo structure (development mode)
+        REPO_ROOT = Path(__file__).resolve().parents[4]
+        RECIPE_PATH = REPO_ROOT / "recipes" / "document_generator" / "document_generator_recipe.json"
+        RECIPE_ROOT = RECIPE_PATH.parent
 
     # Use session-scoped temp directory
     session_dir = session_manager.get_session_dir(session_id)
