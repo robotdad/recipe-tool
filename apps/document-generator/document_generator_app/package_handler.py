@@ -33,19 +33,32 @@ class DocpackHandler:
 
     @staticmethod
     def extract_package(package_path: Path, extract_dir: Path) -> Tuple[Dict[str, Any], List[Path]]:
-        """Extract a .docpack file to a directory.
+        """Extract a .docpack file to a directory with organized structure.
 
         Args:
             package_path: Path to the .docpack file
-            extract_dir: Directory to extract to
+            extract_dir: Session directory to extract to
 
         Returns:
             Tuple of (outline_data, list_of_resource_file_paths)
         """
         extract_dir.mkdir(parents=True, exist_ok=True)
 
+        # Create files subdirectory for uploaded files
+        files_dir = extract_dir / "files"
+        files_dir.mkdir(exist_ok=True)
+
         with zipfile.ZipFile(package_path, "r") as zf:
-            zf.extractall(extract_dir)
+            # Extract outline.json to extract_dir
+            if "outline.json" in zf.namelist():
+                zf.extract("outline.json", extract_dir)
+
+            # Extract all other files to files/ subdirectory
+            for file_info in zf.filelist:
+                if file_info.filename != "outline.json":
+                    # Extract to files directory
+                    file_info.filename = Path(file_info.filename).name  # Remove any path components
+                    zf.extract(file_info, files_dir)
 
         # Read outline.json
         outline_path = extract_dir / "outline.json"
@@ -55,8 +68,8 @@ class DocpackHandler:
         with open(outline_path, "r") as f:
             outline_data = json.load(f)
 
-        # Find all other files (resources)
-        resource_files = [f for f in extract_dir.iterdir() if f.name != "outline.json"]
+        # Find all resource files in files directory
+        resource_files = [f for f in files_dir.iterdir() if f.is_file()]
 
         return outline_data, resource_files
 

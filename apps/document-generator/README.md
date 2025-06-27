@@ -62,6 +62,34 @@ The app will open at `http://localhost:7860`
 }
 ```
 
+## Refreshing Example Docpacks
+
+The app includes example docpacks that demonstrate different use cases. These are generated from source JSON files maintained in the recipes directory.
+
+### To refresh examples:
+
+```bash
+# From the document-generator directory
+make refresh-examples
+
+# Or run the script directly:
+python scripts/refresh_examples.py
+```
+
+This script:
+1. Reads example JSON files from `/recipes/document_generator/examples/`
+2. Locates and bundles all referenced resource files 
+3. Converts file paths to simple filenames (for docpack format)
+4. Creates fresh `.docpack` files with embedded resources in the `examples/` directory
+
+### Example sources:
+
+- **Source files**: `/recipes/document_generator/examples/*.json`
+- **Resource files**: `/recipes/document_generator/examples/resources/`
+- **Generated docpacks**: `apps/document-generator/examples/*.docpack`
+
+The source JSON files contain full file paths to actual resource files. When converted to docpacks, the referenced files are bundled inside the .docpack archive, creating fully functional, self-contained examples that work immediately when loaded.
+
 ## Architecture
 
 The app follows a simple two-column layout:

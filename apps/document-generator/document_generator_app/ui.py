@@ -97,21 +97,23 @@ def create_resource_editor() -> Dict[str, Any]:
         key = gr.Textbox(label="Key *", placeholder="unique_key")
         description = gr.TextArea(label="Description", placeholder="Describe what this resource contains...", lines=3)
 
-        gr.Markdown("#### File Source")
-        with gr.Tabs() as file_source_tabs:
+        gr.Markdown("#### Resource Source")
+        with gr.Tabs() as resource_source_tabs:
             with gr.TabItem("Upload File", id="upload_file"):
+                bundled_file_info = gr.Markdown(visible=False)
                 file = gr.File(label="Upload File", file_types=None)
 
-            with gr.TabItem("File Path / URL", id="file_path"):
-                path = gr.Textbox(label="File Path / URL", placeholder="/path/to/file.txt or https://example.com/data")
+            with gr.TabItem("URL", id="url_tab"):
+                url = gr.Textbox(label="URL", placeholder="https://example.com/data.md")
 
     return {
         "container": container,
         "key": key,
         "description": description,
+        "bundled_file_info": bundled_file_info,
         "file": file,
-        "path": path,
-        "file_source_tabs": file_source_tabs,
+        "url": url,
+        "resource_source_tabs": resource_source_tabs,
     }
 
 
@@ -535,6 +537,7 @@ def build_editor() -> gr.Blocks:
                     gr.update(visible=False),
                     "",
                     "",
+                    gr.update(visible=False),
                     "",
                     "",
                     "",
@@ -554,7 +557,8 @@ def build_editor() -> gr.Blocks:
             # Default values
             res_key = ""
             res_desc = ""
-            res_path = ""
+            res_url = ""
+            bundled_file_info = gr.update(visible=False)
             sec_title = ""
             sec_prompt = ""
             sec_refs = []
@@ -567,10 +571,32 @@ def build_editor() -> gr.Blocks:
                     res = new_state["outline"].resources[idx]
                     res_key = res.key or ""
                     res_desc = res.description or ""
-                    res_path = res.path or ""
+                    # Handle URL vs bundled file display
+                    if res.path and res.path.startswith(("http://", "https://")):
+                        res_url = res.path
+                        bundled_file_info = gr.update(visible=False)
+                    else:
+                        res_url = ""  # Leave URL field empty for bundled files
+                        if res.path:
+                            # Check if file actually exists in session
+                            from .session import session_manager
 
-            # Determine which file source tab should be selected
-            file_source_tab_selected = "file_path" if show_resource and res_path else "upload_file"
+                            files_dir = session_manager.get_files_dir(new_state.get("session_id"))
+                            file_path = files_dir / res.path
+
+                            if file_path.exists():
+                                bundled_file_info = gr.update(value=f"**Bundled File:** `{res.path}` ✓", visible=True)
+                            else:
+                                bundled_file_info = gr.update(
+                                    value=f"**Referenced File:** `{res.path}` ⚠️ *File not uploaded*", visible=True
+                                )
+                        else:
+                            bundled_file_info = gr.update(visible=False)
+
+            # Determine which resource source tab should be selected
+            # Check if path is a URL
+            is_url = res_url.startswith(("http://", "https://")) if res_url else False
+            resource_source_tab_selected = "url_tab" if show_resource and is_url else "upload_file"
 
             # Update section editor values and determine content mode tab
             sec = None
@@ -612,7 +638,8 @@ def build_editor() -> gr.Blocks:
                 gr.update(visible=show_section),
                 res_key,
                 res_desc,
-                res_path,
+                bundled_file_info,
+                res_url,
                 sec_title,
                 sec_prompt,
                 gr.update(
@@ -624,14 +651,14 @@ def build_editor() -> gr.Blocks:
                     if sec_resource_key and sec_resource_key in [r.key for r in new_state["outline"].resources if r.key]
                     else None,
                 ),
-                gr.update(selected=file_source_tab_selected),
+                gr.update(selected=resource_source_tab_selected),
                 gr.update(selected=content_mode_tab_selected),
             ]
 
         def handle_resource_click(val, current_state):
             """Handle resource radio click without updating own radio."""
             if not val:
-                return [current_state] + [gr.update()] * 14
+                return [current_state] + [gr.update()] * 15
             result = handle_selection(val, "resource", current_state)
             result[1] = gr.update()  # Don't update the resource radio itself
             return result
@@ -639,7 +666,7 @@ def build_editor() -> gr.Blocks:
         def handle_section_click(val, current_state):
             """Handle section radio click without updating own radio."""
             if not val:
-                return [current_state] + [gr.update()] * 14
+                return [current_state] + [gr.update()] * 15
             result = handle_selection(val, "section", current_state)
             result[2] = gr.update()  # Don't update the section radio itself
             return result
@@ -859,27 +886,127 @@ def build_editor() -> gr.Blocks:
                 print(f"Error loading example: {str(e)}")
                 return [current_state] + [gr.update()] * 10
 
+        def handle_file_change(file_path, current_state):
+            """Handle file upload or deletion and manage session files directory."""
+            if not current_state["selected_id"] or current_state["selected_type"] != "resource":
+                json_str, validation_msg, generate_btn_update, _ = validate_and_preview(current_state)
+                return (
+                    current_state,
+                    gr.update(),
+                    gr.update(),
+                    gr.update(),
+                    json_str,
+                    validation_msg,
+                    generate_btn_update,
+                )
+
+            try:
+                from pathlib import Path
+                import shutil
+                from .session import session_manager
+
+                # Get current resource index
+                idx = int(current_state["selected_id"].split("_")[1])
+                if idx >= len(current_state["outline"].resources):
+                    json_str, validation_msg, generate_btn_update, _ = validate_and_preview(current_state)
+                    return (
+                        current_state,
+                        gr.update(),
+                        gr.update(),
+                        gr.update(),
+                        json_str,
+                        validation_msg,
+                        generate_btn_update,
+                    )
+
+                resource = current_state["outline"].resources[idx]
+                files_dir = session_manager.get_files_dir(current_state.get("session_id"))
+
+                if file_path is None:
+                    # File was cleared - delete the existing file and clear resource path
+                    if resource.path and not resource.path.startswith(("http://", "https://")):
+                        # Only delete if it's a file (not a URL)
+                        old_file_path = files_dir / resource.path
+                        if old_file_path.exists():
+                            old_file_path.unlink()
+                            print(f"Deleted file: {old_file_path}")
+
+                    # Clear the resource path
+                    resource.path = ""
+
+                    # Update bundled file info to show nothing
+                    bundled_file_info_update = gr.update(visible=False)
+
+                else:
+                    # File was uploaded - copy it and update resource
+                    # First, clean up any existing file
+                    if resource.path and not resource.path.startswith(("http://", "https://")):
+                        old_file_path = files_dir / resource.path
+                        if old_file_path.exists():
+                            old_file_path.unlink()
+                            print(f"Replaced file: {old_file_path}")
+
+                    # Copy uploaded file to files directory
+                    source_path = Path(file_path)
+                    target_path = files_dir / source_path.name
+                    shutil.copy2(source_path, target_path)
+
+                    # Update resource with relative path (just filename)
+                    resource.path = source_path.name
+
+                    # Update bundled file info to show uploaded file
+                    bundled_file_info_update = gr.update(
+                        value=f"**Uploaded File:** `{source_path.name}` ✓", visible=True
+                    )
+
+                # Update radio choices to reflect changes
+                resource_choices = generate_resource_choices(current_state)
+                section_choices = generate_section_choices(current_state)
+
+                # Validate and preview
+                json_str, validation_msg, generate_btn_update, _ = validate_and_preview(current_state)
+
+                return (
+                    current_state,
+                    gr.update(choices=resource_choices, value=current_state["selected_id"]),
+                    gr.update(choices=section_choices),
+                    bundled_file_info_update,
+                    json_str,
+                    validation_msg,
+                    generate_btn_update,
+                )
+
+            except Exception as e:
+                print(f"Error handling file change: {str(e)}")
+                json_str, validation_msg, generate_btn_update, _ = validate_and_preview(current_state)
+                return (
+                    current_state,
+                    gr.update(),
+                    gr.update(),
+                    gr.update(),
+                    json_str,
+                    validation_msg,
+                    generate_btn_update,
+                )
+
         def handle_download_docpack(current_state):
             """Create and download a docpack file."""
             try:
-                from pathlib import Path
                 from .session import session_manager
 
                 session_dir = session_manager.get_session_dir(current_state.get("session_id"))
+                files_dir = session_manager.get_files_dir(current_state.get("session_id"))
 
                 # Get current outline data
                 outline_data = current_state["outline"].to_dict()
 
-                # Find resource files in session directory
+                # Find resource files in session files directory
                 resource_files = []
                 for resource in current_state["outline"].resources:
-                    if resource.path:
-                        # Check if it's a local file in session directory
-                        resource_path = Path(resource.path)
-                        if not resource_path.is_absolute():
-                            resource_path = session_dir / resource_path
-
-                        if resource_path.exists() and resource_path.parent == session_dir:
+                    if resource.path and not resource.path.startswith(("http://", "https://")):
+                        # Only include uploaded files (not URLs)
+                        resource_path = files_dir / resource.path
+                        if resource_path.exists():
                             resource_files.append(resource_path)
 
                 # Create docpack filename
@@ -915,12 +1042,13 @@ def build_editor() -> gr.Blocks:
                 section_editor["container"],
                 resource_editor["key"],
                 resource_editor["description"],
-                resource_editor["path"],
+                resource_editor["bundled_file_info"],
+                resource_editor["url"],
                 section_editor["title"],
                 section_editor["prompt"],
                 section_editor["refs"],
                 section_editor["resource_key"],
-                resource_editor["file_source_tabs"],
+                resource_editor["resource_source_tabs"],
                 section_editor["content_mode_tabs"],
             ],
         )
@@ -937,12 +1065,13 @@ def build_editor() -> gr.Blocks:
                 section_editor["container"],
                 resource_editor["key"],
                 resource_editor["description"],
-                resource_editor["path"],
+                resource_editor["bundled_file_info"],
+                resource_editor["url"],
                 section_editor["title"],
                 section_editor["prompt"],
                 section_editor["refs"],
                 section_editor["resource_key"],
-                resource_editor["file_source_tabs"],
+                resource_editor["resource_source_tabs"],
                 section_editor["content_mode_tabs"],
             ],
         )
@@ -989,12 +1118,13 @@ def build_editor() -> gr.Blocks:
                 section_editor["container"],
                 resource_editor["key"],
                 resource_editor["description"],
-                resource_editor["path"],
+                resource_editor["bundled_file_info"],
+                resource_editor["url"],
                 section_editor["title"],
                 section_editor["prompt"],
                 section_editor["refs"],
                 section_editor["resource_key"],
-                resource_editor["file_source_tabs"],
+                resource_editor["resource_source_tabs"],
                 section_editor["content_mode_tabs"],
             ],
         )
@@ -1011,12 +1141,13 @@ def build_editor() -> gr.Blocks:
                 section_editor["container"],
                 resource_editor["key"],
                 resource_editor["description"],
-                resource_editor["path"],
+                resource_editor["bundled_file_info"],
+                resource_editor["url"],
                 section_editor["title"],
                 section_editor["prompt"],
                 section_editor["refs"],
                 section_editor["resource_key"],
-                resource_editor["file_source_tabs"],
+                resource_editor["resource_source_tabs"],
                 section_editor["content_mode_tabs"],
             ],
         )
@@ -1033,12 +1164,13 @@ def build_editor() -> gr.Blocks:
                 section_editor["container"],
                 resource_editor["key"],
                 resource_editor["description"],
-                resource_editor["path"],
+                resource_editor["bundled_file_info"],
+                resource_editor["url"],
                 section_editor["title"],
                 section_editor["prompt"],
                 section_editor["refs"],
                 section_editor["resource_key"],
-                resource_editor["file_source_tabs"],
+                resource_editor["resource_source_tabs"],
                 section_editor["content_mode_tabs"],
             ],
         )
@@ -1088,18 +1220,24 @@ def build_editor() -> gr.Blocks:
             outputs=[state, resource_radio, section_radio, json_preview, validation_message, generate_btn],
         )
 
-        resource_editor["path"].change(
+        resource_editor["url"].change(
             lambda v, s: auto_save_resource_field("path", v, s),
-            inputs=[resource_editor["path"], state],
+            inputs=[resource_editor["url"], state],
             outputs=[state, resource_radio, section_radio, json_preview, validation_message, generate_btn],
         )
 
         resource_editor["file"].change(
-            lambda v, s: auto_save_resource_field("path", v, s)
-            if v
-            else (s, gr.update(), gr.update(), gr.update(), gr.update(), gr.update()),
+            handle_file_change,
             inputs=[resource_editor["file"], state],
-            outputs=[state, resource_radio, section_radio, json_preview, validation_message, generate_btn],
+            outputs=[
+                state,
+                resource_radio,
+                section_radio,
+                resource_editor["bundled_file_info"],
+                json_preview,
+                validation_message,
+                generate_btn,
+            ],
         )
 
         # Auto-save section fields

@@ -22,9 +22,9 @@ def test_create_resource_editor(mock_gr):
     assert "container" in editor
     assert "key" in editor
     assert "description" in editor
-    assert "path" in editor
+    assert "url" in editor
     assert "file" in editor
-    assert "file_source_tabs" in editor
+    assert "resource_source_tabs" in editor
 
 
 @patch("document_generator_app.ui.gr")
