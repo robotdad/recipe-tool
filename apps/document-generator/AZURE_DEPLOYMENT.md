@@ -64,7 +64,9 @@ Secure your app before deployment to prevent unauthorized access:
 
 1. Left menu → **"Configuration"**
 2. **"General settings"** tab
-3. **Startup Command**: `python startup.py`
+3. **Startup Command**: `python startup.py` (or adjust if your entry point is different)
+   - This command runs your application when the App Service starts
+   - Ensure `startup.py` is in the root of your deployment package
 4. Click **"Save"**
 
 #### B. Configure Environment Variables
@@ -128,23 +130,27 @@ Before deploying code, verify your App Service is properly configured:
 ### 6. Deploy Application
 
 **Important for Monorepo**: If deploying from a monorepo, ensure `.deployment` file exists in repository root with:
+
 ```
 [config]
 project = apps/document-generator
 ```
 
-#### Option A: VS Code Azure Extension 
+#### Option A: VS Code Azure Extension
 
 **⚠️ Note**: VS Code deployment from monorepos can be problematic. Use Option B (Azure CLI) if you encounter issues.
 
 1. **Install Extension:**
+
    - **"Azure App Service"** (ms-azuretools.vscode-azureappservice)
 
 2. **Sign In:**
+
    - Press `Ctrl+Shift+P` → Type "Azure: Sign In"
    - Follow authentication prompts
 
 3. **Deploy:**
+
    - **Important**: Open VS Code at the repository root (not in subfolder)
    - Press `Ctrl+Shift+P` → Type "Azure App Service: Deploy to Web App"
    - Select your subscription → Select your App Service
@@ -166,25 +172,12 @@ project = apps/document-generator
    ```bash
    cd apps/document-generator
    az webapp up \
-     --name <YOUR-APP-NAME> \
-     --resource-group <YOUR-RESOURCE-GROUP> \
-     --runtime "PYTHON:3.11" \
-     --sku B1
-   ```
-   
-   Or if app already exists:
-   ```bash
-   cd apps/document-generator
-   az webapp deploy \
-     --name <YOUR-APP-NAME> \
-     --resource-group <YOUR-RESOURCE-GROUP> \
-     --type zip \
-     --src-path .
-   ```
-
-4. **Monitor deployment:**
-   ```bash
-   az webapp log tail --name <YOUR-APP-NAME> --resource-group <YOUR-RESOURCE-GROUP>
+      --name <YOUR-APP-NAME> \
+      --resource-group <YOUR-RESOURCE-GROUP> \
+      --plan <YOUR-APP-SERVICE-PLAN> \
+      --runtime "PYTHON|3.11" \
+      --sku B1 \
+      --logs
    ```
 
 ### 7. Verify Deployment
@@ -196,21 +189,24 @@ project = apps/document-generator
 ## Troubleshooting
 
 **Build fails with "No matching distribution found"?**
+
 - Check requirements.txt for local packages not available on PyPI
 - Remove any internal/monorepo package references
 - Ensure all packages are publicly available
 
 **Files not appearing in /home/site/wwwroot?**
-- This is normal for Python apps with build automation
+
+- This is normal for Python apps with build automation - files are actually in `/tmp/zipdeploy/extracted`
 - Check logs for build failures preventing deployment
 - Verify requirements.txt installs successfully
-- For monorepo: ensure `.deployment` file exists with `project = apps/document-generator`
 
 **App won't start?**
+
 - Check **"Log stream"** in Azure Portal for specific error messages
 - Verify startup command is set to `python startup.py`
 
 **Azure OpenAI connection fails?**
+
 - Verify managed identity has "Cognitive Services OpenAI User" role on your Azure OpenAI resource
 - Confirm `AZURE_CLIENT_ID` matches your managed identity's client ID
 

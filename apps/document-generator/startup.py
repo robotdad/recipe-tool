@@ -13,19 +13,19 @@ current_dir = Path(__file__).parent
 sys.path.insert(0, str(current_dir))
 
 # Debug information
-print(f"Python version: {sys.version}")
+print(f"\nPython version: {sys.version}")
 print(f"Current working directory: {os.getcwd()}")
 print(f"Script directory: {current_dir}")
-print(f"Python path: {sys.path[:3]}...")  # Show first 3 entries
+print(f"\nPython path: {sys.path}")
 
 # List files in current directory
-print("Files in current directory:")
+print("\nFiles in current directory:")
 for item in current_dir.iterdir():
     print(f"  {item.name}")
 
 # Check if our app directory exists
 app_dir = current_dir / "document_generator_app"
-print(f"App directory exists: {app_dir.exists()}")
+print(f"\nApp directory exists: {app_dir.exists()}")
 if app_dir.exists():
     print("Files in app directory:")
     for item in app_dir.iterdir():
@@ -33,11 +33,11 @@ if app_dir.exists():
 
 if __name__ == "__main__":
     try:
-        print("Attempting to import document_generator_app.main...")
+        print("\nAttempting to import document_generator_app.main...")
         from document_generator_app.main import main
 
         print("Successfully imported main function")
-        print("Starting application...")
+        print("Starting application...\n")
         main()
     except ImportError as e:
         print(f"Import error: {e}")

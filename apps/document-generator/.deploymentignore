@@ -1,7 +1,0 @@
-# Files to exclude from deployment
-.git/
-.vscode/
-.coverage
-pytest.log
-tests/
-.env
