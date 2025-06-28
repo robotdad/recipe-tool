@@ -3,7 +3,7 @@
 [git-collector-data]
 
 **URL:** https://github.com/jg-rp/liquid/docs  
-**Date:** 4/26/2025, 8:32:57 AM  
+**Date:** 6/27/2025, 2:29:26 PM  
 **Files:** 6  
 
 === File: docs/environment.md ===
@@ -331,7 +331,7 @@ See [loading templates](loading_templates.md) for more information about configu
 
 
 === File: docs/filter_reference.md ===
-All the filters described here are enabled by default in Python Liquid2.
+All the filters described here are enabled by default in Python Liquid.
 
 ## abs
 

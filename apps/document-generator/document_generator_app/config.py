@@ -21,11 +21,11 @@ class Settings:
     example_outlines: List[ExampleOutline] = [
         ExampleOutline(
             name="README Generator",
-            path="../../recipes/document_generator/examples/readme.json",
+            path="examples/readme.docpack",
         ),
         ExampleOutline(
             name="Product Launch Documentation",
-            path="../../recipes/document_generator/examples/launch-documentation.json",
+            path="examples/launch-documentation.docpack",
         ),
     ]
 

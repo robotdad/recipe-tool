@@ -3,7 +3,7 @@
 [git-collector-data]
 
 **URL:** https://github.com/gradio-app/gradio/tree/main/gradio  
-**Date:** 6/18/2025, 12:11:07 PM  
+**Date:** 6/27/2025, 2:29:17 PM  
 **Files:** 50  
 
 === File: gradio/components/__init__.py ===
@@ -55,7 +55,7 @@ from gradio.components.plot import Plot
 from gradio.components.radio import Radio
 from gradio.components.slider import Slider
 from gradio.components.state import State
-from gradio.components.textbox import Textbox
+from gradio.components.textbox import InputHTMLAttributes, Textbox
 from gradio.components.timer import Timer
 from gradio.components.upload_button import UploadButton
 from gradio.components.video import Video
@@ -134,6 +134,7 @@ __all__ = [
     "MultimodalTextbox",
     "NativePlot",
     "DeepLinkButton",
+    "InputHTMLAttributes",
 ]
 
 
@@ -8238,6 +8239,7 @@ from pydantic import Field
 from typing_extensions import NotRequired
 
 from gradio.components.base import Component, FormComponent
+from gradio.components.textbox import InputHTMLAttributes
 from gradio.data_classes import FileData, GradioModel
 from gradio.events import Events
 from gradio.exceptions import Error
@@ -8317,6 +8319,7 @@ class MultimodalTextbox(FormComponent):
         submit_btn: str | bool | None = True,
         stop_btn: str | bool | None = False,
         max_plain_text_length: int = 1000,
+        html_attributes: InputHTMLAttributes | None = None,
     ):
         """
         Parameters:
@@ -8349,6 +8352,7 @@ class MultimodalTextbox(FormComponent):
             submit_btn: If False, will not show a submit button. If a string, will use that string as the submit button text.
             stop_btn: If True, will show a stop button (useful for streaming demos). If a string, will use that string as the stop button text.
             max_plain_text_length: Maximum length of plain text in the textbox. If the text exceeds this length, the text will be pasted as a file. Default is 1000.
+            html_attributes: An instance of gr.InputHTMLAttributes, which can be used to set HTML attributes for the input/textarea elements. Example: InputHTMLAttributes(autocorrect="off", spellcheck=False) to disable autocorrect and spellcheck.
         """
         valid_sources: list[Literal["upload", "microphone"]] = ["upload", "microphone"]
         if sources is None:
@@ -8380,6 +8384,7 @@ class MultimodalTextbox(FormComponent):
         self.autofocus = autofocus
         self.autoscroll = autoscroll
         self.max_plain_text_length = max_plain_text_length
+        self.html_attributes = html_attributes
 
         super().__init__(
             label=label,
@@ -8538,7 +8543,7 @@ class NativePlot(Component):
         | None = None,
         color_map: dict[str, str] | None = None,
         x_lim: list[float] | None = None,
-        y_lim: list[float] | None = None,
+        y_lim: list[float | None] = None,
         x_label_angle: float = 0,
         y_label_angle: float = 0,
         x_axis_labels_visible: bool = True,
@@ -8577,7 +8582,7 @@ class NativePlot(Component):
             color_map: Mapping of series to color names or codes. For example, {"success": "green", "fail": "#FF8888"}.
             height: The height of the plot in pixels.
             x_lim: A tuple or list containing the limits for the x-axis, specified as [x_min, x_max]. If x column is datetime type, x_lim should be timestamps.
-            y_lim: A tuple of list containing the limits for the y-axis, specified as [y_min, y_max].
+            y_lim: A tuple of list containing the limits for the y-axis, specified as [y_min, y_max]. To fix only one of these values, set the other to None, e.g. [0, None] to scale from 0 to the maximum to value.
             x_label_angle: The angle of the x-axis labels in degrees offset clockwise.
             y_label_angle: The angle of the y-axis labels in degrees offset clockwise.
             x_axis_labels_visible: Whether the x-axis labels should be visible. Can be hidden when many x-axis labels are present.
@@ -8798,6 +8803,7 @@ class Number(FormComponent):
         value: float | Callable | None = None,
         *,
         label: str | I18nData | None = None,
+        placeholder: str | I18nData | None = None,
         info: str | I18nData | None = None,
         every: Timer | float | None = None,
         inputs: Component | Sequence[Component] | set[Component] | None = None,
@@ -8819,8 +8825,9 @@ class Number(FormComponent):
     ):
         """
         Parameters:
-            value: default value. If a function is provided, the function will be called each time the app loads to set the initial value of this component.
+            value: default value. If None, the component will be empty and show the `placeholder` if is set. If no `placeholder` is set, the component will show 0. If a function is provided, the function will be called each time the app loads to set the initial value of this component.
             label: the label for this component, displayed above the component if `show_label` is `True` and is also used as the header if there are a table of examples for this component. If None and used in a `gr.Interface`, the label will be the name of the parameter this component corresponds to.
+            placeholder: placeholder hint to provide behind number input.
             info: additional component description, appears below the label in smaller font. Supports markdown / HTML syntax.
             every: Continously calls `value` to recalculate it if `value` is a function (has no effect otherwise). Can provide a Timer whose tick resets `value`, or a float that provides the regular interval for the reset Timer.
             inputs: Components that are used as inputs to calculate `value` if `value` is a function (has no effect otherwise). `value` is recalculated any time the inputs change.
@@ -8844,6 +8851,7 @@ class Number(FormComponent):
         self.minimum = minimum
         self.maximum = maximum
         self.step = step
+        self.placeholder = placeholder
 
         super().__init__(
             label=label,
@@ -10020,9 +10028,10 @@ class State(FormComponent):
 
 from __future__ import annotations
 
+import dataclasses
 import warnings
 from collections.abc import Callable, Sequence
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any, Literal, Optional
 
 from gradio_client.documentation import document
 
@@ -10032,6 +10041,40 @@ from gradio.i18n import I18nData
 
 if TYPE_CHECKING:
     from gradio.components import Timer
+
+
+@document()
+@dataclasses.dataclass
+class InputHTMLAttributes:
+    """
+    A dataclass for specifying HTML attributes for the input/textarea element. If any of these attributes are not provided, the browser will use its default value.
+    Parameters:
+        autocapitalize: The autocapitalize attribute for the input/textarea element. Can be "off", "none", "on", "sentences", "words", or "characters".
+        autocorrect: The autocorrect attribute for the input/textarea element. Can be True (enabled) or False (disabled).
+        spellcheck: The spellcheck attribute for the input/textarea element. Can be True (enabled) or False (disabled).
+        autocomplete: The autocomplete attribute for the input/textarea element. Can be "on", "off", or specific values like "email", "current-password", "new-password", etc.
+        tabindex: The tabindex attribute for the input/textarea element. An integer specifying the tab order.
+        enterkeyhint: The enterkeyhint attribute for the input/textarea element. Can be "enter", "done", "go", "next", "previous", "search", or "send".
+        lang: The lang attribute for the input/textarea element. A string containing a language code (e.g., "en", "es", "fr").
+        aria_label: The aria-label attribute for the input/textarea element. A string providing an accessible name for screen readers.
+        aria_describedby: The aria-describedby attribute for the input/textarea element. A string containing IDs of elements that describe this element.
+        aria_placeholder: The aria-placeholder attribute for the input/textarea element. A string providing placeholder text for screen readers.
+    """
+
+    autocapitalize: Optional[
+        Literal["off", "none", "on", "sentences", "words", "characters"]
+    ] = None
+    autocorrect: Optional[Literal["on", "off"]] = None
+    spellcheck: Optional[bool] = None
+    autocomplete: Optional[str] = None
+    tabindex: Optional[int] = None
+    enterkeyhint: Optional[
+        Literal["enter", "done", "go", "next", "previous", "search", "send"]
+    ] = None
+    lang: Optional[str] = None
+    aria_label: Optional[str] = None
+    aria_describedby: Optional[str] = None
+    aria_placeholder: Optional[str] = None
 
 
 @document()
@@ -10085,6 +10128,7 @@ class Textbox(FormComponent):
         max_length: int | None = None,
         submit_btn: str | bool | None = False,
         stop_btn: str | bool | None = False,
+        html_attributes: InputHTMLAttributes | None = None,
     ):
         """
         Parameters:
@@ -10115,6 +10159,8 @@ class Textbox(FormComponent):
             autoscroll: If True, will automatically scroll to the bottom of the textbox when the value changes, unless the user scrolls up. If False, will not scroll to the bottom of the textbox when the value changes.
             max_length: maximum number of characters (including newlines) allowed in the textbox. If None, there is no maximum length.
             submit_btn: If False, will not show a submit button. If True, will show a submit button with an icon. If a string, will use that string as the submit button text. When the submit button is shown, the border of the textbox will be removed, which is useful for creating a chat interface.
+            stop_btn: If False, will not show a stop button. If True, will show a stop button with an icon. If a string, will use that string as the stop button text. When the stop button is shown, the border of the textbox will be removed, which is useful for creating a chat interface.
+            html_attributes: An instance of gr.InputHTMLAttributes, which can be used to set HTML attributes for the input/textarea elements. Example: InputHTMLAttributes(autocorrect="off", spellcheck=False) to disable autocorrect and spellcheck.
         """
         if type not in ["text", "password", "email"]:
             raise ValueError('`type` must be one of "text", "password", or "email".')
@@ -10161,6 +10207,7 @@ class Textbox(FormComponent):
         self.rtl = rtl
         self.text_align = text_align
         self.max_length = max_length
+        self.html_attributes = html_attributes
 
     def preprocess(self, payload: str | None) -> str | None:
         """

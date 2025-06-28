@@ -3,7 +3,7 @@
 [git-collector-data]
 
 **URL:** https://github.com/pydantic/pydantic-ai/tree/main/docs  
-**Date:** 6/18/2025, 12:11:22 PM  
+**Date:** 6/27/2025, 2:29:30 PM  
 **Files:** 12  
 
 === File: docs/agents.md ===
@@ -691,48 +691,52 @@ You should use:
 
 In general, we recommend using `instructions` instead of `system_prompt` unless you have a specific reason to use `system_prompt`.
 
+Instructions, like system prompts, fall into two categories:
+
+1. **Static instructions**: These are known when writing the code and can be defined via the `instructions` parameter of the [`Agent` constructor][pydantic_ai.Agent.__init__].
+2. **Dynamic instructions**: These rely on context that is only available at runtime and should be defined using functions decorated with [`@agent.instructions`][pydantic_ai.Agent.instructions]. Unlike dynamic system prompts, which may be reused when `message_history` is present, dynamic instructions are always reevaluated.
+
+Both static and dynamic instructions can be added to a single agent, and they are appended in the order they are defined at runtime.
+
+Here's an example using both types of instructions:
+
 ```python {title="instructions.py"}
-from pydantic_ai import Agent
-
-agent = Agent(
-    'openai:gpt-4o',
-    instructions='You are a helpful assistant that can answer questions and help with tasks.',  # (1)!
-)
-
-result = agent.run_sync('What is the capital of France?')
-print(result.output)
-#> Paris
-```
-
-1. This will be the only instructions for this agent.
-
-_(This example is complete, it can be run "as is")_
-
-You can also dynamically change the instructions for an agent by using the `@agent.instructions` decorator.
-
-Note that returning an empty string will result in no instruction message added.
-
-```python {title="dynamic_instructions.py"}
 from datetime import date
 
 from pydantic_ai import Agent, RunContext
 
-agent = Agent('openai:gpt-4o', deps_type=str)
+agent = Agent(
+    'openai:gpt-4o',
+    deps_type=str,  # (1)!
+    instructions="Use the customer's name while replying to them.",  # (2)!
+)
 
 
-@agent.instructions
+@agent.instructions  # (3)!
 def add_the_users_name(ctx: RunContext[str]) -> str:
     return f"The user's name is {ctx.deps}."
 
 
 @agent.instructions
-def add_the_date() -> str:
+def add_the_date() -> str:  # (4)!
     return f'The date is {date.today()}.'
+
 
 result = agent.run_sync('What is the date?', deps='Frank')
 print(result.output)
 #> Hello Frank, the date today is 2032-01-02.
 ```
+
+1. The agent expects a string dependency.
+2. Static instructions defined at agent creation time.
+3. Dynamic instructions defined via a decorator with [`RunContext`][pydantic_ai.tools.RunContext],
+   this is called just after `run_sync`, not when the agent is created, so can benefit from runtime
+   information like the dependencies used on that run.
+4. Another dynamic instruction, instructions don't have to have the `RunContext` parameter.
+
+_(This example is complete, it can be run "as is")_
+
+Note that returning an empty string will result in no instruction message added.
 
 ## Reflection and self-correction
 
@@ -1160,7 +1164,7 @@ async def application_code(prompt: str) -> str:  # (3)!
 
 _(This example is complete, it can be run "as is")_
 
-```python {title="test_joke_app.py" hl_lines="10-12" call_name="test_application_code"}
+```python {title="test_joke_app.py" hl_lines="10-12" call_name="test_application_code" requires="joke_app.py"}
 from joke_app import MyDeps, application_code, joke_agent
 
 
@@ -1203,7 +1207,7 @@ Some LLMs are now capable of understanding audio, video, image and document cont
 
 If you have a direct URL for the image, you can use [`ImageUrl`][pydantic_ai.ImageUrl]:
 
-```py {title="main.py" test="skip" lint="skip"}
+```py {title="image_input.py" test="skip" lint="skip"}
 from pydantic_ai import Agent, ImageUrl
 
 agent = Agent(model='openai:gpt-4o')
@@ -1219,7 +1223,7 @@ print(result.output)
 
 If you have the image locally, you can also use [`BinaryContent`][pydantic_ai.BinaryContent]:
 
-```py {title="main.py" test="skip" lint="skip"}
+```py {title="local_image_input.py" test="skip" lint="skip"}
 import httpx
 
 from pydantic_ai import Agent, BinaryContent
@@ -1262,7 +1266,7 @@ You can provide document input using either [`DocumentUrl`][pydantic_ai.Document
 
 If you have a direct URL for the document, you can use [`DocumentUrl`][pydantic_ai.DocumentUrl]:
 
-```py {title="main.py" test="skip" lint="skip"}
+```py {title="document_input.py" test="skip" lint="skip"}
 from pydantic_ai import Agent, DocumentUrl
 
 agent = Agent(model='anthropic:claude-3-sonnet')
@@ -1280,7 +1284,7 @@ The supported document formats vary by model.
 
 You can also use [`BinaryContent`][pydantic_ai.BinaryContent] to pass document data directly:
 
-```py {title="main.py" test="skip" lint="skip"}
+```py {title="binary_content_input.py" test="skip" lint="skip"}
 from pathlib import Path
 from pydantic_ai import Agent, BinaryContent
 
@@ -1418,7 +1422,7 @@ Will display as follows:
 
 Before creating the Streamable HTTP client, we need to run a server that supports the Streamable HTTP transport.
 
-```python {title="streamable_http_server.py" py="3.10" test="skip"}
+```python {title="streamable_http_server.py" py="3.10" dunder_name="not_main"}
 from mcp.server.fastmcp import FastMCP
 
 app = FastMCP()
@@ -1427,7 +1431,8 @@ app = FastMCP()
 def add(a: int, b: int) -> int:
     return a + b
 
-app.run(transport='streamable-http')
+if __name__ == '__main__':
+    app.run(transport='streamable-http')
 ```
 
 Then we can create the client:
@@ -1514,7 +1519,7 @@ async def process_tool_call(
     return await call_tool(tool_name, args, metadata={'deps': ctx.deps})
 
 
-server = MCPServerStdio('python', ['-m', 'tests.mcp_server'], process_tool_call=process_tool_call)
+server = MCPServerStdio('python', ['mcp_server.py'], process_tool_call=process_tool_call)
 agent = Agent(
     model=TestModel(call_tools=['echo_deps']),
     deps_type=int,
@@ -1595,6 +1600,112 @@ agent = Agent('openai:gpt-4o', mcp_servers=[python_server, js_server])
 ```
 
 When the model interacts with these servers, it will see the prefixed tool names, but the prefixes will be automatically handled when making tool calls.
+
+## MCP Sampling
+
+!!! info "What is MCP Sampling?"
+    In MCP [sampling](https://modelcontextprotocol.io/docs/concepts/sampling) is a system by which an MCP server can make LLM calls via the MCP client - effectively proxying requests to an LLM via the client over whatever transport is being used.
+
+    Sampling is extremely useful when MCP servers need to use Gen AI but you don't want to provision them each with their own LLM credentials or when a public MCP server would like the connecting client to pay for LLM calls.
+
+    Confusingly it has nothing to do with the concept of "sampling" in observability, or frankly the concept of "sampling" in any other domain.
+
+    ??? info "Sampling Diagram"
+        Here's a mermaid diagram that may or may not make the data flow clearer:
+
+        ```mermaid
+        sequenceDiagram
+            participant LLM
+            participant MCP_Client as MCP client
+            participant MCP_Server as MCP server
+
+            MCP_Client->>LLM: LLM call
+            LLM->>MCP_Client: LLM tool call response
+
+            MCP_Client->>MCP_Server: tool call
+            MCP_Server->>MCP_Client: sampling "create message"
+
+            MCP_Client->>LLM: LLM call
+            LLM->>MCP_Client: LLM text response
+
+            MCP_Client->>MCP_Server: sampling response
+            MCP_Server->>MCP_Client: tool call response
+        ```
+
+Pydantic AI supports sampling as both a client and server. See the [server](./server.md#mcp-sampling) documentation for details on how to use sampling within a server.
+
+Sampling is automatically supported by Pydantic AI agents when they act as a client.
+
+Let's say we have an MCP server that wants to use sampling (in this case to generate an SVG as per the tool arguments).
+
+??? example "Sampling MCP Server"
+
+    ```python {title="generate_svg.py" py="3.10"}
+    import re
+    from pathlib import Path
+
+    from mcp import SamplingMessage
+    from mcp.server.fastmcp import Context, FastMCP
+    from mcp.types import TextContent
+
+    app = FastMCP()
+
+
+    @app.tool()
+    async def image_generator(ctx: Context, subject: str, style: str) -> str:
+        prompt = f'{subject=} {style=}'
+        # `ctx.session.create_message` is the sampling call
+        result = await ctx.session.create_message(
+            [SamplingMessage(role='user', content=TextContent(type='text', text=prompt))],
+            max_tokens=1_024,
+            system_prompt='Generate an SVG image as per the user input',
+        )
+        assert isinstance(result.content, TextContent)
+
+        path = Path(f'{subject}_{style}.svg')
+        # remove triple backticks if the svg was returned within markdown
+        if m := re.search(r'^```\w*$(.+?)```$', result.content.text, re.S | re.M):
+            path.write_text(m.group(1))
+        else:
+            path.write_text(result.content.text)
+        return f'See {path}'
+
+
+    if __name__ == '__main__':
+        # run the server via stdio
+        app.run()
+    ```
+
+Using this server with an `Agent` will automatically allow sampling:
+
+```python {title="sampling_mcp_client.py" py="3.10" requires="generate_svg.py"}
+from pydantic_ai import Agent
+from pydantic_ai.mcp import MCPServerStdio
+
+server = MCPServerStdio(command='python', args=['generate_svg.py'])
+agent = Agent('openai:gpt-4o', mcp_servers=[server])
+
+
+async def main():
+    async with agent.run_mcp_servers():
+        result = await agent.run('Create an image of a robot in a punk style.')
+    print(result.output)
+    #> Image file written to robot_punk.svg.
+```
+
+_(This example is complete, it can be run "as is" with Python 3.10+)_
+
+You can disallow sampling by settings [`allow_sampling=False`][pydantic_ai.mcp.MCPServerStdio.allow_sampling] when creating the server reference, e.g.:
+
+```python {title="sampling_disallowed.py" hl_lines="6" py="3.10"}
+from pydantic_ai.mcp import MCPServerStdio
+
+server = MCPServerStdio(
+    command='python',
+    args=['generate_svg.py'],
+    allow_sampling=False,
+)
+```
 
 
 === File: docs/mcp/index.md ===
@@ -1754,7 +1865,7 @@ As introduced in PEP 723, explained [here](https://packaging.python.org/en/lates
 
 This allows use of dependencies that aren't imported in the code, and is more explicit.
 
-```py {title="inline_script_metadata.py" py="3.10"}
+```py {title="inline_script_metadata.py" py="3.10" requires="mcp_run_python.py"}
 from mcp import ClientSession
 from mcp.client.stdio import stdio_client
 
@@ -1813,6 +1924,8 @@ Currently, it's not possible to demonstrate this due to a bug in the Python MCP 
 
 PydanticAI models can also be used within MCP Servers.
 
+## MCP Server
+
 Here's a simple example of a [Python MCP server](https://github.com/modelcontextprotocol/python-sdk) using PydanticAI within a tool call:
 
 ```py {title="mcp_server.py" py="3.10"}
@@ -1837,9 +1950,11 @@ if __name__ == '__main__':
     server.run()
 ```
 
-This server can be queried with any MCP client. Here is an example using a direct Python client:
+## Simple client
 
-```py {title="mcp_client.py" py="3.10"}
+This server can be queried with any MCP client. Here is an example using the Python SDK directly:
+
+```py {title="mcp_client.py" py="3.10" requires="mcp_server.py" dunder_name="not_main"}
 import asyncio
 import os
 
@@ -1849,7 +1964,7 @@ from mcp.client.stdio import stdio_client
 
 async def client():
     server_params = StdioServerParameters(
-        command='uv', args=['run', 'mcp_server.py', 'server'], env=os.environ
+        command='python', args=['mcp_server.py'], env=os.environ
     )
     async with stdio_client(server_params) as (read, write):
         async with ClientSession(read, write) as session:
@@ -1868,7 +1983,93 @@ if __name__ == '__main__':
     asyncio.run(client())
 ```
 
-Note: [sampling](https://modelcontextprotocol.io/docs/concepts/sampling#sampling), whereby servers may request LLM completions from the client, is not yet supported in PydanticAI.
+## MCP Sampling
+
+!!! info "What is MCP Sampling?"
+    See the [MCP client docs](./client.md#mcp-sampling) for details of what MCP sampling is, and how you can support it when using Pydantic AI as an MCP client.
+
+When Pydantic AI agents are used within MCP servers, they can use sampling via [`MCPSamplingModel`][pydantic_ai.models.mcp_sampling.MCPSamplingModel].
+
+We can extend the above example to use sampling so instead of connecting directly to the LLM, the agent calls back through the MCP client to make LLM calls.
+
+```py {title="mcp_server_sampling.py" py="3.10"}
+from mcp.server.fastmcp import Context, FastMCP
+
+from pydantic_ai import Agent
+from pydantic_ai.models.mcp_sampling import MCPSamplingModel
+
+server = FastMCP('PydanticAI Server with sampling')
+server_agent = Agent(system_prompt='always reply in rhyme')
+
+
+@server.tool()
+async def poet(ctx: Context, theme: str) -> str:
+    """Poem generator"""
+    r = await server_agent.run(f'write a poem about {theme}', model=MCPSamplingModel(session=ctx.session))
+    return r.output
+
+
+if __name__ == '__main__':
+    server.run()  # run the server over stdio
+```
+
+The [above](#simple-client) client does not support sampling, so if you tried to use it with this server you'd get an error.
+
+The simplest way to support sampling in an MCP client is to [use](./client.md#mcp-sampling) a Pydantic AI agent as the client, but if you wanted to support sampling with the vanilla MCP SDK, you could do so like this:
+
+```py {title="mcp_client_sampling.py" py="3.10" requires="mcp_server_sampling.py"}
+import asyncio
+from typing import Any
+
+from mcp import ClientSession, StdioServerParameters
+from mcp.client.stdio import stdio_client
+from mcp.shared.context import RequestContext
+from mcp.types import CreateMessageRequestParams, CreateMessageResult, ErrorData, TextContent
+
+
+async def sampling_callback(
+    context: RequestContext[ClientSession, Any], params: CreateMessageRequestParams
+) -> CreateMessageResult | ErrorData:
+    print('sampling system prompt:', params.systemPrompt)
+    #> sampling system prompt: always reply in rhyme
+    print('sampling messages:', params.messages)
+    """
+    sampling messages:
+    [
+        SamplingMessage(
+            role='user',
+            content=TextContent(
+                type='text', text='write a poem about socks', annotations=None
+            ),
+        )
+    ]
+    """
+
+    # TODO get the response content by calling an LLM...
+    response_content = 'Socks for a fox.'
+
+    return CreateMessageResult(
+        role='assistant',
+        content=TextContent(type='text', text=response_content),
+        model='fictional-llm',
+    )
+
+
+async def client():
+    server_params = StdioServerParameters(command='python', args=['mcp_server_sampling.py'])
+    async with stdio_client(server_params) as (read, write):
+        async with ClientSession(read, write, sampling_callback=sampling_callback) as session:
+            await session.initialize()
+            result = await session.call_tool('poet', {'theme': 'socks'})
+            print(result.content[0].text)
+            #> Socks for a fox.
+
+
+if __name__ == '__main__':
+    asyncio.run(client())
+```
+
+_(This example is complete, it can be run "as is" with Python 3.10+)_
 
 
 === File: docs/message-history.md ===
@@ -2547,7 +2748,21 @@ agent = Agent(model)
 
 `OpenAIProvider` also accepts a custom `AsyncOpenAI` client via the `openai_client` parameter, so you can customise the `organization`, `project`, `base_url` etc. as defined in the [OpenAI API docs](https://platform.openai.com/docs/api-reference).
 
-You could also use the [`AsyncAzureOpenAI`](https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/switching-endpoints) client to use the Azure OpenAI API.
+```python {title="custom_openai_client.py"}
+from openai import AsyncOpenAI
+
+from pydantic_ai import Agent
+from pydantic_ai.models.openai import OpenAIModel
+from pydantic_ai.providers.openai import OpenAIProvider
+
+client = AsyncOpenAI(max_retries=3)
+model = OpenAIModel('gpt-4o', provider=OpenAIProvider(openai_client=client))
+agent = Agent(model)
+...
+```
+
+You could also use the [`AsyncAzureOpenAI`](https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/switching-endpoints) client
+to use the Azure OpenAI API. Note that the `AsyncAzureOpenAI` is a subclass of `AsyncOpenAI`.
 
 ```python
 from openai import AsyncAzureOpenAI
@@ -2927,7 +3142,7 @@ The output is wrapped in [`AgentRunResult`][pydantic_ai.agent.AgentRunResult] or
 
 Both `AgentRunResult` and `StreamedRunResult` are generic in the data they wrap, so typing information about the data returned by the agent is preserved.
 
-A run ends when a plain text response is received (assuming no output type is specified or `str` is one of the allowed options), or when the model responds with one of the structured output types by calling a special output tool. A run can also be cancelled if usage limits are exceeded, see [Usage Limits](agents.md#usage-limits).
+A run ends when the model responds with one of the structured output types, or, if no output type is specified or `str` is one of the allowed options, when a plain text response is received. A run can also be cancelled if usage limits are exceeded, see [Usage Limits](agents.md#usage-limits).
 
 Here's an example using a Pydantic model as the `output_type`, forcing the model to respond with data matching our specification:
 
@@ -2954,12 +3169,12 @@ _(This example is complete, it can be run "as is")_
 
 ## Output data {#structured-output}
 
-The [`Agent`][pydantic_ai.Agent] class constructor takes an `output_type` argument that takes one or more types or [output functions](#output-functions). It supports both type unions and lists of types and functions.
+The [`Agent`][pydantic_ai.Agent] class constructor takes an `output_type` argument that takes one or more types or [output functions](#output-functions). It supports simple scalar types, list and dict types, dataclasses and Pydantic models, as well as type unions -- generally everything supported as type hints in a Pydantic model. You can also pass a list of multiple choices.
 
-When no output type is specified, or when the output type is `str` or a union or list of types including `str`, the model is allowed to respond with plain text, and this text is used as the output data.
-If `str` is not among the allowed output types, the model is not allowed to respond with plain text and is forced to return structured data (or arguments to an output function).
+By default, Pydantic AI leverages the model's tool calling capability to make it return structured data. When multiple output types are specified (in a union or list), each member is registered with the model as a separate output tool in order to reduce the complexity of the schema and maximise the chances a model will respond correctly. This has been shown to work well across a wide range of models. If you'd like to change the names of the output tools, use a model's native structured output feature, or pass the output schema to the model in its [instructions](agents.md#instructions), you can use an [output mode](#output-modes) marker class.
 
-If the output type is a union or list with multiple members, each member (except for `str`, if it is a member) is registered with the model as a separate output tool in order to reduce the complexity of the tool schemas and maximise the chances a model will respond correctly.
+When no output type is specified, or when `str` is among the output types, any plain text response from the model will be used as the output data.
+If `str` is not among the output types, the model is forced to return structured data or call an output function.
 
 If the output type schema is not of type `"object"` (e.g. it's `int` or `list[int]`), the output type is wrapped in a single element object, so the schema of all tools registered with the model are object schemas.
 
@@ -2971,7 +3186,8 @@ Structured outputs (like tools) use Pydantic to build the JSON schema used for t
     Static type checkers like pyright and mypy will do their best the infer the agent's output type from the `output_type` you've specified, but they're not always able to do so correctly when you provide functions or multiple types in a union or list, even though PydanticAI will behave correctly. When this happens, your type checker will complain even when you're confident you've passed a valid `output_type`, and you'll need to help the type checker by explicitly specifying the generic parameters on the `Agent` constructor. This is shown in the second example below and the output functions example further down.
 
     Specifically, there are three valid uses of `output_type` where you'll need to do this:
-    1. When using a union of types, e.g. `output_type=Foo | Bar` or in older Python, `output_type=Union[Foo, Bar]`. Until [PEP-747](https://peps.python.org/pep-0747/) "Annotating Type Forms" lands in Python 3.15, type checkers do not consider these a valid value for `output_type`. In addition to the generic parameters on the `Agent` constructor, you'll need to add `# type: ignore` to the line that passes the union to `output_type`.
+
+    1. When using a union of types, e.g. `output_type=Foo | Bar`, or in older Python, `output_type=Union[Foo, Bar]`. Until [PEP-747](https://peps.python.org/pep-0747/) "Annotating Type Forms" lands in Python 3.15, type checkers do not consider these a valid value for `output_type`. In addition to the generic parameters on the `Agent` constructor, you'll need to add `# type: ignore` to the line that passes the union to `output_type`. Alternatively, you can use a list: `output_type=[Foo, Bar]`.
     2. With mypy: When using a list, as a functionally equivalent alternative to a union, or because you're passing in [output functions](#output-functions). Pyright does handle this correctly, and we've filed [an issue](https://github.com/python/mypy/issues/19142) with mypy to try and get this fixed.
     3. With mypy: when using an async output function. Pyright does handle this correctly, and we've filed [an issue](https://github.com/python/mypy/issues/19143) with mypy to try and get this fixed.
 
@@ -2993,7 +3209,7 @@ class Box(BaseModel):
 
 agent = Agent(
     'openai:gpt-4o-mini',
-    output_type=[Box, str],
+    output_type=[Box, str], # (1)!
     system_prompt=(
         "Extract me the dimensions of a box, "
         "if you can't extract all data, ask the user to try again."
@@ -3009,9 +3225,11 @@ print(result.output)
 #> width=10 height=20 depth=30 units='cm'
 ```
 
+1. This could also have been a union: `output_type=Box | str` (or in older Python, `output_type=Union[Box, str]`). However, as explained in the "Type checking considerations" section above, that would've required explicitly specifying the generic parameters on the `Agent` constructor and adding `# type: ignore` to this line in order to be type checked correctly.
+
 _(This example is complete, it can be run "as is")_
 
-Here's an example of using a union return type, for which PydanticAI will register multiple tools and wraps non-object schemas in an object:
+Here's an example of using a union return type, which will register multiple output tools and wrap non-object schemas in an object:
 
 ```python {title="colors_or_sizes.py"}
 from typing import Union
@@ -3020,7 +3238,7 @@ from pydantic_ai import Agent
 
 agent = Agent[None, Union[list[str], list[int]]](
     'openai:gpt-4o-mini',
-    output_type=Union[list[str], list[int]],  # type: ignore
+    output_type=Union[list[str], list[int]],  # type: ignore # (1)!
     system_prompt='Extract either colors or sizes from the shapes provided.',
 )
 
@@ -3033,7 +3251,10 @@ print(result.output)
 #> [10, 20, 30]
 ```
 
+1. As explained in the "Type checking considerations" section above, using a union rather than a list requires explicitly specifying the generic parameters on the `Agent` constructor and adding `# type: ignore` to this line in order to be type checked correctly.
+
 _(This example is complete, it can be run "as is")_
+
 
 ### Output functions
 
@@ -3055,7 +3276,6 @@ from typing import Union
 from pydantic import BaseModel
 
 from pydantic_ai import Agent, ModelRetry, RunContext
-from pydantic_ai._output import ToolRetryError
 from pydantic_ai.exceptions import UnexpectedModelBehavior
 
 
@@ -3118,7 +3338,7 @@ async def hand_off_to_sql_agent(ctx: RunContext, query: str) -> list[Row]:
         return output
     except UnexpectedModelBehavior as e:
         # Bubble up potentially retryable errors to the router agent
-        if (cause := e.__cause__) and isinstance(cause, ToolRetryError):
+        if (cause := e.__cause__) and hasattr(cause, 'tool_retry'):
             raise ModelRetry(f'SQL agent failed: {cause.tool_retry.content}') from e
         else:
             raise
@@ -3146,23 +3366,171 @@ print(result.output)
 """
 
 result = router_agent.run_sync('Select all pets')
-print(result.output)
+print(repr(result.output))
 """
-explanation = "The requested table 'pets' does not exist in the database. The only available table is 'capital_cities', which does not contain data about pets."
+RouterFailure(explanation="The requested table 'pets' does not exist in the database. The only available table is 'capital_cities', which does not contain data about pets.")
 """
 
 result = router_agent.run_sync('How do I fly from Amsterdam to Mexico City?')
-print(result.output)
+print(repr(result.output))
 """
-explanation = 'I am not equipped to provide travel information, such as flights from Amsterdam to Mexico City.'
+RouterFailure(explanation='I am not equipped to provide travel information, such as flights from Amsterdam to Mexico City.')
 """
 ```
+
+#### Text output
+
+If you provide an output function that takes a string, Pydantic AI will by default create an output tool like for any other output function. If instead you'd like the model to provide the string using plain text output, you can wrap the function in the [`TextOutput`][pydantic_ai.output.TextOutput] marker class. If desired, this marker class can be used alongside one or more [`ToolOutput`](#tool-output) marker classes (or unmarked types or functions) in a list provided to `output_type`.
+
+```python {title="text_output_function.py"}
+from pydantic_ai import Agent, TextOutput
+
+
+def split_into_words(text: str) -> list[str]:
+    return text.split()
+
+
+agent = Agent(
+    'openai:gpt-4o',
+    output_type=TextOutput(split_into_words),
+)
+result = agent.run_sync('Who was Albert Einstein?')
+print(result.output)
+#> ['Albert', 'Einstein', 'was', 'a', 'German-born', 'theoretical', 'physicist.']
+```
+
+_(This example is complete, it can be run "as is")_
+
+### Output modes
+
+Pydantic AI implements three different methods to get a model to output structured data:
+
+1. [Tool Output](#tool-output), where tool calls are used to produce the output.
+2. [Native Output](#native-output), where the model is required to produce text content compliant with a provided JSON schema.
+3. [Prompted Output](#prompted-output), where a prompt is injected into the model instructions including the desired JSON schema, and we attempt to parse the model's plain-text response as appropriate.
+
+#### Tool Output
+
+In the default Tool Output mode, the output JSON schema of each output type (or function) is provided to the model as the parameters schema of a special output tool. This is the default as it's supported by virtually all models and has been shown to work very well.
+
+If you'd like to change the name of the output tool, pass a custom description to aid the model, or turn on or off strict mode, you can wrap the type(s) in the [`ToolOutput`][pydantic_ai.output.ToolOutput] marker class and provide the appropriate arguments. Note that by default, the description is taken from the docstring specified on a Pydantic model or output function, so specifying it using the marker class is typically not necessary.
+
+```python {title="tool_output.py"}
+from pydantic import BaseModel
+
+from pydantic_ai import Agent, ToolOutput
+
+
+class Fruit(BaseModel):
+    name: str
+    color: str
+
+
+class Vehicle(BaseModel):
+    name: str
+    wheels: int
+
+
+agent = Agent(
+    'openai:gpt-4o',
+    output_type=[ # (1)!
+        ToolOutput(Fruit, name='return_fruit'),
+        ToolOutput(Vehicle, name='return_vehicle'),
+    ],
+)
+result = agent.run_sync('What is a banana?')
+print(repr(result.output))
+#> Fruit(name='banana', color='yellow')
+```
+
+1. If we were passing just `Fruit` and `Vehicle` without custom tool names, we could have used a union: `output_type=Fruit | Vehicle` (or in older Python, `output_type=Union[Fruit | Vehicle]`). However, as `ToolOutput` is an object rather than a type, we have to use a list.
+
+_(This example is complete, it can be run "as is")_
+
+#### Native Output
+
+Native Output mode uses a model's native "Structured Outputs" feature (aka "JSON Schema response format"), where the model is forced to only output text matching the provided JSON schema. Note that this is not supported by all models, and sometimes comes with restrictions. For example, Anthropic does not support this at all, and Gemini cannot use tools at the same time as structured output, and attempting to do so will result in an error.
+
+To use this mode, you can wrap the output type(s) in the [`NativeOutput`][pydantic_ai.output.NativeOutput] marker class that also lets you specify a `name` and `description` if the name and docstring of the type or function are not sufficient.
+
+```python {title="native_output.py" requires="tool_output.py"}
+from tool_output import Fruit, Vehicle
+
+from pydantic_ai import Agent, NativeOutput
+
+agent = Agent(
+    'openai:gpt-4o',
+    output_type=NativeOutput(
+        [Fruit, Vehicle], # (1)!
+        name='Fruit or vehicle',
+        description='Return a fruit or vehicle.'
+    ),
+)
+result = agent.run_sync('What is a Ford Explorer?')
+print(repr(result.output))
+#> Vehicle(name='Ford Explorer', wheels=4)
+```
+
+1. This could also have been a union: `output_type=Fruit | Vehicle` (or in older Python, `output_type=Union[Fruit, Vehicle]`). However, as explained in the "Type checking considerations" section above, that would've required explicitly specifying the generic parameters on the `Agent` constructor and adding `# type: ignore` to this line in order to be type checked correctly.
+
+_(This example is complete, it can be run "as is")_
+
+#### Prompted Output
+
+In this mode, the model is prompted to output text matching the provided JSON schema through its [instructions](agents.md#instructions) and it's up to the model to interpret those instructions correctly. This is usable with all models, but is often the least reliable approach as the model is not forced to match the schema.
+
+While we would generally suggest starting with tool or native output, in some cases this mode may result in higher quality outputs, and for models without native tool calling or structured output support it is the only option for producing structured outputs.
+
+If the model API supports the "JSON Mode" feature (aka "JSON Object response format") to force the model to output valid JSON, this is enabled, but it's still up to the model to abide by the schema. Pydantic AI will validate the returned structured data and tell the model to try again if validation fails, but if the model is not intelligent enough this may not be sufficient.
+
+To use this mode, you can wrap the output type(s) in the [`PromptedOutput`][pydantic_ai.output.PromptedOutput] marker class that also lets you specify a `name` and `description` if the name and docstring of the type or function are not sufficient. Additionally, it supports an `template` argument lets you specify a custom instructions template to be used instead of the [default][pydantic_ai.profiles.ModelProfile.prompted_output_template].
+
+```python {title="prompted_output.py" requires="tool_output.py"}
+from pydantic import BaseModel
+from tool_output import Vehicle
+
+from pydantic_ai import Agent, PromptedOutput
+
+
+class Device(BaseModel):
+    name: str
+    kind: str
+
+
+agent = Agent(
+    'openai:gpt-4o',
+    output_type=PromptedOutput(
+        [Vehicle, Device], # (1)!
+        name='Vehicle or device',
+        description='Return a vehicle or device.'
+    ),
+)
+result = agent.run_sync('What is a MacBook?')
+print(repr(result.output))
+#> Device(name='MacBook', kind='laptop')
+
+agent = Agent(
+    'openai:gpt-4o',
+    output_type=PromptedOutput(
+        [Vehicle, Device],
+        template='Gimme some JSON: {schema}'
+    ),
+)
+result = agent.run_sync('What is a Ford Explorer?')
+print(repr(result.output))
+#> Vehicle(name='Ford Explorer', wheels=4)
+```
+
+1. This could also have been a union: `output_type=Vehicle | Device` (or in older Python, `output_type=Union[Vehicle, Device]`). However, as explained in the "Type checking considerations" section above, that would've required explicitly specifying the generic parameters on the `Agent` constructor and adding `# type: ignore` to this line in order to be type checked correctly.
+
+_(This example is complete, it can be run "as is")_
 
 ### Output validators {#output-validator-functions}
 
 Some validation is inconvenient or impossible to do in Pydantic validators, in particular when the validation requires IO and is asynchronous. PydanticAI provides a way to add validation functions via the [`agent.output_validator`][pydantic_ai.Agent.output_validator] decorator.
 
 If you want to implement separate validation logic for different output types, it's recommended to use [output functions](#output-functions) instead, to save you from having to do `isinstance` checks inside the output validator.
+If you want the model to output plain text, do your own processing or validation, and then have the agent's final output be the result of your function, it's recommended to use an [output function](#output-functions) with the [`TextOutput` marker class](#text-output).
 
 Here's a simplified variant of the [SQL Generation example](examples/sql-gen.md):
 
@@ -3442,7 +3810,7 @@ _(This example is complete, it can be run "as is")_
 
 Let's print the messages from that game to see what happened:
 
-```python {title="dice_game_messages.py"}
+```python {title="dice_game_messages.py" requires="dice_game.py"}
 from dice_game import dice_result
 
 print(dice_result.all_messages())
@@ -3668,6 +4036,66 @@ print(result.output)
 _(This example is complete, it can be run "as is")_
 
 Some models (e.g. Gemini) natively support semi-structured return values, while some expect text (OpenAI) but seem to be just as good at extracting meaning from the data. If a Python object is returned and the model expects a string, the value will be serialized to JSON.
+
+### Advanced Tool Returns
+
+For scenarios where you need more control over both the tool's return value and the content sent to the model, you can use [`ToolReturn`][pydantic_ai.messages.ToolReturn]. This is particularly useful when you want to:
+
+- Provide rich multi-modal content (images, documents, etc.) to the model as context
+- Separate the programmatic return value from the model's context
+- Include additional metadata that shouldn't be sent to the LLM
+
+Here's an example of a computer automation tool that captures screenshots and provides visual feedback:
+
+```python {title="advanced_tool_return.py" test="skip" lint="skip"}
+import time
+from pydantic_ai import Agent
+from pydantic_ai.messages import ToolReturn, BinaryContent
+
+agent = Agent('openai:gpt-4o')
+
+@agent.tool_plain
+def click_and_capture(x: int, y: int) -> ToolReturn:
+    """Click at coordinates and show before/after screenshots."""
+    # Take screenshot before action
+    before_screenshot = capture_screen()
+
+    # Perform click operation
+    perform_click(x, y)
+    time.sleep(0.5)  # Wait for UI to update
+
+    # Take screenshot after action
+    after_screenshot = capture_screen()
+
+    return ToolReturn(
+        return_value=f"Successfully clicked at ({x}, {y})",
+        content=[
+            f"Clicked at coordinates ({x}, {y}). Here's the comparison:",
+            "Before:",
+            BinaryContent(data=before_screenshot, media_type="image/png"),
+            "After:",
+            BinaryContent(data=after_screenshot, media_type="image/png"),
+            "Please analyze the changes and suggest next steps."
+        ],
+        metadata={
+            "coordinates": {"x": x, "y": y},
+            "action_type": "click_and_capture",
+            "timestamp": time.time()
+        }
+    )
+
+# The model receives the rich visual content for analysis
+# while your application can access the structured return_value and metadata
+result = agent.run_sync("Click on the submit button and tell me what happened")
+print(result.output)
+# The model can analyze the screenshots and provide detailed feedback
+```
+
+- **`return_value`**: The actual return value used in the tool response. This is what gets serialized and sent back to the model as the tool's result.
+- **`content`**: A sequence of content (text, images, documents, etc.) that provides additional context to the model. This appears as a separate user message.
+- **`metadata`**: Optional metadata that your application can access but is not sent to the LLM. Useful for logging, debugging, or additional processing. Some other AI frameworks call this feature "artifacts".
+
+This separation allows you to provide rich context to the model while maintaining clean, structured return values for your application logic.
 
 ## Function Tools vs. Structured Outputs
 

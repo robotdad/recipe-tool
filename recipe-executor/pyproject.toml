@@ -1,6 +1,6 @@
 [project]
 name = "recipe-executor"
-version = "0.1.1"
+version = "0.1.3"
 description = "A tool for executing natural language recipe-like instructions"
 authors = [{ name = "MADE:Explorations Team" }]
 license = "MIT"
@@ -12,7 +12,6 @@ dependencies = [
     "jsonschema>=4.23.0",
     "pydantic-ai-slim[anthropic,openai,mcp]>=0.3.1",
     "pydantic-settings>=2.8.1",
-    "python-code-tools",
     "python-dotenv>=1.1.0",
     "python-liquid>=2.0.1",
     "pyyaml>=6.0.2",

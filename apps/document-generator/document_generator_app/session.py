@@ -27,9 +27,22 @@ class SessionManager:
         if session_id not in self.session_dirs:
             session_dir = Path(tempfile.gettempdir()) / f"doc-gen-{session_id}"
             session_dir.mkdir(exist_ok=True)
+
+            # Create subdirectories for organized file management
+            (session_dir / "files").mkdir(exist_ok=True)  # Uploaded files (stored in docpack)
+            (session_dir / "temp").mkdir(exist_ok=True)  # Generated files, downloaded URLs
+
             self.session_dirs[session_id] = session_dir
 
         return self.session_dirs[session_id]
+
+    def get_files_dir(self, session_id: Optional[str] = None) -> Path:
+        """Get files directory for session (for uploaded files)"""
+        return self.get_session_dir(session_id) / "files"
+
+    def get_temp_dir(self, session_id: Optional[str] = None) -> Path:
+        """Get temp directory for session (for generated files and downloaded URLs)"""
+        return self.get_session_dir(session_id) / "temp"
 
     def cleanup_all(self):
         """Clean up all session directories on shutdown"""
