@@ -10,10 +10,12 @@ from pathlib import Path
 from recipe_executor.context import Context
 from recipe_executor.executor import Executor
 from recipe_executor.logger import init_logger
+from recipe_executor.config import load_configuration
 
 from ..models.outline import Outline
 from ..session import session_manager
 from ..resource_resolver import resolve_all_resources
+from ..config import settings
 from typing import Optional
 
 # Set up logging
@@ -83,12 +85,18 @@ async def generate_document(outline: Optional[Outline], session_id: Optional[str
         logger.info(f"Created outline file: {outline_path}")
 
         recipe_logger = init_logger(log_dir=tmpdir)
+
+        # Load configuration from environment variables
+        config = load_configuration()
+
         context = Context(
             artifacts={
                 "outline_file": str(outline_path),
                 "recipe_root": str(RECIPE_ROOT),
                 "output_root": str(session_dir),  # Use session directory for output
-            }
+                "model": settings.model_id,  # Use configured model
+            },
+            config=config,  # Pass configuration to context
         )
         logger.info(f"Context artifacts: {context.dict()}")
 
