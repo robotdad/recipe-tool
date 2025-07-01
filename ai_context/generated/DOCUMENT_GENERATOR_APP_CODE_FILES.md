@@ -5,8 +5,8 @@
 **Search:** ['apps/document-generator/document_generator_app']
 **Exclude:** ['.venv', 'node_modules', '*.lock', '.git', '__pycache__', '*.pyc', '*.ruff_cache', 'logs', 'output']
 **Include:** []
-**Date:** 6/27/2025, 4:24:08 PM
-**Files:** 13
+**Date:** 7/1/2025, 4:21:06 PM
+**Files:** 21
 
 === File: apps/document-generator/document_generator_app/__init__.py ===
 
@@ -80,6 +80,7 @@ if __name__ == "__main__":
 === File: apps/document-generator/document_generator_app/config.py ===
 """Configuration settings for the Document Generator app."""
 
+import os
 from typing import NamedTuple, List
 
 
@@ -96,6 +97,15 @@ class Settings:
     # App settings
     app_title: str = "Document Generator"
     app_description: str = "Create structured documents with AI assistance"
+
+    # LLM Configuration
+    llm_provider: str = os.getenv("LLM_PROVIDER", "openai")  # "openai" or "azure"
+    default_model: str = os.getenv("DEFAULT_MODEL", "gpt-4o")
+
+    @property
+    def model_id(self) -> str:
+        """Get the full model ID for recipe-executor."""
+        return f"{self.llm_provider}/{self.default_model}"
 
     # Example outlines
     example_outlines: List[ExampleOutline] = [
@@ -132,74 +142,137 @@ Headless generation runner: invoke the document-generator recipe.
 """
 
 import json
+import logging
+import traceback
 from pathlib import Path
 
 from recipe_executor.context import Context
 from recipe_executor.executor import Executor
 from recipe_executor.logger import init_logger
+from recipe_executor.config import load_configuration
 
 from ..models.outline import Outline
 from ..session import session_manager
 from ..resource_resolver import resolve_all_resources
+from ..config import settings
 from typing import Optional
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 async def generate_document(outline: Optional[Outline], session_id: Optional[str] = None) -> str:
     """
     Run the document-generator recipe with the given outline and return the generated Markdown.
     """
+    logger.info(f"Starting document generation for session: {session_id}")
+
     # Allow stub invocation without an outline for initial tests
     if outline is None:
+        logger.warning("No outline provided, returning empty document")
         return ""
 
-    REPO_ROOT = Path(__file__).resolve().parents[4]
-    RECIPE_PATH = REPO_ROOT / "recipes" / "document_generator" / "document_generator_recipe.json"
-    RECIPE_ROOT = RECIPE_PATH.parent
+    # First try bundled recipes (for deployment), then fall back to repo structure (for development)
+    APP_ROOT = Path(__file__).resolve().parents[2]  # document_generator_app parent
+    BUNDLED_RECIPE_PATH = APP_ROOT / "document_generator_app" / "recipes" / "document_generator_recipe.json"
+
+    logger.info(f"APP_ROOT: {APP_ROOT}")
+    logger.info(f"BUNDLED_RECIPE_PATH: {BUNDLED_RECIPE_PATH}")
+    logger.info(f"Bundled recipe exists: {BUNDLED_RECIPE_PATH.exists()}")
+
+    if BUNDLED_RECIPE_PATH.exists():
+        # Use bundled recipes (deployment mode)
+        RECIPE_PATH = BUNDLED_RECIPE_PATH
+        RECIPE_ROOT = RECIPE_PATH.parent
+        logger.info(f"Using bundled recipes: {RECIPE_PATH}")
+    else:
+        # Fall back to repo structure (development mode)
+        REPO_ROOT = Path(__file__).resolve().parents[4]
+        RECIPE_PATH = REPO_ROOT / "recipes" / "document_generator" / "document_generator_recipe.json"
+        RECIPE_ROOT = RECIPE_PATH.parent
+        logger.info(f"Using development recipes: {RECIPE_PATH}")
+        logger.info(f"Recipe exists: {RECIPE_PATH.exists()}")
 
     # Use session-scoped temp directory
     session_dir = session_manager.get_session_dir(session_id)
     tmpdir = str(session_dir / "execution")
     Path(tmpdir).mkdir(exist_ok=True)
+    logger.info(f"Using temp directory: {tmpdir}")
 
     try:
         # Resolve all resources using the new resolver
+        logger.info("Resolving resources...")
         outline_data = outline.to_dict()
+        logger.info(f"Outline data: {json.dumps(outline_data, indent=2)}")
+
         resolved_resources = resolve_all_resources(outline_data, session_id)
+        logger.info(f"Resolved resources: {resolved_resources}")
 
         # Update resource paths in outline with resolved paths
         for resource in outline.resources:
             if resource.key in resolved_resources:
+                old_path = resource.path
                 resource.path = str(resolved_resources[resource.key])
+                logger.info(f"Updated resource {resource.key}: {old_path} -> {resource.path}")
 
         # Create updated outline with resolved paths
         data = outline.to_dict()
         outline_json = json.dumps(data, indent=2)
         outline_path = Path(tmpdir) / "outline.json"
         outline_path.write_text(outline_json)
+        logger.info(f"Created outline file: {outline_path}")
 
-        logger = init_logger(log_dir=tmpdir)
+        recipe_logger = init_logger(log_dir=tmpdir)
+
+        # Load configuration from environment variables
+        config = load_configuration()
+
         context = Context(
             artifacts={
                 "outline_file": str(outline_path),
                 "recipe_root": str(RECIPE_ROOT),
                 "output_root": str(session_dir),  # Use session directory for output
-            }
+                "model": settings.model_id,  # Use configured model
+            },
+            config=config,  # Pass configuration to context
         )
-        executor = Executor(logger)
+        logger.info(f"Context artifacts: {context.dict()}")
+
+        executor = Executor(recipe_logger)
+        logger.info(f"Executing recipe: {RECIPE_PATH}")
         await executor.execute(str(RECIPE_PATH), context)
+        logger.info("Recipe execution completed")
 
         output_root = Path(context.get("output_root", tmpdir))
         filename = context.get("document_filename")
+        logger.info(f"Output root: {output_root}")
+        logger.info(f"Document filename: {filename}")
+        logger.info(f"All context keys: {list(context.keys())}")
+
         if not filename:
-            return context.get("document", "")
+            document_content = context.get("document", "")
+            logger.info(f"No filename, returning document from context (length: {len(document_content)})")
+            return document_content
 
         document_path = output_root / f"{filename}.md"
+        logger.info(f"Looking for document at: {document_path}")
+
         try:
-            return document_path.read_text()
+            content = document_path.read_text()
+            logger.info(f"Successfully read document (length: {len(content)})")
+            return content
         except FileNotFoundError:
+            logger.error(f"Generated file not found: {document_path}")
+            # List files in output directory for debugging
+            if output_root.exists():
+                files = list(output_root.glob("*"))
+                logger.info(f"Files in output directory: {files}")
             return f"Generated file not found: {document_path}"
     except Exception as e:
-        return f"Error generating document: {str(e)}"
+        logger.error(f"Error generating document: {str(e)}")
+        logger.error(f"Full traceback: {traceback.format_exc()}")
+        return f"Error generating document: {str(e)}\n\nFull traceback:\n{traceback.format_exc()}"
 
 
 === File: apps/document-generator/document_generator_app/main.py ===
@@ -208,9 +281,25 @@ Main entrypoint for the Document Generator App UI.
 """
 
 import os
+from pathlib import Path
 
 from dotenv import load_dotenv
 from document_generator_app.ui import build_editor
+
+
+def check_deployment_status():
+    """Quick deployment status check."""
+    # Verify essential configuration
+    app_root = Path(__file__).resolve().parents[1]
+    bundled_recipe_path = app_root / "document_generator_app" / "recipes" / "document_generator_recipe.json"
+
+    print("Document Generator starting...")
+    print(f"Recipe source: {'bundled' if bundled_recipe_path.exists() else 'development'}")
+
+    # Show LLM provider configuration
+    provider = os.getenv("LLM_PROVIDER", "openai")
+    model = os.getenv("DEFAULT_MODEL", "gpt-4o")
+    print(f"LLM: {provider}/{model}")
 
 
 def main() -> None:
@@ -219,11 +308,14 @@ def main() -> None:
     # Load environment variables from .env file
     load_dotenv()
 
+    # Run diagnostic check
+    check_deployment_status()
+
     # Configuration for hosting - Azure App Service uses PORT environment variable
     server_name = os.getenv("GRADIO_SERVER_NAME", "0.0.0.0")
     server_port = int(os.getenv("PORT", os.getenv("GRADIO_SERVER_PORT", "8000")))
 
-    print(f"Starting Gradio app on {server_name}:{server_port}")
+    print(f"Server: {server_name}:{server_port}")
     build_editor().launch(server_name=server_name, server_port=server_port, mcp_server=True, pwa=True)
 
 
@@ -501,6 +593,323 @@ class DocpackHandler:
             return False
 
 
+=== File: apps/document-generator/document_generator_app/recipes/document_generator_recipe.json ===
+{
+  "name": "Document Generator",
+  "description": "Generates a document from an outline, using LLMs to fill in sections and assemble the final document.",
+  "inputs": {
+    "outline_file": {
+      "description": "Path to outline json file.",
+      "type": "string"
+    },
+    "model": {
+      "description": "LLM model to use for generation.",
+      "type": "string",
+      "default": "openai/gpt-4o"
+    },
+    "output_root": {
+      "description": "Directory to save the generated document.",
+      "type": "string",
+      "default": "output"
+    }
+  },
+  "steps": [
+    {
+      "type": "set_context",
+      "config": {
+        "key": "model",
+        "value": "{{ model | default: 'openai/gpt-4o' }}"
+      }
+    },
+    {
+      "type": "set_context",
+      "config": {
+        "key": "output_root",
+        "value": "{{ output_root | default: 'output' }}"
+      }
+    },
+    {
+      "type": "set_context",
+      "config": {
+        "key": "recipe_root",
+        "value": "{{ recipe_root | default: 'recipes/document_generator' }}"
+      }
+    },
+    {
+      "type": "set_context",
+      "config": {
+        "key": "document_filename",
+        "value": "{{ outline_file | default: 'document' | replace: '\\', '/' | split: '/' | last | split: '.' | first | snakecase | upcase }}"
+      }
+    },
+    {
+      "type": "execute_recipe",
+      "config": {
+        "recipe_path": "{{ recipe_root }}/recipes/load_outline.json"
+      }
+    },
+    {
+      "type": "execute_recipe",
+      "config": {
+        "recipe_path": "{{ recipe_root }}/recipes/load_resources.json"
+      }
+    },
+    {
+      "type": "set_context",
+      "config": {
+        "key": "document",
+        "value": "# {{ outline.title }}\n\n[document-generator]\n\n**Date:** {{ 'now' | date: '%-m/%-d/%Y %I:%M:%S %p' }}"
+      }
+    },
+    {
+      "type": "execute_recipe",
+      "config": {
+        "recipe_path": "{{ recipe_root }}/recipes/write_document.json"
+      }
+    },
+    {
+      "type": "execute_recipe",
+      "config": {
+        "recipe_path": "{{ recipe_root }}/recipes/write_sections.json",
+        "context_overrides": {
+          "sections": "{{ outline.sections | json: indent: 2 }}"
+        }
+      }
+    }
+  ]
+}
+
+
+=== File: apps/document-generator/document_generator_app/recipes/recipes/load_outline.json ===
+{
+  "steps": [
+    {
+      "type": "read_files",
+      "config": {
+        "path": "{{ outline_file }}",
+        "content_key": "outline"
+      }
+    },
+    {
+      "type": "set_context",
+      "config": {
+        "key": "toc",
+        "value": "{% capture toc %}\n## Table of Contents\n\n{% for sec in outline.sections %}\n- {{ sec.title | escape }}\n{% if sec.sections %}\n  {% for child in sec.sections %}\n  - {{ child.title | escape }}\n  {% endfor %}\n{% endif %}\n{% endfor %}\n{% endcapture %}\n{{ toc }}"
+      }
+    }
+  ]
+}
+
+
+=== File: apps/document-generator/document_generator_app/recipes/recipes/load_resources.json ===
+{
+  "steps": [
+    {
+      "type": "loop",
+      "config": {
+        "items": "outline.resources",
+        "item_key": "resource",
+        "result_key": "resources",
+        "substeps": [
+          {
+            "type": "read_files",
+            "config": {
+              "path": "{{ resource.path }}",
+              "content_key": "content",
+              "merge_mode": "{{ resource.merge_mode }}"
+            }
+          },
+          {
+            "type": "set_context",
+            "config": {
+              "key": "resource",
+              "value": {
+                "content": "{{ content }}"
+              },
+              "if_exists": "merge"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
+
+
+=== File: apps/document-generator/document_generator_app/recipes/recipes/read_document.json ===
+{
+  "steps": [
+    {
+      "type": "read_files",
+      "config": {
+        "path": "{{ output_root }}/{{ document_filename }}.md",
+        "content_key": "document"
+      }
+    }
+  ]
+}
+
+
+=== File: apps/document-generator/document_generator_app/recipes/recipes/write_content.json ===
+{
+  "steps": [
+    {
+      "type": "execute_recipe",
+      "config": {
+        "recipe_path": "{{ recipe_root }}/recipes/read_document.json"
+      }
+    },
+    {
+      "type": "set_context",
+      "config": {
+        "key": "document",
+        "value": "\n\n{{ section.title }}\n\n{% for resource in resources %}{% if resource.key == section.resource_key %}{{ resource.content }}{% endif %}{% endfor %}",
+        "if_exists": "merge"
+      }
+    },
+    {
+      "type": "execute_recipe",
+      "config": {
+        "recipe_path": "{{ recipe_root }}/recipes/write_document.json"
+      }
+    }
+  ]
+}
+
+
+=== File: apps/document-generator/document_generator_app/recipes/recipes/write_document.json ===
+{
+  "steps": [
+    {
+      "type": "write_files",
+      "config": {
+        "files": [
+          {
+            "path": "{{ document_filename }}.md",
+            "content_key": "document"
+          }
+        ],
+        "root": "{{ output_root }}"
+      }
+    }
+  ]
+}
+
+
+=== File: apps/document-generator/document_generator_app/recipes/recipes/write_section.json ===
+{
+  "steps": [
+    {
+      "type": "execute_recipe",
+      "config": {
+        "recipe_path": "{{ recipe_root }}/recipes/read_document.json"
+      }
+    },
+    {
+      "type": "set_context",
+      "config": {
+        "key": "rendered_prompt",
+        "value": "{{ section.prompt }}",
+        "nested_render": true
+      }
+    },
+    {
+      "type": "llm_generate",
+      "config": {
+        "model": "{{ model }}",
+        "prompt": "Generate a section for the <DOCUMENT> based upon the following prompt:\n<PROMPT>\n{{ rendered_prompt }}\n</PROMPT>\n\nGeneral instruction:\n{{ outline.general_instruction }}\n\nAvailable references:\n<REFERENCE_DOCS>\n{% for ref in section.refs %}{% for resource in resources %}{% if resource.key == ref %}<{{ resource.key | upcase }}><DESCRIPTION>{{ resource.description }}</DESCRIPTION><CONTENT>{{ resource.content }}</CONTENT></{{ resource.key | upcase }}>{% endif %}{% endfor %}{% endfor %}\n</REFERENCE_DOCS>\n\nHere is the content of the <DOCUMENT> so far:\n<DOCUMENT>\n{{ document }}\n</DOCUMENT>\n\nPlease write ONLY THE NEW `{{ section.title }}` SECTION requested in your PROMPT, in the same style as the rest of the document.",
+        "output_format": {
+          "type": "object",
+          "properties": {
+            "content": {
+              "type": "string",
+              "description": "The generated content for the section."
+            }
+          }
+        },
+        "output_key": "generated"
+      }
+    },
+    {
+      "type": "set_context",
+      "config": {
+        "key": "document",
+        "value": "\n\n{{ generated.content }}",
+        "if_exists": "merge"
+      }
+    },
+    {
+      "type": "execute_recipe",
+      "config": {
+        "recipe_path": "{{ recipe_root }}/recipes/write_document.json"
+      }
+    }
+  ]
+}
+
+
+=== File: apps/document-generator/document_generator_app/recipes/recipes/write_sections.json ===
+{
+  "steps": [
+    {
+      "type": "loop",
+      "config": {
+        "items": "sections",
+        "item_key": "section",
+        "result_key": "section.content",
+        "substeps": [
+          {
+            "type": "conditional",
+            "config": {
+              "condition": "{% if section.resource_key %}true{% else %}false{% endif %}",
+              "if_true": {
+                "steps": [
+                  {
+                    "type": "execute_recipe",
+                    "config": {
+                      "recipe_path": "{{ recipe_root }}/recipes/write_content.json"
+                    }
+                  }
+                ]
+              },
+              "if_false": {
+                "steps": [
+                  {
+                    "type": "execute_recipe",
+                    "config": {
+                      "recipe_path": "{{ recipe_root }}/recipes/write_section.json"
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "type": "conditional",
+            "config": {
+              "condition": "{% assign has_children = section | has: 'sections' %}{% if has_children %}true{% else %}false{% endif %}",
+              "if_true": {
+                "steps": [
+                  {
+                    "type": "execute_recipe",
+                    "config": {
+                      "recipe_path": "{{ recipe_root }}/recipes/write_sections.json",
+                      "context_overrides": {
+                        "sections": "{{ section.sections | json: indent: 2 }}"
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
+
+
 === File: apps/document-generator/document_generator_app/resource_resolver.py ===
 """Resource resolution for document generation.
 
@@ -754,6 +1163,11 @@ def create_resource_editor() -> Dict[str, Any]:
         description = gr.TextArea(label="Description", placeholder="Describe what this resource contains...", lines=3)
 
         gr.Markdown("#### Resource Source")
+        gr.Markdown(
+            "*Only text-based files are supported: Markdown (.md), text (.txt), JSON (.json), "
+            "source code (.py, .js, .ts, etc.), CSV (.csv), and similar. "
+            "Word docs, PDFs, PowerPoint, images, and binary files are not supported.*"
+        )
         with gr.Tabs() as resource_source_tabs:
             with gr.TabItem("Upload File", id="upload_file"):
                 bundled_file_info = gr.Markdown(visible=False)
@@ -994,8 +1408,31 @@ def start_generation() -> List[Any]:
 
 async def handle_generate(current_state: Dict[str, Any]) -> List[Any]:
     """Generate document from outline."""
+    import logging
+
+    logger = logging.getLogger(__name__)
+
     try:
+        logger.info(f"Starting document generation for outline: {current_state['outline'].title}")
         content = await generate_document(current_state["outline"], current_state.get("session_id"))
+        logger.info(f"Generated content length: {len(content)}")
+
+        # Check if content is suspiciously short (just header)
+        lines = content.strip().split("\n")
+        if len(lines) <= 3 and not any(len(line.strip()) > 50 for line in lines):
+            error_msg = (
+                f"⚠️ Document generation appears incomplete. Generated only {len(lines)} lines. Check logs for details."
+            )
+            logger.warning(error_msg)
+            return [
+                gr.update(value="Generate Document", interactive=True),  # generate_btn
+                gr.update(value=error_msg, visible=True),  # generation_status
+                gr.update(visible=True),  # output_container
+                content
+                + "\n\n---\n\n**Debug Info:**\n"
+                + f"Content length: {len(content)} characters\nLines: {len(lines)}",  # output_markdown
+                gr.update(visible=False),  # download_doc_btn
+            ]
 
         # Save content to a temporary file for download
         filename = f"{current_state['outline'].title}.md" if current_state["outline"].title else "document.md"
@@ -1016,11 +1453,17 @@ async def handle_generate(current_state: Dict[str, Any]) -> List[Any]:
             ),
         ]
     except Exception as e:
+        import traceback
+
+        error_details = traceback.format_exc()
+        logger.error(f"Document generation failed: {str(e)}")
+        logger.error(f"Full traceback: {error_details}")
+
         return [
             gr.update(value="Generate Document", interactive=True),  # generate_btn
             gr.update(value=f"❌ Error: {str(e)}", visible=True),  # generation_status
             gr.update(visible=True),  # output_container
-            f"Error generating document: {str(e)}",  # output_markdown
+            f"Error generating document: {str(e)}\n\n---\n\n**Full Error Details:**\n```\n{error_details}\n```",  # output_markdown
             gr.update(visible=False),  # download_doc_btn
         ]
 
@@ -1137,6 +1580,10 @@ def build_editor() -> gr.Blocks:
                 # Download docpack section
                 gr.Markdown("---")
                 download_docpack_btn = gr.DownloadButton("Download Docpack", variant="secondary", visible=False)
+
+                # Reset button
+                with gr.Row():
+                    reset_btn = gr.Button("Reset Outline", variant="secondary", size="sm")
 
                 # Live JSON preview
                 with gr.Accordion("Outline Preview (JSON)", open=False):
@@ -1681,6 +2128,47 @@ def build_editor() -> gr.Blocks:
                 print(f"Error creating docpack: {str(e)}")
                 return gr.update()
 
+        def handle_reset_outline(current_state):
+            """Reset the outline to initial state."""
+            # Create fresh initial state but keep the same session_id
+            session_id = current_state.get("session_id")
+            new_state = create_initial_state()
+            new_state["session_id"] = session_id
+
+            # Clear any uploaded files from the session
+            try:
+                from .session import session_manager
+
+                files_dir = session_manager.get_files_dir(session_id)
+                if files_dir.exists():
+                    import shutil
+
+                    shutil.rmtree(files_dir)
+                    files_dir.mkdir(parents=True, exist_ok=True)
+            except Exception as e:
+                print(f"Warning: Could not clear session files: {str(e)}")
+
+            # Update all UI components to initial state
+            json_str, validation_msg, generate_btn_update, download_btn_update = validate_and_preview(new_state)
+
+            return [
+                new_state,  # state
+                "",  # title
+                "",  # instructions
+                gr.update(choices=[], value=None),  # resource_radio
+                gr.update(choices=[], value=None),  # section_radio
+                gr.update(visible=True),  # empty_state
+                gr.update(visible=False),  # resource_editor container
+                gr.update(visible=False),  # section_editor container
+                json_str,  # json_preview
+                validation_msg,  # validation_message
+                generate_btn_update,  # generate_btn
+                download_btn_update,  # download_docpack_btn
+                gr.update(visible=False),  # generation_status
+                gr.update(visible=False),  # output_container
+                gr.update(visible=False),  # download_doc_btn
+            ]
+
         # ====================================================================
         # Connect Event Handlers
         # ====================================================================
@@ -2108,6 +2596,29 @@ def build_editor() -> gr.Blocks:
 
         # Set up download docpack handler to update with file path when clicked
         download_docpack_btn.click(handle_download_docpack, inputs=[state], outputs=[download_docpack_btn])
+
+        # Reset button handler
+        reset_btn.click(
+            handle_reset_outline,
+            inputs=[state],
+            outputs=[
+                state,
+                title,
+                instructions,
+                resource_radio,
+                section_radio,
+                empty_state,
+                resource_editor["container"],
+                section_editor["container"],
+                json_preview,
+                validation_message,
+                generate_btn,
+                download_docpack_btn,
+                generation_status,
+                output_container,
+                download_doc_btn,
+            ],
+        )
 
         # Initial validation on load
         app.load(

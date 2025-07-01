@@ -98,6 +98,11 @@ def create_resource_editor() -> Dict[str, Any]:
         description = gr.TextArea(label="Description", placeholder="Describe what this resource contains...", lines=3)
 
         gr.Markdown("#### Resource Source")
+        gr.Markdown(
+            "*Only text-based files are supported: Markdown (.md), text (.txt), JSON (.json), "
+            "source code (.py, .js, .ts, etc.), CSV (.csv), and similar. "
+            "Word docs, PDFs, PowerPoint, images, and binary files are not supported.*"
+        )
         with gr.Tabs() as resource_source_tabs:
             with gr.TabItem("Upload File", id="upload_file"):
                 bundled_file_info = gr.Markdown(visible=False)
@@ -510,6 +515,10 @@ def build_editor() -> gr.Blocks:
                 # Download docpack section
                 gr.Markdown("---")
                 download_docpack_btn = gr.DownloadButton("Download Docpack", variant="secondary", visible=False)
+
+                # Reset button
+                with gr.Row():
+                    reset_btn = gr.Button("Reset Outline", variant="secondary", size="sm")
 
                 # Live JSON preview
                 with gr.Accordion("Outline Preview (JSON)", open=False):
@@ -1054,6 +1063,47 @@ def build_editor() -> gr.Blocks:
                 print(f"Error creating docpack: {str(e)}")
                 return gr.update()
 
+        def handle_reset_outline(current_state):
+            """Reset the outline to initial state."""
+            # Create fresh initial state but keep the same session_id
+            session_id = current_state.get("session_id")
+            new_state = create_initial_state()
+            new_state["session_id"] = session_id
+
+            # Clear any uploaded files from the session
+            try:
+                from .session import session_manager
+
+                files_dir = session_manager.get_files_dir(session_id)
+                if files_dir.exists():
+                    import shutil
+
+                    shutil.rmtree(files_dir)
+                    files_dir.mkdir(parents=True, exist_ok=True)
+            except Exception as e:
+                print(f"Warning: Could not clear session files: {str(e)}")
+
+            # Update all UI components to initial state
+            json_str, validation_msg, generate_btn_update, download_btn_update = validate_and_preview(new_state)
+
+            return [
+                new_state,  # state
+                "",  # title
+                "",  # instructions
+                gr.update(choices=[], value=None),  # resource_radio
+                gr.update(choices=[], value=None),  # section_radio
+                gr.update(visible=True),  # empty_state
+                gr.update(visible=False),  # resource_editor container
+                gr.update(visible=False),  # section_editor container
+                json_str,  # json_preview
+                validation_msg,  # validation_message
+                generate_btn_update,  # generate_btn
+                download_btn_update,  # download_docpack_btn
+                gr.update(visible=False),  # generation_status
+                gr.update(visible=False),  # output_container
+                gr.update(visible=False),  # download_doc_btn
+            ]
+
         # ====================================================================
         # Connect Event Handlers
         # ====================================================================
@@ -1481,6 +1531,29 @@ def build_editor() -> gr.Blocks:
 
         # Set up download docpack handler to update with file path when clicked
         download_docpack_btn.click(handle_download_docpack, inputs=[state], outputs=[download_docpack_btn])
+
+        # Reset button handler
+        reset_btn.click(
+            handle_reset_outline,
+            inputs=[state],
+            outputs=[
+                state,
+                title,
+                instructions,
+                resource_radio,
+                section_radio,
+                empty_state,
+                resource_editor["container"],
+                section_editor["container"],
+                json_preview,
+                validation_message,
+                generate_btn,
+                download_docpack_btn,
+                generation_status,
+                output_container,
+                download_doc_btn,
+            ],
+        )
 
         # Initial validation on load
         app.load(

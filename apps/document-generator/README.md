@@ -5,17 +5,20 @@ A Gradio web interface for creating structured documents using AI-powered genera
 ## Features
 
 - **Visual Outline Editor**: Create document structures with nested sections (up to 4 levels)
-- **Resource Management**: Upload files or reference URLs as source materials
+- **Resource Management**: Upload text files or reference URLs as source materials
+  - Supports text-based files: Markdown, JSON, source code, CSV, etc.
+  - Does not support binary files: Word docs, PDFs, PowerPoint, images
 - **Two Generation Modes**:
   - **Prompt Mode**: AI generates content based on prompts and resource references
   - **Static Mode**: Directly include content from resources
 - **Live JSON Preview**: See your outline structure in real-time with validation
-- **Auto-save**: All changes save automatically as you type
-- **Import/Export**: Upload existing outlines or download your work
+- **Import/Export**: Upload existing docpacks or download your work as docpack files
+- **Azure OpenAI Support**: Configurable for both OpenAI and Azure OpenAI via environment variables
 
 ## Quick Start
 
 ### Development Mode
+
 ```bash
 # From workspace root
 make install               # Install dependencies
@@ -23,6 +26,7 @@ document-generator-app     # Launch the web interface
 ```
 
 ### Deployment Mode
+
 ```bash
 # Build self-contained deployment package
 make build                 # Bundle recipes + refresh examples
@@ -33,21 +37,52 @@ make build                 # Bundle recipes + refresh examples
 
 The app will open at `http://localhost:8000`
 
+## Configuration
+
+### LLM Provider Configuration
+
+The app supports both OpenAI and Azure OpenAI:
+
+```bash
+# For OpenAI (default)
+export LLM_PROVIDER=openai
+export DEFAULT_MODEL=gpt-4o
+
+# For Azure OpenAI
+export LLM_PROVIDER=azure
+export DEFAULT_MODEL=gpt-4o
+export AZURE_OPENAI_BASE_URL=https://your-resource.openai.azure.com
+export AZURE_USE_MANAGED_IDENTITY=true
+export AZURE_CLIENT_ID=your-managed-identity-client-id
+
+# Or with API key instead of managed identity
+export AZURE_OPENAI_API_KEY=your-api-key
+```
+
+See [Azure Deployment Guide](AZURE_DEPLOYMENT.md) for detailed deployment instructions.
+
 ## How to Use
 
 1. **Add Resources**: Click "+ Add" under Resources to add source files or URLs
+
    - Set a unique key for each resource
-   - Upload files or provide paths/URLs
+   - Upload text files (Markdown, JSON, source code, etc.) or provide URLs
    - Add descriptions to help the AI understand the content
 
 2. **Create Sections**: Click "+ Add" under Sections to build your document structure
+
    - Use "+ Sub" to create nested subsections
    - Choose between Prompt mode (AI generation) or Static mode (direct inclusion)
    - Reference resources in your prompts using their keys
 
 3. **Generate Document**: Once your outline validates (green Generate button), click to create your document
+
    - The AI will process each section according to your instructions
    - Download the generated Markdown file when complete
+
+4. **Reset When Needed**: Click "Reset Outline" to clear everything and start fresh
+
+5. **Save Your Work**: Use "Download Docpack" to save your outline and resources as a portable .docpack file
 
 ## Example Outline
 
@@ -89,7 +124,7 @@ python scripts/build_deployment.py
 ### What the Build Process Does
 
 1. **Bundles Recipe Files**: Copies all recipe files from `/recipes/document_generator/` into `document_generator_app/recipes/`
-2. **Refreshes Examples**: Updates example docpacks with latest content and bundled resources  
+2. **Refreshes Examples**: Updates example docpacks with latest content and bundled resources
 3. **Updates .gitignore**: Adds bundled recipes to ignore list (since they're generated)
 4. **Verifies Build**: Ensures all required files are present and correctly bundled
 
@@ -116,16 +151,9 @@ python scripts/refresh_examples.py
 ### Example Sources
 
 - **Source files**: `/recipes/document_generator/examples/*.json`
-- **Resource files**: `/recipes/document_generator/examples/resources/`  
+- **Resource files**: `/recipes/document_generator/examples/resources/`
 - **Generated docpacks**: `apps/document-generator/examples/*.docpack`
 
 The source JSON files contain full file paths to actual resource files. When converted to docpacks, the referenced files are bundled inside the .docpack archive, creating fully functional examples.
-
-## Architecture
-
-The app follows a simple two-column layout:
-- **Left Column**: Resource and section management with live JSON preview
-- **Right Column**: Editor for the selected item
-- **Bottom**: Document generation and output display
 
 Built with Gradio for the UI and uses the recipe-executor for document generation.

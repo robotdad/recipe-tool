@@ -2,36 +2,45 @@
 
 [document-generator]
 
-**Date:** 5/16/2025 04:01:53 PM
+**Date:** 7/1/2025 04:22:21 PM
 
 ## Introduction
 
-The Recipe JSON Authoring Guide explains how to define and run automation workflows using the Recipe Executor framework. At its core, a **recipe JSON file** is a declarative description of one or more steps—such as reading files, calling an LLM, looping over items, or writing output—to be executed in sequence. The **Recipe Executor** is a tool (CLI or Python API) that loads a recipe, validates its structure, and runs each step against a shared **context** object, passing data and configuration between them.
+The Recipe Executor framework turns natural-language ideas into reliable, automated workflows. At its core, a **recipe JSON file** is a strict, comment-free JSON document that defines an ordered list of steps—ranging from file I/O and conditionals to LLM calls and sub-recipes. When you run a recipe, the **Recipe Executor** loads and validates the JSON, applies Liquid templating to inject dynamic values, then executes each step in sequence against a shared context object. The result is a deterministic, reproducible pipeline that faithfully captures your intent.
 
-This guide is written for two audiences:
+This guide serves two audiences:
 
-• **Human developers**: Learn how to author valid recipe JSON files by hand or with code.
-• **LLM assistants**: Generate syntactically correct recipes from natural-language prompts.
+- **Human developers** writing or reviewing recipe JSON files by hand.
+- **LLM-powered assistants** generating valid recipe JSON from plain-language prompts.
 
-Following this introduction, you will find detailed sections covering:
+Throughout this document, we will cover the following main topics:
 
-• **Basic Structure** – Anatomy of a recipe file and how steps are defined
-• **Context Management** – How data flows through a recipe via the context object
-• **Step Types** – Available operations (read_files, llm_generate, loop, etc.)
-• **Templating and Expressions** – Using Liquid templates and conditional logic
-• **Best Practices** – Tips for readability, maintainability, and error handling
-• **Example Snippets** – Ready-to-use recipe patterns for common tasks
+- **Basic Recipe Structure** → required fields, optional metadata, and runnable examples.
+- **Working with Context** → how steps share data, common patterns, and pitfalls.
+- **Built-in Step Types** → overview of all standard steps and when to use them.
+- **Using Liquid Templating** → dynamic variables, filters, loops, and conditionals.
+- **Best Practices & Patterns** → guidelines for maintainable, efficient recipes.
+- **Recipe Cookbook** → copy-and-paste snippets for common automation scenarios.
 
 ## Basic Recipe Structure
 
-• The top-level **steps** array is **required** and must be valid, strict JSON. Unknown step types (not in the registry) cause a runtime `ValueError`.
+A valid recipe JSON must be a strict, comment-free JSON object with a top-level `steps` array. The executor:
 
-• You may include optional top-level fields:
+- **Requires** a `"steps"` array of objects, each with a `"type"` (step name) and a `"config"` object.
+  ```json
+  {
+    "steps": [
+      /*  … */
+    ]
+  }
+  ```
+- **Errors** if any step’s `type` is not registered in the executor’s `STEP_REGISTRY`.
 
-- `inputs`, `outputs`, `description` (for documentation or tooling).
-- **Any** other unknown keys are simply ignored by the executor.
+Optional top-level blocks—such as `"inputs"`, `"outputs"`, and `"description"`—may be present for metadata. The executor ignores any unknown top-level keys (no error).
 
-Minimal runnable example (one step):
+### Minimal Runnable Example
+
+A one-step recipe that sets a context key:
 
 ```json
 {
@@ -47,50 +56,7 @@ Minimal runnable example (one step):
 }
 ```
 
-Slightly larger skeleton illustrating common steps:
-
-```json
-{
-  "inputs": {
-    "input_file": { "type": "string" }
-  },
-  "description": "Sample workflow",
-  "steps": [
-    {
-      "type": "set_context",
-      "config": { "key": "mode", "value": "{{mode|default:'prod'}}" }
-    },
-    {
-      "type": "read_files",
-      "config": { "path": "{{input_file}}", "content_key": "data" }
-    },
-    {
-      "type": "execute_recipe",
-      "config": { "recipe_path": "sub.json" }
-    },
-    {
-      "type": "loop",
-      "config": {
-        "items": "data.items",
-        "item_key": "item",
-        "substeps": [
-          {
-            "type": "write_files",
-            "config": { "files_key": "item", "root": "out" }
-          }
-        ],
-        "result_key": "results"
-      }
-    },
-    {
-      "type": "write_files",
-      "config": { "files_key": "results", "root": "output" }
-    }
-  ]
-}
-```
-
-Mermaid diagram of step flow:
+### Skeleton with Common Steps
 
 ```mermaid
 flowchart LR
@@ -100,143 +66,181 @@ flowchart LR
   D --> E[write_files]
 ```
 
-## Working with Objects Between Recipe Steps
-
-• The **Context** object is a shared, mutable store of artifacts and configuration. Under the hood it behaves like a Python `dict`, so each step reads with `context["key"]` and writes with `context["key"] = value`. You can pass complex objects (lists, dicts, pydantic models) by reference—no manual JSON serialization or deserialization is required.
-
-• Common patterns:
-
-- **set_context**: seed or update context entries in-place. Use `nested_render: true` when you need multiple Liquid passes.
-- **execute_recipe** with **context_overrides**: launch a sub-recipe sharing the same context, but temporarily overriding select keys.
-
-• Common mistakes:
-
-- Over-using the `json` filter in Liquid (e.g., `{{ obj | json }}`) to stringify objects, then reparsing them in steps—unnecessary and error-prone.
-- Forgetting to set a **result_key** in a **loop** step. Without it, loop outputs are discarded and you won’t see your collected results.
-- Omitting `if_exists` in **set_context**, leading to silent overwrites or missed merges when keys already exist.
-
-**Simple value pass**
-
 ```json
 {
+  "inputs": {
+    "input_path": { "description": "File to read", "type": "string" }
+  },
+  "description": "Skeleton showing core steps",
   "steps": [
     {
       "type": "set_context",
-      "config": {
-        "key": "userId",
-        "value": "12345"
-      }
+      "config": { "key": "root", "value": "./data" }
     },
     {
-      "type": "llm_generate",
+      "type": "read_files",
       "config": {
-        "prompt": "Welcome back, user {{ userId }}!",
-        "output_format": "text",
-        "output_key": "greeting"
-      }
-    }
-  ]
-}
-```
-
-**Complex object pass**
-
-```json
-{
-  "steps": [
-    {
-      "type": "set_context",
-      "config": {
-        "key": "order",
-        "value": {
-          "id": "{{ orderId }}",
-          "items": {{ cartItems | json: indent: 2 }}
-        },
-        "nested_render": true
+        "path": "{{ input_path }}",
+        "content_key": "raw"
       }
     },
     {
       "type": "execute_recipe",
-      "config": {
-        "recipe_path": "sub-recipes/process_order.json",
-        "context_overrides": {
-          "order": "{{ order | json }}"
-        }
-      }
-    }
-  ]
-}
-```
-
-**Loop iteration collecting results**
-
-```json
-{
-  "steps": [
+      "config": { "recipe_path": "sub_recipe.json" }
+    },
     {
       "type": "loop",
       "config": {
-        "items": "input.items",
+        "items": "raw.items",
         "item_key": "item",
         "substeps": [
-          {
-            "type": "llm_generate",
-            "config": {
-              "prompt": "Process item {{ item }}",
-              "output_format": "text",
-              "output_key": "processed"
-            }
-          }
+          /* … */
         ],
-        "result_key": "processedItems"
+        "result_key": "processed"
+      }
+    },
+    {
+      "type": "write_files",
+      "config": {
+        "files_key": "processed",
+        "root": "./out"
       }
     }
   ]
 }
 ```
 
+## Working with Objects Between Recipe Steps
+
+The **Context** object in Recipe Executor is a shared, dictionary-like container that flows through all steps. It stores artifacts (results, data objects) and configuration values without requiring manual serialization. Steps directly read or write context keys, passing complex data structures by reference. Under the hood, no JSON dumps or loads are needed— the executor handles objects natively.
+
+### Reading and Writing Context Keys
+
+- **Read**: Steps use Liquid templating (`{{ key }}`) to inject context values.
+- **Write**: Use `set_context` or the built-in step implementations to assign new keys.
+- **Shared by reference**: When you set a list or dict, downstream steps see the same object (deep-copied at context creation).
+
+### Common Patterns
+
+1. **Simple value injection with `set_context`**:
+   ```json
+   {
+     "type": "set_context",
+     "config": {
+       "key": "username",
+       "value": "alice"
+     }
+   }
+   ```
+2. **Passing complex objects via `context_overrides` in `execute_recipe`**:
+   ```json
+   {
+     "type": "execute_recipe",
+     "config": {
+       "recipe_path": "sub_recipe.json",
+       "context_overrides": {
+         "settings": {
+           "retries": "{{ settings.retries }}",
+           "timeout": "{{ settings.timeout }}"
+         }
+       }
+     }
+   }
+   ```
+   The sub-recipe sees `settings` as a dict without manual JSON parsing.
+3. **Collecting per-item results in a loop**:
+   ```json
+   {
+     "steps": [
+       {
+         "type": "loop",
+         "config": {
+           "items": "user_ids",
+           "item_key": "user_id",
+           "substeps": [
+             {
+               "type": "llm_generate",
+               "config": {
+                 "prompt": "Process user {{ user_id }}",
+                 "output_format": "text",
+                 "output_key": "result"
+               }
+             }
+           ],
+           "result_key": "user_results"
+         }
+       }
+     ]
+   }
+   ```
+   After execution, `context.user_results` is a list of each step’s `result`.
+
+### Common Mistakes to Avoid
+
+- **Unnecessary JSON filters**: You rarely need `| json` to pass objects. Liquid will render objects transparently when using direct dict literals or nested `set_context` values.
+- **Forgetting `result_key` in loops**: Omitting `result_key` means your loop’s outputs are not saved, and you lose all per-item results.
+- **Overwriting context unintentionally**: Using `set_context` without `if_exists: "merge"` will replace existing lists or dicts instead of appending or merging.
+
+By following these patterns and avoiding the pitfalls, you can leverage the Context object to coordinate data flow cleanly across simple steps, sub-recipes, and loops.
+
 ## Built-in Step Types and Configuration
 
-The Recipe Executor includes a core set of built-in step types that cover the most common automation patterns—file I/O, branching logic, LLM integration, loops and parallelism, context manipulation, sub-recipe execution, and external tool calls via MCP. These steps matter because they provide reusable, well-tested building blocks you can assemble into everything from simple one-off scripts to complex, multi-component workflows. Each step is self-describing and integrates seamlessly with the shared context, allowing you to focus on what you want to do rather than how to wire up each operation.
+The Recipe Executor provides a set of built-in step types that cover the most common automation needs—from reading and writing files to branching logic, loops, sub-recipes, LLM calls, and external tool integration. By relying on these well-defined building blocks, you can assemble complex workflows without custom code. Each step type encapsulates a specific concern, ensuring consistency, reliability, and clear error handling across recipes.
 
-Below you’ll find concise reference entries for each step type. Every entry follows the same structure—**Purpose → Key configuration fields (required/optional) → Default values and edge-case behavior → JSON usage example**—so you know exactly where to look when authoring or troubleshooting recipes. Consult these entries whenever you need to understand a step’s options, discover advanced settings (like `max_concurrency` or `merge_mode`), or see a ready-to-copy snippet.
+Below you will find reference entries for each built-in step. Each entry explains the step’s purpose, configuration schema (including defaults), usage examples, and common pitfalls. Consult these reference sections whenever you need to understand a step’s options, discover how to format its JSON config, or decide which step best fits a particular task.
 
-• conditional
-• execute_recipe
-• llm_generate
-• loop
-• mcp
-• parallel
-• read_files
-• set_context
-• write_files
+| Step Type      |
+| -------------- |
+| conditional    |
+| execute_recipe |
+| llm_generate   |
+| loop           |
+| mcp            |
+| parallel       |
+| read_files     |
+| set_context    |
+| write_files    |
 
-#### read_files
+### `read_files`
 
-Purpose:
-• Read the contents of one or more files from the filesystem and expose them as artifacts in the shared context.
+**Purpose**
+Load one or more files from disk into the shared context so subsequent steps can consume their contents.
 
-When to Use:
-• Loading specifications, documentation, or other input data for downstream steps.
-• Gathering multiple related files (e.g., spec + docs) or optional templates.
+**When to use**
+• You need to read external data (specs, templates, JSON/YAML files, text documents) into your recipe.
+• Pre‐load resources before generating text with an LLM, or before looping over file contents.
 
-Key Configuration (config defaults in **bold**):
+**Key Configuration** (defaults shown)
 
-- **path** (string or list[str], required): One or more file paths. A single comma-separated string is split on commas. Supports Liquid templating (e.g., `"specs/{{ component_id }}.md"`).
-- **content_key** (string, required): Context key under which to store the file content.
-- **optional** (bool, **false**): If **true**, missing files do not raise errors. Single missing file → empty string; in **merge_mode: concat** missing files are skipped; in **dict** missing entries omitted.
-- **merge_mode** ("concat" | "dict", **"concat"**): Behavior when reading multiple files:
-  - **concat**: join contents with newline separators labeled by file path.
-  - **dict**: produce a map from filename to content.
+```json
+{
+  "type": "read_files",
+  "config": {
+    "path": <string | [List<string>]>,   // no default, required
+    "content_key": <string>,            // no default, required
+    "optional": false,                  // default: false
+    "merge_mode": "concat"            // default: "concat", other option: "dict"
+  }
+}
+```
 
-Notable Pitfalls:
-• Forgetting `optional: true` will cause a `FileNotFoundError` if any file is missing.
-• Using the default **concat** mode when you intended to keep files separate—switch to **dict** for structured access.
-• Passing a Liquid template that resolves to a list without proper quoting can be interpreted as a single comma-string.
+- **path**: Single path, comma-separated paths, glob pattern, or list of paths. Supports Liquid templating.
+- **content_key**: Context key under which to store the file content.
+- **optional**: If `true`, missing files are skipped (empty string for single files, omitted entries for merges) instead of raising an error.
+- **merge_mode**:
+  - `"concat"`: Join multiple file contents into one string, separated by filename headers and newlines.
+  - `"dict"`: Return a JSON/dict mapping each filepath to its contents.
 
-Examples:
+**Notable Pitfalls**
 
-1. Reading a single file:
+- Forgetting `optional:true` when files may not exist will cause a `FileNotFoundError`.
+- Default `merge_mode:"concat"` can make it hard to split content by source file; use `"dict"` if you need per‐file access.
+- When reading JSON/YAML, the step will parse it automatically—ensure `merge_mode` still matches your desired output structure.
+- Globs and comma-lists are expanded before optional logic; an empty glob may still error unless `optional:true`.
+
+**Examples**
+
+1. Read a single Markdown spec:
 
 ```json
 {
@@ -248,201 +252,307 @@ Examples:
 }
 ```
 
-2. Reading multiple files as concatenated text:
-
-```json
-{
-  "type": "read_files",
-  "config": {
-    "path": "docs/intro.md,docs/details.md",
-    "content_key": "all_docs",
-    "merge_mode": "concat"
-  }
-}
-```
-
-3. Reading multiple files into a dictionary (optional):
+2. Read multiple docs and concatenate:
 
 ```json
 {
   "type": "read_files",
   "config": {
     "path": ["docs/intro.md", "docs/usage.md"],
-    "content_key": "doc_map",
+    "content_key": "combined_docs",
+    "merge_mode": "concat"
+  }
+}
+```
+
+3. Read multiple specs into a dictionary:
+
+```json
+{
+  "type": "read_files",
+  "config": {
+    "path": "configs/*.json",
+    "content_key": "config_map",
     "merge_mode": "dict",
     "optional": true
   }
 }
 ```
 
-#### write_files
-
-Purpose:
-• Write one or more files to disk based on artifacts stored in the shared context. This step handles creating directories, resolving file paths, and serializing content (JSON, text) without manual file-I/O code.
-
-When to Use:
-• Persist code or data generated by previous steps (e.g., `llm_generate` with `output_format: "files"`).
-• Emit configuration files (JSON/YAML) or reports built in memory.
-• Save arbitrary content stored in context under a key.
-
-Key Configuration (defaults in **bold**):
-
-- **files_key** (string, optional): Context key holding a list of `FileSpec` objects or dicts. If provided, `files_key` is used unless `files` is also set.
-- **files** (array of objects, optional): Inline list of file definitions. Each item may include:
-  - **path** (string) — literal output path (supports Liquid templating).
-  - **content** (string or serializable object) — file content. Dicts/lists are auto-serialized to formatted JSON.
-  - **path_key** / **content_key** (string) — alternate context keys for path or content values.
-- **root** (string, **"."**): Base directory to prepend to every file path. Directories are created recursively.
-
-Notable Pitfalls:
-• Omitting both `files_key` and `files` → no files written (step is a no-op).
-• Specifying both `files` and `files_key` → `files` takes precedence.
-• Forgetting to include template filters on `path` in `files` → literal braces in filenames.
-• Assuming content is rendered through Liquid—only paths are templated; content is written verbatim or JSON-serialized.
-
-Examples:
-
-1. Write files produced by an LLM step:
+4. Templated path and key:
 
 ```json
 {
-  "type": "write_files",
+  "type": "read_files",
   "config": {
-    "files_key": "generated_files",
-    "root": "output/src"
+    "path": "templates/{{template_name}}.txt",
+    "content_key": "{{template_name | snakecase}}_template"
   }
 }
 ```
 
-2. Write an inline list of files with mixed content types:
+### `write_files`
+
+Purpose
+
+Write one or more files to the local file system using content held in the execution context. This step handles directory creation, path templating, and optional JSON serialization for structured content.
+
+When to use
+
+• At the end of a recipe to persist generated artifacts (code, documentation, data) to disk.
+• When you have collected a list of `FileSpec` objects or file-dictionary entries in context.
+
+Key Configuration (defaults shown)
 
 ```json
 {
   "type": "write_files",
   "config": {
-    "files": [
-      { "path": "config.json", "content_key": "project_config" },
-      { "path_key": "script_path", "content_key": "script_body" },
-      {
-        "path": "README.md",
-        "content": "# Project Title\nGenerated on {{ timestamp }}"
+    "files_key": <string?>,    // default: null (use `files` instead)
+    "files": <list<dict>?>,    // default: null
+    "root": "."             // default: current working directory
+  }
+}
+```
+
+• **files_key**: Context key that holds a `FileSpec` or a list of `FileSpec` objects (preferred).  
+• **files**: Direct list of `{ path: string, content: string|object }` entries. If both `files_key` and `files` are provided, `files` takes precedence.  
+• **root**: Base directory to prefix to each file’s path. Subdirectories are created automatically.
+
+Notable Pitfalls
+
+• Failing to set either `files_key` or `files` yields a validation error.  
+• Templated file paths must resolve to valid, safe file names; illegal characters or empty templates can cause failures.  
+• When writing Python dictionaries or lists, the step automatically serializes to JSON. If the object isn’t JSON-serializable, a serialization error is thrown.  
+• Existing files are overwritten without prompt—ensure you don’t accidentally zap important files.
+
+Examples
+
+1. Using `files_key` populated by an LLM step:
+
+```json
+{
+  "steps": [
+    {
+      "type": "llm_generate",
+      "config": {
+        "prompt": "Generate a README.md content.",
+        "output_format": "text",
+        "output_key": "readme_content"
       }
-    ],
-    "root": "output/docs"
-  }
-}
-```
-
-#### set_context
-
-Purpose:
-• Create or update an artifact in the shared execution context without writing custom Python code. It lets you seed data, append to existing values, or merge structured objects as you build up context for downstream steps.
-
-When to Use:
-• You need to introduce a new value (string, list, dict) into context before using it in a later step.
-• You want to modify or extend an existing context entry (e.g., accumulate logs, build up a document, merge partial results).
-• You need to render Liquid templates within a value, optionally multiple times (nested rendering).
-
-Key Configuration (defaults in **bold**):
-
-- **key** (string, required): Context artifact name under which the value will be stored.
-- **value** (string | list | dict, required): The literal data or Liquid template string to render and assign. Lists and dicts are traversed so that each string element is rendered.
-- **nested_render** (bool, **false**): If true, repeatedly render the value until no unresolved `{{…}}` tags remain (skips content inside raw blocks). Use this when your value includes multi-stage templates.
-- **if_exists** ("overwrite" | "merge", **"overwrite"**): Strategy when the key already exists:
-  - **overwrite**: replace the old value.
-  - **merge**: combine old and new using type-aware rules:
-    • string + string → concatenation
-    • list + list/item → append
-    • dict + dict → shallow merge
-    • mismatched types → `[old, new]`
-
-Notable Pitfalls:
-• Setting `nested_render: true` on large strings can loop indefinitely if templates re-introduce tags—use with care.
-• Forgetting to choose `merge` when you wanted to append or combine values can silently overwrite data.
-• Deep-merge is not supported—nested dict keys overwrite at the top level only.
-
-Examples:
-
-1. Basic assignment:
-
-```json
-{
-  "type": "set_context",
-  "config": {
-    "key": "greeting",
-    "value": "Hello, world!"
-  }
-}
-```
-
-Stores the literal string `Hello, world!` under `context["greeting"]`.
-
-2. Merging dictionaries:
-
-```json
-{
-  "type": "set_context",
-  "config": {
-    "key": "metadata",
-    "value": {
-      "version": "1.0",
-      "author": "Alice"
     },
+    {
+      "type": "write_files",
+      "config": {
+        "files_key": "readme_content",
+        "root": "output/docs"
+      }
+    }
+  ]
+}
+```
+
+2. Writing multiple files with inline definitions and automatic JSON formatting:
+
+```json
+{
+  "steps": [
+    {
+      "type": "write_files",
+      "config": {
+        "files": [
+          {
+            "path": "config.json",
+            "content": { "version": "1.0", "features": ["A", "B", "C"] }
+          },
+          {
+            "path": "logs/{{date}}.log",
+            "content_key": "run_logs"
+          }
+        ],
+        "root": "output"
+      }
+    }
+  ]
+}
+```
+
+3. Using `path_key` and `content_key` to dynamically drive both path and content:
+
+```json
+{
+  "steps": [
+    {
+      "type": "write_files",
+      "config": {
+        "files": [
+          {
+            "path_key": "artifact_path",
+            "content_key": "artifact_data"
+          }
+        ],
+        "root": "build"
+      }
+    }
+  ]
+}
+```
+
+In all cases, `write_files` will ensure parent directories exist and write each file using UTF-8 encoding.
+
+### `set_context`
+
+**Purpose**
+Provide a declarative way to create or update artifacts in the shared execution context by assigning literal values or rendered templates to a context key. Supports simple assignments, shallow merges, and recursive rendering when needed.
+
+**When to use**
+
+- To introduce static values or templates into context before other steps run.
+- To accumulate or update context data (e.g., appending to a log, building up a document).
+- When you need to merge new information into an existing list or dictionary without writing custom code.
+
+**Key Configuration** (defaults shown)
+
+```json
+{
+  "type": "set_context",
+  "config": {
+    "key": <string>,               // required: context key
+    "value": <string|list|dict>,  // required: literal or template string, list, or dict
+    "nested_render": false,       // default: false
+    "if_exists": "overwrite"    // default: overwrite; other option: "merge"
+  }
+}
+```
+
+- **nested_render**: When `true`, repeatedly applies Liquid templating to strings or nested structures until no tags remain (useful for multi-stage templates).
+- **if_exists**:
+  - `"overwrite"`: Replace any existing value at `key` (default).
+  - `"merge"`: Shallow-merge by type:
+    - `str + str` → concatenation
+    - `list + list` or `list + item` → append
+    - `dict + dict` → shallow dict merge (new keys overwrite)
+    - mismatched types → `[old, new]`
+
+**Notable Pitfalls**
+
+- Forgetting to set `if_exists: "merge"` when you expect to append or combine values—by default, you’ll overwrite previous data.
+- Deep-nested structures are only shallow-merged; nested keys are not recursively merged.
+- Using `nested_render` can lead to infinite loops if templates reintroduce tags—use with care and wrap unchanged sections in `{% raw %}` blocks.
+- Invalid template expressions in `value` will raise a `ValueError` at render time.
+
+**Examples**
+
+1. **Simple assignment**
+
+```json
+{
+  "type": "set_context",
+  "config": {
+    "key": "username",
+    "value": "alice"
+  }
+}
+```
+
+2. **Merging a list**
+
+```json
+{
+  "type": "set_context",
+  "config": {
+    "key": "tasks",
+    "value": ["build", "test"],
     "if_exists": "merge"
   }
 }
 ```
 
-If `metadata` already exists (a dict), its keys are shallow-merged with the new values; existing keys are overwritten.
+If `context.tasks` was `["lint"]`, after this it becomes `["lint","build","test"]`.
 
-3. Nested template rendering:
+3. **Shallow merging a dict**
 
 ```json
 {
   "type": "set_context",
   "config": {
-    "key": "full_prompt",
-    "value": "First pass: {{ draft }}",
+    "key": "settings",
+    "value": { "timeout": 30 },
+    "if_exists": "merge"
+  }
+}
+```
+
+Existing keys in `settings` are preserved unless overwritten by the new dict.
+
+4. **Nested rendering**
+
+```json
+{
+  "type": "set_context",
+  "config": {
+    "key": "prompt",
+    "value": "Generate code for: {{ spec }}",
     "nested_render": true
   }
 }
 ```
 
-If `draft` itself contains `{{ user_input }}`, the step will render `{{ draft }}` to yield text with `{{ user_input }}`, then render again to substitute `user_input` from context.
+If `spec` itself contains Liquid tags, they will be fully resolved in successive passes.
 
-#### conditional
+### `conditional`
 
-Purpose:
-• Branch execution paths by evaluating a boolean expression against the shared context.
+**Purpose**
 
-When to Use:
-• Skip or invoke blocks of steps based on context values, file‐existence checks, or computed conditions.
+The Conditional step enables branching execution paths based on a boolean expression evaluated against the current context. It lets you guard or skip sets of steps without external scripts, making recipes more dynamic and efficient.
 
-Key Configuration (defaults in **bold**):
+**When to use**
 
-- **condition** (string | bool, required): Liquid expression or literal boolean. Evaluated to true/false.
-- **if_true** (object, **omit to do nothing**): Contains a `steps` array to execute when condition is true.
-- **if_false** (object, **omit to skip**): Contains a `steps` array to execute when condition is false.
+- Guard sub-recipes or expensive LLM calls only when needed (e.g., only generate docs if input data changed).
+- Check context values or filesystem state before proceeding (feature flags, presence of files).
+- Implement fallback or alternative workflows within the same recipe.
 
-Notable Pitfalls:
-• If you omit both branches, the step has no effect regardless of the condition.
-• Template variables must resolve to valid booleans (e.g., `"true"`/`"false"` or expressions like `{{ count > 0 }}`).
-• Avoid complex Python code in the condition; use built-in helpers (e.g., `and()`, `or()`, `file_exists()`).
-
-Examples:
-
-1. Simple context flag:
+**Key Configuration** (defaults shown)
 
 ```json
 {
   "type": "conditional",
   "config": {
-    "condition": "{{ run_migration }}",
+    "condition": <string|boolean>,   // required: a Liquid-rendered boolean or expression
+    "if_true": {                     // optional: block to run when condition is true
+      "steps": [ /* array of step objects */ ]
+    },
+    "if_false": {                    // optional: block to run when condition is false
+      "steps": [ /* array of step objects */ ]
+    }
+  }
+}
+```
+
+- **condition**: A literal `true`/`false` or a templated expression (e.g. `"{{ count }} > 0"`, `file_exists('out.txt')`, `and({{a}}, {{b}})`).
+- **if_true** / **if_false**: Each contains its own `steps` array. Omit a branch to skip it silently.
+
+**Notable Pitfalls**
+
+- Invalid or unrendered Liquid tags in `condition` raise an error; verify your templates resolve to plain booleans or boolean-coercible strings.
+- Omitting both `if_true` and `if_false` results in a no-op—make sure at least one branch exists if you expect action.
+- Boolean functions (`and`, `or`, `not`) must be called as functions, not Python keywords: `and(x, y)`, `not(x)`.
+- Relying on string values like `"true"`/`"false"` works (they’re coerced), but other types may not behave as expected.
+
+**Examples**
+
+1. Simple context check:
+
+```json
+{
+  "type": "conditional",
+  "config": {
+    "condition": "{{ user.is_active }}",
     "if_true": {
       "steps": [
         {
-          "type": "execute_recipe",
-          "config": { "recipe_path": "recipes/migrate.json" }
+          "type": "set_context",
+          "config": { "key": "welcome", "value": "Welcome back!" }
         }
       ]
     }
@@ -450,26 +560,34 @@ Examples:
 }
 ```
 
-2. File-existence check with fallback:
+2. File-existence branching:
 
 ```json
 {
   "type": "conditional",
   "config": {
-    "condition": "file_exists('output/report.txt')",
+    "condition": "file_exists('{{ output_dir }}/report.json')",
+    "if_true": {
+      "steps": [
+        {
+          "type": "read_files",
+          "config": {
+            "path": "{{ output_dir }}/report.json",
+            "content_key": "report",
+            "merge_mode": "dict"
+          }
+        }
+      ]
+    },
     "if_false": {
       "steps": [
         {
           "type": "llm_generate",
           "config": {
-            "prompt": "Generate missing report...",
+            "prompt": "Generate report from {{ data }}",
             "output_format": "text",
             "output_key": "report"
           }
-        },
-        {
-          "type": "write_files",
-          "config": { "files_key": "report", "root": "output" }
         }
       ]
     }
@@ -477,169 +595,181 @@ Examples:
 }
 ```
 
-#### loop
-
-Purpose:
-• Iterate over a collection of items in the context, cloning the context for each item, running a series of substeps, and collecting their results into a single list.
-
-When to Use:
-• Batch-process lists or maps of data (e.g., filenames, JSON objects, records).
-• Perform independent operations per item (file I/O, LLM calls, API requests) and gather outcomes.
-
-Key Configuration (defaults in **bold**):
-
-- **items** (string | list | dict, _required_): A context key or literal list/dict. If a string, it’s rendered then split or looked up (supports dot-notation, e.g. `data.users`).
-- **item_key** (string, _required_): Name under which the current item is stored in each iteration’s context (e.g. `"user"`).
-- **substeps** (array[object], _required_): List of step definitions to run for each item.
-- **result_key** (string, _required_): Context key under which to store the array of per-item results.
-- **max_concurrency** (int, **1**): Number of items to process in parallel. `0` = unlimited; `1` = sequential.
-- **delay** (float, **0.0**): Seconds to wait between launching each parallel task.
-- **fail_fast** (bool, **true**): Stop on first error (`true`) or continue and aggregate successes and failures (`false`).
-
-Notable Pitfalls:
-• Omitting **result_key** discards substep outputs—always set a result_key to retrieve loop results.
-• Using a string that resolves to a comma-list without quoting can split paths incorrectly; prefer arrays or dot-paths.
-• Excessive `max_concurrency` can overwhelm CPU, I/O, or LLM rate limits—tune based on resource availability.
-• Mutating the parent context in substeps can leak state; the loop clones context per iteration but writes back only the result_key values.
-
-Examples:
-
-1. Simple sequential processing of a user list:
+3. Combined logical expression:
 
 ```json
 {
-  "type": "loop",
+  "type": "conditional",
   "config": {
-    "items": "users",
-    "item_key": "user",
-    "substeps": [
-      {
-        "type": "llm_generate",
-        "config": {
-          "prompt": "Greet {{user.name}}!",
-          "output_format": "text",
-          "output_key": "greeting"
-        }
-      }
-    ],
-    "result_key": "userGreetings"
+    "condition": "and({{ has_config }}, file_exists('settings.yaml'))",
+    "if_true": {
+      /* steps when both conditions are true */
+    },
+    "if_false": {
+      /* steps otherwise */
+    }
   }
 }
 ```
 
-2. Parallel file processing with a staggered start:
+### `loop`
+
+Purpose
+
+The **Loop** step enables you to iterate over a collection of items in the context, running a defined set of sub‐steps for each element. It isolates each item’s work in a cloned context so you can process batches of data without writing custom scripts.
+
+When to use
+
+• **Batch processing**: apply the same operations (LLM calls, file writes, sub-recipes) to a list or map of inputs.
+• **Data transformation**: transform arrays or dicts into new artifacts.
+• **Concurrent tasks**: speed up independent work by processing items in parallel.
+
+Key Configuration (defaults shown)
 
 ```json
 {
   "type": "loop",
   "config": {
-    "items": "filePaths",
-    "item_key": "file",
-    "max_concurrency": 5,
-    "delay": 0.1,
-    "substeps": [
-      {
-        "type": "read_files",
-        "config": { "path": "{{file}}", "content_key": "content" }
-      },
-      {
-        "type": "llm_generate",
-        "config": {
-          "prompt": "Summarize:\n{{content}}",
-          "output_format": "text",
-          "output_key": "summary"
-        }
-      }
-    ],
-    "result_key": "summaries"
+    "items": <string | list | dict>,   // required: path or literal collection
+    "item_key": "<string>",         // required: context key for current item
+    "substeps": [ <step objects> ],   // required: steps to run per item
+    "result_key": "<string>",       // required: where to store results array
+
+    // Optional fields:
+    "max_concurrency": 1,            // default: 1 = sequential; 0 = unlimited parallel
+    "delay": 0.0,                    // default: 0.0s between starting parallel tasks
+    "fail_fast": true                // default: true = stop on first error
   }
 }
 ```
 
-3. Iterating over nested data via a dot-path:
+Notable Pitfalls
+
+- **Missing `result_key`**: If you omit `result_key`, your loop’s results are discarded.
+- **Forgetting `item_key`**: Without `item_key`, sub-steps cannot reference the current item.
+- **Sequential by default**: `max_concurrency:1` can be slow for many items. Increase to >1 or 0 for parallelism.
+- **Shared context isolation**: Each iteration uses a cloned context. Do **not** rely on sub-step side-effects carrying over between items.
+- **Error handling**: With `fail_fast:true` (default), one failure aborts the entire loop. Set `fail_fast:false` to collect successes and log errors.
+
+Examples
+
+1. Basic sequential loop:
 
 ```json
 {
-  "type": "loop",
+  "steps": [
+    {
+      "type": "loop",
+      "config": {
+        "items": "user_ids",
+        "item_key": "user_id",
+        "substeps": [
+          {
+            "type": "llm_generate",
+            "config": {
+              "prompt": "Analyze user {{user_id}} record.",
+              "output_format": "text",
+              "output_key": "analysis"
+            }
+          }
+        ],
+        "result_key": "user_analyses"
+      }
+    }
+  ]
+}
+```
+
+After execution, `context.user_analyses` is an array of each iteration’s `analysis` output.
+
+2. Parallel loop with concurrency and delay:
+
+```json
+{
+  "steps": [
+    {
+      "type": "loop",
+      "config": {
+        "items": "files_to_process",
+        "item_key": "file_path",
+        "substeps": [
+          {
+            "type": "read_files",
+            "config": { "path": "{{file_path}}", "content_key": "content" }
+          },
+          {
+            "type": "llm_generate",
+            "config": {
+              "prompt": "Summarize:\n{{content}}",
+              "output_format": "text",
+              "output_key": "summary"
+            }
+          }
+        ],
+        "result_key": "summaries",
+        "max_concurrency": 5,
+        "delay": 0.2,
+        "fail_fast": false
+      }
+    }
+  ]
+}
+```
+
+This runs up to 5 files at once, waits 0.2 s between task launches, and continues on individual failures (collecting only successful summaries).
+
+### `parallel`
+
+**Purpose**
+
+Run multiple sub-steps concurrently within a single recipe step, improving performance for independent tasks by parallelizing them while isolating each sub-step’s context.
+
+**When to use**
+
+- You have independent operations (e.g., data transforms, sub-recipes) that can run at the same time without affecting each other.
+- You want to speed up workflows that involve many similar, non-dependent tasks (for example, generating or writing files for multiple components).
+- You need to control concurrency to balance resource usage (CPU, I/O) across parallel work.
+
+**Key Configuration** (defaults shown)
+
+```json
+{
+  "type": "parallel",
   "config": {
-    "items": "data.reports",
-    "item_key": "report",
+    "substeps": [
+      /* required: list of step objects */
+    ],
+    "max_concurrency": 0, // default: 0 = no limit (all run at once)
+    "delay": 0.0 // default: 0.0 seconds between starts
+  }
+}
+```
+
+- **substeps**: Array of step definitions (each typically an `execute_recipe` or other step config) to run in parallel.
+- **max_concurrency**: Maximum number of substeps to launch simultaneously. `0` (default) = unlimited; `1` = sequential; `n>1` = up to `n` at a time.
+- **delay**: Seconds to wait between starting each substep, helping to stagger load.
+
+**Notable Pitfalls**
+
+- If any substep fails, the default behavior is **fail-fast**: all remaining substeps are cancelled and the step errors.
+- Because each substep receives a **clone** of the parent context, side-effects (writes) do **not** merge back automatically; use shared external storage or collect results explicitly if you need aggregated output.
+- Overwhelming resources: unlimited concurrency (`0`) can exhaust CPU or I/O — set `max_concurrency` to a safe level for your environment.
+- Delay too short or zero can still flood resource pools; tune `delay` for your runner.
+
+**Examples**
+
+1. Run two sub-recipes concurrently:
+
+```json
+{
+  "type": "parallel",
+  "config": {
     "substeps": [
       {
         "type": "execute_recipe",
-        "config": { "recipe_path": "recipes/process_report.json" }
-      }
-    ],
-    "result_key": "processedReports"
-  }
-}
-```
-
-#### parallel
-
-Purpose:
-• Execute multiple sub-steps concurrently within a single recipe step, improving throughput for independent tasks.
-
-When to Use:
-• Running independent operations (e.g., multiple LLM calls, file reads, or sub-recipes) that do not depend on each other’s results.
-• Speeding up workflows that would otherwise wait serially on I/O or network-bound tasks.
-
-Key Configuration (config defaults in **bold**):
-
-- **substeps** (List[object], _required_): Array of step definitions to run in parallel. Each entry follows the same shape as any recipe step (e.g., `{ "type": "llm_generate", "config": { … } }`).
-- **max_concurrency** (int, **0**): Maximum number of sub-steps to run at once. `0` = no limit (as many as system resources allow), `1` = sequential execution, `n > 1` = up to `n` concurrent.
-- **delay** (float, **0.0**): Seconds to wait between launching each sub-step. Use to stagger start times and reduce resource contention.
-
-Notable Pitfalls:
-• **Fail-fast behavior**: If any sub-step raises an exception, the entire `parallel` step aborts immediately and errors propagate—there is no built-in continue-on-error mode.
-• **Context isolation**: Each sub-step runs with a clone of the parent context. Mutations inside one sub-step do not merge back into the parent context or other sub-steps.
-• **Resource exhaustion**: Unbounded concurrency (`max_concurrency: 0`) can overwhelm LLM rate limits, CPU, or I/O. Tune `max_concurrency` and `delay` based on system capacity.
-
-Examples:
-
-1. Basic parallel execution (all tasks start immediately):
-
-```json
-{
-  "type": "parallel",
-  "config": {
-    "substeps": [
-      {
-        "type": "llm_generate",
-        "config": {
-          "prompt": "Analyze user data...",
-          "output_format": "text",
-          "output_key": "analysisA"
-        }
+        "config": { "recipe_path": "recipe_a.json" }
       },
-      {
-        "type": "llm_generate",
-        "config": {
-          "prompt": "Compare with historical trends...",
-          "output_format": "text",
-          "output_key": "analysisB"
-        }
-      }
-    ]
-  }
-}
-```
-
-2. Controlled concurrency with a launch delay:
-
-```json
-{
-  "type": "parallel",
-  "config": {
-    "substeps": [
-      {
-        "type": "read_files",
-        "config": { "path": "logs/2025-*.txt", "content_key": "log1" }
-      },
-      {
-        "type": "read_files",
-        "config": { "path": "metrics/2025-*.json", "content_key": "metrics1" }
-      }
+      { "type": "execute_recipe", "config": { "recipe_path": "recipe_b.json" } }
     ],
     "max_concurrency": 2,
     "delay": 0.5
@@ -647,29 +777,100 @@ Examples:
 }
 ```
 
-#### execute_recipe
+This launches both sub-recipes at once (up to 2) and waits 0.5 s between them.
 
-Purpose:
-• Invoke another recipe (sub-recipe) as part of the current workflow, allowing modular composition and reuse of common logic.
+2. Process a large list of items with limited parallelism:
 
-When to Use:
-• You want to break a large recipe into smaller, focused pieces.
-• You need to share the same context across multiple recipe files.
-• You need to run preparation or cleanup steps defined in separate recipes.
+```json
+{
+  "type": "parallel",
+  "config": {
+    "substeps": [
+      {
+        "type": "execute_recipe",
+        "config": {
+          "recipe_path": "process_item.json",
+          "context_overrides": { "item": "{{current_item}}" }
+        }
+      }
+    ],
+    "max_concurrency": 5,
+    "delay": 0.1
+  }
+}
+```
 
-Key Configuration (config defaults in **bold**):
+Use `max_concurrency: 5` and a short delay to process up to five items at once.
 
-- **recipe_path** (string, required): Path or JSON string of the sub-recipe to execute. Supports Liquid templating (e.g., `"recipes/{{component}}.json"`).
-- **context_overrides** (object, **{}**): Map of context keys to override or inject before running the sub-recipe. Values are rendered via Liquid before use.
+3. Simple parallel tasks (no concurrency limit):
 
-Notable Pitfalls:
-• A missing or invalid `recipe_path` raises a `ValueError` at runtime—ensure the path is correct and accessible.
-• Overriding non-string context values without proper JSON filters can lead to type errors in the sub-recipe.
-• Changes made by the sub-recipe persist in the shared context—be cautious if you need isolation (use `Context.clone` explicitly).
+```json
+{
+  "type": "parallel",
+  "config": {
+    "substeps": [
+      {
+        "type": "write_files",
+        "config": {
+          /* … */
+        }
+      },
+      {
+        "type": "set_context",
+        "config": {
+          /* … */
+        }
+      },
+      {
+        "type": "llm_generate",
+        "config": {
+          /* … */
+        }
+      }
+    ]
+  }
+}
+```
 
-Examples:
+All three substeps will run concurrently, each in its own context clone.
 
-1. Run a simple sub-recipe without overrides:
+### `execute_recipe`
+
+**Purpose**
+
+The `execute_recipe` step runs another recipe file (a “sub-recipe”) as part of your current workflow. It uses the same `Context` object (shared state) by default, but allows you to override or inject specific context values for the sub-execution. This enables you to break a large workflow into reusable modules or to conditionally delegate work to specialized recipes.
+
+**When to use**
+
+- **Composing workflows**: Chain multiple recipes (e.g., load data, analyze, generate code) in a single top-level recipe.
+- **Modularity & reuse**: Extract common tasks (e.g., build component, generate docs) into their own recipes and call them where needed.
+- **Context scoping**: You can pass only the values a sub-recipe needs via `context_overrides`, avoiding global namespace clutter.
+
+**Key Configuration** (defaults shown)
+
+```json
+{
+  "type": "execute_recipe",
+  "config": {
+    "recipe_path": "recipes/sub_recipe.json", // required: path to the recipe file
+    "context_overrides": {} // optional: dict of key→value to set before sub-execution
+  }
+}
+```
+
+- **recipe_path** (string, required): Local filesystem path (or templated path) to a JSON recipe file.
+- **context_overrides** (dict, default `{}`): Additional or replacement context artifacts for the sub-recipe. Keys and values support Liquid templating; non-string values (lists, dicts) are passed through as-is.
+
+**Notable Pitfalls**
+
+- **Path templating errors**: If your `recipe_path` template doesn’t resolve to a valid file, you’ll get a `FileNotFoundError`.
+- **Unparsed JSON strings**: When you pass JSON objects or lists as strings in `context_overrides`, be sure they are valid JSON and, if necessary, use `| json` in templates or `ast.literal_eval` in custom steps to convert them.
+- **Context collisions**: Overrides apply **before** the sub-recipe runs and persist back into the parent context. Use unique keys or scoped names to avoid overwriting parent data.
+- **Circular recipes**: Avoid recipes that call each other in a loop—this will cause infinite recursion and eventual failure.
+
+**Examples**
+
+1. **Minimal sub-recipe execution**
 
 ```json
 {
@@ -680,346 +881,435 @@ Examples:
 }
 ```
 
-2. Pass data into the sub-recipe via context overrides:
+2. **Passing overrides**
 
 ```json
 {
   "type": "execute_recipe",
   "config": {
-    "recipe_path": "recipes/generate_report.json",
+    "recipe_path": "recipes/generate_component.json",
     "context_overrides": {
-      "report_id": "{{ id }}",
-      "user": { "name": "{{ username }}" }
+      "component_id": "utils",
+      "output_dir": "./out/components/utils",
+      "retry_count": 0
     }
   }
 }
 ```
 
-3. Chain multiple sub-recipes for a component build:
+3. **Templated recipe path & nested values**
 
 ```json
 {
-  "steps": [
-    {
-      "type": "execute_recipe",
-      "config": {
-        "recipe_path": "recipes/read_component.json",
-        "context_overrides": { "component_id": "utils" }
-      }
-    },
-    {
-      "type": "execute_recipe",
-      "config": {
-        "recipe_path": "recipes/build_component.json"
+  "type": "execute_recipe",
+  "config": {
+    "recipe_path": "recipes/{{ module_name }}/build_{{ env | default: 'dev' }}.json",
+    "context_overrides": {
+      "settings": {
+        "timeout": "{{ timeout | default: '30' }}",
+        "flags": {{ flags | json }}
       }
     }
-  ]
+  }
 }
 ```
 
-#### llm_generate
+In these examples, the specified sub-recipe is loaded, its own steps are executed in sequence, and any new artifacts it writes to context become available to downstream steps in the parent recipe.
 
-Purpose:
-• Invoke a large-language model (LLM) to generate content—plain text, files, or structured data—based on a templated prompt.
+### `llm_generate`
 
-When to Use:
-• You need free-form text (e.g., summaries, dialogues).
-• You want the LLM to emit one or more files (e.g., code, markdown).
-• You require structured output validated against a JSON schema.
+**Purpose**
+Enable content generation via Large Language Models (LLMs), handling prompt templating, model selection, optional tool integration (MCP servers or built-in tools), and structured output. Results are stored back into the recipe context for downstream steps.
 
-Key Configuration (defaults in **bold**):
+**When to use**
 
-- **prompt** (string, _required_): The Liquid-rendered prompt text sent to the LLM.
-- **model** (string, **"openai/gpt-4o"**): Model identifier (e.g., `openai/o4-mini`, `azure/gpt-4o/deployment`).
-- **max_tokens** (int or string, **null**): Maximum tokens for the response.
-- **mcp_servers** (list[dict], **null**): Optional MCP server configs for tool access.
-- **output_format** ("text" | "files" | object | list, **"text"**):
-  • "text": returns a string.
-  • "files": returns a list of `FileSpec`.
-  • object / list: JSON-schema for structured output.
-- **output_key** (string, **"llm_output"**): Context key under which to store the result.
+- You need to call an LLM (OpenAI, Anthropic, Azure, Ollama, Responses API) to generate text, code, JSON, or file specifications.
+- You want to enforce a schema on LLM output (object or list) and validate results automatically.
+- You require external tool access via MCP servers (e.g., web search) during generation.
 
-Notable Pitfalls:
-• Omitting **output_key** or reusing a key overwrites previous artifacts.
-• Sending raw objects to `prompt` without nested rendering can leak Liquid tags—use `nested_render` in a preceding `set_context` if needed.
-• Mismatching `output_format` and actual model output (e.g., schema vs. plain text) causes validation errors.
-• Neglecting to convert `mcp_servers` via `get_mcp_server` will break tool calls.
+**Key Configuration** (defaults shown)
 
-Examples:
+```json
+{
+  "type": "llm_generate",
+  "config": {
+    "prompt": "<string>", // required: the rendered prompt
+    "model": "openai/gpt-4o", // default model identifier
+    "max_tokens": null, // optional integer cap on tokens
+    "mcp_servers": null, // optional array of MCP server configs
+    "openai_builtin_tools": null, // optional list of built-in tools for Responses API
+    "output_format": "text", // one of:
+    //   "text" (string),
+    //   "files" (list of FileSpec),
+    //   { … } (JSON schema for object),
+    //   [ { … } ] (JSON schema array)
+    "output_key": "llm_output" // context key for storing results
+  }
+}
+```
 
-1. Text output (simple prompt):
+- **prompt**: supports Liquid templating against current context.
+- **model**: provider/model_name or provider/model_name/deployment_name.
+- **mcp_servers**: each entry must be a valid MCP server config dict (HTTP or stdio).
+- **openai_builtin_tools**: only for `openai_responses/*` or `azure_responses/*`; validated tool types.
+- **output_format**:
+  - **"text"** → plain string.
+  - **"files"** → returns List<FileSpec> (path/content pairs).
+  - **object** or **list** schemas → validated via JSON‐schema, returned as Python dict/list.
+- **output_key**: where to place the result in context.
+
+**Notable Pitfalls**
+
+- Forgetting to set a proper `output_format` schema leads to unparsed raw strings or runtime errors.
+- Omitting `output_key` or reusing a key unintentionally overwrites existing context data.
+- Using `openai_builtin_tools` with non-Responses models raises a validation error.
+- Passing MCP server configs without `get_mcp_server` formatting can cause connection failures.
+- Liquid templates in `prompt` must render to valid text—missing context keys produce empty prompts.
+
+**Examples**
+
+1. **Text generation** (default):
 
 ```json
 {
   "type": "llm_generate",
   "config": {
     "prompt": "What is the capital of France?",
-    "model": "openai/gpt-4o",
     "output_format": "text",
-    "output_key": "capital"
+    "output_key": "capital_answer"
   }
 }
 ```
 
-After execution, `context["capital"]` might be `"Paris"`.
+After execution:
 
-2. File generation (common code use case):
+```json
+{ "capital_answer": "The capital of France is Paris." }
+```
+
+2. **FileSpec output** (generate multiple files):
 
 ```json
 {
   "type": "llm_generate",
   "config": {
-    "prompt": "Generate Python test files for a calculator module.",
+    "prompt": "Generate Python utility files for data cleaning.",
     "output_format": "files",
-    "output_key": "calculator_files"
+    "output_key": "utils_files"
   }
 }
 ```
 
-Result: `context["calculator_files"]` is a list of `{ "path": ..., "content": ... }` objects ready for `write_files`.
+Context result:
 
-3. Structured JSON output (schema-driven):
+```json
+{
+  "utils_files": [
+    { "path": "clean.py", "content": "def clean(data): ..." },
+    { "path": "validate.py", "content": "def validate(data): ..." }
+  ]
+}
+```
+
+3. **Structured JSON output** (object schema):
 
 ```json
 {
   "type": "llm_generate",
   "config": {
-    "prompt": "Extract user info from text: {{ rawText }}",
+    "prompt": "Extract user info from text: {{input_text}}",
     "output_format": {
       "type": "object",
       "properties": {
         "name": { "type": "string" },
-        "email": { "type": "string" },
         "age": { "type": "integer" }
       },
-      "required": ["name", "email"]
+      "required": ["name", "age"]
     },
-    "output_key": "userProfile"
+    "output_key": "user_profile"
   }
 }
 ```
 
-LLM output is validated and stored as a JSON object under `context["userProfile"]`.
+After execution:
 
-#### mcp
+```json
+{ "user_profile": { "name": "Alice", "age": 30 } }
+```
 
-Purpose:
-• Invoke a tool hosted on a remote MCP (Model-Coupled-Plugin) server and store its JSON result in the shared context.
+4. **Responses API with built-in web search tool**:
 
-When to Use:
-• Call out to external services or tool chains exposed via MCP (HTTP or stdio) without writing custom client code.
-• Integrate 3rd-party APIs, data fetchers, or utility services into your recipe workflows.
+```json
+{
+  "type": "llm_generate",
+  "config": {
+    "prompt": "Find current stock price of {{ticker}}.",
+    "model": "openai_responses/gpt-4o",
+    "openai_builtin_tools": [{ "type": "web_search_preview" }],
+    "output_format": "text",
+    "output_key": "stock_price"
+  }
+}
+```
 
-Key Configuration (defaults in **bold**):
+The step validates tool usage, invokes the Responses API with search, and stores the answer in `stock_price`.
 
-- **server** (object, _required_): Configuration for the MCP server. Must include either:
-  • HTTP: `{ "url": "https://api.example.com/sse", "headers": { "Authorization": "Bearer {{token}}" } }`
-  • STDIO: `{ "command": "python", "args": ["-m","my_mcp_server"], "env": {"API_KEY":"{{key}}"}, "cwd": "/path/to/server" }`
-- **tool_name** (string, _required_): Name of the tool to invoke on the server (e.g., "translate_text").
-- **arguments** (object, **{}**): Mapping of argument names to values (may be templated). Passed as the tool payload.
-- **result_key** (string, **"tool_result"**): Context key under which to store the tool’s result (a JSON object).
+### `mcp`
 
-Notable Pitfalls:
-• Mis-configuring the `server` object (wrong keys or missing `url`/`command`) causes a `ValueError` at runtime.
-• Forgetting to wrap complex arguments in `json` filters can lead to invalid payloads.
-• Using the same `result_key` for multiple calls will overwrite previous results—choose unique keys when chaining tools.
-• STDIO servers require the MCP process to exist locally; ensure `command` and `cwd` are correct and any env vars are set.
+Purpose
 
-Examples:
+The `mcp` step connects to a remote MCP (Model-Context-Protocol) server to invoke a named tool and store its result in the shared context. It provides a lightweight, declarative way to call external services (e.g., search engines, code runners, data fetchers) without embedding custom client code in your recipe.
 
-1. HTTP-based MCP server call:
+When to use
+
+• When your workflow needs to call a tool exposed by an MCP server (HTTP or STDIO) to perform operations like web search, data lookup, code execution, or any custom tool.
+• To keep recipes declarative: let the `mcp` step handle connection details, argument passing, error wrapping, and result conversion.
+
+Key Configuration (with defaults)
 
 ```json
 {
   "type": "mcp",
   "config": {
     "server": {
-      "url": "https://mcp.example.com/sse",
-      "headers": { "Authorization": "Bearer {{ api_token }}" }
+      /* required: see formats below */
     },
-    "tool_name": "get_user_profile",
-    "arguments": { "user_id": "{{ userId }}" },
-    "result_key": "profile"
+    "tool_name": "<string>", // required: name of the MCP tool to call
+    "arguments": {
+      /* object */
+    }, // required: dict of tool arguments
+    "result_key": "tool_result" // default: "tool_result"
   }
 }
 ```
 
-After execution, `context["profile"]` holds the returned JSON from the `get_user_profile` tool.
+Server config formats:
 
-2. STDIO-based MCP server call:
+- **HTTP MCP server**
+  ```json
+  "server": {
+    "url": "http://localhost:3001/sse",
+    "headers": { "Authorization": "{{token}}" }
+  }
+  ```
+- **STDIO MCP server**
+  ```json
+  "server": {
+    "command": "python",
+    "args": ["-m", "my_mcp_server"],
+    "env": { "API_KEY": "{{api_key}}" },
+    "working_dir": "/path/to/server"
+  }
+  ```
+
+Notable Pitfalls
+
+- **Invalid server config**: Missing `url`/`command` or mis-typed keys will raise a `ValueError` before calling the tool.
+- **Empty or malformed arguments**: Ensure `arguments` is a JSON object; passing a string or list will trigger a validation error.
+- **Result key collisions**: The default `tool_result` may overwrite existing context values—set `result_key` explicitly for clarity.
+- **Environment-variable interpolation**: If you leave an env var blank (`""`), the step attempts to load it from the system environment or `.env` file; missing values may still result in runtime errors.
+
+Examples
+
+1. HTTP MCP server call (stock lookup)
 
 ```json
 {
   "type": "mcp",
   "config": {
     "server": {
-      "command": "./mcp_server.py",
-      "args": ["--mode", "interactive"],
-      "env": { "MCP_TOKEN": "{{ token }}" },
-      "cwd": "./mcp-services"
+      "url": "http://localhost:5000/sse",
+      "headers": { "api_key": "{{BRAVE_API_KEY}}" }
     },
-    "tool_name": "analyze_document",
-    "arguments": { "text": "{{ docContent }}" },
-    "result_key": "analysis"
+    "tool_name": "get_stock",
+    "arguments": {
+      "item_id": 123
+    },
+    "result_key": "stock_info"
   }
 }
 ```
+
+After execution:
+
+```json
+{
+  "stock_info": {
+    "item_id": 123,
+    "name": "Widget",
+    "price": 19.99
+  }
+}
+```
+
+2. STDIO MCP server call (custom tool)
+
+```json
+{
+  "type": "mcp",
+  "config": {
+    "server": {
+      "command": "./my_tool_server",
+      "args": ["--mode", "fast"],
+      "env": { "TOOL_TOKEN": "{{tool_token}}" },
+      "working_dir": "./tools"
+    },
+    "tool_name": "process_data",
+    "arguments": { "input": "{{raw_data}}" },
+    "result_key": "processed"
+  }
+}
+```
+
+This step will launch the local `my_tool_server` process, pass arguments, call `process_data`, and place the returned JSON in `context.processed`.
 
 ## Using Liquid Templating for Dynamic Content
 
-The executor integrates a full Python Liquid environment (with extra filters enabled) to make step configuration dynamic and data-driven. You can use:
+Liquid templating lets you inject context variables, transform values, loop over sequences, and conditionally render blocks—all without leaving your JSON. The executor’s Liquid environment (with `extra=True`) supports:
 
-- **Variable substitution**: `{{ myVar }}`, nested paths `{{ user.name }}` or bracket notation.
-- **Filters**: built-ins like `default`, `json`, `split`, `join`, `upcase`, `downcase`; extra filters like `snakecase` (custom), `date`, etc.
-- **Control structures**: block tags `{% for %}`, `{% if %}`/`{% else %}`, comment tags, and inline conditionals (`{{ expr if cond else other }}`).
-- **Chaining and tail filters**: chain multiple pipes or use `||` to apply a filter to the entire expression.
+- **Variable substitution**: `{{ user.name }}`, `{{ files[0] }}`
+- **Filters**: e.g. `default`, `json`, `snakecase`, `upcase`, `downcase`, `replace`, etc.
+- **Loops**: `{% for item in list %}` to repeat or build new structures
+- **Conditionals**: `{% if %}` blocks or inline expressions: `{{ x if cond else y }}`
+- **Ternary & tail filters**: inline `if…else` plus post‐filter chaining (e.g. `{{ a if b else c || upcase }}`)
 
-### Four Diverse Examples
+Below are four diverse examples:
 
-1. Dynamic file paths using `snakecase`:
+1. Dynamic path construction in a `read_files` step
 
 ```json
 {
   "type": "read_files",
   "config": {
-    "path": "specs/{{ componentId | snakecase }}.md",
-    "content_key": "specContent"
+    "path": "logs/{{ date | replace: '-', '/' }}/events.json",
+    "content_key": "daily_events"
   }
 }
 ```
 
-2. Default-value fallback with `default`:
+2. Fallback to a default value when a variable is empty or undefined
+
+```liquid
+{{ user.email | default: "not_available@example.com" }}
+```
+
+3. Building a list of emails with a `{% for %}` loop and splitting into an array
 
 ```json
 {
   "type": "set_context",
   "config": {
-    "key": "env",
-    "value": "{{ deployment | default: 'production' }}"
+    "key": "email_list",
+    "value": "{% capture emails %}{% for user in users %}{{ user.email }}{% if forloop.last == false %}, {% endif %}{% endfor %}{% endcapture %}{{ emails | split: ', ' }}"
   }
 }
 ```
 
-3. Building a comma-separated list with a `{% for %}` loop and `capture`:
+4. Inline conditional (ternary) to choose between two strings
 
 ```json
 {
   "type": "set_context",
   "config": {
-    "key": "hostsCsv",
-    "value": "{% capture csv %}{% for host in hosts %}{{ host }}{% if forloop.last == false %},{% endif %}{% endfor %}{% endcapture %}{{ csv }}"
-  }
-}
-```
-
-4. Inline conditional (ternary) expression:
-
-```json
-{
-  "type": "set_context",
-  "config": {
-    "key": "statusTag",
-    "value": "{{ 'active' if user.active else 'inactive' }}"
+    "key": "plan",
+    "value": "{{ \"Premium\" if order.total > 100 else \"Standard\" }}"
   }
 }
 ```
 
 ### Embedding Large Content in Prompts
 
-When you need to pass large documents or markdown blobs into an LLM prompt, wrapping them in distinctive, ALL-CAPS XML-like tags (for example, `<SPEC>…</SPEC>` or `<DOCUMENT>…</DOCUMENT>`) helps:
+### Embedding Large Content in Prompts
 
-• Focus: The LLM can easily identify exactly which text to read or process. Anything outside the tags is treated as context or instruction.
-• Isolation: The enclosed content is treated as an opaque block, preventing unintended template rendering or tokenization errors.
-• Clarity: Tag names convey the type of content (`<SPEC>`, `<DIAGRAM>`, `<LOGS>`), improving prompt readability.
+Why this helps LLMs focus or ignore sections  
+Wrap large blocks of text or markdown in unique, ALL-CAPS XML-like tags so that:
 
-**Dos & Don’ts**
+- The model sees clear boundaries for pasted content.
+- You can refer to the entire block by its tag name (e.g. “in <SPEC> … </SPEC>”).
+- The LLM can be instructed to treat the content as opaque or to selectively parse it.
+- It reduces prompt-injection risk by isolating user data.
 
-| Do                                                          | Don’t                                                         |
-| ----------------------------------------------------------- | ------------------------------------------------------------- |
-| Wrap each large block in one matching pair of ALL-CAPS tags | Scatter inline markers within paragraphs                      |
-| Place the opening and closing tag on its own lines          | Embed tags mid-sentence or split across lines                 |
-| Always include a corresponding closing tag                  | Omit or mismatch tag names (e.g., `<SPEC>` without `</SPEC>`) |
-| Treat the inner content as opaque—no additional templating  | Attempt to render or modify text inside the wrapper           |
-| Choose clear, unique tag names for different payload types  | Reuse generic tags like `<TAG>` or `<BLOCK>`                  |
+Dos & Don’ts
 
-**Prompt Snippet Example**
+| Do                                                                               | Don’t                                                                                    |
+| -------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| Use a single, unique tag name in ALL-CAPS, e.g. `<SPEC>` / `</SPEC>`             | Mix tag names (case-sensitive) or use common words as tag names                          |
+| Place each opening and closing tag on its own line to improve visibility         | Embed tags inline within a paragraph                                                     |
+| Always close every tag in matching order                                         | Leave unclosed tags or overlap tags (nested the same name)                               |
+| Treat the content between tags as opaque—do not intersperse instructions or code | Inject additional prompts or logic inside the tagged block                               |
+| If you need to template the wrapper, render the tags outside of the opaque block | Put Liquid tags inside an opaque block unless you want that block itself to be templated |
 
-Here’s a typical `llm_generate` step that injects a large Markdown specification using `<SPEC>` wrappers:
+Prompt Snippet Example
 
 ```json
 {
   "type": "llm_generate",
   "config": {
-    "prompt": "System: You are an API expert.\n
-<SPEC>
-{{ api_spec_markdown }}
-</SPEC>\n
-Please list each endpoint, its HTTP method, and a brief description.",
+    "prompt": "You are a documentation assistant.\n\nPlease analyze the following specification and produce a summary:\n\n<SPEC>\n{{ long_markdown_spec }}\n</SPEC>\n\nFocus only on the content within <SPEC> and ignore any text outside the tags.\nProvide a concise bullet-list summary.",
     "output_format": "text",
-    "output_key": "endpoint_summary"
+    "output_key": "spec_summary"
   }
 }
 ```
 
+In this snippet:
+
+- `{{ long_markdown_spec }}` holds the big doc.
+- `<SPEC>` and `</SPEC>` clearly bracket the spec.
+- The LLM is prompted to “focus only on the content within <SPEC>…</SPEC>,” so it won’t mix new instructions with the spec text.
+
 ## Best Practices and Patterns
 
-• Design small, focused recipes—one clear responsibility per file—and compose complex workflows by reusing sub-recipes via `execute_recipe`.
-
-• Adopt clear, consistent context keys; avoid magic strings or ad-hoc naming. Centralize key definitions with `set_context` at the top of your recipe.
-
-• Guard steps with `conditional` and `read_files(optional:true)` to skip missing inputs or perform safe fallbacks instead of throwing errors.
-
-• Tune loops and parallel blocks thoughtfully: set `max_concurrency` and `delay` to balance throughput against resource limits, and use `fail_fast:false` when you need to collect all results before erroring.
-
-• Always specify a `result_key` in every `loop` configuration—even if you don’t use the output—so results aren’t discarded and errors can be tracked.
-
-• Manage LLM token budgets and prompt length by summarizing or splitting large documents, and wrap big content blocks in ALL-CAPS XML-style tags (e.g., `<SPEC>…</SPEC>`) to isolate payloads and reduce tokens.
-
-• Leverage `set_context(if_exists:merge)` when you want incremental builds: strings are concatenated, lists append new items, and dicts are shallow-merged. Use `overwrite` deliberately when a full reset is intended.
-
-• Limit nested `nested_render` passes to avoid endless loops; prefer simple one-pass templates or precompute complex values in separate `set_context` steps.
-
-• Keep individual steps self-contained: avoid leaking data between substeps, rely on context overrides for isolation, and document any side effects at the recipe top.
-
-• Regularly refactor long recipes into smaller modules and maintain a library of common patterns—this accelerates authoring, testing, and consistency across projects.
+- Break workflows into small, focused recipes that do one thing well; extract shared logic into sub-recipes and invoke them with `execute_recipe` for reuse and clarity.
+- Choose clear, consistent context keys (e.g., `user_list`, `config_map`) and avoid “magic” strings—group related values in a dict instead of sprinkling ad-hoc keys.
+- Guard expensive or optional I/O with `conditional` and `read_files(optional:true)` to skip missing files or prevent unnecessary LLM or disk operations.
+- Tune `loop` and `parallel` steps deliberately: set `max_concurrency` and `delay` to balance throughput vs. resource load, and choose `fail_fast:true|false` based on whether you need early aborts or full batch results.
+- Always supply a `result_key` in every `loop`—even if you ignore the output—to capture per-item results (or errors) and avoid silent data loss.
+- Watch your token budget and prompt length: summarize or truncate large inputs where possible, and wrap big blocks in ALL-CAPS XML-like tags (e.g., `<SPEC>…</SPEC>`) so the LLM treats them as opaque units.
+- Leverage `set_context(if_exists:"merge")` to combine values: strings concatenate, lists append, and dicts shallow-merge—avoiding full overwrites of existing data.
+- Favor sub-recipes and context overrides over duplicating config: pass only what a sub-recipe needs via `context_overrides` to reduce cognitive load and simplify testing.
+- Periodically review recipe size and complexity: if a single JSON file grows beyond a few dozen steps, consider breaking it into orchestrating recipes plus focused modules.
 
 ## Recipe Cookbook
 
-This section provides four ready-to-paste recipe patterns covering common automation scenarios. Each snippet includes:
+Below are four ready-to-paste JSON snippets illustrating common automation patterns. Each snippet includes:
 
-• Purpose: why and when to use it
-• Typical use cases: real-world examples
-• Natural-language flow summary: step-by-step description
-• Mermaid diagram: visual flow (where helpful)
-• JSON snippet: valid recipe configuration
+- Purpose
+- Typical use cases
+- Natural-language flow summary
+- Mermaid diagram (when helpful)
+- Valid JSON recipe snippet
 
 ---
 
 ### 1. Conditional File Check & Fallback
 
-Purpose:
-• Ensure a required file is present or generate and save a default if missing.
+Purpose
+• Check whether a file exists and take one of two paths: read it if present or provide a default otherwise.
 
-Typical Use Cases:
-• Loading a configuration or cache file if it exists, otherwise creating defaults.
-• Avoiding redundant LLM calls by reading existing outputs when rerunning.
+Typical Use Cases
+• Optional configuration files
+• Caching: reuse existing results or regenerate
+• Guard expensive operations behind a file check
 
-Flow Summary:
+Flow Summary
 
-1. Check if `output_dir/config.json` exists.
-2. If **true**, read it into `context.config`.
-3. If **false**, set a default `config` object and write it to disk.
+1. Evaluate `file_exists(input_path)`
+2. If **true**, read the file into context
+3. If **false**, assign a default (empty string, default data, or trigger a fallback step)
 
-Mermaid Diagram:
+Mermaid Diagram
 
 ```mermaid
-flowchart LR
-  A[Check file_exists] -->|true| B[read_files]
-  A -->|false| C[set_context defaults]
-  C --> D[write_files]
+flowchart TD
+  A[Start] --> B{file_exists('{{ input_file }}')}
+  B -- yes --> C[read_files → data]
+  B -- no  --> D[set_context: data=""]
+  C --> E[Next Steps]
+  D --> E
 ```
 
-JSON Snippet:
+JSON Snippet
 
 ```json
 {
@@ -1027,14 +1317,14 @@ JSON Snippet:
     {
       "type": "conditional",
       "config": {
-        "condition": "file_exists('{{ output_dir }}/config.json')",
+        "condition": "file_exists('{{ input_file }}')",
         "if_true": {
           "steps": [
             {
               "type": "read_files",
               "config": {
-                "path": "{{ output_dir }}/config.json",
-                "content_key": "config",
+                "path": "{{ input_file }}",
+                "content_key": "data",
                 "merge_mode": "dict"
               }
             }
@@ -1045,15 +1335,8 @@ JSON Snippet:
             {
               "type": "set_context",
               "config": {
-                "key": "config",
-                "value": { "settingA": "defaultA", "settingB": "defaultB" }
-              }
-            },
-            {
-              "type": "write_files",
-              "config": {
-                "files": [{ "path": "config.json", "content_key": "config" }],
-                "root": "{{ output_dir }}"
+                "key": "data",
+                "value": ""
               }
             }
           ]
@@ -1066,37 +1349,36 @@ JSON Snippet:
 
 ---
 
-### 2. Batch Loop Over Items (With Concurrency)
+### 2. Batch Loop Over Items (with Concurrency)
 
-Purpose:
-• Process a collection of items in parallel or sequentially, collecting results.
+Purpose
+• Iterate over a list or map of items, running the same sub-steps for each, optionally in parallel.
 
-Typical Use Cases:
-• Generating personalized messages for a list of users.
-• Summarizing or analyzing multiple documents concurrently.
+Typical Use Cases
+• Process a batch of files or records
+• Generate per-item outputs via LLM calls or sub-recipes
+• Collect results and errors in a single pass
 
-Flow Summary:
+Flow Summary
 
-1. Resolve `users` from context.
-2. Clone context for each user and set `user`.
-3. Launch up to 3 tasks at once, each calling LLM to create a welcome message.
-4. Collect all messages under `welcomeMessages`.
+1. Resolve `items` from context (list or dict)
+2. For each item, clone context and set `item_key`
+3. Execute sub-steps (e.g., an LLM call or a sub-recipe)
+4. Collect each iteration’s output under `result_key`
+5. (Optional) run up to N tasks in parallel, with an inter-task delay
 
-Mermaid Diagram:
+Mermaid Diagram
 
 ```mermaid
-flowchart LR
+flowchart TD
   subgraph Loop
-    U0([user_0]) --> P0[substeps]
-    U1([user_1]) --> P1[substeps]
-    U2([user_2]) --> P2[substeps]
+    direction TB
+    A[items list] -->|parallel| B[process_item {{__index}}]
+    B --> C[result collection]
   end
-  P0 --> R[welcomeMessages]
-  P1 --> R
-  P2 --> R
 ```
 
-JSON Snippet:
+JSON Snippet
 
 ```json
 {
@@ -1104,21 +1386,22 @@ JSON Snippet:
     {
       "type": "loop",
       "config": {
-        "items": "users",
-        "item_key": "user",
-        "max_concurrency": 3,
-        "delay": 0.2,
+        "items": "records",
+        "item_key": "record",
         "substeps": [
           {
             "type": "llm_generate",
             "config": {
-              "prompt": "Create welcome message for {{ user.name }}",
+              "prompt": "Summarize record {{ record.id }}: {{ record.content }}",
               "output_format": "text",
-              "output_key": "message"
+              "output_key": "summary"
             }
           }
         ],
-        "result_key": "welcomeMessages"
+        "result_key": "summaries",
+        "max_concurrency": 4,
+        "delay": 0.2,
+        "fail_fast": false
       }
     }
   ]
@@ -1129,31 +1412,30 @@ JSON Snippet:
 
 ### 3. Parallel Independent Tasks
 
-Purpose:
-• Run multiple unrelated steps at once to improve throughput.
+Purpose
+• Launch multiple sub-steps (or sub-recipes) at the same time, each in its own context clone, to speed up independent work.
 
-Typical Use Cases:
-• Summarizing different datasets concurrently.
-• Running independent code‐generation recipes in parallel.
+Typical Use Cases
+• Generating multiple reports or documents concurrently
+• Invoking different sub-workflows for distinct components
+• Parallelizing CPU- or I/O-bound tasks (e.g., file writes, API calls)
 
-Flow Summary:
+Flow Summary
 
-1. Clone context for each substep.
-2. Launch two LLM calls concurrently (max 2 at once, 0.1 s stagger).
-3. Wait for both to finish or abort on first error.
+1. Define a list of independent step specs
+2. Acquire up to `max_concurrency` slots
+3. Launch each sub-step in its own context clone, with optional `delay`
+4. Wait for all to complete or abort on first failure
 
-Mermaid Diagram:
+Mermaid Diagram
 
 ```mermaid
 flowchart LR
-  P[ParallelStep]
-  P --> A[LLM: summaryA]
-  P --> B[LLM: summaryB]
-  A --> C[done]
-  B --> C
+  direction LR
+  P1[Subflow 1] & P2[Subflow 2] & P3[Subflow 3] -->|parallel| End
 ```
 
-JSON Snippet:
+JSON Snippet
 
 ```json
 {
@@ -1163,23 +1445,25 @@ JSON Snippet:
       "config": {
         "substeps": [
           {
-            "type": "llm_generate",
+            "type": "execute_recipe",
             "config": {
-              "prompt": "Summarize dataset A: {{ dataA }}",
-              "output_format": "text",
-              "output_key": "summaryA"
+              "recipe_path": "recipes/build_docs.json"
             }
           },
           {
-            "type": "llm_generate",
+            "type": "execute_recipe",
             "config": {
-              "prompt": "Summarize dataset B: {{ dataB }}",
-              "output_format": "text",
-              "output_key": "summaryB"
+              "recipe_path": "recipes/run_tests.json"
+            }
+          },
+          {
+            "type": "execute_recipe",
+            "config": {
+              "recipe_path": "recipes/deploy.json"
             }
           }
         ],
-        "max_concurrency": 2,
+        "max_concurrency": 3,
         "delay": 0.1
       }
     }
@@ -1191,28 +1475,31 @@ JSON Snippet:
 
 ### 4. Reusing Logic via `execute_recipe` (Sub-Recipe Composition)
 
-Purpose:
-• Break complex workflows into modular sub-recipes and chain them in sequence.
+Purpose
+• Break complex workflows into reusable modules by invoking other recipes as steps, sharing and overriding context as needed.
 
-Typical Use Cases:
-• Data-load → analysis → reporting pipelines.
-• Component build steps split into load, generate, write phases.
+Typical Use Cases
+• Common utility flows (e.g., authentication, validation)
+• Orchestrating multi-stage pipelines (e.g., extract → transform → load recipes)
+• Parameterizing sub-recipes via `context_overrides`
 
-Flow Summary:
+Flow Summary
 
-1. Execute `load_data.json` to read and prepare inputs.
-2. Execute `analyze_data.json` to process the loaded data.
-3. Execute `report.json` with an override for the report title.
+1. Apply any `context_overrides` to inject or override artifacts
+2. Render and load the sub-recipe JSON
+3. Execute its steps sequentially using the same shared context
+4. Persist sub-recipe side-effects back into the parent context
 
-Mermaid Diagram:
+Mermaid Diagram
 
 ```mermaid
-flowchart LR
-  A1[execute_recipe: load_data.json] --> A2[execute_recipe: analyze_data.json]
-  A2 --> A3[execute_recipe: report.json]
+flowchart TD
+  A[Parent Recipe] --> B[execute_recipe: subflow.json]
+  B --> C[Subflow Steps → context]
+  C --> D[Parent continues]
 ```
 
-JSON Snippet:
+JSON Snippet
 
 ```json
 {
@@ -1220,44 +1507,35 @@ JSON Snippet:
     {
       "type": "execute_recipe",
       "config": {
-        "recipe_path": "recipes/load_data.json"
-      }
-    },
-    {
-      "type": "execute_recipe",
-      "config": {
-        "recipe_path": "recipes/analyze_data.json"
-      }
-    },
-    {
-      "type": "execute_recipe",
-      "config": {
-        "recipe_path": "recipes/report.json",
+        "recipe_path": "recipes/common/validate_input.json",
         "context_overrides": {
-          "reportTitle": "Monthly Summary"
+          "input": "{{ raw_input }}"
         }
+      }
+    },
+    {
+      "type": "execute_recipe",
+      "config": {
+        "recipe_path": "recipes/common/format_output.json"
       }
     }
   ]
 }
 ```
 
+---
+
+Copy these snippets directly into your recipes to accelerate common automation patterns and maintain clean, modular workflows.
+
 ## Conclusion
 
-Throughout this guide, we’ve covered the essential building blocks for writing robust Recipe JSON files:
+In this guide, we’ve walked through everything you need to design reliable, maintainable recipe JSON files:
 
-• **Structure**: Define clear inputs, outputs, and a well-formed `steps` array so every recipe can be parsed and executed without surprises.
-• **Context Management**: Leverage the shared context store to pass data between steps—use `set_context`, `result_key`, and `context_overrides` thoughtfully to control scope and flow.
-• **Templating & Expressions**: Harness Liquid variables, filters, and control blocks for dynamic configuration—combine simple substitutions with nested rendering when you need multi-stage templates.
-• **Best Practices**: Keep recipes small and focused, guard with `conditional` and `optional` flags, tune concurrency in `loop` and `parallel` steps, and split complex logic into reusable sub-recipes via `execute_recipe`.
+- **Recipe Structure**: How to assemble a valid JSON document with a required `steps` array, optional metadata blocks, and clear, consistent schemas for each step type.
+- **Context Management**: Using the shared Context object to pass data between steps by reference, leveraging `set_context`, `context_overrides`, and avoiding common pitfalls like unintentional overwrites or missing `result_key` entries.
+- **Liquid Templating**: Dynamically rendering variables, filters, loops, and conditionals to build prompts, file paths, and complex objects—all without leaving JSON.
+- **Best Practices**: Craft small, focused recipes; extract reusable logic into sub-recipes; guard I/O with conditionals; tune concurrency and failure modes; and merge context values intentionally.
 
-By applying these principles—concise recipe structure, intentional context handling, flexible templating, and proven design patterns—you’ll create automation workflows that are easy to read, maintain, and extend. Whether you’re manually authoring recipes or using an LLM assistant to generate them, these guidelines will help ensure consistent results and simpler troubleshooting.
+By combining these principles—strict structure, robust context handling, powerful templating, and actionable patterns—you can confidently generate recipes that scale from simple automations to complex, data-driven pipelines.
 
-As requirements change, don’t hesitate to revisit and refine your recipes:
-
-• Break long workflows into smaller modules.
-• Adjust concurrency and error-handling settings to optimize performance.
-• Update templates to reflect new data formats or naming conventions.
-• Experiment with conditional logic and sub-recipes to cover edge cases or new features.
-
-Automation is an iterative process—each recipe you author is a living document. Use this guide as your foundation, continuously iterate on your designs, and watch your automation pipelines become more resilient and adaptable over time. Happy authoring!
+Now it’s your turn. Whether you’re hand-crafting JSON or guiding an LLM, apply these guidelines as your north star. And remember: recipes are living artifacts. Iterate, test, and refine your JSON definitions as requirements and environments evolve to keep your workflows reliable, efficient, and aligned with your goals.
