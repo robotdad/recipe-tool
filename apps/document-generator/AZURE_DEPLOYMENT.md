@@ -139,15 +139,18 @@ Secure your app before deployment to prevent unauthorized access:
    - `<YOUR-MANAGED-IDENTITY-CLIENT-ID>` → Your managed identity's client ID
 
 **Configuration Options:**
-- Set `LLM_PROVIDER=azure` to use Azure OpenAI (default: "openai") 
+
+- Set `LLM_PROVIDER=azure` to use Azure OpenAI (default: "openai")
 - Set `DEFAULT_MODEL=gpt-4o` to specify the model (default: "gpt-4o")
 - For Azure OpenAI, ensure your deployment name matches the `DEFAULT_MODEL` value
 
 **Authentication Options:**
-- **Managed Identity (Recommended)**: Set `AZURE_USE_MANAGED_IDENTITY=true` 
+
+- **Managed Identity (Recommended)**: Set `AZURE_USE_MANAGED_IDENTITY=true`
 - **API Key (Fallback)**: If managed identity fails, add `AZURE_OPENAI_API_KEY` and remove `AZURE_USE_MANAGED_IDENTITY`
 
 For API key authentication, add this environment variable instead:
+
 ```json
 {
   "name": "AZURE_OPENAI_API_KEY",
@@ -155,6 +158,7 @@ For API key authentication, add this environment variable instead:
   "slotSetting": false
 }
 ```
+
 5. Click **"OK"** → **"Save"** → **"Continue"**
 
 ### 6. Quick Verification
@@ -216,6 +220,7 @@ Before deploying code, verify your App Service is properly configured:
 **Azure OpenAI connection fails?**
 
 - **"App Service managed identity configuration not found in environment. invalid_scope"**:
+
   - Verify managed identity has **"Cognitive Services OpenAI User"** role on your Azure OpenAI resource
   - Role assignment can take 5-10 minutes to propagate after creation
   - Confirm `AZURE_CLIENT_ID` matches your managed identity's client ID
