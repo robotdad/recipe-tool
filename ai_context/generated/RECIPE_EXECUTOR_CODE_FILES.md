@@ -5,7 +5,7 @@
 **Search:** ['recipe-executor/recipe_executor']
 **Exclude:** ['.venv', 'node_modules', '*.lock', '.git', '__pycache__', '*.pyc', '*.ruff_cache', 'logs', 'output']
 **Include:** ['README.md', 'pyproject.toml', '.env.example']
-**Date:** 6/18/2025, 3:22:46 PM
+**Date:** 7/1/2025, 4:21:06 PM
 **Files:** 29
 
 === File: .env.example ===
@@ -530,6 +530,7 @@ class RecipeExecutorConfig(BaseSettings):
         env_file=".env",
         env_file_encoding="utf-8",
         case_sensitive=False,
+        extra="ignore",  # Allow extra fields from .env file
     )
 
 
