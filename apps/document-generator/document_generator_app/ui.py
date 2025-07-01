@@ -338,8 +338,31 @@ def start_generation() -> List[Any]:
 
 async def handle_generate(current_state: Dict[str, Any]) -> List[Any]:
     """Generate document from outline."""
+    import logging
+
+    logger = logging.getLogger(__name__)
+
     try:
+        logger.info(f"Starting document generation for outline: {current_state['outline'].title}")
         content = await generate_document(current_state["outline"], current_state.get("session_id"))
+        logger.info(f"Generated content length: {len(content)}")
+
+        # Check if content is suspiciously short (just header)
+        lines = content.strip().split("\n")
+        if len(lines) <= 3 and not any(len(line.strip()) > 50 for line in lines):
+            error_msg = (
+                f"⚠️ Document generation appears incomplete. Generated only {len(lines)} lines. Check logs for details."
+            )
+            logger.warning(error_msg)
+            return [
+                gr.update(value="Generate Document", interactive=True),  # generate_btn
+                gr.update(value=error_msg, visible=True),  # generation_status
+                gr.update(visible=True),  # output_container
+                content
+                + "\n\n---\n\n**Debug Info:**\n"
+                + f"Content length: {len(content)} characters\nLines: {len(lines)}",  # output_markdown
+                gr.update(visible=False),  # download_doc_btn
+            ]
 
         # Save content to a temporary file for download
         filename = f"{current_state['outline'].title}.md" if current_state["outline"].title else "document.md"
@@ -360,11 +383,17 @@ async def handle_generate(current_state: Dict[str, Any]) -> List[Any]:
             ),
         ]
     except Exception as e:
+        import traceback
+
+        error_details = traceback.format_exc()
+        logger.error(f"Document generation failed: {str(e)}")
+        logger.error(f"Full traceback: {error_details}")
+
         return [
             gr.update(value="Generate Document", interactive=True),  # generate_btn
             gr.update(value=f"❌ Error: {str(e)}", visible=True),  # generation_status
             gr.update(visible=True),  # output_container
-            f"Error generating document: {str(e)}",  # output_markdown
+            f"Error generating document: {str(e)}\n\n---\n\n**Full Error Details:**\n```\n{error_details}\n```",  # output_markdown
             gr.update(visible=False),  # download_doc_btn
         ]
 
