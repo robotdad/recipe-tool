@@ -21,7 +21,7 @@ Simple deployment guide for hosting the Document Generator on Azure App Service 
    - **Region**: Same as your Azure OpenAI resource
 4. Click **"Review + create"** → **"Create"**
 
-### 2. Secure with Azure AD Authentication (Recommended)
+### 2. Secure with Microsoft Authentication (Recommended)
 
 Secure your app before deployment to prevent unauthorized access:
 
@@ -38,7 +38,7 @@ Secure your app before deployment to prevent unauthorized access:
 
 #### B. Configure App Registration
 
-1. Go to your app registration in Azure AD
+1. Go to your app registration in Entra ID
 2. Navigate to **"Manage"** → **"Authentication"**
 3. Find **"Platform configurations"** → **"Single-page application"** → **"Redirect URIs"**
 4. Click **"Add URI"**
@@ -58,7 +58,21 @@ Secure your app before deployment to prevent unauthorized access:
 4. Select your existing managed identity
 5. Click **"Add"**
 
-### 4. Configure App Service
+### 4. Grant Azure OpenAI Access to Managed Identity
+
+**Critical Step**: The managed identity needs permissions to access your Azure OpenAI resource.
+
+1. Go to your **Azure OpenAI resource** in the portal
+2. Left menu → **"Access control (IAM)"**
+3. Click **"Add"** → **"Add role assignment"**
+4. **Role**: Select **"Cognitive Services OpenAI User"**
+5. **Assign access to**: User assigned managed identity
+6. **Members**: Select your managed identity (same one assigned to App Service)
+7. Click **"Review + assign"** → **"Assign"**
+
+**Note**: Role assignment can take 5-10 minutes to propagate. The app will fail with authentication errors until this completes.
+
+### 5. Configure App Service
 
 #### A. Set Startup Command
 
@@ -93,8 +107,18 @@ Secure your app before deployment to prevent unauthorized access:
     "slotSetting": false
   },
   {
+    "name": "LLM_PROVIDER",
+    "value": "azure",
+    "slotSetting": false
+  },
+  {
+    "name": "DEFAULT_MODEL",
+    "value": "gpt-4o",
+    "slotSetting": false
+  },
+  {
     "name": "AZURE_OPENAI_BASE_URL",
-    "value": "https://<YOUR-OPENAI-RESOURCE>.azurewebsites.net",
+    "value": "https://<YOUR-OPENAI-RESOURCE>.openai.azure.com",
     "slotSetting": false
   },
   {
@@ -113,55 +137,43 @@ Secure your app before deployment to prevent unauthorized access:
 4. **Replace the placeholder values:**
    - `<YOUR-OPENAI-RESOURCE>` → Your Azure OpenAI resource name
    - `<YOUR-MANAGED-IDENTITY-CLIENT-ID>` → Your managed identity's client ID
+
+**Configuration Options:**
+
+- Set `LLM_PROVIDER=azure` to use Azure OpenAI (default: "openai")
+- Set `DEFAULT_MODEL=gpt-4o` to specify the model (default: "gpt-4o")
+- For Azure OpenAI, ensure your deployment name matches the `DEFAULT_MODEL` value
+
+**Authentication Options:**
+
+- **Managed Identity (Recommended)**: Set `AZURE_USE_MANAGED_IDENTITY=true`
+- **API Key (Fallback)**: If managed identity fails, add `AZURE_OPENAI_API_KEY` and remove `AZURE_USE_MANAGED_IDENTITY`
+
+For API key authentication, add this environment variable instead:
+
+```json
+{
+  "name": "AZURE_OPENAI_API_KEY",
+  "value": "your-azure-openai-api-key",
+  "slotSetting": false
+}
+```
+
 5. Click **"OK"** → **"Save"** → **"Continue"**
 
-### 5. Quick Verification
+### 6. Quick Verification
 
 Before deploying code, verify your App Service is properly configured:
 
 1. Go to **"Overview"** → Click your app URL
-2. You should see Azure AD login (if configured) or a default App Service page
+2. You should see the Microsoft login (if configured) or a default App Service page
 3. Check basic health:
    ```bash
    curl https://<YOUR-APP-NAME>.azurewebsites.net
    ```
    Should return HTML content (login page or default page)
 
-### 6. Deploy Application
-
-**Important for Monorepo**: If deploying from a monorepo, ensure `.deployment` file exists in repository root with:
-
-```
-[config]
-project = apps/document-generator
-```
-
-#### Option A: VS Code Azure Extension
-
-**⚠️ Note**: VS Code deployment from monorepos can be problematic. Use Option B (Azure CLI) if you encounter issues.
-
-1. **Install Extension:**
-
-   - **"Azure App Service"** (ms-azuretools.vscode-azureappservice)
-
-2. **Sign In:**
-
-   - Press `Ctrl+Shift+P` → Type "Azure: Sign In"
-   - Follow authentication prompts
-
-3. **Deploy:**
-
-   - **Important**: Open VS Code at the repository root (not in subfolder)
-   - Press `Ctrl+Shift+P` → Type "Azure App Service: Deploy to Web App"
-   - Select your subscription → Select your App Service
-   - When prompted for folder, browse to `apps/document-generator`
-   - Confirm deployment
-
-4. **Monitor:**
-   - View deployment progress in VS Code output panel
-   - Check Azure extension sidebar for deployment status
-
-#### Option B: Azure CLI (Recommended for Monorepos)
+### 7. Deploy Application
 
 1. **Install Azure CLI** (if not already installed)
 2. **Sign In:**
@@ -180,7 +192,7 @@ project = apps/document-generator
       --logs
    ```
 
-### 7. Verify Deployment
+### 8. Verify Deployment
 
 1. Go to **"Overview"** → Click your app URL
 2. Document generator should load
@@ -207,8 +219,17 @@ project = apps/document-generator
 
 **Azure OpenAI connection fails?**
 
-- Verify managed identity has "Cognitive Services OpenAI User" role on your Azure OpenAI resource
-- Confirm `AZURE_CLIENT_ID` matches your managed identity's client ID
+- **"App Service managed identity configuration not found in environment. invalid_scope"**:
+
+  - Verify managed identity has **"Cognitive Services OpenAI User"** role on your Azure OpenAI resource
+  - Role assignment can take 5-10 minutes to propagate after creation
+  - Confirm `AZURE_CLIENT_ID` matches your managed identity's client ID
+  - Ensure the managed identity is properly assigned to the App Service
+
+- **General troubleshooting**:
+  - Check **"Log stream"** for detailed error messages
+  - Verify `AZURE_OPENAI_BASE_URL` format: `https://your-resource.openai.azure.com/`
+  - Confirm your Azure OpenAI deployment name matches `DEFAULT_MODEL` value
 
 ## Required Files
 
