@@ -1,5 +1,7 @@
 # Context Window Prime
 
+Everything below assumes you are in the repo root directory, change there if needed before running.
+
 RUN:
 make install
 source .venv/bin/activate
