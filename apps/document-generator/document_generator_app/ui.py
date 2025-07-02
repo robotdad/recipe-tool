@@ -514,7 +514,9 @@ def build_editor() -> gr.Blocks:
 
                 # Download docpack section
                 gr.Markdown("---")
-                download_docpack_btn = gr.DownloadButton("Download Docpack", variant="secondary", visible=False)
+                download_docpack_btn = gr.DownloadButton(
+                    "Generated docpack archive for download", variant="secondary", visible=False
+                )
 
                 # Reset button
                 with gr.Row():
@@ -839,7 +841,7 @@ def build_editor() -> gr.Blocks:
             ]
 
         def handle_upload(file, current_state):
-            """Upload docpack file."""
+            """Upload and extract a .docpack file to load outline and resources into the editor."""
             if file:
                 from pathlib import Path
                 from .session import session_manager
@@ -877,7 +879,7 @@ def build_editor() -> gr.Blocks:
             return [current_state] + [gr.update()] * 10
 
         def handle_load_example(example_idx, current_state):
-            """Load an example docpack."""
+            """Load a pre-built example outline (README or Product Launch Documentation) into the editor."""
             if example_idx is None:
                 return [current_state] + [gr.update()] * 10
 
@@ -1028,7 +1030,7 @@ def build_editor() -> gr.Blocks:
                 )
 
         def handle_download_docpack(current_state):
-            """Create and download a docpack file."""
+            """Create a portable .docpack archive containing the current outline and resources for download."""
             try:
                 from .session import session_manager
 
@@ -1130,6 +1132,7 @@ def build_editor() -> gr.Blocks:
                 resource_editor["resource_source_tabs"],
                 section_editor["content_mode_tabs"],
             ],
+            api_name=False,
         )
 
         section_radio.change(
@@ -1153,6 +1156,7 @@ def build_editor() -> gr.Blocks:
                 resource_editor["resource_source_tabs"],
                 section_editor["content_mode_tabs"],
             ],
+            api_name=False,
         )
 
         # Metadata updates
@@ -1168,6 +1172,7 @@ def build_editor() -> gr.Blocks:
                 generate_btn,
                 download_docpack_btn,
             ],
+            api_name=False,
         )
 
         instructions.change(
@@ -1182,6 +1187,7 @@ def build_editor() -> gr.Blocks:
                 generate_btn,
                 download_docpack_btn,
             ],
+            api_name=False,
         )
 
         # Add/Remove buttons
@@ -1206,6 +1212,7 @@ def build_editor() -> gr.Blocks:
                 resource_editor["resource_source_tabs"],
                 section_editor["content_mode_tabs"],
             ],
+            api_name=False,
         )
 
         section_add_btn.click(
@@ -1229,6 +1236,7 @@ def build_editor() -> gr.Blocks:
                 resource_editor["resource_source_tabs"],
                 section_editor["content_mode_tabs"],
             ],
+            api_name=False,
         )
 
         section_sub_btn.click(
@@ -1252,6 +1260,7 @@ def build_editor() -> gr.Blocks:
                 resource_editor["resource_source_tabs"],
                 section_editor["content_mode_tabs"],
             ],
+            api_name=False,
         )
 
         resource_remove_btn.click(
@@ -1268,6 +1277,7 @@ def build_editor() -> gr.Blocks:
                 validation_message,
                 generate_btn,
             ],
+            api_name=False,
         )
 
         section_remove_btn.click(
@@ -1284,6 +1294,7 @@ def build_editor() -> gr.Blocks:
                 validation_message,
                 generate_btn,
             ],
+            api_name=False,
         )
 
         # Auto-save resource fields
@@ -1291,18 +1302,21 @@ def build_editor() -> gr.Blocks:
             lambda v, s: auto_save_resource_field("key", v, s),
             inputs=[resource_editor["key"], state],
             outputs=[state, resource_radio, section_radio, json_preview, validation_message, generate_btn],
+            api_name=False,
         )
 
         resource_editor["description"].change(
             lambda v, s: auto_save_resource_field("description", v, s),
             inputs=[resource_editor["description"], state],
             outputs=[state, resource_radio, section_radio, json_preview, validation_message, generate_btn],
+            api_name=False,
         )
 
         resource_editor["url"].change(
             lambda v, s: auto_save_resource_field("path", v, s),
             inputs=[resource_editor["url"], state],
             outputs=[state, resource_radio, section_radio, json_preview, validation_message, generate_btn],
+            api_name=False,
         )
 
         resource_editor["file"].change(
@@ -1317,6 +1331,7 @@ def build_editor() -> gr.Blocks:
                 validation_message,
                 generate_btn,
             ],
+            api_name=False,
         )
 
         # Auto-save section fields
@@ -1324,24 +1339,28 @@ def build_editor() -> gr.Blocks:
             lambda v, s: auto_save_section_field("title", v, s),
             inputs=[section_editor["title"], state],
             outputs=[state, resource_radio, section_radio, json_preview, validation_message, generate_btn],
+            api_name=False,
         )
 
         section_editor["prompt"].change(
             lambda v, s: auto_save_section_field("prompt", v, s),
             inputs=[section_editor["prompt"], state],
             outputs=[state, resource_radio, section_radio, json_preview, validation_message, generate_btn],
+            api_name=False,
         )
 
         section_editor["refs"].change(
             lambda v, s: auto_save_section_field("refs", v, s),
             inputs=[section_editor["refs"], state],
             outputs=[state, resource_radio, section_radio, json_preview, validation_message, generate_btn],
+            api_name=False,
         )
 
         section_editor["resource_key"].change(
             lambda v, s: auto_save_section_field("resource_key", v, s),
             inputs=[section_editor["resource_key"], state],
             outputs=[state, resource_radio, section_radio, json_preview, validation_message, generate_btn],
+            api_name=False,
         )
 
         # Handle content mode tab changes via individual tab events
@@ -1488,15 +1507,19 @@ def build_editor() -> gr.Blocks:
                 validation_message,
                 generate_btn,
             ],
+            api_name="load_example_outline",  # Better API name
         )
 
         # Generate handler
         generate_btn.click(
-            start_generation, outputs=[generate_btn, generation_status, output_container, download_doc_btn]
+            start_generation,
+            outputs=[generate_btn, generation_status, output_container, download_doc_btn],
+            api_name=False,
         ).then(
             handle_generate,
             inputs=[state],
             outputs=[generate_btn, generation_status, output_container, output_markdown, download_doc_btn],
+            api_name=False,
         )
 
         # Tab change handlers for content mode
@@ -1512,6 +1535,7 @@ def build_editor() -> gr.Blocks:
                 validation_message,
                 generate_btn,
             ],
+            api_name=False,
         )
 
         section_editor["static_tab"].select(
@@ -1527,10 +1551,16 @@ def build_editor() -> gr.Blocks:
                 validation_message,
                 generate_btn,
             ],
+            api_name=False,
         )
 
         # Set up download docpack handler to update with file path when clicked
-        download_docpack_btn.click(handle_download_docpack, inputs=[state], outputs=[download_docpack_btn])
+        download_docpack_btn.click(
+            handle_download_docpack,
+            inputs=[state],
+            outputs=[download_docpack_btn],
+            api_name="download_docpack",  # Better API name
+        )
 
         # Reset button handler
         reset_btn.click(
@@ -1553,6 +1583,7 @@ def build_editor() -> gr.Blocks:
                 output_container,
                 download_doc_btn,
             ],
+            api_name=False,
         )
 
         # Initial validation on load
@@ -1560,6 +1591,7 @@ def build_editor() -> gr.Blocks:
             lambda s: validate_and_preview(s),
             inputs=[state],
             outputs=[json_preview, validation_message, generate_btn, download_docpack_btn],
+            api_name=False,
         )
 
     return app
