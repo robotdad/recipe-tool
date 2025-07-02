@@ -514,7 +514,9 @@ def build_editor() -> gr.Blocks:
 
                 # Download docpack section
                 gr.Markdown("---")
-                download_docpack_btn = gr.DownloadButton("Download Docpack", variant="secondary", visible=False)
+                download_docpack_btn = gr.DownloadButton(
+                    "Generated docpack archive for download", variant="secondary", visible=False
+                )
 
                 # Reset button
                 with gr.Row():
@@ -839,7 +841,7 @@ def build_editor() -> gr.Blocks:
             ]
 
         def handle_upload(file, current_state):
-            """Upload docpack file."""
+            """Upload and extract a .docpack file to load outline and resources into the editor."""
             if file:
                 from pathlib import Path
                 from .session import session_manager
@@ -877,7 +879,7 @@ def build_editor() -> gr.Blocks:
             return [current_state] + [gr.update()] * 10
 
         def handle_load_example(example_idx, current_state):
-            """Load an example docpack."""
+            """Load a pre-built example outline (README or Product Launch Documentation) into the editor."""
             if example_idx is None:
                 return [current_state] + [gr.update()] * 10
 
@@ -1028,7 +1030,7 @@ def build_editor() -> gr.Blocks:
                 )
 
         def handle_download_docpack(current_state):
-            """Create and download a docpack file."""
+            """Create a portable .docpack archive containing the current outline and resources for download."""
             try:
                 from .session import session_manager
 
@@ -1130,6 +1132,7 @@ def build_editor() -> gr.Blocks:
                 resource_editor["resource_source_tabs"],
                 section_editor["content_mode_tabs"],
             ],
+            api_name=False,
         )
 
         section_radio.change(
@@ -1153,6 +1156,7 @@ def build_editor() -> gr.Blocks:
                 resource_editor["resource_source_tabs"],
                 section_editor["content_mode_tabs"],
             ],
+            api_name=False,
         )
 
         # Metadata updates
@@ -1168,6 +1172,7 @@ def build_editor() -> gr.Blocks:
                 generate_btn,
                 download_docpack_btn,
             ],
+            api_name=False,
         )
 
         instructions.change(
@@ -1182,6 +1187,7 @@ def build_editor() -> gr.Blocks:
                 generate_btn,
                 download_docpack_btn,
             ],
+            api_name=False,
         )
 
         # Add/Remove buttons
@@ -1206,6 +1212,7 @@ def build_editor() -> gr.Blocks:
                 resource_editor["resource_source_tabs"],
                 section_editor["content_mode_tabs"],
             ],
+            api_name=False,
         )
 
         section_add_btn.click(
@@ -1229,6 +1236,7 @@ def build_editor() -> gr.Blocks:
                 resource_editor["resource_source_tabs"],
                 section_editor["content_mode_tabs"],
             ],
+            api_name=False,
         )
 
         section_sub_btn.click(
@@ -1252,6 +1260,7 @@ def build_editor() -> gr.Blocks:
                 resource_editor["resource_source_tabs"],
                 section_editor["content_mode_tabs"],
             ],
+            api_name=False,
         )
 
         resource_remove_btn.click(
@@ -1268,6 +1277,7 @@ def build_editor() -> gr.Blocks:
                 validation_message,
                 generate_btn,
             ],
+            api_name=False,
         )
 
         section_remove_btn.click(
@@ -1284,6 +1294,7 @@ def build_editor() -> gr.Blocks:
                 validation_message,
                 generate_btn,
             ],
+            api_name=False,
         )
 
         # Auto-save resource fields
@@ -1291,18 +1302,21 @@ def build_editor() -> gr.Blocks:
             lambda v, s: auto_save_resource_field("key", v, s),
             inputs=[resource_editor["key"], state],
             outputs=[state, resource_radio, section_radio, json_preview, validation_message, generate_btn],
+            api_name=False,
         )
 
         resource_editor["description"].change(
             lambda v, s: auto_save_resource_field("description", v, s),
             inputs=[resource_editor["description"], state],
             outputs=[state, resource_radio, section_radio, json_preview, validation_message, generate_btn],
+            api_name=False,
         )
 
         resource_editor["url"].change(
             lambda v, s: auto_save_resource_field("path", v, s),
             inputs=[resource_editor["url"], state],
             outputs=[state, resource_radio, section_radio, json_preview, validation_message, generate_btn],
+            api_name=False,
         )
 
         resource_editor["file"].change(
@@ -1317,6 +1331,7 @@ def build_editor() -> gr.Blocks:
                 validation_message,
                 generate_btn,
             ],
+            api_name=False,
         )
 
         # Auto-save section fields
@@ -1324,24 +1339,28 @@ def build_editor() -> gr.Blocks:
             lambda v, s: auto_save_section_field("title", v, s),
             inputs=[section_editor["title"], state],
             outputs=[state, resource_radio, section_radio, json_preview, validation_message, generate_btn],
+            api_name=False,
         )
 
         section_editor["prompt"].change(
             lambda v, s: auto_save_section_field("prompt", v, s),
             inputs=[section_editor["prompt"], state],
             outputs=[state, resource_radio, section_radio, json_preview, validation_message, generate_btn],
+            api_name=False,
         )
 
         section_editor["refs"].change(
             lambda v, s: auto_save_section_field("refs", v, s),
             inputs=[section_editor["refs"], state],
             outputs=[state, resource_radio, section_radio, json_preview, validation_message, generate_btn],
+            api_name=False,
         )
 
         section_editor["resource_key"].change(
             lambda v, s: auto_save_section_field("resource_key", v, s),
             inputs=[section_editor["resource_key"], state],
             outputs=[state, resource_radio, section_radio, json_preview, validation_message, generate_btn],
+            api_name=False,
         )
 
         # Handle content mode tab changes via individual tab events
@@ -1469,6 +1488,7 @@ def build_editor() -> gr.Blocks:
                 validation_message,
                 generate_btn,
             ],
+            api_name=False,
         )
 
         # Example load handler
@@ -1488,15 +1508,19 @@ def build_editor() -> gr.Blocks:
                 validation_message,
                 generate_btn,
             ],
+            api_name=False,  # Disable UI handler API, use dedicated api_load_example instead
         )
 
         # Generate handler
         generate_btn.click(
-            start_generation, outputs=[generate_btn, generation_status, output_container, download_doc_btn]
+            start_generation,
+            outputs=[generate_btn, generation_status, output_container, download_doc_btn],
+            api_name=False,
         ).then(
             handle_generate,
             inputs=[state],
             outputs=[generate_btn, generation_status, output_container, output_markdown, download_doc_btn],
+            api_name=False,
         )
 
         # Tab change handlers for content mode
@@ -1512,6 +1536,7 @@ def build_editor() -> gr.Blocks:
                 validation_message,
                 generate_btn,
             ],
+            api_name=False,
         )
 
         section_editor["static_tab"].select(
@@ -1527,10 +1552,16 @@ def build_editor() -> gr.Blocks:
                 validation_message,
                 generate_btn,
             ],
+            api_name=False,
         )
 
         # Set up download docpack handler to update with file path when clicked
-        download_docpack_btn.click(handle_download_docpack, inputs=[state], outputs=[download_docpack_btn])
+        download_docpack_btn.click(
+            handle_download_docpack,
+            inputs=[state],
+            outputs=[download_docpack_btn],
+            api_name=False,  # Disable UI handler API - this is session-specific
+        )
 
         # Reset button handler
         reset_btn.click(
@@ -1553,6 +1584,7 @@ def build_editor() -> gr.Blocks:
                 output_container,
                 download_doc_btn,
             ],
+            api_name=False,
         )
 
         # Initial validation on load
@@ -1560,6 +1592,268 @@ def build_editor() -> gr.Blocks:
             lambda s: validate_and_preview(s),
             inputs=[state],
             outputs=[json_preview, validation_message, generate_btn, download_docpack_btn],
+            api_name=False,
+        )
+
+        # ====================================================================
+        # Dedicated API Functions with Clear Documentation
+        # ====================================================================
+
+        def api_list_examples() -> str:
+            """List available example document templates with names, indices, and descriptions. Returns JSON array that can be used with load_example()."""
+            from .config import settings
+            import json
+
+            examples = []
+            for idx, example in enumerate(settings.example_outlines):
+                examples.append({
+                    "name": example.name,
+                    "index": idx,
+                    "description": f"Pre-built template for {example.name.lower()}",
+                })
+
+            return json.dumps(examples, indent=2)
+
+        def api_generate_document(outline_json: str) -> str:
+            """Generate complete Markdown document from JSON outline specification containing title, instructions, resources, and sections using AI assistance.
+
+            Args:
+                outline_json (str): JSON outline with title, general_instruction, resources array, and sections array
+
+            Returns:
+                str: Generated Markdown document
+            """
+            import json
+            import asyncio
+            from .models.outline import Outline
+            from .executor.runner import generate_document
+
+            try:
+                outline_data = json.loads(outline_json)
+                outline = Outline.from_dict(outline_data)
+
+                # Run async generation in sync context
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                try:
+                    content = loop.run_until_complete(generate_document(outline, None))
+                    return content
+                finally:
+                    loop.close()
+
+            except Exception as e:
+                return f"Error generating document: {str(e)}"
+
+        def api_validate_outline(outline_json: str) -> str:
+            """Validate outline JSON structure and return detailed validation results with errors and success status.
+
+            Args:
+                outline_json (str): JSON outline specification to validate
+
+            Returns:
+                str: Validation results as JSON with valid boolean, message, and errors array
+            """
+            import json
+            from .models.outline import validate_outline
+
+            try:
+                outline_data = json.loads(outline_json)
+                validate_outline(outline_data)
+                return json.dumps({"valid": True, "message": "Outline is valid and ready for generation", "errors": []})
+            except json.JSONDecodeError as e:
+                return json.dumps({"valid": False, "message": "Invalid JSON format", "errors": [str(e)]})
+            except Exception as e:
+                return json.dumps({"valid": False, "message": "Validation failed", "errors": [str(e)]})
+
+        def api_create_template(document_type: str) -> str:
+            """Create template outline JSON for common document types including readme, api, research, manual, or basic structures.
+
+            Args:
+                document_type (str): Template type - readme, api, research, manual, or basic
+
+            Returns:
+                str: JSON outline template ready for customization
+            """
+            import json
+
+            templates = {
+                "readme": {
+                    "title": "Project README",
+                    "general_instruction": "Create comprehensive README documentation that helps users understand and use the project",
+                    "resources": [],
+                    "sections": [
+                        {
+                            "title": "Description",
+                            "prompt": "Provide a clear description of what this project does and its main purpose",
+                        },
+                        {"title": "Installation", "prompt": "Explain how to install and set up the project"},
+                        {"title": "Usage", "prompt": "Show examples of how to use the project with code samples"},
+                        {"title": "Contributing", "prompt": "Describe how others can contribute to the project"},
+                    ],
+                },
+                "api": {
+                    "title": "API Documentation",
+                    "general_instruction": "Create comprehensive API documentation for developers",
+                    "resources": [],
+                    "sections": [
+                        {"title": "Authentication", "prompt": "Explain how to authenticate with the API"},
+                        {
+                            "title": "Endpoints",
+                            "prompt": "Document all available endpoints with parameters and responses",
+                        },
+                        {"title": "Examples", "prompt": "Provide code examples in multiple languages"},
+                        {"title": "Error Handling", "prompt": "Document error codes and how to handle them"},
+                    ],
+                },
+                "research": {
+                    "title": "Research Document",
+                    "general_instruction": "Create a structured research document with clear methodology and findings",
+                    "resources": [],
+                    "sections": [
+                        {
+                            "title": "Abstract",
+                            "prompt": "Summarize the research question, methodology, and key findings",
+                        },
+                        {"title": "Methodology", "prompt": "Describe the research methods and approach used"},
+                        {"title": "Results", "prompt": "Present the findings and analysis"},
+                        {"title": "Conclusions", "prompt": "Discuss implications and future research directions"},
+                    ],
+                },
+                "manual": {
+                    "title": "User Manual",
+                    "general_instruction": "Create a comprehensive user manual that guides users through all features",
+                    "resources": [],
+                    "sections": [
+                        {"title": "Getting Started", "prompt": "Help users set up and take their first steps"},
+                        {"title": "Features", "prompt": "Explain all major features and how to use them"},
+                        {"title": "Troubleshooting", "prompt": "Address common issues and their solutions"},
+                        {"title": "FAQ", "prompt": "Answer frequently asked questions"},
+                    ],
+                },
+                "basic": {
+                    "title": "New Document",
+                    "general_instruction": "Create a well-structured document",
+                    "resources": [],
+                    "sections": [
+                        {"title": "Introduction", "prompt": "Introduce the topic and main points"},
+                        {"title": "Main Content", "prompt": "Develop the main content and ideas"},
+                        {"title": "Conclusion", "prompt": "Summarize key points and takeaways"},
+                    ],
+                },
+            }
+
+            template = templates.get(document_type.lower(), templates["basic"])
+            return json.dumps(template, indent=2)
+
+        def api_load_example(example_index: int) -> str:
+            """Load pre-built example outline by index returning complete JSON outline for document generation.
+
+            Args:
+                example_index (int): Zero-based index of example to load (use list_examples to see available options)
+
+            Returns:
+                str: Complete JSON outline ready for generation or customization
+            """
+            try:
+                from .config import settings
+                from pathlib import Path
+                from .package_handler import DocpackHandler
+                import tempfile
+                import json
+
+                if example_index < 0 or example_index >= len(settings.example_outlines):
+                    return json.dumps({"error": f"Invalid example index. Use 0-{len(settings.example_outlines) - 1}"})
+
+                example = settings.example_outlines[example_index]
+                module_dir = Path(__file__).parent.parent
+                example_path = module_dir / example.path
+
+                # Extract to temporary directory
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    outline_data, _ = DocpackHandler.extract_package(example_path, Path(temp_dir))
+                    return json.dumps(outline_data, indent=2)
+
+            except Exception as e:
+                import json
+
+                return json.dumps({"error": f"Failed to load example: {str(e)}"})
+
+        def api_get_outline_schema() -> str:
+            """Get JSON schema specification for valid outline structure showing required fields and data types.
+
+            Returns:
+                str: JSON schema defining outline structure requirements
+            """
+            import json
+
+            schema = {
+                "type": "object",
+                "properties": {
+                    "title": {"type": "string", "description": "Document title"},
+                    "general_instruction": {
+                        "type": "string",
+                        "description": "Overall guidance for document generation",
+                    },
+                    "resources": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "key": {"type": "string", "description": "Unique identifier for referencing"},
+                                "path": {"type": "string", "description": "File path or URL to resource"},
+                                "description": {"type": "string", "description": "Description of resource content"},
+                            },
+                            "required": ["key", "path"],
+                        },
+                    },
+                    "sections": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "title": {"type": "string", "description": "Section title"},
+                                "prompt": {"type": "string", "description": "Instructions for AI generation"},
+                                "refs": {
+                                    "type": "array",
+                                    "items": {"type": "string"},
+                                    "description": "Resource keys to reference",
+                                },
+                                "resource_key": {
+                                    "type": "string",
+                                    "description": "Single resource key for static content",
+                                },
+                                "sections": {"type": "array", "description": "Nested subsections (recursive)"},
+                            },
+                            "required": ["title"],
+                        },
+                    },
+                },
+                "required": ["title"],
+            }
+
+            return json.dumps(schema, indent=2)
+
+        # Register API functions with clear names and documentation using dummy components
+        # This approach ensures compatibility across Gradio versions
+
+        # Create hidden textboxes for API endpoints
+        api_input = gr.Textbox(visible=False)
+        api_output = gr.Textbox(visible=False)
+        api_input_int = gr.Number(visible=False)
+
+        # Register API endpoints with proper documentation
+        api_input.submit(fn=api_list_examples, inputs=[], outputs=[api_output], api_name="list_examples")
+
+        api_input.submit(fn=api_get_outline_schema, inputs=[], outputs=[api_output], api_name="get_outline_schema")
+
+        api_input.submit(fn=api_create_template, inputs=[api_input], outputs=[api_output], api_name="create_template")
+
+        api_input_int.submit(fn=api_load_example, inputs=[api_input_int], outputs=[api_output], api_name="load_example")
+
+        api_input.submit(fn=api_validate_outline, inputs=[api_input], outputs=[api_output], api_name="validate_outline")
+
+        api_input.submit(
+            fn=api_generate_document, inputs=[api_input], outputs=[api_output], api_name="generate_document"
         )
 
     return app
