@@ -3,7 +3,7 @@
 [git-collector-data]
 
 **URL:** https://github.com/gradio-app/gradio/tree/main/gradio  
-**Date:** 6/18/2025, 12:11:09 PM  
+**Date:** 7/2/2025, 3:22:15 PM  
 **Files:** 10  
 
 === File: gradio/blocks.py ===
@@ -287,6 +287,14 @@ class Block:
     def get_expected_parent(self) -> type[BlockContext] | None:
         return None
 
+    def breaks_grouping(self) -> bool:
+        """
+        Whether this component breaks FormComponent grouping chains.
+        Components that return False will not reset the pseudo_parent
+        when encountered during fill_expected_parents grouping.
+        """
+        return True
+
     def get_config(self):
         config = {}
         signature = inspect.signature(self.__class__.__init__)
@@ -499,7 +507,8 @@ class BlockContext(Block):
         for child in self.children:
             expected_parent = child.get_expected_parent()
             if not expected_parent or isinstance(self, expected_parent):
-                pseudo_parent = None
+                if child.breaks_grouping():
+                    pseudo_parent = None
                 children.append(child)
             else:
                 if pseudo_parent is not None and isinstance(
