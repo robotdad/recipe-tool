@@ -5,7 +5,7 @@
 **Search:** ['recipe-executor/recipe_executor']
 **Exclude:** ['.venv', 'node_modules', '*.lock', '.git', '__pycache__', '*.pyc', '*.ruff_cache', 'logs', 'output']
 **Include:** ['README.md', 'pyproject.toml', '.env.example']
-**Date:** 7/1/2025, 4:21:06 PM
+**Date:** 7/2/2025, 3:22:05 PM
 **Files:** 29
 
 === File: .env.example ===
@@ -438,6 +438,7 @@ members = [
     "recipe-executor",
     "shared/gradio-components",
     "apps/document-generator",
+    "apps/experimental/document-generator-v2",
     "apps/recipe-executor",
     "apps/recipe-tool",
     "mcp-servers/docs-server",
@@ -452,6 +453,7 @@ recipe-tool = { workspace = true }
 gradio-components = { workspace = true }
 # Apps
 document-generator-app = { workspace = true }
+document-generator-v2-app = { workspace = true }
 recipe-executor-app = { workspace = true }
 recipe-tool-app = { workspace = true }
 # MCP servers

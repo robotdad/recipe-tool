@@ -3,7 +3,7 @@
 [git-collector-data]
 
 **URL:** https://github.com/gradio-app/gradio/tree/main/gradio  
-**Date:** 6/27/2025, 2:29:17 PM  
+**Date:** 7/2/2025, 3:22:13 PM  
 **Files:** 50  
 
 === File: gradio/components/__init__.py ===
@@ -9938,12 +9938,12 @@ from typing import Any
 
 from gradio_client.documentation import document
 
-from gradio.components.base import FormComponent
+from gradio.components.base import Component
 from gradio.events import Events
 
 
 @document()
-class State(FormComponent):
+class State(Component):
     EVENTS = [Events.change]
     """
     Special hidden component that stores session state across runs of the demo by the
@@ -10021,6 +10021,10 @@ class State(FormComponent):
         config = super().get_config()
         del config["value"]
         return config
+
+    def breaks_grouping(self) -> bool:
+        """State components should not break wrapper grouping chains."""
+        return False
 
 
 === File: gradio/components/textbox.py ===
@@ -10246,7 +10250,7 @@ from typing import TYPE_CHECKING
 
 from gradio_client.documentation import document
 
-from gradio.components.base import FormComponent
+from gradio.components.base import Component
 from gradio.events import Events
 
 if TYPE_CHECKING:
@@ -10254,7 +10258,7 @@ if TYPE_CHECKING:
 
 
 @document()
-class Timer(FormComponent):
+class Timer(Component):
     """
     Special component that ticks at regular intervals when active. It is not visible, and only used to trigger events at a regular interval through the `tick` event listener.
     """
@@ -10305,6 +10309,10 @@ class Timer(FormComponent):
 
     def example_value(self):
         return 1
+
+    def breaks_grouping(self) -> bool:
+        """Timer components should not break wrapper grouping chains."""
+        return False
 
 
 === File: gradio/components/upload_button.py ===
