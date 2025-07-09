@@ -182,6 +182,50 @@ def set_focused_block(block_id):
     return block_id
 
 
+def reset_document(session_id=None):
+    """Reset the document to initial empty state."""
+    # Create new session ID
+    new_session_id = str(uuid.uuid4())
+    
+    # Reset to initial blocks
+    initial_blocks = [
+        {
+            "id": str(uuid.uuid4()),
+            "type": "ai",
+            "heading": "",
+            "content": "",
+            "resources": [],
+            "collapsed": False,  # AI block starts expanded
+            "indent_level": 0,
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "type": "text",
+            "heading": "",
+            "content": "",
+            "resources": [],
+            "collapsed": True,  # Text block starts collapsed
+            "indent_level": 0,
+        },
+    ]
+    
+    # Generate initial outline
+    outline, json_str = regenerate_outline_from_state("", "", [], initial_blocks)
+    
+    # Return empty title, description, empty resources, initial blocks
+    return (
+        "",  # title
+        "",  # description
+        [],  # resources
+        initial_blocks,  # blocks
+        outline,  # outline
+        json_str,  # json_output
+        gr.update(value=generate_resource_html([])),  # resources_display
+        None,  # import_file
+        new_session_id,  # session_id
+    )
+
+
 def convert_block_type(blocks, block_id, to_type, title, description, resources):
     """Convert a block from one type to another while preserving separate content for each type."""
     for block in blocks:
@@ -835,7 +879,7 @@ def import_outline(file_path, session_id=None):
         json_data, extracted_files = DocpackHandler.extract_package(file_path, session_dir)
 
         # Extract title and description
-        title = json_data.get("title", "Document Title")
+        title = json_data.get("title", "")
         description = json_data.get("general_instruction", "")
 
         # Extract and validate resources
@@ -984,6 +1028,10 @@ def import_outline(file_path, session_id=None):
                     "indent_level": 0,
                 }
             ]
+        else:
+            # Ensure the first block is expanded
+            if blocks and len(blocks) > 0:
+                blocks[0]["collapsed"] = False
 
         # Regenerate outline and JSON
         outline, json_str = regenerate_outline_from_state(title, description, resources, blocks)
@@ -1201,15 +1249,18 @@ def render_blocks(blocks, focused_block_id=None):
                 </button>
                 <button class='delete-btn' onclick='deleteBlock("{block_id}")'>🗑</button>
                 <button class='add-btn' onclick='addBlockAfter("{block_id}")'>+</button>
-                <button class='convert-btn convert-to-text' onclick='convertBlock("{block_id}", "text")'>T</button>
                 <div class='block-header'>
                     <input type='text' class='block-heading-inline' placeholder='Section Title'
                            value='{heading_value}'
-                           onfocus='setFocusedBlock("{block_id}", true)'
+                           onfocus='expandBlockOnHeadingFocus("{block_id}"); setFocusedBlock("{block_id}", true)'
                            oninput='updateBlockHeading("{block_id}", this.value)'/>
                 </div>
                 <div class='block-content {content_class}'>
-                    <textarea placeholder='This text will be used for AI content generation.\nType your AI instruction here...'
+                    <div class='block-tabs'>
+                        <button class='block-tab active' onclick='convertBlock("{block_id}", "ai")'>AI</button>
+                        <button class='block-tab' onclick='convertBlock("{block_id}", "text")'>Text</button>
+                    </div>
+                    <textarea placeholder='Type your AI instruction here...\nThis text will be used for AI content generation.'
                               onfocus='setFocusedBlock("{block_id}", true)'
                               oninput='updateBlockContent("{block_id}", this.value)'>{block["content"]}</textarea>
                     <div class='block-resources'>
@@ -1264,14 +1315,18 @@ def render_blocks(blocks, focused_block_id=None):
                 </button>
                 <button class='delete-btn' onclick='deleteBlock("{block_id}")'>🗑</button>
                 <button class='add-btn' onclick='addBlockAfter("{block_id}")'>+</button>
-                <button class='convert-btn convert-to-ai' onclick='convertBlock("{block_id}", "ai")'>AI</button>
                 <div class='block-header'>
                     <input type='text' class='block-heading-inline' placeholder='Section Title'
                            value='{heading_value}'
+                           onfocus='expandBlockOnHeadingFocus("{block_id}"); setFocusedBlock("{block_id}", true)'
                            oninput='updateBlockHeading("{block_id}", this.value)'/>
                 </div>
                 <div class='block-content {content_class}'>
-                    <textarea placeholder='This text will be copied into your document.\nType your text here...'
+                    <div class='block-tabs'>
+                        <button class='block-tab' onclick='convertBlock("{block_id}", "ai")'>AI</button>
+                        <button class='block-tab active' onclick='convertBlock("{block_id}", "text")'>Text</button>
+                    </div>
+                    <textarea placeholder='Type your text here...\nThis text will be copied into your document.'
                               onfocus='setFocusedBlock("{block_id}", true)'
                               oninput='updateBlockContent("{block_id}", this.value)'>{block["content"]}</textarea>
                     <div class='block-resources'>
@@ -1336,7 +1391,7 @@ def handle_file_upload(files, current_resources, title, description, blocks, ses
 
 
 # Global variable to store current document state for download
-current_document_state = {"title": "Document Title", "outline_json": "{}", "blocks": []}
+current_document_state = {"title": "", "outline_json": "{}", "blocks": []}
 
 
 def create_app():
@@ -1385,7 +1440,7 @@ def create_app():
         blocks_state = gr.State(initial_blocks)
 
         # Initialize outline state with empty values
-        initial_outline, initial_json = regenerate_outline_from_state("Document Title", "", [], initial_blocks)
+        initial_outline, initial_json = regenerate_outline_from_state("", "", [], initial_blocks)
         outline_state = gr.State(initial_outline)
 
         with gr.Row():
@@ -1424,6 +1479,14 @@ def create_app():
                                     <div class="example-desc">Employee evaluation and feedback</div>
                                 </div>
                             """)
+                    # New button (for resetting document)
+                    new_doc_btn = gr.Button(
+                        "New",
+                        elem_id="new-builder-btn-id",
+                        variant="secondary",
+                        size="sm",
+                        elem_classes="new-builder-btn",
+                    )
                     gr.Button(
                         "Import",
                         elem_id="import-builder-btn-id",
@@ -1451,7 +1514,7 @@ def create_app():
         with gr.Row(elem_classes="header-section"):
             # Document title (narrower width)
             doc_title = gr.Textbox(
-                value="Document Title",
+                value="",
                 placeholder="Document Title",
                 label=None,
                 show_label=False,
@@ -1736,6 +1799,23 @@ def create_app():
             outputs=[blocks_state, outline_state, json_output],
         ).then(fn=render_blocks, inputs=[blocks_state, focused_block_state], outputs=blocks_display)
 
+        # Connect New document button to reset everything
+        new_doc_btn.click(
+            fn=reset_document,
+            inputs=[session_state],
+            outputs=[
+                doc_title,
+                doc_description,
+                resources_state,
+                blocks_state,
+                outline_state,
+                json_output,
+                resources_display,
+                import_file,
+                session_state,
+            ],
+        ).then(fn=render_blocks, inputs=[blocks_state, focused_block_state], outputs=blocks_display)
+
         # Delete block handler
         delete_trigger.click(
             fn=delete_block,
@@ -1888,12 +1968,23 @@ def create_app():
             else:
                 download_update = gr.update(interactive=False)
 
-            return json_str, markdown_update, html_update, download_update
+            # Re-enable the generate button
+            generate_btn_update = gr.update(interactive=True)
+
+            return json_str, markdown_update, html_update, download_update, generate_btn_update
 
         generate_doc_btn.click(
+            fn=lambda: [
+                gr.update(interactive=False),  # Disable generate button
+                gr.update(visible=False),  # Hide markdown content
+                gr.update(value="<em></em><br><br><br>", visible=True),  # Show HTML with empty content but structure intact
+                gr.update(interactive=False),  # Disable download button
+            ],
+            outputs=[generate_doc_btn, generated_content, generated_content_html, save_doc_btn],
+        ).then(
             fn=handle_generate_and_update_download,
             inputs=[doc_title, doc_description, resources_state, blocks_state, session_state],
-            outputs=[json_output, generated_content, generated_content_html, save_doc_btn],
+            outputs=[json_output, generated_content, generated_content_html, save_doc_btn, generate_doc_btn],
         )
 
         # Save button is handled directly by DownloadButton with create_docpack_from_current_state

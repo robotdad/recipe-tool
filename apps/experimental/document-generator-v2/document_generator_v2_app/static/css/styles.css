@@ -92,6 +92,19 @@
     max-width: 120px !important;
     height: 30px !important;
 }
+.new-builder-btn {
+    width: 120px !important;
+    min-width: 120px !important;
+    max-width: 120px !important;
+    height: 30px !important;
+    background-color: #ffffff !important;
+    border: 1px solid #d0d0d0 !important;
+    color: #333333 !important;
+}
+.new-builder-btn:hover {
+    background-color: #f5f5f5 !important;
+    border-color: #b0b0b0 !important;
+}
 
 /* Try Examples button - citrus orange tertiary color */
 .try-examples-btn {
@@ -717,15 +730,8 @@
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
     border: 1px solid #e5e5e5;
     border-radius: 8px !important;
-    overflow-y: scroll; /* Always show scroll area */
+    overflow-y: auto; /* Show scrollbar only when needed */
     overflow-x: hidden;
-    -ms-overflow-style: none !important;  /* IE and Edge */
-    scrollbar-width: none !important;  /* Firefox */
-}
-
-.workspace-display::-webkit-scrollbar {
-    width: 0 !important;
-    display: none !important;  /* Chrome, Safari and Opera */
 }
 
 /* Remove the rules that hide all scrollbars inside workspace - we want to show them when needed */
@@ -885,13 +891,12 @@
 .ai-block textarea {
     width: 100%;
     min-height: 80px;
-    border: none;
+    border: 1px solid #4a9d9e;
     border-radius: 4px;
     padding: 10px;
-    padding-top: 0px;
     font-size: 14px;
     resize: none; /* Disable manual resize since we auto-expand */
-    background: transparent;
+    background: white;
     outline: none;
     overflow-y: hidden; /* Hide vertical scrollbars */
     overflow-x: hidden; /* Hide horizontal scrollbars */
@@ -916,13 +921,12 @@
 .text-block textarea {
     width: 100%;
     min-height: 80px;
-    border: none;
+    border: 1px solid #e0e0e0;
     border-radius: 4px;
     padding: 10px;
-    padding-top: 0px;
     font-size: 14px;
     resize: none; /* Disable manual resize since we auto-expand */
-    background: transparent;
+    background: white;
     outline: none;
     overflow-y: hidden; /* Hide vertical scrollbars */
     overflow-x: hidden; /* Hide horizontal scrollbars */
@@ -950,7 +954,7 @@
     outline: none;
     background: transparent;
     padding: 4px 8px;
-    margin: 0 8px 0 0;
+    margin: 0 24px 0 0;
     color: #333;
     transition: background-color 0.2s ease;
 }
@@ -1026,42 +1030,77 @@
     border-color: #999;
 }
 
-.convert-btn {
-    position: absolute;
-    top: 6px;  /* Same as the old collapse button position */
-    right: 6px; /* Same as chevron button - inside the block */
-    width: 20px;
-    height: 20px;
-    padding: 0;
+/* Block tabs styling */
+.block-tabs {
+    display: inline-flex;
+    margin-bottom: 1px; /* Overlap with textarea border */
+    position: relative;
+    top: 1px;
+}
+
+.block-tab {
+    width: 42px;
+    height: 24px;
+    padding: 3px 10px;
     background-color: #f5f5f5;
-    border: 1px solid #d0d0d0;
-    border-radius: 3px;
-    font-size: 10px;
-    font-weight: bold;
-    line-height: 1;
+    border: 1px solid #e0e0e0;
+    border-bottom: none;
     cursor: pointer;
-    opacity: 0;
-    transition: opacity 0.2s ease, background-color 0.2s ease;
-    z-index: 10;
+    font-size: 11px;
+    font-weight: 500;
+    color: #666;
+    transition: all 0.2s ease;
+    margin-right: -1px; /* Overlap borders */
 }
 
-.content-block:hover .convert-btn {
-    opacity: 1;
-}
-
-.convert-btn.convert-to-text:hover {
-    background-color: #e0e0e0;
-    border-color: #999;
-}
-
-.convert-btn.convert-to-ai {
-    color: #4a9d9e;
-}
-
-.convert-btn.convert-to-ai:hover {
+.block-tab.active:first-child {
     background-color: #4a9d9e;
     border-color: #4a9d9e;
+    border-bottom: 2px solid #4a9d9e;
     color: white;
+    font-weight: 600;
+    position: relative;
+    z-index: 1;
+}
+
+.block-tab:first-child {
+    border-top-left-radius: 4px;
+    border-top-right-radius: 4px;
+    margin-bottom: 0;
+    border-bottom: 1px solid #e0e0e0;
+    margin-left: 5px;
+}
+
+.block-tab:hover:not(.active) {
+    background-color: #eeeeee;
+    color: #333;
+}
+
+.block-tab.active:last-child {
+    background-color: white;
+    border: 1px solid #e0e0e0;
+    border-bottom: 1px solid white;
+    color: #666;
+    font-weight: 600;
+    position: relative;
+    z-index: 1;
+}
+
+.block-tab:last-child {
+    border-top-left-radius: 4px;
+    border-top-right-radius: 4px;
+    margin-right: 0;
+    border-bottom: 1px solid #4a9d9e;
+}
+.block-tab:last-child:hover:not(.active) {
+    background-color: #eeeeee;
+    color: #333;
+}
+
+/* Update textarea styling to connect with tabs */
+.ai-block .block-tabs + textarea,
+.text-block .block-tabs + textarea {
+    margin-top: -1px;
 }
 
 /* Empty blocks message */
@@ -1074,7 +1113,7 @@
 /* Collapsible blocks */
 .collapse-btn {
     position: absolute;
-    top: 30px;  /* Old convert button position - below the convert button */
+    top: 6px;
     right: 6px;
     width: 20px;
     height: 20px;
@@ -1132,12 +1171,16 @@
 }
 
 .block-content {
-    display: none;
-    transition: all 0.3s ease;
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease, opacity 0.2s ease;
 }
 
 .block-content.show {
-    display: block;
+    max-height: 2000px; /* Large enough for most content */
+    opacity: 1;
+    padding-top: 10px;
 }
 
 .block-content textarea::placeholder {
@@ -1158,40 +1201,31 @@
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
     border: 1px solid #e5e5e5;
     border-radius: 8px !important;
-    overflow-y: auto;
+    overflow-y: auto; /* Show scrollbar only when needed */
     overflow-x: hidden;
     padding: 40px !important;
     font-size: 14px !important;
     color: #bbbbc2 !important;
-    -ms-overflow-style: none !important;  /* IE and Edge */
-    scrollbar-width: none !important;  /* Firefox */
-}
-.generate-display::-webkit-scrollbar {
-    display: none !important;  /* Chrome, Safari and Opera */
-}
-
-/* Also hide scrollbars in any nested containers within generate-display */
-.generate-display * {
-    -ms-overflow-style: none !important;  /* IE and Edge */
-    scrollbar-width: none !important;  /* Firefox */
-}
-
-.generate-display *::-webkit-scrollbar {
-    display: none !important;  /* Chrome, Safari and Opera */
 }
 
 /* Specific targeting for generated content */
-.generated-content {
-    -ms-overflow-style: none !important;
-    scrollbar-width: none !important;
-}
-
 .generated-content em {
     color: #bbbbc2;  /* --neutral-400: #bbbbc2 used for placeholders in gradio */
 }
 
+/* Hide scrollbar for HTML content (loading state) but keep for Markdown */
+.generate-display .gradio-html,
+.generate-display .gradio-html *,
+.generated-content {
+    overflow: hidden !important;
+    -ms-overflow-style: none !important;  /* IE and Edge */
+    scrollbar-width: none !important;  /* Firefox */
+}
+
+.generate-display .gradio-html::-webkit-scrollbar,
+.generate-display .gradio-html *::-webkit-scrollbar,
 .generated-content::-webkit-scrollbar {
-    display: none !important;
+    display: none !important;  /* Chrome, Safari and Opera */
 }
 
 /* Generate Document - buttons*/
