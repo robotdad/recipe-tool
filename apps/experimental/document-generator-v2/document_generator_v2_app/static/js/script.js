@@ -35,39 +35,7 @@ function toggleDebugPanel() {
     }
 }
 
-function setupUploadResource() {
-    // Try multiple selectors
-    const uploadBtn = document.querySelector('.upload-resources-btn')
-
-    if (uploadBtn) {
-        // Remove any existing listeners first
-        uploadBtn.replaceWith(uploadBtn.cloneNode(true));
-        const newUploadBtn = document.querySelector('.upload-resources-btn');
-
-        newUploadBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-
-            // Find the file input that is NOT the import file input
-            const fileInputs = document.querySelectorAll('input[type="file"]');
-            let uploadFileInput = null;
-
-            for (const input of fileInputs) {
-                // Skip the import file input
-                if (!input.closest('#import-file-input')) {
-                    uploadFileInput = input;
-                    break;
-                }
-            }
-
-            if (uploadFileInput) {
-                uploadFileInput.click();
-            }
-        });
-        return true;
-    }
-    return false;
-}
+// No longer needed - using Gradio's native file upload component
 
 // Delete block function
 function deleteBlock(blockId) {
@@ -292,18 +260,141 @@ function setupAutoExpand() {
 // Try setting up when DOM loads and with a delay
 document.addEventListener('DOMContentLoaded', function () {
     refresh();
-    setupUploadResource();
+    // Upload resource setup no longer needed - using Gradio's native component
     setupAutoExpand();
 });
 
+// Track if we're dragging from an external source
+let isDraggingFromExternal = false;
+
+// Clear draggedResource when dragging files from outside the browser
+document.addEventListener('dragenter', function(e) {
+    // Only clear draggedResource if we don't already have one AND this looks like an external drag
+    if (!draggedResource && e.dataTransfer && e.dataTransfer.types) {
+        // Check if this is likely an external file drag
+        const hasFiles = e.dataTransfer.types.includes('Files') || 
+                        e.dataTransfer.types.includes('application/x-moz-file');
+        
+        // Also check that it's not coming from our resource items
+        const isFromResourceItem = e.target.closest('.resource-item');
+        
+        if (hasFiles && !isFromResourceItem && !isDraggingFromExternal) {
+            isDraggingFromExternal = true;
+            console.log('External file drag detected');
+            draggedResource = null;
+        }
+    }
+}, true); // Use capture phase to run before other handlers
+
+// Reset the external drag flag when drag ends
+document.addEventListener('dragleave', function(e) {
+    // Check if we're leaving the document entirely
+    if (e.clientX === 0 && e.clientY === 0) {
+        isDraggingFromExternal = false;
+    }
+});
+
+document.addEventListener('drop', function(e) {
+    isDraggingFromExternal = false;
+});
+
+// Also reset when starting to drag a resource
+document.addEventListener('dragstart', function(e) {
+    if (e.target.closest('.resource-item')) {
+        isDraggingFromExternal = false;
+    }
+});
+
 window.addEventListener('load', function() {
-    setTimeout(setupUploadResource, 1000);
+    // Upload resource setup no longer needed - using Gradio's native component
     setTimeout(setupAutoExpand, 100);
     // Also setup drag and drop on window load
     setTimeout(setupDragAndDrop, 200);
+    setTimeout(setupFileUploadDragAndDrop, 250);
     // Setup description toggle button
     setTimeout(setupDescriptionToggle, 150);
+    
+    // Set up a global observer for the resources column
+    setupResourceObserver();
 });
+
+// Function to set up observer for resources
+function setupResourceObserver() {
+    let resourceSetupTimeout;
+    
+    // Function to observe a resources area
+    function observeResourcesArea(resourcesArea) {
+        if (!resourcesArea) return;
+        
+        const resourceObserver = new MutationObserver((mutations) => {
+            // Clear any pending timeout
+            clearTimeout(resourceSetupTimeout);
+            
+            // Check if resource items were added
+            let hasResourceChanges = false;
+            mutations.forEach(mutation => {
+                mutation.addedNodes.forEach(node => {
+                    if (node.nodeType === 1 && 
+                        (node.classList?.contains('resource-item') || 
+                         node.querySelector?.('.resource-item'))) {
+                        hasResourceChanges = true;
+                    }
+                });
+            });
+            
+            if (hasResourceChanges) {
+                console.log('Resources added, setting up drag and drop');
+                // Wait a bit for DOM to stabilize then setup drag and drop
+                resourceSetupTimeout = setTimeout(() => {
+                    setupDragAndDrop();
+                }, 200);
+            }
+        });
+        
+        resourceObserver.observe(resourcesArea, {
+            childList: true,
+            subtree: true
+        });
+        
+        return resourceObserver;
+    }
+    
+    // Initial setup
+    let currentObserver = observeResourcesArea(document.querySelector('.resources-display-area'));
+    
+    // Also watch for the resources area itself being replaced
+    const columnObserver = new MutationObserver((mutations) => {
+        mutations.forEach(mutation => {
+            mutation.addedNodes.forEach(node => {
+                if (node.nodeType === 1) {
+                    const newResourcesArea = node.classList?.contains('resources-display-area') ? 
+                        node : node.querySelector?.('.resources-display-area');
+                    
+                    if (newResourcesArea) {
+                        console.log('Resources area replaced, setting up new observer');
+                        // Disconnect old observer if it exists
+                        if (currentObserver) {
+                            currentObserver.disconnect();
+                        }
+                        // Set up new observer
+                        currentObserver = observeResourcesArea(newResourcesArea);
+                        // Setup drag and drop for any existing items
+                        setTimeout(setupDragAndDrop, 200);
+                    }
+                }
+            });
+        });
+    });
+    
+    // Observe the resources column for replacements
+    const resourcesCol = document.querySelector('.resources-col');
+    if (resourcesCol) {
+        columnObserver.observe(resourcesCol, {
+            childList: true,
+            subtree: true
+        });
+    }
+}
 
 // Use MutationObserver for dynamic content
 let debounceTimer;
@@ -325,6 +416,10 @@ const observer = new MutationObserver(function(mutations) {
                         node.querySelector?.('.block-resources') ||
                         node.tagName === 'TEXTAREA') {
                         hasRelevantChanges = true;
+                        // Log when we detect resource items
+                        if (node.classList?.contains('resource-item') || node.querySelector?.('.resource-item')) {
+                            console.log('Detected resource item change');
+                        }
                         break;
                     }
                 }
@@ -335,12 +430,13 @@ const observer = new MutationObserver(function(mutations) {
     // Only run setup if relevant changes detected
     if (hasRelevantChanges) {
         refresh();
-        setupUploadResource();
+        // Upload resource setup no longer needed - using Gradio's native component
         setupImportButton();
 
         // Delay drag and drop setup slightly to ensure DOM is ready
         setTimeout(() => {
             setupDragAndDrop();
+            setupFileUploadDragAndDrop();
         }, 50);
 
         // Debounce the setupAutoExpand to avoid multiple calls
@@ -811,6 +907,104 @@ function setupImportButton() {
     }
 }
 
+// Setup drag and drop for file upload zone
+function setupFileUploadDragAndDrop() {
+    const fileUploadZone = document.querySelector('.file-upload-dropzone');
+    if (!fileUploadZone) return;
+
+    // Function to replace the text
+    function replaceDropText() {
+        const wrapDivs = document.querySelectorAll('.file-upload-dropzone .wrap');
+        wrapDivs.forEach(wrapDiv => {
+            if (wrapDiv.textContent.includes('Drop File Here')) {
+                wrapDiv.childNodes.forEach(node => {
+                    if (node.nodeType === Node.TEXT_NODE && node.textContent.includes('Drop File Here')) {
+                        node.textContent = node.textContent.replace('Drop File Here', 'Drop Text File Here');
+                    }
+                });
+            }
+        });
+    }
+
+    // Try to replace immediately
+    replaceDropText();
+
+    // Watch for changes in case the content is dynamically updated
+    const observer = new MutationObserver((mutations) => {
+        replaceDropText();
+    });
+
+    observer.observe(fileUploadZone, {
+        childList: true,
+        subtree: true,
+        characterData: true
+    });
+
+    // Stop observing after 5 seconds to avoid performance issues
+    setTimeout(() => observer.disconnect(), 5000);
+
+    // Add drag-over class when dragging files over the upload zone
+    let dragCounter = 0;
+
+    function addDragListeners(element) {
+        element.addEventListener('dragenter', function(e) {
+            e.preventDefault();
+            dragCounter++;
+            fileUploadZone.classList.add('drag-over');
+        });
+
+        element.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            fileUploadZone.classList.add('drag-over');
+        });
+
+        element.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            dragCounter--;
+            if (dragCounter === 0) {
+                fileUploadZone.classList.remove('drag-over');
+            }
+        });
+
+        element.addEventListener('drop', function(e) {
+            e.preventDefault();
+            dragCounter = 0;
+            fileUploadZone.classList.remove('drag-over');
+        });
+    }
+
+    // Add listeners to the main zone
+    addDragListeners(fileUploadZone);
+
+    // Also add to all child elements to ensure we catch all events
+    const allChildren = fileUploadZone.querySelectorAll('*');
+    allChildren.forEach(child => {
+        addDragListeners(child);
+    });
+
+    // Watch for new elements being added and attach listeners
+    const dragObserver = new MutationObserver((mutations) => {
+        mutations.forEach(mutation => {
+            mutation.addedNodes.forEach(node => {
+                if (node.nodeType === 1) { // Element node
+                    addDragListeners(node);
+                    const newChildren = node.querySelectorAll('*');
+                    newChildren.forEach(child => addDragListeners(child));
+                }
+            });
+        });
+    });
+
+    dragObserver.observe(fileUploadZone, {
+        childList: true,
+        subtree: true
+    });
+
+    // Stop observing after 5 seconds
+    setTimeout(() => dragObserver.disconnect(), 5000);
+}
+
 // Drag and drop functionality for resources
 function setupDragAndDrop() {
     console.log('Setting up drag and drop...');
@@ -820,6 +1014,9 @@ function setupDragAndDrop() {
     console.log('Found resource items:', resourceItems.length);
 
     resourceItems.forEach(item => {
+        // Make sure the item is draggable
+        item.setAttribute('draggable', 'true');
+        
         // Remove existing listeners to avoid duplicates
         item.removeEventListener('dragstart', handleDragStart);
         item.removeEventListener('dragend', handleDragEnd);
@@ -858,18 +1055,27 @@ function handleDragStart(e) {
         path: e.target.dataset.resourcePath,
         type: e.target.dataset.resourceType
     };
+    console.log('Started dragging resource:', draggedResource);
     e.target.classList.add('dragging');
     e.dataTransfer.effectAllowed = 'copy';
+    e.dataTransfer.setData('text/plain', 'resource'); // Set some data to make it a valid drag
 }
 
 function handleDragEnd(e) {
     e.target.classList.remove('dragging');
+    // Clear draggedResource after a small delay to ensure drop completes
+    setTimeout(() => {
+        draggedResource = null;
+    }, 100);
 }
 
 function handleDragOver(e) {
     e.preventDefault();
-    e.dataTransfer.dropEffect = 'copy';
-    e.currentTarget.classList.add('drag-over');
+    // Only show drag-over effect if we're dragging a resource from the panel
+    if (draggedResource) {
+        e.dataTransfer.dropEffect = 'copy';
+        e.currentTarget.classList.add('drag-over');
+    }
 }
 
 function handleDragLeave(e) {
@@ -1293,7 +1499,7 @@ function setupResourceDescriptions() {
 document.addEventListener('DOMContentLoaded', function () {
     refresh();
     setupImportButton();
-    setupUploadResource();
+    // Upload resource setup no longer needed - using Gradio's native component
     setupExampleSelection();
     // Delay initial drag and drop setup
     setTimeout(() => {
