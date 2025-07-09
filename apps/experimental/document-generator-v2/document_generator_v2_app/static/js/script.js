@@ -446,6 +446,8 @@ const observer = new MutationObserver(function(mutations) {
             setupDescriptionToggle();
             setupExampleSelection();
             setupResourceDescriptions();
+            setupResourceUploadZones();
+            preventResourceDrops();
         }, 100);
     }
 });
@@ -949,14 +951,22 @@ function setupFileUploadDragAndDrop() {
     function addDragListeners(element) {
         element.addEventListener('dragenter', function(e) {
             e.preventDefault();
-            dragCounter++;
-            fileUploadZone.classList.add('drag-over');
+            // Only show drag-over effect if not dragging a resource
+            if (!draggedResource) {
+                dragCounter++;
+                fileUploadZone.classList.add('drag-over');
+            }
         });
 
         element.addEventListener('dragover', function(e) {
             e.preventDefault();
             e.stopPropagation();
-            fileUploadZone.classList.add('drag-over');
+            // If dragging a resource, show "not allowed" cursor
+            if (draggedResource) {
+                e.dataTransfer.dropEffect = 'none';
+            } else {
+                fileUploadZone.classList.add('drag-over');
+            }
         });
 
         element.addEventListener('dragleave', function(e) {
@@ -971,6 +981,11 @@ function setupFileUploadDragAndDrop() {
             e.preventDefault();
             dragCounter = 0;
             fileUploadZone.classList.remove('drag-over');
+            // Block resource drops completely
+            if (draggedResource) {
+                e.stopPropagation();
+                return false;
+            }
         });
     }
 
@@ -1058,7 +1073,8 @@ function handleDragStart(e) {
     console.log('Started dragging resource:', draggedResource);
     e.target.classList.add('dragging');
     e.dataTransfer.effectAllowed = 'copy';
-    e.dataTransfer.setData('text/plain', 'resource'); // Set some data to make it a valid drag
+    // Don't set text/plain data to prevent dropping text into textareas
+    e.dataTransfer.setData('application/x-resource', 'resource'); // Custom data type
 }
 
 function handleDragEnd(e) {
@@ -1495,6 +1511,151 @@ function setupResourceDescriptions() {
     });
 }
 
+// Handle resource file upload
+function handleResourceFileUpload(resourcePath, fileInput) {
+    const file = fileInput.files[0];
+    if (!file) return;
+    
+    console.log('Uploading file to replace resource:', resourcePath, file.name);
+    
+    // Set the resource path
+    const pathInput = document.getElementById('replace-resource-path');
+    if (pathInput) {
+        const pathTextarea = pathInput.querySelector('textarea');
+        if (pathTextarea) {
+            pathTextarea.value = resourcePath;
+            pathTextarea.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+    }
+    
+    // Find the hidden file input component and set the file
+    const hiddenFileInput = document.querySelector('#replace-resource-file input[type="file"]');
+    if (hiddenFileInput) {
+        // Create a new DataTransfer to set files on the hidden input
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(file);
+        hiddenFileInput.files = dataTransfer.files;
+        
+        // Trigger change event on the hidden file input
+        hiddenFileInput.dispatchEvent(new Event('change', { bubbles: true }));
+        
+        // Trigger the replace button after a delay
+        setTimeout(() => {
+            const replaceBtn = document.getElementById('replace-resource-trigger');
+            if (replaceBtn) {
+                replaceBtn.click();
+                
+                // Add visual feedback to the upload zone
+                const uploadZone = fileInput.closest('.resource-upload-zone');
+                if (uploadZone) {
+                    uploadZone.classList.add('upload-success');
+                    const uploadText = uploadZone.querySelector('.upload-text');
+                    if (uploadText) {
+                        uploadText.textContent = '✓ File replaced';
+                    }
+                    
+                    // Reset after 2 seconds
+                    setTimeout(() => {
+                        uploadZone.classList.remove('upload-success');
+                        uploadText.textContent = 'Drop file here to replace';
+                    }, 2000);
+                }
+            }
+        }, 100);
+    }
+    
+    // Clear the file input
+    fileInput.value = '';
+}
+
+// Prevent drops on resource textareas and inputs
+function preventResourceDrops() {
+    // Prevent drops on all textareas and inputs within resource items
+    const resourceInputs = document.querySelectorAll('.resource-item input, .resource-item textarea');
+    
+    resourceInputs.forEach(element => {
+        element.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            if (draggedResource) {
+                e.dataTransfer.dropEffect = 'none';
+            }
+        });
+        
+        element.addEventListener('drop', function(e) {
+            e.preventDefault();
+            if (draggedResource) {
+                e.stopPropagation();
+                return false;
+            }
+        });
+    });
+}
+
+// Setup drag and drop for resource upload zones
+function setupResourceUploadZones() {
+    const uploadZones = document.querySelectorAll('.resource-upload-zone');
+    
+    uploadZones.forEach(zone => {
+        let dragCounter = 0;
+        
+        zone.addEventListener('dragenter', function(e) {
+            e.preventDefault();
+            // Only show drag-over effect if NOT dragging a resource
+            if (!draggedResource) {
+                dragCounter++;
+                this.classList.add('drag-over');
+            }
+        });
+        
+        zone.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            // If dragging a resource, show "not allowed" cursor
+            if (draggedResource) {
+                e.dataTransfer.dropEffect = 'none';
+            } else {
+                // For external files, show "copy" cursor
+                e.dataTransfer.dropEffect = 'copy';
+            }
+        });
+        
+        zone.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            dragCounter--;
+            if (dragCounter === 0) {
+                this.classList.remove('drag-over');
+            }
+        });
+        
+        zone.addEventListener('drop', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            dragCounter = 0;
+            this.classList.remove('drag-over');
+            
+            // Block resource drops completely
+            if (draggedResource) {
+                return false;
+            }
+            
+            // Handle external file drops
+            if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                const fileInput = this.querySelector('.resource-file-input');
+                const resourcePath = this.getAttribute('data-resource-path');
+                
+                if (fileInput && resourcePath) {
+                    // Create a new DataTransfer to set files on input
+                    const dataTransfer = new DataTransfer();
+                    dataTransfer.items.add(e.dataTransfer.files[0]);
+                    fileInput.files = dataTransfer.files;
+                    
+                    // Trigger the change event
+                    handleResourceFileUpload(resourcePath, fileInput);
+                }
+            }
+        });
+    });
+}
+
 // Call setup on initial load
 document.addEventListener('DOMContentLoaded', function () {
     refresh();
@@ -1505,5 +1666,7 @@ document.addEventListener('DOMContentLoaded', function () {
     setTimeout(() => {
         setupDragAndDrop();
         setupResourceDescriptions();
+        setupResourceUploadZones();
+        preventResourceDrops();
     }, 100);
 });
