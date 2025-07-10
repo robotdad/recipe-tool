@@ -146,19 +146,19 @@ function expandBlockOnHeadingFocus(blockId) {
         // Store reference to the heading input and cursor position
         const headingInput = block.querySelector('.block-heading-inline');
         const cursorPosition = headingInput ? headingInput.selectionStart : 0;
-        
+
         // If the block is collapsed, expand it
         toggleBlockCollapse(blockId);
-        
+
         // Use a longer delay and multiple attempts to ensure focus is restored
         let attempts = 0;
         const maxAttempts = 5;
-        
+
         const restoreFocus = () => {
             attempts++;
             const updatedBlock = document.querySelector(`[data-id="${blockId}"]`);
             const updatedHeading = updatedBlock ? updatedBlock.querySelector('.block-heading-inline') : null;
-            
+
             if (updatedHeading && !updatedBlock.classList.contains('collapsed')) {
                 // Block has expanded, restore focus
                 updatedHeading.focus();
@@ -169,7 +169,7 @@ function expandBlockOnHeadingFocus(blockId) {
                 setTimeout(restoreFocus, 100);
             }
         };
-        
+
         // Start trying after initial delay
         setTimeout(restoreFocus, 200);
     }
@@ -177,45 +177,19 @@ function expandBlockOnHeadingFocus(blockId) {
 
 // Auto-expand textarea function
 function autoExpandTextarea(textarea) {
-    // Store current scroll position of workspace
-    const workspace = document.querySelector('.workspace-display');
-
-    // Store the current height before changing
-    const oldHeight = textarea.offsetHeight;
-
-    // Reset height to auto to get the correct scrollHeight
-    textarea.style.height = 'auto';
-
-    // Set height to scrollHeight plus a small buffer
-    const newHeight = textarea.scrollHeight + 2;
-
-    // Check if this is the description textarea
-    const isDescription = textarea.closest('#doc-description-id');
-    if (isDescription) {
-        // Calculate max height for 10 lines
-        const lineHeight = parseFloat(window.getComputedStyle(textarea).lineHeight);
-        const padding = parseInt(window.getComputedStyle(textarea).paddingTop) +
-                       parseInt(window.getComputedStyle(textarea).paddingBottom);
-        const tenLinesHeight = (lineHeight * 10) + padding;
-
-        // First check if content would exceed 10 lines (show scrollbar when starting 11th line)
-        const wouldExceedTenLines = newHeight > tenLinesHeight;
-
-        // Set max-height to exactly 10 lines
-        textarea.style.maxHeight = tenLinesHeight + 'px';
-
-        // Set height to min of scrollHeight or 10 lines height
-        textarea.style.height = Math.min(newHeight, tenLinesHeight) + 'px';
-
-        // Add scrollable class if content exceeds 10 lines
-        if (wouldExceedTenLines) {
-            textarea.classList.add('scrollable');
-        } else {
-            textarea.classList.remove('scrollable');
-        }
-    } else {
-        textarea.style.height = newHeight + 'px';
+    // Skip document description - it's handled by setupDescriptionToggle
+    const isDocDescription = textarea.closest('#doc-description-id');
+    if (isDocDescription) {
+        return;
     }
+    
+    // For other textareas, use height-based method
+    textarea.style.height = 'auto';
+    const newHeight = textarea.scrollHeight + 2;
+    textarea.style.height = newHeight + 'px';
+    textarea.style.maxHeight = '';
+    textarea.style.overflow = 'hidden';
+    textarea.classList.remove('scrollable');
 }
 
 // Setup auto-expand for all textareas
@@ -247,13 +221,8 @@ function setupAutoExpand() {
     // Special handling for the document description to ensure proper initial height
     const docDescription = document.querySelector('#doc-description-id textarea');
     if (docDescription) {
-        // Set minimum height for 2 lines
-        const lineHeight = parseInt(window.getComputedStyle(docDescription).lineHeight);
-        const padding = parseInt(window.getComputedStyle(docDescription).paddingTop) +
-                       parseInt(window.getComputedStyle(docDescription).paddingBottom);
-        const minHeight = (lineHeight * 2) + padding;
-        docDescription.style.minHeight = minHeight + 'px';
-        autoExpandTextarea(docDescription);
+        // Remove the watcher - it's causing issues
+        // The setupDescriptionToggle handles everything needed
     }
 }
 
@@ -268,20 +237,21 @@ document.addEventListener('DOMContentLoaded', function () {
 function resetDocumentDescription() {
     const docDescriptionBox = document.querySelector('.doc-description-box');
     const docDescriptionTextarea = document.querySelector('#doc-description-id textarea');
-    
+
     if (docDescriptionBox && docDescriptionTextarea) {
         // Clear the textarea value
         docDescriptionTextarea.value = '';
-        
+
+
         // Ensure the box is collapsed
         if (!docDescriptionBox.classList.contains('collapsed')) {
             docDescriptionBox.classList.add('collapsed');
         }
-        
+
         // Reset the textarea height
         docDescriptionTextarea.style.height = 'auto';
         autoExpandTextarea(docDescriptionTextarea);
-        
+
         // Hide the expand button
         const expandBtn = docDescriptionBox.querySelector('.desc-expand-btn');
         if (expandBtn) {
@@ -298,12 +268,12 @@ document.addEventListener('dragenter', function(e) {
     // Only clear draggedResource if we don't already have one AND this looks like an external drag
     if (!draggedResource && e.dataTransfer && e.dataTransfer.types) {
         // Check if this is likely an external file drag
-        const hasFiles = e.dataTransfer.types.includes('Files') || 
+        const hasFiles = e.dataTransfer.types.includes('Files') ||
                         e.dataTransfer.types.includes('application/x-moz-file');
-        
+
         // Also check that it's not coming from our resource items
         const isFromResourceItem = e.target.closest('.resource-item');
-        
+
         if (hasFiles && !isFromResourceItem && !isDraggingFromExternal) {
             isDraggingFromExternal = true;
             console.log('External file drag detected');
@@ -331,7 +301,57 @@ document.addEventListener('dragstart', function(e) {
     }
 });
 
+// Setup observers for resource title changes in Gradio components
+function setupResourceTitleObservers() {
+    const resourceItems = document.querySelectorAll('.resource-item-gradio');
+    console.log('Setting up title observers for', resourceItems.length, 'resource items');
+
+    resourceItems.forEach((item, index) => {
+        // Find the title textarea
+        const titleTextarea = item.querySelector('.resource-title-gradio input');
+        const pathDiv = item.querySelector('.resource-path-hidden');
+
+        if (titleTextarea && pathDiv) {
+            const resourcePath = pathDiv.getAttribute('data-path') || pathDiv.textContent.trim();
+            console.log(`Resource ${index}: path="${resourcePath}"`);
+
+            // Remove any existing listener to avoid duplicates
+            titleTextarea.removeEventListener('input', titleTextarea._titleUpdateHandler);
+
+            // Create and store the handler function
+            titleTextarea._titleUpdateHandler = function() {
+                const newTitle = this.value;
+                console.log(`Title changed for resource "${resourcePath}": "${newTitle}"`);
+
+                // Immediately update all dropped resources with this path
+                const droppedResources = document.querySelectorAll('.dropped-resource[data-resource-path]');
+                console.log(`Found ${droppedResources.length} dropped resources to check`);
+
+                droppedResources.forEach(dropped => {
+                    const droppedPath = dropped.getAttribute('data-resource-path');
+                    console.log(`Checking dropped resource with path="${droppedPath}"`);
+
+                    if (droppedPath === resourcePath) {
+                        const titleSpan = dropped.querySelector('.dropped-resource-title');
+                        if (titleSpan) {
+                            console.log(`Updating title span to: "${newTitle}"`);
+                            titleSpan.textContent = newTitle;
+                        }
+                    }
+                });
+            };
+
+            // Add the event listener
+            titleTextarea.addEventListener('input', titleTextarea._titleUpdateHandler);
+            console.log(`Added input listener to resource ${index}`);
+        } else {
+            console.log(`Resource ${index}: Missing textarea or path div`);
+        }
+    });
+}
+
 window.addEventListener('load', function() {
+    console.log('Window load event fired');
     // Upload resource setup no longer needed - using Gradio's native component
     setTimeout(setupAutoExpand, 100);
     // Also setup drag and drop on window load
@@ -339,63 +359,72 @@ window.addEventListener('load', function() {
     setTimeout(setupFileUploadDragAndDrop, 250);
     // Setup description toggle button
     setTimeout(setupDescriptionToggle, 150);
-    
+
     // Set up a global observer for the resources column
     setupResourceObserver();
+
+    // Setup title observers for dynamic updates
+    setTimeout(() => {
+        console.log('About to call setupResourceTitleObservers');
+        const resourceItems = document.querySelectorAll('.resource-item-gradio');
+        console.log('Found', resourceItems.length, 'resource items before calling setup');
+        setupResourceTitleObservers();
+    }, 300);
 });
 
 // Function to set up observer for resources
 function setupResourceObserver() {
     let resourceSetupTimeout;
-    
+
     // Function to observe a resources area
     function observeResourcesArea(resourcesArea) {
         if (!resourcesArea) return;
-        
+
         const resourceObserver = new MutationObserver((mutations) => {
             // Clear any pending timeout
             clearTimeout(resourceSetupTimeout);
-            
+
             // Check if resource items were added
             let hasResourceChanges = false;
             mutations.forEach(mutation => {
                 mutation.addedNodes.forEach(node => {
-                    if (node.nodeType === 1 && 
-                        (node.classList?.contains('resource-item') || 
+                    if (node.nodeType === 1 &&
+                        (node.classList?.contains('resource-item') ||
                          node.querySelector?.('.resource-item'))) {
                         hasResourceChanges = true;
                     }
                 });
             });
-            
+
             if (hasResourceChanges) {
                 console.log('Resources added, setting up drag and drop');
                 // Wait a bit for DOM to stabilize then setup drag and drop
                 resourceSetupTimeout = setTimeout(() => {
                     setupDragAndDrop();
+                    setupResourceTitleObservers();
                 }, 200);
             }
         });
-        
+
         resourceObserver.observe(resourcesArea, {
             childList: true,
             subtree: true
         });
-        
+
         return resourceObserver;
     }
-    
+
     // Initial setup
     let currentObserver = observeResourcesArea(document.querySelector('.resources-display-area'));
-    
+
     // Also watch for the resources area itself being replaced
     const columnObserver = new MutationObserver((mutations) => {
         mutations.forEach(mutation => {
             mutation.addedNodes.forEach(node => {
                 if (node.nodeType === 1) {
-                    const newResourcesArea = node.classList?.contains('resources-display-area') ? 
+                    const newResourcesArea = node.classList?.contains('resources-display-area') ?
                         node : node.querySelector?.('.resources-display-area');
-                    
+
                     if (newResourcesArea) {
                         console.log('Resources area replaced, setting up new observer');
                         // Disconnect old observer if it exists
@@ -406,12 +435,14 @@ function setupResourceObserver() {
                         currentObserver = observeResourcesArea(newResourcesArea);
                         // Setup drag and drop for any existing items
                         setTimeout(setupDragAndDrop, 200);
+                        // Setup title observers too
+                        setTimeout(setupResourceTitleObservers, 300);
                     }
                 }
             });
         });
     });
-    
+
     // Observe the resources column for replacements
     const resourcesCol = document.querySelector('.resources-col');
     if (resourcesCol) {
@@ -421,6 +452,66 @@ function setupResourceObserver() {
         });
     }
 }
+
+// Prevent dropping resources on text inputs and file upload zones
+function preventInvalidDrops() {
+    // Helper function to check if element is invalid drop target
+    function isInvalidDropTarget(element) {
+        if (!element) return false;
+
+        // Check if it's a text input
+        if (element.tagName === 'TEXTAREA' || element.tagName === 'INPUT') {
+            return true;
+        }
+
+        // Check if it's part of a file upload component (Gradio file upload)
+        if (element.closest('.resource-upload-gradio') ||
+            element.closest('[data-testid="file"]') ||
+            element.classList.contains('resource-upload-gradio')) {
+            return true;
+        }
+
+        return false;
+    }
+
+    // Prevent drop on invalid targets
+    document.addEventListener('dragover', function(e) {
+        if (isInvalidDropTarget(e.target)) {
+            if (draggedResource || window.currentDraggedResource) {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'none';
+                e.target.classList.add('no-drop');
+            }
+        }
+    }, true);
+
+    document.addEventListener('dragleave', function(e) {
+        if (isInvalidDropTarget(e.target)) {
+            e.target.classList.remove('no-drop');
+        }
+    }, true);
+
+    document.addEventListener('drop', function(e) {
+        if (isInvalidDropTarget(e.target)) {
+            if (draggedResource || window.currentDraggedResource) {
+                e.preventDefault();
+                e.stopPropagation();
+                e.target.classList.remove('no-drop');
+                console.log('Prevented drop on invalid target:', e.target);
+            }
+        }
+    }, true);
+
+    // Clean up no-drop class when drag ends
+    document.addEventListener('dragend', function(e) {
+        document.querySelectorAll('.no-drop').forEach(el => {
+            el.classList.remove('no-drop');
+        });
+    }, true);
+}
+
+// Call it once when the page loads
+preventInvalidDrops();
 
 // Use MutationObserver for dynamic content
 let debounceTimer;
@@ -436,14 +527,19 @@ const observer = new MutationObserver(function(mutations) {
                 if (node.nodeType === 1) { // Element node
                     if (node.classList?.contains('content-block') ||
                         node.classList?.contains('resource-item') ||
+                        node.classList?.contains('resource-item-gradio') ||
                         node.classList?.contains('block-resources') ||
                         node.querySelector?.('textarea') ||
                         node.querySelector?.('.resource-item') ||
+                        node.querySelector?.('.resource-item-gradio') ||
                         node.querySelector?.('.block-resources') ||
                         node.tagName === 'TEXTAREA') {
                         hasRelevantChanges = true;
                         // Log when we detect resource items
-                        if (node.classList?.contains('resource-item') || node.querySelector?.('.resource-item')) {
+                        if (node.classList?.contains('resource-item') ||
+                            node.classList?.contains('resource-item-gradio') ||
+                            node.querySelector?.('.resource-item') ||
+                            node.querySelector?.('.resource-item-gradio')) {
                             console.log('Detected resource item change');
                         }
                         break;
@@ -463,6 +559,7 @@ const observer = new MutationObserver(function(mutations) {
         setTimeout(() => {
             setupDragAndDrop();
             setupFileUploadDragAndDrop();
+            setupResourceTitleObservers();
         }, 50);
 
         // Debounce the setupAutoExpand to avoid multiple calls
@@ -473,6 +570,7 @@ const observer = new MutationObserver(function(mutations) {
             setupExampleSelection();
             setupResourceDescriptions();
             setupResourceUploadZones();
+            setupResourceUploadText();
             preventResourceDrops();
         }, 100);
     }
@@ -817,28 +915,49 @@ function setupDescriptionToggle() {
         return firstTwo;
     }
 
-    // Function to check if button should be visible and handle scrollbar
+    // Function to check if button should be visible
     function checkButtonVisibility() {
-        const lineHeight = parseFloat(window.getComputedStyle(textarea).lineHeight);
-        const padding = parseInt(window.getComputedStyle(textarea).paddingTop) +
-                       parseInt(window.getComputedStyle(textarea).paddingBottom);
-        const twoLinesHeight = (lineHeight * 2) + padding;
-
+        if (isCollapsed) return;
+        
+        // Count actual lines in the textarea
+        const lines = textarea.value.split('\n');
+        let totalLines = lines.length; // Start with actual line breaks
+        
+        // Add wrapped lines - estimate ~80 chars per line for wider doc description
+        lines.forEach((line, index) => {
+            if (line.length > 80) {
+                // Add extra lines for wrapping
+                totalLines += Math.floor(line.length / 80);
+            }
+        });
+        
+        console.log('Doc desc - lines:', lines.length, 'totalLines:', totalLines);
+        
         // Show button if content exceeds 2 lines
-        if (textarea.scrollHeight > twoLinesHeight && !isCollapsed) {
+        if (totalLines > 2) {
             button.style.display = 'block';
-        } else if (!isCollapsed) {
+        } else {
             button.style.display = 'none';
         }
-
-        // Add scrollable class if content exceeds 10 lines
-        const tenLinesHeight = (lineHeight * 10) + padding;
-        // Check if we're starting the 11th line
-        if (!isCollapsed && textarea.scrollHeight > tenLinesHeight) {
-            textarea.classList.add('scrollable');
-        } else {
-            textarea.classList.remove('scrollable');
+        
+        // Set rows attribute based on content, no max
+        let rowsToShow = Math.max(2, totalLines);
+        
+        // Add 1 extra row if we have 3 or more rows for breathing room
+        if (rowsToShow >= 3) {
+            rowsToShow += 1;
         }
+        
+        console.log('Setting rows to:', rowsToShow);
+        
+        textarea.rows = rowsToShow;
+        textarea.style.height = 'auto'; // Use auto instead of empty string
+        textarea.style.minHeight = 'auto';
+        textarea.style.maxHeight = 'none';
+        textarea.style.overflow = 'hidden';
+        
+        // Never add scrollable class
+        textarea.classList.remove('scrollable');
     }
 
     // Toggle collapse/expand
@@ -851,25 +970,15 @@ function setupDescriptionToggle() {
         if (isCollapsed) {
             // Expand - restore full text
             textarea.value = fullText;
-            textarea.style.height = 'auto';
-            // Calculate 10 lines height
-            const calcLineHeight = parseFloat(window.getComputedStyle(textarea).lineHeight);
-            const calcPadding = parseInt(window.getComputedStyle(textarea).paddingTop) +
-                               parseInt(window.getComputedStyle(textarea).paddingBottom);
-            const tenLinesHeight = (calcLineHeight * 10) + calcPadding;
-
-            textarea.style.maxHeight = tenLinesHeight + 'px';
-            textarea.style.overflow = '';  // Reset to CSS default
+            textarea.style.height = ''; // Clear height
+            textarea.style.maxHeight = ''; // Remove max height
+            textarea.style.overflow = 'hidden'; // No scrollbars
             container.classList.remove('collapsed');
             button.innerHTML = '⌵';
             button.title = 'Collapse';
             isCollapsed = false;
-            textarea.classList.remove('scrollable'); // Remove scrollable class first
-            autoExpandTextarea(textarea);
-            // Check if scrollbar is needed after expansion
-            if (textarea.scrollHeight > tenLinesHeight) {
-                textarea.classList.add('scrollable');
-            }
+            textarea.classList.remove('scrollable'); // Remove scrollable class
+            checkButtonVisibility(); // Use checkButtonVisibility like resources
             // Keep focus without moving cursor
             textarea.focus();
 
@@ -879,8 +988,9 @@ function setupDescriptionToggle() {
             // Collapse - save full text and show only first 2 lines
             fullText = textarea.value;
             textarea.value = getFirstTwoLines(fullText);
-            textarea.style.height = twoLinesHeight + 'px';
-            textarea.style.maxHeight = twoLinesHeight + 'px';
+            textarea.rows = 2; // Force 2 rows
+            textarea.style.height = ''; // Let rows control height
+            textarea.style.maxHeight = ''; // Clear max height
             textarea.style.overflow = 'hidden';
             container.classList.add('collapsed');
             button.innerHTML = '⌵';  // Same chevron, will rotate with CSS
@@ -914,11 +1024,22 @@ function setupDescriptionToggle() {
 
     // Check on input
     textarea.addEventListener('input', () => {
-        checkButtonVisibility();
-        // Auto-expand if typing while collapsed
-        if (isCollapsed) {
+        // Only update if not collapsed (unless typing to expand)
+        if (!isCollapsed) {
+            checkButtonVisibility();
+        } else if (textarea.value !== getFirstTwoLines(fullText)) {
+            // If collapsed and user is typing (not just the truncated value), expand
             toggleCollapse();
         }
+    });
+    
+    // Also handle paste
+    textarea.addEventListener('paste', function() {
+        setTimeout(() => {
+            if (!isCollapsed) {
+                checkButtonVisibility();
+            }
+        }, 10);
     });
 
     // Initial check
@@ -991,6 +1112,9 @@ function setupFileUploadDragAndDrop() {
 
     // Stop observing after 5 seconds to avoid performance issues
     setTimeout(() => observer.disconnect(), 5000);
+
+    // Also setup resource upload zones
+    setupResourceUploadText();
 
     // Add drag-over class when dragging files over the upload zone
     let dragCounter = 0;
@@ -1071,14 +1195,28 @@ function setupFileUploadDragAndDrop() {
 function setupDragAndDrop() {
     console.log('Setting up drag and drop...');
 
-    // Setup draggable resources
-    const resourceItems = document.querySelectorAll('.resource-item');
-    console.log('Found resource items:', resourceItems.length);
+    // Setup draggable resources - now look for Gradio resource components
+    const resourceItems = document.querySelectorAll('.resource-item-gradio');
+    console.log('Found Gradio resource items:', resourceItems.length);
 
-    resourceItems.forEach(item => {
+    resourceItems.forEach((item, index) => {
         // Make sure the item is draggable
         item.setAttribute('draggable', 'true');
-        
+
+        // Just store the path on the element for reference during drag
+        const pathHidden = item.querySelector('.resource-path-hidden');
+        if (pathHidden) {
+            const path = pathHidden.getAttribute('data-path') || pathHidden.textContent.trim();
+            item.dataset.resourcePath = path;
+            console.log(`Resource ${index} path:`, path);
+        }
+
+        // Also make child elements not draggable to prevent conflicts
+        const inputs = item.querySelectorAll('input, textarea, button');
+        inputs.forEach(input => {
+            input.setAttribute('draggable', 'false');
+        });
+
         // Remove existing listeners to avoid duplicates
         item.removeEventListener('dragstart', handleDragStart);
         item.removeEventListener('dragend', handleDragEnd);
@@ -1092,66 +1230,187 @@ function setupDragAndDrop() {
     const dropZones = document.querySelectorAll('.block-resources');
     console.log('Found drop zones:', dropZones.length);
 
+    if (dropZones.length === 0) {
+        console.warn('No drop zones found! Blocks might not be rendered yet.');
+        // Try again after a short delay
+        setTimeout(() => {
+            const retryDropZones = document.querySelectorAll('.block-resources');
+            console.log('Retry - Found drop zones:', retryDropZones.length);
+            setupDropZones(retryDropZones);
+        }, 500);
+    } else {
+        setupDropZones(dropZones);
+    }
+}
+
+function setupDropZones(dropZones) {
     dropZones.forEach((zone, index) => {
         // Remove existing listeners to avoid duplicates
+        zone.removeEventListener('dragenter', handleDragEnter);
         zone.removeEventListener('dragover', handleDragOver);
         zone.removeEventListener('drop', handleDrop);
         zone.removeEventListener('dragleave', handleDragLeave);
 
         // Add new listeners
+        zone.addEventListener('dragenter', handleDragEnter);
         zone.addEventListener('dragover', handleDragOver);
         zone.addEventListener('drop', handleDrop);
         zone.addEventListener('dragleave', handleDragLeave);
 
         // Add data attribute to help debug
         zone.setAttribute('data-drop-zone-index', index);
+        console.log(`Set up drop zone ${index} on element:`, zone);
     });
 }
 
 let draggedResource = null;
 
 function handleDragStart(e) {
-    draggedResource = {
-        name: e.target.dataset.resourceName,
-        title: e.target.dataset.resourceTitle || e.target.dataset.resourceName, // Include title
-        path: e.target.dataset.resourcePath,
-        type: e.target.dataset.resourceType
-    };
-    console.log('Started dragging resource:', draggedResource);
-    e.target.classList.add('dragging');
-    e.dataTransfer.effectAllowed = 'copy';
-    // Don't set text/plain data to prevent dropping text into textareas
-    e.dataTransfer.setData('application/x-resource', 'resource'); // Custom data type
+    console.log('handleDragStart called on:', e.target);
+
+    // Prevent dragging when clicking on input elements
+    if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') {
+        e.preventDefault();
+        return;
+    }
+
+    // For Gradio components, we need to extract data differently
+    const resourceElement = e.target.closest('.resource-item-gradio');
+    if (resourceElement) {
+        console.log('Resource element found:', resourceElement);
+
+        // Always extract current values dynamically to get latest updates
+        console.log('Extracting current resource data...');
+
+        // Look for elements - Gradio might have nested structures
+        const titleInput = resourceElement.querySelector('.resource-title-gradio input[type="text"], .resource-title-gradio textarea');
+        const descInput = resourceElement.querySelector('.resource-desc-gradio textarea');
+        const pathDiv = resourceElement.querySelector('.resource-path-hidden');
+        const filenameDiv = resourceElement.querySelector('.resource-filename');
+
+        // Debug logging
+        console.log('Title input found:', !!titleInput);
+        if (titleInput) {
+            console.log('Title input type:', titleInput.tagName);
+            console.log('Title value:', titleInput.value);
+        }
+
+        console.log('Found elements:', {
+            titleInput: !!titleInput,
+            descInput: !!descInput,
+            pathDiv: !!pathDiv,
+            filenameDiv: !!filenameDiv
+        });
+
+        if (pathDiv && filenameDiv) {
+            const path = pathDiv.getAttribute('data-path') || pathDiv.textContent.trim();
+            const filename = filenameDiv.textContent.trim();
+            // Get title from input/textarea value, fallback to filename
+            const title = titleInput && titleInput.value ? titleInput.value.trim() : filename;
+            const description = descInput && descInput.value ? descInput.value.trim() : '';
+
+            draggedResource = {
+                name: filename,
+                title: title,
+                path: path,
+                type: 'text',
+                description: description
+            };
+            console.log('Dynamically extracted resource:', draggedResource);
+            console.log('Title being sent:', title);
+            console.log('Filename being sent:', filename);
+        }
+
+        if (draggedResource) {
+            console.log('Started dragging Gradio resource:', draggedResource);
+            resourceElement.classList.add('dragging');
+            document.body.classList.add('dragging-resource');
+            e.dataTransfer.effectAllowed = 'copy';
+            e.dataTransfer.setData('text/plain', JSON.stringify(draggedResource));
+
+            // Set global variable to ensure it persists
+            window.currentDraggedResource = draggedResource;
+        } else {
+            console.error('Could not extract resource data for drag');
+        }
+    }
 }
 
 function handleDragEnd(e) {
-    e.target.classList.remove('dragging');
+    // For Gradio components
+    const resourceElement = e.target.closest('.resource-item-gradio');
+    if (resourceElement) {
+        resourceElement.classList.remove('dragging');
+    } else {
+        e.target.classList.remove('dragging');
+    }
+
+    // Remove dragging class from body
+    document.body.classList.remove('dragging-resource');
+
     // Clear draggedResource after a small delay to ensure drop completes
     setTimeout(() => {
         draggedResource = null;
+        window.currentDraggedResource = null;
     }, 100);
 }
 
-function handleDragOver(e) {
+function handleDragEnter(e) {
     e.preventDefault();
-    // Only show drag-over effect if we're dragging a resource from the panel
-    if (draggedResource) {
-        e.dataTransfer.dropEffect = 'copy';
+    e.stopPropagation();
+    const resource = draggedResource || window.currentDraggedResource;
+    console.log('DragEnter event - draggedResource:', resource);
+
+    if (resource) {
         e.currentTarget.classList.add('drag-over');
+    }
+}
+
+function handleDragOver(e) {
+    // Only prevent default for valid drop zones
+    if (e.currentTarget.classList.contains('block-resources')) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const resource = draggedResource || window.currentDraggedResource;
+
+        // Debug logging - reduce verbosity
+        if (!e.currentTarget.dataset.loggedOnce) {
+            console.log('DragOver event - draggedResource:', resource);
+            console.log('DragOver target:', e.currentTarget);
+            e.currentTarget.dataset.loggedOnce = 'true';
+        }
+
+        // Only show drag-over effect if we're dragging a resource from the panel
+        if (resource) {
+            // Try different drop effects to get the right cursor
+            e.dataTransfer.dropEffect = 'copy';
+            e.currentTarget.classList.add('drag-over');
+
+            // Force cursor style
+            e.currentTarget.style.cursor = 'copy';
+        }
     }
 }
 
 function handleDragLeave(e) {
     e.currentTarget.classList.remove('drag-over');
+    e.currentTarget.style.cursor = '';
 }
 
 function handleDrop(e) {
     e.preventDefault();
+    e.stopPropagation();
     e.currentTarget.classList.remove('drag-over');
 
-    console.log('Drop event triggered on zone:', e.currentTarget.getAttribute('data-drop-zone-index'));
+    const resource = draggedResource || window.currentDraggedResource;
 
-    if (!draggedResource) {
+    console.log('Drop event triggered');
+    console.log('Drop target:', e.currentTarget);
+    console.log('Drop zone index:', e.currentTarget.getAttribute('data-drop-zone-index'));
+    console.log('Dragged resource:', resource);
+
+    if (!resource) {
         console.error('No dragged resource found');
         return;
     }
@@ -1160,16 +1419,21 @@ function handleDrop(e) {
     const contentBlock = e.currentTarget.closest('.content-block');
     if (!contentBlock) {
         console.error('No parent content block found');
+        console.log('Current target classes:', e.currentTarget.className);
+        console.log('Parent element:', e.currentTarget.parentElement);
         return;
     }
 
     const blockId = contentBlock.dataset.id;
-    console.log('Dropping resource on block:', blockId, draggedResource);
+    console.log('Dropping resource on block:', blockId, resource);
 
     // Update the block's resources
-    updateBlockResources(blockId, draggedResource);
+    updateBlockResources(blockId, resource);
 
+    // Clear both variables and remove body class
     draggedResource = null;
+    window.currentDraggedResource = null;
+    document.body.classList.remove('dragging-resource');
 }
 
 // Function to update block resources
@@ -1228,6 +1492,12 @@ function setupExampleSelection() {
                         const loadExampleBtn = document.getElementById('load-example-trigger');
                         if (loadExampleBtn) {
                             loadExampleBtn.click();
+                            
+                            // Re-setup resource descriptions after loading
+                            setTimeout(() => {
+                                setupResourceDescriptions();
+                                // Doc description will be handled by the interval watcher
+                            }, 500);
                         }
                     }, 100);
                 }
@@ -1268,16 +1538,14 @@ function updateResourceTitle(resourcePath, newTitle) {
     });
 
     // Immediately update all dropped resources in AI blocks with this path
-    const droppedResources = document.querySelectorAll('.dropped-resource');
+    const droppedResources = document.querySelectorAll('.dropped-resource[data-resource-path]');
     droppedResources.forEach(dropped => {
-        // Find the remove button which contains the resource path
-        const removeBtn = dropped.querySelector('.remove-resource');
-        if (removeBtn) {
-            // Extract the path from the onclick attribute
-            const onclickAttr = removeBtn.getAttribute('onclick');
-            if (onclickAttr && onclickAttr.includes(resourcePath.replace(/'/g, "\\'"))) {
-                // Update the text content (no icon anymore)
-                dropped.childNodes[0].textContent = newTitle + ' ';
+        // Check if this dropped resource matches the path
+        if (dropped.getAttribute('data-resource-path') === resourcePath) {
+            // Find the title span and update it
+            const titleSpan = dropped.querySelector('.dropped-resource-title');
+            if (titleSpan) {
+                titleSpan.textContent = newTitle;
             }
         }
     });
@@ -1434,6 +1702,188 @@ function toggleResourceDescription(resourceId) {
 
 // Setup auto-expand for resource descriptions
 function setupResourceDescriptions() {
+    // Handle Gradio resource descriptions
+    const gradioDescTextareas = document.querySelectorAll('.resource-desc-gradio textarea');
+    
+    gradioDescTextareas.forEach(textarea => {
+        const container = textarea.closest('.resource-desc-gradio');
+        if (!container || container.dataset.toggleSetup) {
+            return;
+        }
+        
+        // Mark as setup
+        container.dataset.toggleSetup = 'true';
+        
+        // Create expand/collapse button
+        const button = document.createElement('button');
+        button.className = 'desc-expand-btn';
+        button.innerHTML = '⌵'; // Down chevron
+        button.title = 'Collapse';
+        button.style.display = 'none'; // Hidden by default
+        
+        // Add button to container
+        container.appendChild(button);
+        
+        // Track collapsed state and full text
+        let isCollapsed = false;
+        let fullText = '';
+        
+        // Function to get first two lines of text
+        function getFirstTwoLines(text) {
+            const lines = text.split('\n');
+            
+            // Always show exactly 2 lines
+            if (lines.length === 1) {
+                // If only one line, just return it with ellipsis if it's long
+                return lines[0].length > 50 ? lines[0].substring(0, 47) + '...' : lines[0];
+            } else if (lines.length >= 2) {
+                // Get exactly first two lines
+                const firstLine = lines[0];
+                const secondLine = lines[1];
+                
+                // If there are more than 2 lines or the second line is long, add ellipsis
+                if (lines.length > 2 || secondLine.length > 50) {
+                    // Truncate second line if needed to make room for ellipsis
+                    const truncatedSecond = secondLine.length > 47 ? secondLine.substring(0, 47) : secondLine;
+                    return firstLine + '\n' + truncatedSecond + '...';
+                } else {
+                    return firstLine + '\n' + secondLine;
+                }
+            }
+            
+            return text;
+        }
+        
+        // Function to check if button should be visible
+        function checkButtonVisibility() {
+            if (isCollapsed) return;
+            
+            // Count actual lines in the textarea
+            const lines = textarea.value.split('\n');
+            let totalLines = lines.length; // Start with actual line breaks
+            
+            // Add wrapped lines - more accurate estimation
+            // Resource panel is narrower, estimate ~35 chars per line at 11px font
+            lines.forEach((line, index) => {
+                if (line.length > 35) {
+                    // Add extra lines for wrapping
+                    totalLines += Math.floor(line.length / 35);
+                }
+            });
+            
+            // Show button if content exceeds 2 lines
+            if (totalLines > 2) {
+                button.style.display = 'block';
+            } else {
+                button.style.display = 'none';
+            }
+            
+            // Set rows attribute based on content, no max
+            let rowsToShow = Math.max(2, totalLines);
+            
+            // Add 1 extra row if we have 3 or more rows for breathing room
+            if (rowsToShow >= 3) {
+                rowsToShow += 1;
+            }
+            
+            textarea.rows = rowsToShow;
+            textarea.style.height = ''; // Let rows attribute control height
+            textarea.style.minHeight = ''; // Clear any min-height
+            textarea.style.maxHeight = ''; // Clear any max-height
+            textarea.style.overflow = 'hidden'; // No scrollbars
+            
+            // Never add scrollable class
+            textarea.classList.remove('scrollable');
+        }
+        
+        // Toggle collapse/expand
+        function toggleCollapse() {
+            if (isCollapsed) {
+                // Expand
+                textarea.value = fullText;
+                textarea.style.height = ''; // Clear height to let rows control it
+                container.classList.remove('collapsed');
+                button.innerHTML = '⌵';
+                button.title = 'Collapse';
+                isCollapsed = false;
+                // Don't set rows to null - let checkButtonVisibility set it
+                checkButtonVisibility();
+                textarea.focus();
+                
+                // Trigger input event to update Gradio's state
+                textarea.dispatchEvent(new Event('input', { bubbles: true }));
+            } else {
+                // Collapse
+                fullText = textarea.value;
+                textarea.value = getFirstTwoLines(fullText);
+                textarea.rows = 2; // Force exactly 2 rows
+                textarea.style.height = ''; // Let rows attribute control height
+                container.classList.add('collapsed');
+                button.innerHTML = '⌵';
+                button.title = 'Expand';
+                isCollapsed = true;
+                textarea.classList.remove('scrollable');
+                textarea.blur();
+            }
+        }
+        
+        // Button click handler
+        button.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            toggleCollapse();
+        });
+        
+        // Click on collapsed textarea to expand
+        textarea.addEventListener('click', (e) => {
+            if (isCollapsed) {
+                const cursorPos = textarea.selectionStart;
+                toggleCollapse();
+                setTimeout(() => {
+                    textarea.setSelectionRange(cursorPos, cursorPos);
+                }, 0);
+            }
+        });
+        
+        // Check on input
+        textarea.addEventListener('input', () => {
+            checkButtonVisibility();
+            if (isCollapsed) {
+                toggleCollapse();
+            }
+        });
+        
+        // Initial check
+        checkButtonVisibility();
+        
+        // If textarea has initial content, ensure proper display
+        if (textarea.value && textarea.value.split('\n').length > 2) {
+            checkButtonVisibility();
+        }
+        
+        // Watch for value changes (e.g., from imports)
+        const observer = new MutationObserver(() => {
+            if (!isCollapsed && textarea.value !== fullText) {
+                checkButtonVisibility();
+            }
+        });
+        
+        observer.observe(textarea, {
+            attributes: true,
+            attributeFilter: ['value']
+        });
+        
+        // Also listen for programmatic value changes
+        let lastValue = textarea.value;
+        setInterval(() => {
+            if (textarea.value !== lastValue && !isCollapsed) {
+                lastValue = textarea.value;
+                checkButtonVisibility();
+            }
+        }, 500);
+    });
+
+    // Also handle the old panel descriptions if they exist
     const descTextareas = document.querySelectorAll('.resource-panel-description');
 
     descTextareas.forEach(textarea => {
@@ -1562,9 +2012,9 @@ function setupResourceDescriptions() {
 function handleResourceFileUpload(resourcePath, fileInput) {
     const file = fileInput.files[0];
     if (!file) return;
-    
+
     console.log('Uploading file to replace resource:', resourcePath, file.name);
-    
+
     // Set the resource path
     const pathInput = document.getElementById('replace-resource-path');
     if (pathInput) {
@@ -1574,7 +2024,7 @@ function handleResourceFileUpload(resourcePath, fileInput) {
             pathTextarea.dispatchEvent(new Event('input', { bubbles: true }));
         }
     }
-    
+
     // Find the hidden file input component and set the file
     const hiddenFileInput = document.querySelector('#replace-resource-file input[type="file"]');
     if (hiddenFileInput) {
@@ -1582,16 +2032,16 @@ function handleResourceFileUpload(resourcePath, fileInput) {
         const dataTransfer = new DataTransfer();
         dataTransfer.items.add(file);
         hiddenFileInput.files = dataTransfer.files;
-        
+
         // Trigger change event on the hidden file input
         hiddenFileInput.dispatchEvent(new Event('change', { bubbles: true }));
-        
+
         // Trigger the replace button after a delay
         setTimeout(() => {
             const replaceBtn = document.getElementById('replace-resource-trigger');
             if (replaceBtn) {
                 replaceBtn.click();
-                
+
                 // Add visual feedback to the upload zone
                 const uploadZone = fileInput.closest('.resource-upload-zone');
                 if (uploadZone) {
@@ -1600,7 +2050,7 @@ function handleResourceFileUpload(resourcePath, fileInput) {
                     if (uploadText) {
                         uploadText.textContent = '✓ File replaced';
                     }
-                    
+
                     // Reset after 2 seconds
                     setTimeout(() => {
                         uploadZone.classList.remove('upload-success');
@@ -1610,7 +2060,7 @@ function handleResourceFileUpload(resourcePath, fileInput) {
             }
         }, 100);
     }
-    
+
     // Clear the file input
     fileInput.value = '';
 }
@@ -1619,7 +2069,7 @@ function handleResourceFileUpload(resourcePath, fileInput) {
 function preventResourceDrops() {
     // Prevent drops on all textareas and inputs within resource items
     const resourceInputs = document.querySelectorAll('.resource-item input, .resource-item textarea');
-    
+
     resourceInputs.forEach(element => {
         element.addEventListener('dragover', function(e) {
             e.preventDefault();
@@ -1627,7 +2077,7 @@ function preventResourceDrops() {
                 e.dataTransfer.dropEffect = 'none';
             }
         });
-        
+
         element.addEventListener('drop', function(e) {
             e.preventDefault();
             if (draggedResource) {
@@ -1638,13 +2088,85 @@ function preventResourceDrops() {
     });
 }
 
+// Function to setup resource upload text
+function setupResourceUploadText() {
+    // Function to replace the text in resource upload zones
+    function replaceResourceUploadText() {
+        const resourceUploadZones = document.querySelectorAll('.resource-upload-gradio');
+        
+        resourceUploadZones.forEach(zone => {
+            // Find all text nodes and remove default Gradio text
+            const wrapDivs = zone.querySelectorAll('.wrap');
+            wrapDivs.forEach(wrapDiv => {
+                // Hide the icon
+                const icon = wrapDiv.querySelector('.icon-wrap');
+                if (icon) {
+                    icon.style.display = 'none';
+                }
+                
+                // Replace the text content and remove spans with "- or -"
+                wrapDiv.childNodes.forEach(node => {
+                    if (node.nodeType === Node.TEXT_NODE) {
+                        const text = node.textContent;
+                        if (text.includes('Drop File Here') || text.includes('Click to Upload') || text.includes('- or -')) {
+                            node.textContent = '';
+                        }
+                    } else if (node.nodeType === Node.ELEMENT_NODE && node.tagName === 'SPAN') {
+                        // Check if span contains "- or -" or other unwanted text
+                        if (node.textContent.includes('- or -') || 
+                            node.textContent.includes('Drop File Here') || 
+                            node.textContent.includes('Click to Upload')) {
+                            node.style.display = 'none';
+                        }
+                    }
+                });
+                
+                // Also hide any .or class spans
+                const orSpans = wrapDiv.querySelectorAll('.or, span.or');
+                orSpans.forEach(span => {
+                    span.style.display = 'none';
+                });
+                
+                // Add our custom text if not already present
+                if (!wrapDiv.querySelector('.custom-upload-text')) {
+                    const customText = document.createElement('span');
+                    customText.className = 'custom-upload-text';
+                    customText.textContent = 'Drop file here to replace';
+                    customText.style.fontSize = '11px';
+                    customText.style.color = '#666';
+                    wrapDiv.appendChild(customText);
+                }
+            });
+        });
+    }
+
+    // Try to replace immediately
+    replaceResourceUploadText();
+
+    // Watch for changes in resource areas
+    const resourcesArea = document.querySelector('.resources-display-area');
+    if (resourcesArea) {
+        const observer = new MutationObserver((mutations) => {
+            replaceResourceUploadText();
+        });
+
+        observer.observe(resourcesArea, {
+            childList: true,
+            subtree: true
+        });
+
+        // Stop observing after 10 seconds
+        setTimeout(() => observer.disconnect(), 10000);
+    }
+}
+
 // Setup drag and drop for resource upload zones
 function setupResourceUploadZones() {
     const uploadZones = document.querySelectorAll('.resource-upload-zone');
-    
+
     uploadZones.forEach(zone => {
         let dragCounter = 0;
-        
+
         zone.addEventListener('dragenter', function(e) {
             e.preventDefault();
             // Only show drag-over effect if NOT dragging a resource
@@ -1653,7 +2175,7 @@ function setupResourceUploadZones() {
                 this.classList.add('drag-over');
             }
         });
-        
+
         zone.addEventListener('dragover', function(e) {
             e.preventDefault();
             // If dragging a resource, show "not allowed" cursor
@@ -1664,7 +2186,7 @@ function setupResourceUploadZones() {
                 e.dataTransfer.dropEffect = 'copy';
             }
         });
-        
+
         zone.addEventListener('dragleave', function(e) {
             e.preventDefault();
             dragCounter--;
@@ -1672,29 +2194,29 @@ function setupResourceUploadZones() {
                 this.classList.remove('drag-over');
             }
         });
-        
+
         zone.addEventListener('drop', function(e) {
             e.preventDefault();
             e.stopPropagation();
             dragCounter = 0;
             this.classList.remove('drag-over');
-            
+
             // Block resource drops completely
             if (draggedResource) {
                 return false;
             }
-            
+
             // Handle external file drops
             if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
                 const fileInput = this.querySelector('.resource-file-input');
                 const resourcePath = this.getAttribute('data-resource-path');
-                
+
                 if (fileInput && resourcePath) {
                     // Create a new DataTransfer to set files on input
                     const dataTransfer = new DataTransfer();
                     dataTransfer.items.add(e.dataTransfer.files[0]);
                     fileInput.files = dataTransfer.files;
-                    
+
                     // Trigger the change event
                     handleResourceFileUpload(resourcePath, fileInput);
                 }
@@ -1713,7 +2235,9 @@ document.addEventListener('DOMContentLoaded', function () {
     setTimeout(() => {
         setupDragAndDrop();
         setupResourceDescriptions();
+        setupResourceTitleObservers();
         setupResourceUploadZones();
+        setupResourceUploadText();
         preventResourceDrops();
     }, 100);
 });
