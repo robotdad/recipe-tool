@@ -1734,16 +1734,46 @@ def create_app():
     custom_js = f"<script>{js_content}</script>"
 
     with gr.Blocks(title="Document Generator", css=custom_css, head=custom_js) as app:
+        # State to track selected tab
+        selected_tab = gr.State(value=0)
+
         # Create tabs at the highest level
-        with gr.Tabs() as tabs:
+        with gr.Tabs(selected=0) as tabs:
             # First tab - New tab that will show first
-            with gr.Tab("Start", id="start_tab"):
-                gr.Markdown("# Welcome to Document Generator")
-                gr.Markdown("This is the start tab. Add your content here.")
-                # TODO: Add content for the start tab
+            with gr.Tab("Start", id="start_tab", elem_id="tab-0"):
+                with gr.Column(elem_classes="start-tab-container"):
+                    # Big centered welcome message
+                    gr.Markdown("# Welcome to Document Generator", elem_classes="start-welcome-title")
+                    gr.Markdown("Draft once. Regenerate forever.", elem_classes="start-welcome-subtitle")
+
+                    # Get started button
+                    with gr.Row(elem_classes="start-button-row"):
+                        get_started_btn = gr.Button(
+                            "Get Started",
+                            variant="primary",
+                            size="lg",
+                            elem_classes="start-get-started-btn",
+                            elem_id="start-get-started-btn",
+                        )
+
+                    # Spacer for additional content
+                    gr.Markdown("", elem_classes="start-content-spacer")
+
+                    # Introduction section
+                    with gr.Column(elem_classes="start-intro-section"):
+                        gr.Markdown("""
+### Ideal for:
+
+- Drafting business proposals  
+- Maintaining living documentation  
+- Generating AI assistant instructions  
+- Creating repeatable reports
+
+Document Generator uses a structured outline and linked resources to draft documents. As your content grows, you can update files or sections and regenerate without rebuilding your doc from scratch—all within a single workspace.
+""", elem_classes="start-intro-content")
 
             # Second tab - Existing Document Builder content
-            with gr.Tab("Document Builder", id="document_builder_tab"):
+            with gr.Tab("Draft + Generate", id="document_builder_tab", elem_id="tab-1"):
                 # State to track resources and blocks
                 resources_state = gr.State([])
                 focused_block_state = gr.State(None)
@@ -2468,28 +2498,6 @@ def create_app():
 
         # Connect button click to add Text block
 
-        # Connect New document button to reset everything
-        new_doc_btn.click(
-            fn=reset_document,
-            inputs=[session_state],
-            outputs=[
-                doc_title,
-                doc_description,
-                resources_state,
-                blocks_state,
-                outline_state,
-                json_output,
-                import_file,
-                session_state,
-                generated_content_html,
-                generated_content,
-                save_doc_btn,
-            ],
-        ).then(fn=render_blocks, inputs=[blocks_state, focused_block_state], outputs=blocks_display).then(
-            fn=lambda: gr.update(value="<script>setTimeout(resetDocumentDescription, 100);</script>"),
-            outputs=js_executor,
-        )
-
         # Delete block handler
         delete_trigger.click(
             fn=delete_block,
@@ -2814,6 +2822,77 @@ def create_app():
             fn=lambda: None,
             outputs=replace_resource_file_input,
         )
+
+        # New button - reset document to initial state
+        def reset_document():
+            """Reset document to initial state with new session."""
+            # Create fresh initial blocks with new IDs
+            new_blocks = [
+                {
+                    "id": str(uuid.uuid4()),
+                    "type": "ai",
+                    "heading": "",
+                    "content": "",
+                    "resources": [],
+                    "collapsed": False,
+                    "indent_level": 0,
+                },
+                {
+                    "id": str(uuid.uuid4()),
+                    "type": "text",
+                    "heading": "",
+                    "content": "",
+                    "resources": [],
+                    "collapsed": True,
+                    "indent_level": 0,
+                },
+            ]
+
+            # Generate initial outline
+            initial_outline, initial_json = regenerate_outline_from_state("", "", [], new_blocks)
+
+            # New session ID
+            new_session_id = str(uuid.uuid4())
+
+            # Return updates for all relevant components
+            return (
+                "",  # doc_title
+                "",  # doc_description
+                [],  # resources_state
+                new_blocks,  # blocks_state
+                initial_outline,  # outline_state
+                initial_json,  # json_output
+                new_session_id,  # session_state
+                gr.update(value="", visible=False),  # generated_content_html
+                gr.update(value="", visible=False),  # generated_content
+                gr.update(interactive=False),  # save_doc_btn
+                None,  # focused_block_state
+            )
+
+        new_doc_btn.click(
+            fn=reset_document,
+            outputs=[
+                doc_title,
+                doc_description,
+                resources_state,
+                blocks_state,
+                outline_state,
+                json_output,
+                session_state,
+                generated_content_html,
+                generated_content,
+                save_doc_btn,
+                focused_block_state,
+            ],
+        ).then(fn=render_blocks, inputs=[blocks_state, focused_block_state], outputs=blocks_display)
+
+        # Create a hidden HTML component for tab switching trigger
+        switch_tab_trigger = gr.HTML("", visible=False, elem_id="switch-tab-trigger")
+
+        # Get Started button - switch to Draft + Generate tab
+        import time
+
+        get_started_btn.click(fn=lambda: f"SWITCH_TO_DRAFT_TAB_{int(time.time() * 1000)}", outputs=switch_tab_trigger)
 
     return app
 
