@@ -19,6 +19,9 @@ recipe-tool = "recipe_tool.app:main"
 package-dir = {"" = "recipe-tool"}
 packages = ["recipe_tool"]
 
+[tool.setuptools.packages.find]
+exclude = ["recipe-tool*"]
+
 [tool.uv.workspace]
 members = [
     "recipe-tool",
