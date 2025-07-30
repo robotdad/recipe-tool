@@ -48,6 +48,244 @@ function toggleDebugPanel() {
 
 // No longer needed - using Gradio's native file upload component
 
+// Process steps hover interaction
+document.addEventListener('DOMContentLoaded', function() {
+    // Process step visuals
+    const stepVisuals = {
+        1: {
+            svg: `<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Document with AI sparkle -->
+                    <rect x="100" y="50" width="200" height="250" rx="8" fill="#f0f9f9" stroke="#4a9d9e" stroke-width="2"/>
+                    <rect x="120" y="80" width="160" height="8" rx="4" fill="#4a9d9e" opacity="0.3"/>
+                    <rect x="120" y="100" width="140" height="8" rx="4" fill="#4a9d9e" opacity="0.3"/>
+                    <rect x="120" y="120" width="150" height="8" rx="4" fill="#4a9d9e" opacity="0.3"/>
+                    <g transform="translate(250, 70)">
+                        <path d="M0,-10 L3,-3 L10,0 L3,3 L0,10 L-3,3 L-10,0 L-3,-3 Z" fill="#4a9d9e" opacity="0.8"/>
+                    </g>
+                    <rect x="120" y="150" width="160" height="40" rx="4" fill="#e8f5f5" stroke="#4a9d9e" stroke-width="1"/>
+                    <rect x="120" y="200" width="160" height="40" rx="4" fill="#e8f5f5" stroke="#4a9d9e" stroke-width="1"/>
+                    <rect x="120" y="250" width="160" height="40" rx="4" fill="#e8f5f5" stroke="#4a9d9e" stroke-width="1"/>
+                </svg>`,
+            caption: "Your document takes shape with AI assistance"
+        },
+        2: {
+            svg: `<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Document with edit icon and files -->
+                    <rect x="80" y="50" width="180" height="220" rx="8" fill="#f0f9f9" stroke="#4a9d9e" stroke-width="2"/>
+                    <!-- Edit pencil -->
+                    <g transform="translate(240, 60)">
+                        <path d="M0,20 L5,15 L20,0 L25,5 L10,20 Z" fill="#4a9d9e"/>
+                        <rect x="0" y="20" width="5" height="5" fill="#4a9d9e"/>
+                    </g>
+                    <!-- File icons -->
+                    <rect x="280" y="80" width="40" height="50" rx="4" fill="#e8f5f5" stroke="#4a9d9e" stroke-width="1"/>
+                    <rect x="280" y="140" width="40" height="50" rx="4" fill="#e8f5f5" stroke="#4a9d9e" stroke-width="1"/>
+                    <!-- Arrow from files to doc -->
+                    <path d="M280,105 L260,150" stroke="#4a9d9e" stroke-width="2" marker-end="url(#arrowhead)"/>
+                    <defs>
+                        <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                            <polygon points="0 0, 10 3.5, 0 7" fill="#4a9d9e"/>
+                        </marker>
+                    </defs>
+                </svg>`,
+            caption: "Edit content and update resources as needed"
+        },
+        3: {
+            svg: `<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Multiple export formats -->
+                    <rect x="50" y="100" width="80" height="100" rx="8" fill="#e8f5f5" stroke="#4a9d9e" stroke-width="2"/>
+                    <text x="90" y="155" text-anchor="middle" fill="#4a9d9e" font-size="14" font-weight="bold">PDF</text>
+                    <rect x="160" y="100" width="80" height="100" rx="8" fill="#e8f5f5" stroke="#4a9d9e" stroke-width="2"/>
+                    <text x="200" y="155" text-anchor="middle" fill="#4a9d9e" font-size="14" font-weight="bold">DOCX</text>
+                    <rect x="270" y="100" width="80" height="100" rx="8" fill="#e8f5f5" stroke="#4a9d9e" stroke-width="2"/>
+                    <text x="310" y="155" text-anchor="middle" fill="#4a9d9e" font-size="14" font-weight="bold">MD</text>
+                    <!-- Export arrow -->
+                    <path d="M200,50 L200,80" stroke="#4a9d9e" stroke-width="3" marker-end="url(#arrowhead2)"/>
+                    <defs>
+                        <marker id="arrowhead2" markerWidth="10" markerHeight="7" refX="5" refY="7" orient="auto">
+                            <polygon points="0 0, 10 3.5, 0 7" fill="#4a9d9e"/>
+                        </marker>
+                    </defs>
+                </svg>`,
+            caption: "Generate and export in multiple formats"
+        }
+    };
+
+    // Function to update visual
+    function updateProcessVisual(stepNumber) {
+        const visualContent = document.querySelector('.visual-content');
+        if (visualContent && stepVisuals[stepNumber]) {
+            visualContent.innerHTML = stepVisuals[stepNumber].svg +
+                `<p class="visual-caption">${stepVisuals[stepNumber].caption}</p>`;
+        }
+    }
+
+    // Set up hover listeners with delay
+    setTimeout(() => {
+        const steps = document.querySelectorAll('.start-process-step-vertical');
+        steps.forEach((step, index) => {
+            step.addEventListener('mouseenter', () => {
+                // Remove active class from all steps
+                steps.forEach(s => s.classList.remove('active'));
+                // Add active class to hovered step
+                step.classList.add('active');
+                // Update visual
+                updateProcessVisual(index + 1);
+            });
+        });
+    }, 1000);
+});
+
+// Expandable input section - try multiple approaches
+console.log('Script loaded - setting up expandable section');
+
+// Function to set up the expandable behavior
+function setupExpandableInput() {
+    console.log('Attempting to set up expandable input...');
+
+    const promptInput = document.querySelector('#start-prompt-input textarea');
+    const expandableSection = document.getElementById('start-expandable-section');
+
+    if (promptInput && expandableSection) {
+        console.log('Found elements:', promptInput, expandableSection);
+
+        // Expand on focus
+        promptInput.addEventListener('focus', () => {
+            console.log('Input focused - expanding');
+            expandableSection.classList.add('expanded');
+            // Remove inline styles to let CSS handle the transition
+            expandableSection.style.removeProperty('display');
+            expandableSection.style.removeProperty('opacity');
+            // Add class to card for styling
+            const card = document.querySelector('.start-input-card');
+            if (card) card.classList.add('has-expanded');
+        });
+
+        // Also expand on click
+        promptInput.addEventListener('click', () => {
+            if (!expandableSection.classList.contains('expanded')) {
+                console.log('Input clicked - expanding');
+                expandableSection.classList.add('expanded');
+                // Remove inline styles to let CSS handle the transition
+                expandableSection.style.removeProperty('display');
+                expandableSection.style.removeProperty('opacity');
+                // Add class to card for styling
+                const card = document.querySelector('.start-input-card');
+                if (card) card.classList.add('has-expanded');
+            }
+        });
+
+        // Function to expand the card
+        function expandCard() {
+            console.log('Expanding card');
+            expandableSection.classList.add('expanded');
+            // Remove inline styles to let CSS handle the transition
+            expandableSection.style.removeProperty('display');
+            expandableSection.style.removeProperty('opacity');
+            // Add class to card for styling
+            const card = document.querySelector('.start-input-card');
+            if (card) card.classList.add('has-expanded');
+        }
+
+        // Expand when example buttons are clicked
+        const exampleButtons = document.querySelectorAll('.start-example-btn');
+        exampleButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                console.log('Example button clicked - expanding card');
+                // Small delay to ensure the content is loaded first
+                setTimeout(expandCard, 100);
+            });
+        });
+
+        // Collapse when clicking outside
+        document.addEventListener('click', (e) => {
+            const inputCard = document.querySelector('.start-input-card');
+            const expandableArea = document.getElementById('start-expandable-section');
+            const isClickInInput = inputCard && inputCard.contains(e.target);
+            const isClickInExpandable = expandableArea && expandableArea.contains(e.target);
+            const isExampleButton = e.target.closest('.start-example-btn');
+            const isRemoveButton = e.target.closest('.remove-resource');
+
+            // Always collapse when clicking outside, unless it's a remove resource button
+            if (!isClickInInput && !isClickInExpandable && !isExampleButton && !isRemoveButton) {
+                expandableSection.classList.remove('expanded');
+                // Remove inline styles to let CSS handle the transition
+                expandableSection.style.removeProperty('display');
+                expandableSection.style.removeProperty('opacity');
+                // Remove class from card
+                const card = document.querySelector('.start-input-card');
+                if (card) card.classList.remove('has-expanded');
+            }
+        });
+
+        return true;
+    }
+
+    console.log('Elements not found yet');
+    return false;
+}
+
+// Try to set up expandable input with exponential backoff
+let expandableSetupAttempts = 0;
+const maxExpandableAttempts = 4;
+
+function trySetupExpandableInput() {
+    if (setupExpandableInput()) {
+        console.log('Expandable input setup successful');
+        return;
+    }
+    
+    expandableSetupAttempts++;
+    if (expandableSetupAttempts < maxExpandableAttempts) {
+        const delay = 500 * Math.pow(2, expandableSetupAttempts - 1); // 500ms, 1000ms, 2000ms
+        console.log(`Expandable input not ready, retrying in ${delay}ms...`);
+        setTimeout(trySetupExpandableInput, delay);
+    }
+}
+
+// Initial attempt after a short delay
+setTimeout(trySetupExpandableInput, 500);
+
+// Also use MutationObserver as backup
+const expandableObserver = new MutationObserver((mutations) => {
+    if (setupExpandableInput()) {
+        expandableObserver.disconnect();
+    }
+});
+
+expandableObserver.observe(document.body, {
+    childList: true,
+    subtree: true
+});
+
+// Removed watchExpandableState to prevent potential infinite loops
+
+// Function to remove resource from start tab
+function removeStartResource(index) {
+    // Find the current resources state and update it
+    const event = new CustomEvent('remove-start-resource', { detail: { index: index } });
+    document.dispatchEvent(event);
+}
+
+// Listen for remove resource events and handle them
+document.addEventListener('DOMContentLoaded', function() {
+    // Set up listener for resource removal
+    document.addEventListener('remove-start-resource', function(e) {
+        const index = e.detail.index;
+        // Trigger a click on the hidden remove buttons that Gradio creates
+        const removeButtons = document.querySelectorAll('.start-resources-list button');
+        if (removeButtons[index]) {
+            // Find the corresponding Gradio button and click it
+            const gradioButtons = document.querySelectorAll('[id*="component-"][id*="button"]');
+            gradioButtons.forEach(btn => {
+                if (btn.textContent === 'Remove' && btn.offsetParent) {
+                    btn.click();
+                }
+            });
+        }
+    });
+});
+
 // Tab switching helper
 function switchToDraftTab() {
     console.log('Switching to Draft + Generate tab');
@@ -2454,6 +2692,55 @@ function setupResourceUploadZones() {
     });
 }
 
+// Function to remove a resource from the Start tab
+function removeStartResourceByIndex(index, resourceName) {
+    console.log('removeStartResourceByIndex called with index:', index, 'resourceName:', resourceName);
+    
+    // Prevent the card from collapsing
+    const expandableSection = document.getElementById('start-expandable-section');
+    const wasExpanded = expandableSection && expandableSection.classList.contains('expanded');
+
+    // Find the hidden inputs for start tab resource removal
+    const indexInput = document.getElementById('start-remove-resource-index');
+    const nameInput = document.getElementById('start-remove-resource-name');
+
+    if (indexInput && nameInput) {
+        // Find the actual input elements (Gradio wraps them)
+        const indexTextarea = indexInput.querySelector('textarea') || indexInput.querySelector('input[type="text"]');
+        const nameTextarea = nameInput.querySelector('textarea') || nameInput.querySelector('input[type="text"]');
+
+        if (indexTextarea && nameTextarea) {
+            // Set the values
+            indexTextarea.value = index.toString();
+            nameTextarea.value = resourceName;
+
+            // Dispatch input events to trigger Gradio update
+            indexTextarea.dispatchEvent(new Event('input', { bubbles: true }));
+            nameTextarea.dispatchEvent(new Event('input', { bubbles: true }));
+
+            // Find and click the remove button
+            const removeBtn = document.getElementById('start-remove-resource-btn');
+            if (removeBtn) {
+                removeBtn.click();
+                console.log('Clicked remove button');
+                
+                // Ensure the card stays expanded if it was expanded
+                if (wasExpanded) {
+                    setTimeout(() => {
+                        if (expandableSection && !expandableSection.classList.contains('expanded')) {
+                            expandableSection.classList.add('expanded');
+                            expandableSection.style.removeProperty('display');
+                            expandableSection.style.removeProperty('opacity');
+                            const card = document.querySelector('.start-input-card');
+                            if (card) card.classList.add('has-expanded');
+                        }
+                    }, 100);
+                }
+            }
+        }
+    }
+}
+
 // Call setup on initial load
 document.addEventListener('DOMContentLoaded', function () {
     console.log('DOMContentLoaded - Starting initialization');
@@ -2490,6 +2777,87 @@ document.addEventListener('DOMContentLoaded', function () {
         preventResourceDrops();
         console.log('Called preventResourceDrops()');
 
+        setupHowItWorksHover();
+        console.log('Called setupHowItWorksHover()');
+
         console.log('All initialization complete');
     }, 100);
+});
+
+// Handle How It Works section hover effects
+function setupHowItWorksHover() {
+    const steps = document.querySelectorAll('.start-process-step-vertical');
+    
+    if (steps.length === 3) {
+        console.log('Setting up How It Works hover effects');
+        
+        // Set step 1 as active by default
+        steps[0].classList.add('active');
+        
+        steps.forEach((step, index) => {
+            step.addEventListener('mouseenter', () => {
+                // Remove active from all steps
+                steps.forEach(s => s.classList.remove('active'));
+                // Add active to hovered step
+                step.classList.add('active');
+            });
+        });
+        
+        // When not hovering any step, default to step 1
+        const container = document.querySelector('.start-process-steps-vertical');
+        if (container) {
+            container.addEventListener('mouseleave', () => {
+                steps.forEach(s => s.classList.remove('active'));
+                steps[0].classList.add('active');
+            });
+        }
+    } else {
+        console.log('How It Works steps not found or incorrect count:', steps.length);
+    }
+}
+
+// Tab switching watcher
+let switchTabInterval = null;
+
+// Function to watch for tab switch trigger
+function watchForTabSwitch() {
+    const trigger = document.getElementById('switch-tab-trigger');
+    if (trigger) {
+        const value = trigger.textContent || trigger.innerText;
+        if (value && value.startsWith('SWITCH_TO_DRAFT_TAB_')) {
+            console.log('Tab switch trigger detected:', value);
+            
+            // Clear the trigger immediately
+            trigger.textContent = '';
+            
+            // Find and click the Draft + Generate tab
+            const tabs = document.querySelectorAll('.tab-nav button');
+            tabs.forEach(tab => {
+                if (tab.textContent.includes('Draft + Generate')) {
+                    console.log('Clicking Draft + Generate tab');
+                    tab.click();
+                }
+            });
+        }
+    }
+}
+
+// Start watching for tab switches
+document.addEventListener('DOMContentLoaded', function() {
+    // Clear any existing interval
+    if (switchTabInterval) {
+        clearInterval(switchTabInterval);
+    }
+    
+    // Start new interval
+    switchTabInterval = setInterval(watchForTabSwitch, 100);
+    console.log('Tab switch watcher started');
+});
+
+// Clear interval when navigating away
+window.addEventListener('beforeunload', function() {
+    if (switchTabInterval) {
+        clearInterval(switchTabInterval);
+        switchTabInterval = null;
+    }
 });

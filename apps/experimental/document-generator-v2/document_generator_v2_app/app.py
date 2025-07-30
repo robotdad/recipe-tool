@@ -1,20 +1,26 @@
+import argparse
+import asyncio
 import json
 import os
 import tempfile
+import time
 import uuid
 from pathlib import Path
 from typing import Any, Dict, List
 
 import gradio as gr
+from docpack_file import DocpackHandler
 from dotenv import load_dotenv
 
-from .docpack_handler import DocpackHandler
-from .executor.runner import generate_document
+from .executor.runner import generate_docpack_from_prompt, generate_document
 from .models.outline import Outline, Resource, Section
 from .session import session_manager
 
 # Load environment variables from .env file
 load_dotenv()
+
+# Global variable to track if app is running in dev mode
+IS_DEV_MODE = False
 
 
 def json_to_outline(json_data: Dict[str, Any]) -> Outline:
@@ -354,7 +360,7 @@ async def handle_document_generation(title, description, resources, blocks, sess
         outline = json_to_outline(json_data)
 
         # Generate the document
-        generated_content = await generate_document(outline, session_id)
+        generated_content = await generate_document(outline, session_id, IS_DEV_MODE)
 
         # Save to temporary file for download
         filename = f"{title}.md" if title else "document.md"
@@ -1182,8 +1188,7 @@ def save_outline(title, outline_json, blocks):
     try:
         # Create filename from title and timestamp
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        safe_title = "".join(c if c.isalnum() or c in " -_" else "_" for c in title)[:50]
-        docpack_name = f"{safe_title}_{timestamp}.docpack"
+        docpack_name = f"{timestamp}.docpack"
 
         # Create a temporary file for the docpack
         temp_dir = Path(tempfile.gettempdir())
@@ -1464,6 +1469,252 @@ def render_blocks(blocks, focused_block_id=None):
     return html
 
 
+def handle_start_file_upload(files, current_resources):
+    """Handle file uploads on the Start tab."""
+    if not files:
+        return current_resources, None
+
+    # Add new files to resources
+    new_resources = current_resources.copy() if current_resources else []
+
+    for file_path in files:
+        if file_path:
+            file_name = os.path.basename(file_path)
+            file_size = os.path.getsize(file_path)
+
+            # Format file size
+            if file_size < 1024:
+                size_str = f"{file_size} B"
+            elif file_size < 1024 * 1024:
+                size_str = f"{file_size / 1024:.1f} KB"
+            else:
+                size_str = f"{file_size / (1024 * 1024):.1f} MB"
+
+            # Check if already in resources (by name)
+            if not any(r["name"] == file_name for r in new_resources):
+                new_resources.append({
+                    "path": file_path,
+                    "name": file_name,
+                    "size": size_str,
+                })
+
+    return new_resources, None  # Return None to clear the file upload component
+
+
+def handle_start_draft_click_wrapper(prompt, resources, session_id=None):
+    """Wrapper to handle the Draft button click synchronously."""
+    print("DEBUG: handle_start_draft_click_wrapper called")
+    print(f"DEBUG: prompt type: {type(prompt)}, value: '{prompt}'")
+    print(f"DEBUG: resources type: {type(resources)}, value: {resources}")
+    print(f"DEBUG: session_id: {session_id}")
+
+    # Run the async function synchronously
+    import asyncio
+
+    return asyncio.run(handle_start_draft_click(prompt, resources, session_id))
+
+
+async def handle_start_draft_click(prompt, resources, session_id=None):
+    """Handle the Draft button click on the Start tab."""
+    print("DEBUG: In async handle_start_draft_click")
+    print(f"DEBUG: prompt value in async: '{prompt}'")
+
+    if not prompt or not prompt.strip():
+        error_msg = "Please enter a description of what you'd like to create."
+        print(f"DEBUG: No prompt provided, returning error: {error_msg}")
+        # Return 15 values to match outputs (added loading message and button)
+        return (
+            gr.update(),  # doc_title
+            gr.update(),  # doc_description
+            gr.update(),  # resources_state
+            gr.update(),  # blocks_state
+            gr.update(),  # outline_state
+            gr.update(),  # json_output
+            session_id,  # session_state
+            gr.update(),  # generated_content_html
+            gr.update(),  # generated_content
+            gr.update(),  # save_doc_btn
+            gr.update(),  # switch_tab_trigger
+            gr.update(
+                value=f'<div style="color: #dc2626; padding: 8px 12px; background: #fee2e2; border-radius: 4px; margin-top: 8px;">{error_msg}</div>',
+                visible=True,
+            ),  # start_error_message
+            gr.update(),  # start_prompt_input - no change
+            gr.update(visible=False),  # start_loading_message - hide
+            gr.update(interactive=True),  # get_started_btn
+        )
+
+    try:
+        # Get or create session ID
+        if not session_id:
+            session_id = str(uuid.uuid4())
+            print(f"DEBUG: Created new session_id: {session_id}")
+
+        print(f"DEBUG: Calling generate_docpack_from_prompt with {len(resources) if resources else 0} resources")
+
+        # Call the docpack generation function
+        docpack_path, outline_json = await generate_docpack_from_prompt(
+            prompt=prompt.strip(), resources=resources or [], session_id=session_id, dev_mode=IS_DEV_MODE
+        )
+
+        print(f"DEBUG: Received docpack_path: {docpack_path}")
+        print(f"DEBUG: Received outline_json length: {len(outline_json) if outline_json else 0}")
+
+        # Parse the outline JSON
+        if outline_json:
+            outline_data = json.loads(outline_json)
+            print(f"DEBUG: Successfully parsed outline with title: {outline_data.get('title', 'No title')}")
+
+            # Process the outline data similar to import_outline function
+            title = outline_data.get("title", "Untitled Document")
+            description = outline_data.get("general_instruction", "")
+
+            # Process resources
+            resources = []
+            session_files_dir = session_manager.get_files_dir(session_id)
+
+            for res_data in outline_data.get("resources", []):
+                resource_path = res_data.get("path", "")
+                if resource_path:
+                    # Copy resource to session files directory if it exists
+                    source_path = Path(resource_path)
+                    if source_path.exists():
+                        target_path = session_files_dir / source_path.name
+                        if source_path != target_path:
+                            import shutil
+
+                            shutil.copy2(source_path, target_path)
+
+                        resources.append({
+                            "key": res_data.get("key", ""),
+                            "name": source_path.name,
+                            "path": str(target_path),
+                            "description": res_data.get("description", ""),
+                        })
+
+            # Convert sections to blocks
+            blocks = []
+
+            def sections_to_blocks(sections, parent_indent=-1):
+                """Recursively convert sections to blocks."""
+                for section in sections:
+                    block = {
+                        "id": str(uuid.uuid4()),
+                        "heading": section.get("title", ""),
+                        "content": "",
+                        "resources": [],
+                        "collapsed": True,
+                        "indent_level": parent_indent + 1,
+                    }
+
+                    if "prompt" in section:
+                        # AI block
+                        block["type"] = "ai"
+                        block["content"] = section.get("prompt", "")
+                        block["ai_content"] = section.get("prompt", "")
+
+                        # Handle refs
+                        refs = section.get("refs", [])
+                        if refs and resources:
+                            for ref in refs:
+                                for resource in resources:
+                                    if resource.get("key") == ref:
+                                        block["resources"].append(resource)
+                                        break
+                    else:
+                        # Text block
+                        block["type"] = "text"
+                        block["content"] = ""
+
+                    blocks.append(block)
+
+                    # Process nested sections
+                    if "sections" in section and section["sections"]:
+                        sections_to_blocks(section["sections"], parent_indent=block["indent_level"])
+
+            # Convert top-level sections
+            sections_to_blocks(outline_data.get("sections", []))
+
+            # Generate the JSON for the outline
+            outline = json_to_outline(outline_data)
+            json_str = json.dumps(outline_data, indent=2)
+
+            # Return all the values needed to populate the Draft+Generate tab
+            # This matches what import_outline returns
+            # Now switch to the draft tab since generation is complete
+            return (
+                title,  # doc_title
+                description,  # doc_description
+                resources,  # resources_state
+                blocks,  # blocks_state
+                outline,  # outline_state
+                json_str,  # json_output
+                session_id,  # session_state
+                gr.update(visible=False),  # generated_content_html
+                gr.update(visible=False),  # generated_content
+                gr.update(interactive=False),  # save_doc_btn
+                gr.update(visible=True, value=f"SWITCH_TO_DRAFT_TAB_{int(time.time() * 1000)}"),  # switch_tab_trigger
+                gr.update(visible=False),  # start_error_message - hide on success
+                gr.update(
+                    lines=4, max_lines=10, interactive=True, elem_classes="start-prompt-input"
+                ),  # start_prompt_input - preserve value but reset display properties
+                gr.update(visible=False),  # start_loading_message - hide
+                gr.update(interactive=True),  # get_started_btn
+            )
+        else:
+            error_msg = "Failed to generate outline. Please try again."
+            print(f"DEBUG: No outline generated, returning error: {error_msg}")
+            # Return 15 values to match outputs
+            return (
+                gr.update(),  # doc_title
+                gr.update(),  # doc_description
+                gr.update(),  # resources_state
+                gr.update(),  # blocks_state
+                gr.update(),  # outline_state
+                gr.update(),  # json_output
+                session_id,  # session_state
+                gr.update(),  # generated_content_html
+                gr.update(),  # generated_content
+                gr.update(),  # save_doc_btn
+                gr.update(),  # switch_tab_trigger
+                gr.update(
+                    value=f'<div style="color: #dc2626; padding: 8px 12px; background: #fee2e2; border-radius: 4px; margin-top: 8px;">{error_msg}</div>',
+                    visible=True,
+                ),  # start_error_message
+                gr.update(lines=4, max_lines=10),  # start_prompt_input - preserve lines
+                gr.update(visible=False),  # start_loading_message - hide
+                gr.update(interactive=True),  # get_started_btn
+            )
+
+    except Exception as e:
+        import traceback
+
+        error_msg = f"Error: {str(e)}"
+        print(f"ERROR in handle_start_draft_click: {error_msg}")
+        print(f"Traceback: {traceback.format_exc()}")
+        # Return 15 values to match outputs
+        return (
+            gr.update(),  # doc_title
+            gr.update(),  # doc_description
+            gr.update(),  # resources_state
+            gr.update(),  # blocks_state
+            gr.update(),  # outline_state
+            gr.update(),  # json_output
+            session_id,  # session_state
+            gr.update(),  # generated_content_html
+            gr.update(),  # generated_content
+            gr.update(),  # save_doc_btn
+            gr.update(),  # switch_tab_trigger
+            gr.update(
+                value=f'<div style="color: #dc2626; padding: 8px 12px; background: #fee2e2; border-radius: 4px; margin-top: 8px;">{error_msg}</div>',
+                visible=True,
+            ),  # start_error_message
+            gr.update(),  # start_prompt_input
+            gr.update(visible=False),  # start_loading_message - hide
+            gr.update(interactive=True),  # get_started_btn
+        )
+
+
 def handle_file_upload(files, current_resources, title, description, blocks, session_id=None):
     """Handle uploaded files and return HTML display of file names."""
     if not files:
@@ -1677,45 +1928,6 @@ def replace_resource_file_gradio(resources, old_resource_path, new_file, title, 
         return resources, None, "{}", None
 
 
-def log_gradio_functions(app):
-    """Log all Gradio function mappings with their fn_index."""
-    print("\n=== Gradio Function Index Mapping ===")
-    total_fns = 0
-    if hasattr(app, "fns"):
-        total_fns = len(app.fns)
-        print(f"Total registered functions: {total_fns}")
-        print(f"Highest fn_index: {total_fns - 1}")
-
-        for idx, fn_data in enumerate(app.fns):
-            if fn_data and hasattr(fn_data, "fn"):
-                fn = fn_data.fn
-                fn_name = fn.__name__ if hasattr(fn, "__name__") else str(fn)
-                print(f"fn_index {idx}: {fn_name}")
-            else:
-                print(f"fn_index {idx}: <empty/None>")
-    else:
-        print("WARNING: app.fns not found!")
-    print("=====================================\n")
-
-    # Also create a mapping file for reference
-    mapping = {"total_functions": total_fns, "functions": {}}
-    if hasattr(app, "fns"):
-        for idx, fn_data in enumerate(app.fns):
-            if fn_data and hasattr(fn_data, "fn"):
-                fn = fn_data.fn
-                fn_name = fn.__name__ if hasattr(fn, "__name__") else str(fn)
-                mapping["functions"][idx] = fn_name
-            else:
-                mapping["functions"][idx] = "<empty/None>"
-
-    # Save to a file for easy reference
-    import json
-
-    with open("gradio_fn_index_mapping.json", "w") as f:
-        json.dump(mapping, f, indent=2)
-    print("Function mapping saved to gradio_fn_index_mapping.json")
-
-
 def create_app():
     """Create and return the Document Builder Gradio app."""
 
@@ -1733,72 +1945,332 @@ def create_app():
     custom_js = f"<script>{js_content}</script>"
 
     with gr.Blocks(title="Document Generator", css=custom_css, head=custom_js) as app:
-        # State to track selected tab
-        selected_tab = gr.State(value=0)
+        # Needed to declare up front, so elements will appear in deployed DOM
+        gr.DownloadButton(visible=True, elem_classes="hidden-component")
+        gr.File(visible=True, elem_classes="hidden-component")
+        gr.Textbox(visible=True, elem_classes="hidden-component")
+        gr.TextArea(visible=True, elem_classes="hidden-component")
+        gr.Code(visible=True, elem_classes="hidden-component")
 
-        # I need this button here (hidden) just so the Save button shows up in the deployed DOM. I don't understand why it doesn't show up otherwise.
-        gr.DownloadButton(
-            "Test 1",
-            elem_id="test-btn-id",
-            variant="secondary",
-            size="sm",
-            visible=True,
-            elem_classes="hidden-component",
-        )
-        # I need this button here (hidden) just so the Import, Example buttons work and the dropzone upload space shows up in the deployed DOM. I don't understand why it doesn't show up otherwise.
-        import_file = gr.File(
-            label="Import Docpack",
-            file_types=[".docpack"],
-            visible=True,
-            elem_id="import-file-input",
-            elem_classes="hidden-component",
-        )
-        # I need this textbox and textarea here (hidden) just so the Examples hidden texbox for js and the heading textboxes show up in the deployed DOM. I don't understand why it doesn't show up otherwise.
-        gr.Textbox(visible=True, elem_id="test", elem_classes="hidden-component")
-        gr.TextArea(visible=True, elem_id="TEST", elem_classes="hidden-component")
-        gr.Code(visible=True, elem_id="TEST_CODE", elem_classes="hidden-component")
+        # Shared session state for the entire app
+        session_state = gr.State(None)
 
-        with gr.Tab("Start", id="start_tab"):
+        # Main app layout
+        with gr.Tab("Draft", id="start_tab"):
+            # State for start tab resources
+            start_resources_state = gr.State([])
+
             with gr.Column(elem_classes="start-tab-container"):
                 # Big centered welcome message
                 gr.Markdown("# Welcome to Document Generator", elem_classes="start-welcome-title")
                 gr.Markdown("Draft once. Regenerate forever.", elem_classes="start-welcome-subtitle")
 
-                # Get started button
-                with gr.Row(elem_classes="start-button-row"):
-                    get_started_btn = gr.Button(
-                        "Get Started",
-                        variant="primary",
-                        size="lg",
-                        elem_classes="start-get-started-btn",
-                        elem_id="start-get-started-btn",
-                    )
+                # Single expanding card
+                with gr.Column(elem_classes="start-input-card-container"):
+                    with gr.Column(elem_classes="start-input-card"):
+                        gr.TextArea(
+                            label="What document would you like to create?",
+                            elem_classes="resource-drop-label",
+                        )
+                        # Example buttons container - always visible at the top
+                        with gr.Column(elem_classes="start-examples-container"):
+                            with gr.Row(elem_classes="start-examples-buttons"):
+                                example_code_readme_btn = gr.Button(
+                                    "📝 Code README", variant="secondary", size="sm", elem_classes="start-example-btn"
+                                )
+                                example_product_launch_btn = gr.Button(
+                                    "🚀 Product Launch",
+                                    variant="secondary",
+                                    size="sm",
+                                    elem_classes="start-example-btn",
+                                )
+                                example_performance_review_btn = gr.Button(
+                                    "📈 Performance Review",
+                                    variant="secondary",
+                                    size="sm",
+                                    elem_classes="start-example-btn",
+                                )
 
-                # Spacer for additional content
-                gr.Markdown("", elem_classes="start-content-spacer")
+                        # User prompt input
+                        start_prompt_input = gr.TextArea(
+                            placeholder="Describe your structured document here...\n",
+                            show_label=False,
+                            elem_classes="start-prompt-input",
+                            lines=4,
+                            max_lines=10,
+                            elem_id="start-prompt-input",
+                            value="",  # Explicitly set initial value
+                        )
 
-                # Introduction section
-                with gr.Column(elem_classes="start-intro-section"):
+                        # Error message component (hidden by default)
+                        start_error_message = gr.HTML(value="", visible=False, elem_classes="start-error-message")
+
+                        # Loading indicator (hidden by default)
+                        start_loading_message = gr.HTML(value="", visible=False, elem_classes="start-loading-message")
+
+                        # Expandable content within the same card
+                        with gr.Column(elem_classes="start-expandable-content", elem_id="start-expandable-section"):
+                            # Display uploaded resources (above dropzone and button)
+                            with gr.Column(elem_classes="start-resources-display-container"):
+                                # Create a placeholder for the resources display
+                                start_resources_display = gr.HTML(
+                                    value='<div class="start-resources-list"></div>',
+                                    elem_classes="start-resources-display",
+                                )
+
+                                # Function to render resources
+                                def render_start_resources(resources):
+                                    print(
+                                        f"DEBUG render_start_resources called with {len(resources) if resources else 0} resources"
+                                    )
+                                    if resources and len(resources) > 0:
+                                        # Create a flex container for resources
+                                        html_content = '<div class="start-resources-list">'
+                                        for idx, resource in enumerate(resources):
+                                            print(f"  Rendering resource: {resource['name']}")
+                                            html_content += f"""
+                                                <div class="dropped-resource">
+                                                    <span>{resource["name"]}</span>
+                                                    <button class="remove-resource" onclick="event.stopPropagation(); removeStartResourceByIndex({idx}, '{resource["name"]}'); return false;">×</button>
+                                                </div>
+                                            """
+                                        html_content += "</div>"
+                                        return html_content
+                                    else:
+                                        # Return empty div when no resources
+                                        return '<div class="start-resources-list"></div>'
+
+                            # Upload area - full width
+                            gr.TextArea(
+                                label="Add reference files for context.",
+                                elem_classes="resource-drop-label",
+                            )
+                            # File upload dropzone
+                            start_file_upload = gr.File(
+                                label="Drop files here or click to upload",
+                                file_count="multiple",
+                                file_types=[
+                                    ".txt",
+                                    ".md",
+                                    ".py",
+                                    ".c",
+                                    ".cpp",
+                                    ".h",
+                                    ".java",
+                                    ".js",
+                                    ".ts",
+                                    ".jsx",
+                                    ".tsx",
+                                    ".json",
+                                    ".xml",
+                                    ".yaml",
+                                    ".yml",
+                                    ".toml",
+                                    ".ini",
+                                    ".cfg",
+                                    ".conf",
+                                    ".sh",
+                                    ".bash",
+                                    ".zsh",
+                                    ".fish",
+                                    ".ps1",
+                                    ".bat",
+                                    ".cmd",
+                                    ".rs",
+                                    ".go",
+                                    ".rb",
+                                    ".php",
+                                    ".pl",
+                                    ".lua",
+                                    ".r",
+                                    ".m",
+                                    ".swift",
+                                    ".kt",
+                                    ".scala",
+                                    ".clj",
+                                    ".ex",
+                                    ".exs",
+                                    ".elm",
+                                    ".fs",
+                                    ".ml",
+                                    ".sql",
+                                    ".html",
+                                    ".htm",
+                                    ".css",
+                                    ".scss",
+                                    ".sass",
+                                    ".less",
+                                    ".vue",
+                                    ".svelte",
+                                    ".astro",
+                                    ".tex",
+                                    ".rst",
+                                    ".adoc",
+                                    ".org",
+                                    ".csv",
+                                ],
+                                elem_classes="start-file-upload-dropzone",
+                                show_label=False,
+                                height=90,
+                            )
+
+                            # Draft button - full width below dropzone
+                            get_started_btn = gr.Button(
+                                "Draft",
+                                variant="primary",
+                                size="sm",
+                                elem_classes="start-get-started-btn start-draft-btn",
+                                elem_id="start-get-started-btn",
+                            )
+
+                # Main feature card with three examples
+                with gr.Column(elem_classes="start-feature-card"):
+                    gr.Markdown("### Why Choose Document Generator?", elem_classes="start-feature-title")
                     gr.Markdown(
-                        """
-### Ideal for:
-
-- Drafting business proposals
-- Maintaining living documentation
-- Generating AI assistant instructions
-- Creating repeatable reports
-
-Document Generator uses a structured outline and linked resources to draft documents. As your content grows, you can update files or sections and regenerate without rebuilding your doc from scratch—all within a single workspace.
-""",
-                        elem_classes="start-intro-content",
+                        "Build living document templates you control. Fine-tune sections, lock in what works, regenerate what needs updating. Perfect for content that evolves with your codebase, grows with new resources, or needs to stay current automatically.",
+                        elem_classes="start-feature-description",
                     )
+
+                    # Three feature columns
+                    with gr.Row(elem_classes="start-features-grid"):
+                        with gr.Column(scale=1, elem_classes="start-feature-item"):
+                            template_img_path = (
+                                Path(__file__).parent / "static" / "images" / "template_control-removebg-preview.jpg"
+                            )
+                            gr.Image(
+                                value=str(template_img_path),
+                                show_label=False,
+                                height=150,
+                                container=False,
+                                elem_classes="start-feature-image",
+                                show_download_button=False,
+                                show_fullscreen_button=False,
+                            )
+                            gr.Markdown("### Template Control", elem_classes="start-feature-item-title")
+                            gr.Markdown(
+                                "Get started fast, then own the template. Edit sections, adjust prompts, preserve what's perfect. Maintain exactly the structure you need.",
+                                elem_classes="start-feature-item-text",
+                            )
+
+                        with gr.Column(scale=1, elem_classes="start-feature-item"):
+                            evergreen_img_path = (
+                                Path(__file__).parent / "static" / "images" / "evergreen_content-removebg-preview.jpg"
+                            )
+                            gr.Image(
+                                value=str(evergreen_img_path),
+                                show_label=False,
+                                height=150,
+                                container=False,
+                                elem_classes="start-feature-image",
+                                show_download_button=False,
+                                show_fullscreen_button=False,
+                            )
+                            gr.Markdown("### Evergreen Content", elem_classes="start-feature-item-title")
+                            gr.Markdown(
+                                "Link to evolving resources - code, docs, notes. Regenerate anytime to pull in the latest context. Perfect for READMEs, API docs, AI assistant guides, or any content that tracks changing information.",
+                                elem_classes="start-feature-item-text",
+                            )
+
+                        with gr.Column(scale=1, elem_classes="start-feature-item"):
+                            smart_img_path = (
+                                Path(__file__).parent / "static" / "images" / "smart_regeneration-removebg-preview.jpg"
+                            )
+                            gr.Image(
+                                value=str(smart_img_path),
+                                show_label=False,
+                                height=150,
+                                container=False,
+                                elem_classes="start-feature-image",
+                                show_download_button=False,
+                                show_fullscreen_button=False,
+                            )
+                            gr.Markdown("### Smart Regeneration", elem_classes="start-feature-item-title")
+                            gr.Markdown(
+                                "Refresh while keeping refined content intact. Regenerate specific parts with new data - your polished introduction stays perfect while metrics update automatically.",
+                                elem_classes="start-feature-item-text",
+                            )
+
+                # Process section
+                with gr.Column(elem_classes="start-process-section"):
+                    gr.Markdown("## How It Works", elem_classes="start-process-title")
+                    gr.Markdown(
+                        "Three simple steps to transform your ideas into polished documents",
+                        elem_classes="start-process-subtitle",
+                    )
+
+                    with gr.Row(elem_classes="start-process-container"):
+                        # Left side - Steps
+                        with gr.Column(scale=1, elem_classes="start-process-steps-vertical"):
+                            # Step 1
+                            with gr.Row(elem_classes="start-process-step-vertical start-step-1"):
+                                with gr.Column(scale=0, min_width=60, elem_classes="start-step-number-col"):
+                                    gr.Markdown("1", elem_classes="start-step-number-vertical")
+                                with gr.Column(scale=1, elem_classes="start-step-content"):
+                                    gr.Markdown("### Draft Your Template", elem_classes="start-step-title")
+                                    gr.Markdown(
+                                        "Start with AI assistance to create your initial document structure. Describe what you need and upload reference materials.",
+                                        elem_classes="start-step-description",
+                                    )
+
+                            # Step 2
+                            with gr.Row(elem_classes="start-process-step-vertical start-step-2"):
+                                with gr.Column(scale=0, min_width=60, elem_classes="start-step-number-col"):
+                                    gr.Markdown("2", elem_classes="start-step-number-vertical")
+                                with gr.Column(scale=1, elem_classes="start-step-content"):
+                                    gr.Markdown("### Edit & Update", elem_classes="start-step-title")
+                                    gr.Markdown(
+                                        "Refine your outline and keep resources current. Update reference files as content changes, adjust prompts, and reorganize sections to match your evolving needs.",
+                                        elem_classes="start-step-description",
+                                    )
+
+                            # Step 3
+                            with gr.Row(elem_classes="start-process-step-vertical start-step-3"):
+                                with gr.Column(scale=0, min_width=60, elem_classes="start-step-number-col"):
+                                    gr.Markdown("3", elem_classes="start-step-number-vertical")
+                                with gr.Column(scale=1, elem_classes="start-step-content"):
+                                    gr.Markdown("### Generate & Export", elem_classes="start-step-title")
+                                    gr.Markdown(
+                                        "Click generate to create your final document. Export in multiple formats and regenerate anytime with updated content.",
+                                        elem_classes="start-step-description",
+                                    )
+
+                        # Right side - Visual placeholder
+                        with gr.Column(scale=1, elem_classes="start-process-visual"):
+                            gr.HTML(
+                                """
+                                <div class="process-visual-placeholder">
+                                    <div class="visual-content">
+                                        <svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+                                            <!-- Document icon -->
+                                            <rect x="100" y="50" width="200" height="250" rx="8" fill="#f0f9f9" stroke="#4a9d9e" stroke-width="2"/>
+
+                                            <!-- Lines representing text -->
+                                            <rect x="120" y="80" width="160" height="8" rx="4" fill="#4a9d9e" opacity="0.3"/>
+                                            <rect x="120" y="100" width="140" height="8" rx="4" fill="#4a9d9e" opacity="0.3"/>
+                                            <rect x="120" y="120" width="150" height="8" rx="4" fill="#4a9d9e" opacity="0.3"/>
+
+                                            <!-- AI sparkle -->
+                                            <g transform="translate(250, 70)">
+                                                <path d="M0,-10 L3,-3 L10,0 L3,3 L0,10 L-3,3 L-10,0 L-3,-3 Z" fill="#4a9d9e" opacity="0.8"/>
+                                            </g>
+
+                                            <!-- Sections -->
+                                            <rect x="120" y="150" width="160" height="40" rx="4" fill="#e8f5f5" stroke="#4a9d9e" stroke-width="1"/>
+                                            <rect x="120" y="200" width="160" height="40" rx="4" fill="#e8f5f5" stroke="#4a9d9e" stroke-width="1"/>
+                                            <rect x="120" y="250" width="160" height="40" rx="4" fill="#e8f5f5" stroke="#4a9d9e" stroke-width="1"/>
+                                        </svg>
+                                        <p class="visual-caption">Your document takes shape with AI assistance</p>
+                                    </div>
+                                </div>
+                            """,
+                                elem_classes="start-process-visual-content",
+                            )
 
         # Second tab - Existing Document Builder content
-        with gr.Tab("Draft + Generate", id="document_builder_tab"):
+        with gr.Tab("Update + Generate", id="document_builder_tab"):
             # State to track resources and blocks
             resources_state = gr.State([])
             focused_block_state = gr.State(None)
-            session_state = gr.State(None)  # Track session ID
 
             # Initialize with default blocks
             initial_blocks = [
@@ -1887,6 +2359,14 @@ Document Generator uses a structured outline and linked resources to draft docum
                             visible=True,
                             value=create_docpack_from_current_state,
                         )
+
+                    import_file = gr.File(
+                        label="Import Docpack",
+                        file_types=[".docpack"],
+                        visible=True,
+                        elem_id="import-file-input",
+                        elem_classes="hidden-component",
+                    )
 
             # Document title and description
             with gr.Row(elem_classes="header-section"):
@@ -2226,7 +2706,7 @@ Document Generator uses a structured outline and linked resources to draft docum
                         )
 
                         # Hidden HTML for JavaScript execution
-                        js_executor = gr.HTML(visible=False)
+                        gr.HTML(visible=False)
 
                         # Hidden components for content updates
                         update_block_id = gr.Textbox(
@@ -2897,10 +3377,359 @@ Document Generator uses a structured outline and linked resources to draft docum
         # Create a hidden HTML component for tab switching trigger
         switch_tab_trigger = gr.HTML("", visible=True, elem_id="switch-tab-trigger", elem_classes="hidden-component")
 
-        # Get Started button - switch to Draft + Generate tab
-        import time
+        # Get Started button - generate docpack and switch to Draft + Generate tab
 
-        get_started_btn.click(fn=lambda: f"SWITCH_TO_DRAFT_TAB_{int(time.time() * 1000)}", outputs=switch_tab_trigger)
+        # Add event handlers for the Draft button
+        def check_prompt_before_submit(prompt):
+            """Check if prompt exists and show error if not."""
+            if not prompt or not prompt.strip():
+                # Show error message, hide loading, enable button
+                return (
+                    gr.update(
+                        value='<div style="color: #dc2626; padding: 8px 12px; background: #fee2e2; border-radius: 4px; margin-top: 8px; font-size: 14px;">Please enter a description of what you\'d like to create.</div>',
+                        visible=True,
+                    ),
+                    gr.update(visible=False),  # Hide loading
+                    gr.update(interactive=True),  # Enable button
+                )
+            else:
+                # Hide error message, show loading, disable button
+                return (
+                    gr.update(visible=False),
+                    gr.update(visible=False),  # Hide loading message
+                    gr.update(interactive=True),  # Keep button enabled
+                )
+
+        def handle_start_draft_without_switch(prompt, resources, session_id):
+            """Handle draft generation without switching tabs."""
+            # Call the original function but modify the return to not trigger tab switch
+            result = asyncio.run(handle_start_draft_click(prompt, resources, session_id))
+            # Replace the switch_tab_trigger value (index 10) with an empty update
+            result_list = list(result)
+            result_list[10] = gr.update(visible=False)  # Don't trigger tab switch
+            return tuple(result_list)
+
+        def trigger_tab_switch():
+            """Trigger the tab switch after content is generated."""
+            return gr.update(visible=True, value=f"SWITCH_TO_DRAFT_TAB_{int(time.time() * 1000)}")
+
+        get_started_btn.click(
+            fn=check_prompt_before_submit,
+            inputs=[start_prompt_input],
+            outputs=[start_error_message, start_loading_message, get_started_btn],
+            queue=False,  # Run immediately
+        ).success(
+            fn=handle_start_draft_without_switch,
+            inputs=[start_prompt_input, start_resources_state, session_state],
+            outputs=[
+                doc_title,
+                doc_description,
+                resources_state,
+                blocks_state,
+                outline_state,
+                json_output,
+                session_state,
+                generated_content_html,
+                generated_content,
+                save_doc_btn,
+                switch_tab_trigger,
+                start_error_message,
+                start_prompt_input,
+                start_loading_message,
+                get_started_btn,
+            ],
+        ).then(
+            fn=render_blocks,
+            inputs=[blocks_state, focused_block_state],
+            outputs=blocks_display,
+        ).then(
+            fn=trigger_tab_switch,
+            outputs=switch_tab_trigger,
+        ).then(fn=render_blocks, inputs=[blocks_state, focused_block_state], outputs=blocks_display)
+
+        # Wrapper for file upload that includes rendering
+        def handle_start_file_upload_with_render(files, current_resources):
+            """Handle file uploads and render the resources."""
+            new_resources, clear_upload = handle_start_file_upload(files, current_resources)
+            resources_html = render_start_resources(new_resources)
+            return new_resources, clear_upload, resources_html
+
+        # Start tab file upload handler
+        start_file_upload.upload(
+            fn=handle_start_file_upload_with_render,
+            inputs=[start_file_upload, start_resources_state],
+            outputs=[start_resources_state, start_file_upload, start_resources_display],
+        )
+
+        # Clear error message when user starts typing
+        start_prompt_input.input(fn=lambda: gr.update(visible=False), outputs=[start_error_message], queue=False)
+
+        # Example button handlers
+        def extract_resources_from_docpack(docpack_path, session_id=None):
+            """Extract resources from a docpack file."""
+            # Define allowed extensions for start tab (same as file upload)
+            ALLOWED_EXTENSIONS = {
+                ".txt",
+                ".md",
+                ".py",
+                ".c",
+                ".cpp",
+                ".h",
+                ".java",
+                ".js",
+                ".ts",
+                ".jsx",
+                ".tsx",
+                ".json",
+                ".xml",
+                ".yaml",
+                ".yml",
+                ".toml",
+                ".ini",
+                ".cfg",
+                ".conf",
+                ".sh",
+                ".bash",
+                ".zsh",
+                ".fish",
+                ".ps1",
+                ".bat",
+                ".cmd",
+                ".rs",
+                ".go",
+                ".rb",
+                ".php",
+                ".pl",
+                ".lua",
+                ".r",
+                ".m",
+                ".swift",
+                ".kt",
+                ".scala",
+                ".clj",
+                ".ex",
+                ".erl",
+                ".hs",
+                ".ml",
+                ".fs",
+                ".nim",
+                ".d",
+                ".dart",
+                ".jl",
+                ".v",
+                ".zig",
+                ".html",
+                ".htm",
+                ".css",
+                ".scss",
+                ".sass",
+                ".less",
+                ".vue",
+                ".svelte",
+                ".astro",
+                ".tex",
+                ".rst",
+                ".adoc",
+                ".org",
+                ".csv",
+            }
+
+            resources = []
+            if docpack_path.exists():
+                print(f"DEBUG: Docpack exists at {docpack_path}")
+                try:
+                    # Use provided session ID or create a new one
+                    if not session_id:
+                        session_id = str(uuid.uuid4())
+                        print(f"DEBUG: Created new session ID: {session_id}")
+                    else:
+                        print(f"DEBUG: Using existing session ID: {session_id}")
+
+                    # Create a temporary directory for extraction
+                    with tempfile.TemporaryDirectory() as temp_dir:
+                        print(f"DEBUG: Created temp directory: {temp_dir}")
+                        # Extract the docpack - convert temp_dir to Path object
+                        print(f"DEBUG: Extracting docpack from {docpack_path} to {temp_dir}")
+                        json_data, extracted_files = DocpackHandler.extract_package(str(docpack_path), Path(temp_dir))
+                        print(f"DEBUG: Extraction successful. Found {len(extracted_files)} files")
+                        print(f"DEBUG: JSON data has {len(json_data.get('resources', []))} resources")
+
+                        # Process resources from the docpack
+                        for res_data in json_data.get("resources", []):
+                            # Skip inline resources
+                            if res_data.get("is_inline", False) or res_data.get("key", "").startswith(
+                                "inline_resource_"
+                            ):
+                                continue
+
+                            # Get the actual file from extracted files
+                            resource_filename = Path(res_data.get("path", "")).name
+                            file_ext = Path(resource_filename).suffix.lower()
+
+                            # Check if file extension is allowed
+                            if file_ext not in ALLOWED_EXTENSIONS:
+                                continue
+
+                            for extracted_file in extracted_files:
+                                if Path(extracted_file).name == resource_filename:
+                                    # Read the file content
+                                    with open(extracted_file, "r", encoding="utf-8") as f:
+                                        content = f.read()
+
+                                    # Use the session ID created at the beginning
+                                    session_dir = session_manager.get_session_dir(session_id)
+
+                                    # Convert Path to string for os.path operations
+                                    session_dir_str = str(session_dir)
+
+                                    # Save the file to session directory
+                                    files_dir = os.path.join(session_dir_str, "files")
+                                    os.makedirs(files_dir, exist_ok=True)
+                                    target_path = os.path.join(files_dir, resource_filename)
+                                    with open(target_path, "w", encoding="utf-8") as f:
+                                        f.write(content)
+
+                                    # Calculate file size
+                                    file_size = len(content.encode("utf-8"))
+                                    if file_size < 1024:
+                                        size_str = f"{file_size} B"
+                                    elif file_size < 1024 * 1024:
+                                        size_str = f"{file_size / 1024:.1f} KB"
+                                    else:
+                                        size_str = f"{file_size / (1024 * 1024):.1f} MB"
+
+                                    # Use the same format as handle_start_file_upload
+                                    resources.append({
+                                        "path": target_path,
+                                        "name": resource_filename,
+                                        "size": size_str,
+                                    })
+                                    break
+                except Exception as e:
+                    print(f"Error extracting resources from docpack: {e}")
+
+            print(f"DEBUG extract_resources_from_docpack: Returning {len(resources)} resources")
+            for r in resources:
+                print(f"  Resource: {r}")
+            return resources
+
+        def load_code_readme_example(session_id):
+            """Load the code README example prompt and resources."""
+            # Get or create session
+            if not session_id:
+                session_id = str(uuid.uuid4())
+
+            prompt = "Generate a comprehensive production-ready README for the target codebase. Include key features, installation instructions, usage examples, API documentation, an architecture overview, and contribution guidelines. IMPORTANT to use ONLY the facts available in the referenced documents (code, configs, docs, tests, etc.). Keep prose short, use bullet lists when helpful, and prefer plan language over marketing fluff.  Assumer the audience is a developer seeing the project for the first time."
+
+            # Extract resources from the README docpack
+            examples_dir = Path(__file__).parent.parent / "examples"
+            docpack_path = examples_dir / "readme-generation" / "readme.docpack"
+            resources = extract_resources_from_docpack(docpack_path, session_id)
+
+            print(f"DEBUG: Loaded {len(resources)} resources for README example")
+            for r in resources:
+                print(f"  - {r['name']} ({r['size']})")
+
+            # Render the resources HTML
+            resources_html = render_start_resources(resources)
+
+            return prompt, resources, session_id, resources_html
+
+        def load_product_launch_example(session_id):
+            """Load the product launch example prompt and resources."""
+            # Get or create session
+            if not session_id:
+                session_id = str(uuid.uuid4())
+
+            prompt = "Create a comprehensive product launch documentation package for a new B2B SaaS analytics product.  Include the value proposition, implementation details and customer benefits.  There should be a product over section, one on technical architecture, an implementation guide, pricing and packaging, and go-to market strategy.  Other areas to consider include an announcement blog post, press release, internal team briefing, and customer FAQ.  Be sure to use clear, professional language appropriate for both technical and business stakeholders."
+
+            # Extract resources from the product launch docpack
+            examples_dir = Path(__file__).parent.parent / "examples"
+            docpack_path = examples_dir / "launch-documentation" / "launch-documentation.docpack"
+            resources = extract_resources_from_docpack(docpack_path, session_id)
+
+            # Render the resources HTML
+            resources_html = render_start_resources(resources)
+
+            return prompt, resources, session_id, resources_html
+
+        def load_performance_review_example(session_id):
+            """Load the performance review example prompt and resources."""
+            # Get or create session
+            if not session_id:
+                session_id = str(uuid.uuid4())
+
+            prompt = "Generate an annual performance review for an employee. It will be used by both the manager and the employee to discuss the employee's progress.  Include key achievements, areas for growth, training and development and next years goals.  Make sure there is an employee overview as well.  Make it constructive and motivating, but also concise.  Folks are busy."
+
+            # Extract resources from the performance review docpack
+            examples_dir = Path(__file__).parent.parent / "examples"
+            docpack_path = (
+                examples_dir
+                / "scenario-4-annual-performance-review"
+                / "Annual Employee Performance Review_20250709_153352.docpack"
+            )
+            resources = extract_resources_from_docpack(docpack_path, session_id)
+
+            # Render the resources HTML
+            resources_html = render_start_resources(resources)
+
+            return prompt, resources, session_id, resources_html
+
+        example_code_readme_btn.click(
+            fn=load_code_readme_example,
+            inputs=[session_state],
+            outputs=[start_prompt_input, start_resources_state, session_state, start_resources_display],
+            queue=False,
+        )
+
+        example_product_launch_btn.click(
+            fn=load_product_launch_example,
+            inputs=[session_state],
+            outputs=[start_prompt_input, start_resources_state, session_state, start_resources_display],
+            queue=False,
+        )
+
+        example_performance_review_btn.click(
+            fn=load_performance_review_example,
+            inputs=[session_state],
+            outputs=[start_prompt_input, start_resources_state, session_state, start_resources_display],
+            queue=False,
+        )
+
+        # Hidden inputs for Start tab resource removal
+        with gr.Row(visible=False):
+            start_remove_resource_index = gr.Textbox(elem_id="start-remove-resource-index", visible=False)
+            start_remove_resource_name = gr.Textbox(elem_id="start-remove-resource-name", visible=False)
+            start_remove_resource_btn = gr.Button("Remove", elem_id="start-remove-resource-btn", visible=False)
+
+        # Function to remove resource from Start tab
+        def remove_start_resource(resources, index_str, name):
+            """Remove a resource from the Start tab by index."""
+            if not resources or not index_str:
+                resources_html = render_start_resources(resources)
+                return resources, resources_html
+
+            try:
+                index = int(index_str)
+                if 0 <= index < len(resources):
+                    # Verify the name matches as a safety check
+                    if resources[index]["name"] == name:
+                        new_resources = resources.copy()
+                        new_resources.pop(index)
+                        resources_html = render_start_resources(new_resources)
+                        return new_resources, resources_html
+            except (ValueError, IndexError):
+                pass
+
+            resources_html = render_start_resources(resources)
+            return resources, resources_html
+
+        # Start tab resource removal handler
+        start_remove_resource_btn.click(
+            fn=remove_start_resource,
+            inputs=[start_resources_state, start_remove_resource_index, start_remove_resource_name],
+            outputs=[start_resources_state, start_resources_display],
+        )
 
     return app
 
@@ -2922,6 +3751,16 @@ def check_deployment_status():
 
 def main():
     """Main entry point for the Document Builder app."""
+    global IS_DEV_MODE
+
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(description="Document Generator v2 App")
+    parser.add_argument("--dev", action="store_true", help="Run in development mode")
+    args = parser.parse_args()
+
+    # Set global dev mode variable
+    IS_DEV_MODE = args.dev
+
     # Load environment variables from .env file
     load_dotenv()
 
@@ -2929,73 +3768,25 @@ def main():
     check_deployment_status()
 
     # Configuration for hosting - Azure App Service uses PORT environment variable
+    if args.dev:
+        print("Running in DEVELOPMENT mode")
+
+    # Production mode settings
     server_name = os.getenv("GRADIO_SERVER_NAME", "0.0.0.0")
     server_port = int(os.getenv("PORT", os.getenv("GRADIO_SERVER_PORT", "8000")))
+
     print(f"Server: {server_name}:{server_port}")
 
     app = create_app()
 
-    # Log all function mappings
-    log_gradio_functions(app)
-
-    # Add runtime request logging
-    import functools
-
-    def log_gradio_request(fn, fn_index):
-        """Wrapper to log function calls with their index."""
-
-        @functools.wraps(fn)
-        def wrapper(*args, **kwargs):
-            print(
-                f"\n>>> Gradio function call: fn_index={fn_index}, function={fn.__name__ if hasattr(fn, '__name__') else str(fn)}"
-            )
-            try:
-                result = fn(*args, **kwargs)
-                print("<<< Function completed successfully")
-                return result
-            except Exception as e:
-                print(f"<<< Function failed with error: {type(e).__name__}: {e}")
-                raise
-
-        return wrapper
-
-    # Wrap all registered functions with logging
-    # if hasattr(app, "fns"):
-    #    for idx, fn_data in enumerate(app.fns):
-    #        if fn_data and hasattr(fn_data, "fn") and fn_data.fn:
-    #            original_fn = fn_data.fn
-    #            fn_data.fn = log_gradio_request(original_fn, idx)
-    #            print(
-    #                f"Added logging to fn_index {idx}: {original_fn.__name__ if hasattr(original_fn, '__name__') else str(original_fn)}"
-    #            )
-
-    # Also add error handler for out-of-bounds function indices
-    # original_push = None
-    # if hasattr(app, "_queue") and hasattr(app._queue, "push"):
-    #    original_push = app._queue.push
-    #
-    #    async def debug_push(body, *args, **kwargs):
-    #        print(f"\n>>> Queue push request: fn_index={body.fn_index if hasattr(body, 'fn_index') else 'unknown'}")
-    #        if hasattr(app, "fns") and hasattr(body, "fn_index"):
-    #            max_index = len(app.fns) - 1
-    #            if body.fn_index > max_index:
-    #                print(f"!!! ERROR: fn_index {body.fn_index} is out of bounds! Max index is {max_index}")
-    #                print(f"!!! Total registered functions: {len(app.fns)}")
-    #        try:
-    #            return await original_push(body, *args, **kwargs)
-    #        except KeyError as e:
-    #            print(f"!!! KeyError in queue push: {e}")
-    #            print(f"!!! Requested fn_index: {body.fn_index if hasattr(body, 'fn_index') else 'unknown'}")
-    #            print(f"!!! Available functions: {len(app.fns) if hasattr(app, 'fns') else 'unknown'}")
-    #            raise
-    #
-    #    app._queue.push = debug_push
-
-    # Enable debug mode to see fn_index mappings
     import logging
 
-    logging.basicConfig(level=logging.DEBUG)
-    app.launch(server_name=server_name, server_port=server_port, mcp_server=True, pwa=True, debug=True)
+    if args.dev:
+        logging.basicConfig(level=logging.DEBUG)
+        app.launch(server_name=server_name, server_port=server_port, mcp_server=True, pwa=True, share=False)
+    else:
+        logging.basicConfig(level=logging.INFO)
+        app.launch(server_name=server_name, server_port=server_port, mcp_server=True, pwa=True)
 
 
 if __name__ == "__main__":
