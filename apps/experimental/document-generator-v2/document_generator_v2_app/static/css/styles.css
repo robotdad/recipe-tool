@@ -63,7 +63,7 @@
 /* Welcome message styles */
 .start-welcome-title {
     text-align: center;
-    padding-top: 40px;
+    padding-top: 20px;
 }
 
 .start-welcome-title h1 {
@@ -173,7 +173,7 @@
 /* Start tab input card container */
 .start-input-card-container {
     max-width: 800px;
-    margin: 70px auto 120px;
+    margin: 30px auto 90px;
 }
 
 /* Start tab input card - single expanding card */
@@ -1304,7 +1304,7 @@
     border: 0;
 }
 
-.resource-title-gradio input {
+.resource-title-gradio input, .resource-title-gradio textarea {
     background: white !important;
     font-size: 11px !important;
     padding: 2px 4px !important;
@@ -1323,11 +1323,22 @@
     border: 1px solid #e0e0e0 !important;
 }
 
-.resource-title-gradio input:hover {
+/* Force textarea to behave like single-line input */
+.resource-title-gradio textarea {
+    overflow: hidden !important;
+    resize: none !important;
+    white-space: nowrap !important;
+    text-overflow: ellipsis !important;
+    rows: 1 !important;
+    line-height: 20px !important;
+    max-height: 24px !important;
+}
+
+.resource-title-gradio input:hover, .resource-title-gradio textarea:hover{
     border-color: #ccc !important;
 }
 
-.resource-title-gradio input:focus {
+.resource-title-gradio input:focus, .resource-title-gradio textarea:focus {
     outline: none !important;
     box-shadow: none !important;
 }
