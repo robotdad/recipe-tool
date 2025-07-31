@@ -1817,11 +1817,6 @@
     cursor: pointer;
 }
 
-.block-resources .dropped-resource {
-    /* Remove all overrides - use main .dropped-resource styles */
-}
-
-
 
 /* Load resource button */
 .load-resource-btn {
@@ -2565,4 +2560,3 @@ input.no-drop,
         transform: translateY(0);
     }
 }
-
