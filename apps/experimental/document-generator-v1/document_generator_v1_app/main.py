@@ -6,14 +6,14 @@ import os
 from pathlib import Path
 
 from dotenv import load_dotenv
-from document_generator_app.ui import build_editor
+from document_generator_v1_app.ui import build_editor
 
 
 def check_deployment_status():
     """Quick deployment status check."""
     # Verify essential configuration
     app_root = Path(__file__).resolve().parents[1]
-    bundled_recipe_path = app_root / "document_generator_app" / "recipes" / "document_generator_recipe.json"
+    bundled_recipe_path = app_root / "document_generator_v1_app" / "recipes" / "document_generator_recipe.json"
 
     print("Document Generator starting...")
     print(f"Recipe source: {'bundled' if bundled_recipe_path.exists() else 'development'}")
