@@ -2144,8 +2144,10 @@ def create_app():
                                 height=150,
                                 container=False,
                                 elem_classes="start-feature-image",
+                                elem_id="template-control-image",
                                 show_download_button=False,
                                 show_fullscreen_button=False,
+                                interactive=False,
                             )
                             gr.Markdown("### Template Control", elem_classes="start-feature-item-title")
                             gr.Markdown(
@@ -2163,8 +2165,10 @@ def create_app():
                                 height=150,
                                 container=False,
                                 elem_classes="start-feature-image",
+                                elem_id="evergreen-content-image",
                                 show_download_button=False,
                                 show_fullscreen_button=False,
+                                interactive=False,
                             )
                             gr.Markdown("### Evergreen Content", elem_classes="start-feature-item-title")
                             gr.Markdown(
@@ -2182,8 +2186,10 @@ def create_app():
                                 height=150,
                                 container=False,
                                 elem_classes="start-feature-image",
+                                elem_id="smart-regeneration-image",
                                 show_download_button=False,
                                 show_fullscreen_button=False,
+                                interactive=False,
                             )
                             gr.Markdown("### Smart Regeneration", elem_classes="start-feature-item-title")
                             gr.Markdown(
@@ -2308,9 +2314,9 @@ def create_app():
 
                 # Import and Save buttons
                 with gr.Column():
-                    with gr.Row():
+                    with gr.Row(elem_classes="header-buttons-row"):
                         # Add empty space to push buttons to the right
-                        gr.HTML("<div style='flex: 1;'></div>")
+                        gr.HTML("<div class='button-spacer' style='flex: 1;'></div>")
                         # Try Examples button with dropdown container
                         with gr.Column(elem_classes="try-examples-container"):
                             gr.Button(
