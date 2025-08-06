@@ -1,6 +1,47 @@
 // Document Builder JavaScript
 console.log('🚀 JavaScript file loaded successfully!');
 
+// Auto-resize textarea function
+function autoResizeTextarea(textarea) {
+    console.log('Auto-resizing textarea:', textarea);
+    textarea.style.height = 'auto';
+    const newHeight = Math.max(120, textarea.scrollHeight);
+    textarea.style.height = newHeight + 'px';
+    console.log('Set textarea height to:', newHeight + 'px', 'scrollHeight:', textarea.scrollHeight);
+}
+
+// Setup auto-resize for all text block textareas
+function setupTextareaAutoResize() {
+    const textareas = document.querySelectorAll('.text-block textarea');
+    textareas.forEach(textarea => {
+        // Auto-resize on input
+        textarea.addEventListener('input', function() {
+            autoResizeTextarea(this);
+        });
+        
+        // Initial resize in case there's already content
+        autoResizeTextarea(textarea);
+    });
+}
+
+// Run setup when DOM changes (new blocks added)
+const textareaObserver = new MutationObserver(function(mutations) {
+    mutations.forEach(function(mutation) {
+        if (mutation.type === 'childList') {
+            setupTextareaAutoResize();
+        }
+    });
+});
+
+// Start observing
+textareaObserver.observe(document.body, {
+    childList: true,
+    subtree: true
+});
+
+// Initial setup
+document.addEventListener('DOMContentLoaded', setupTextareaAutoResize);
+
 // Add warning when user tries to leave the page
 // Since there's no autosave, always warn users about losing their work
 window.addEventListener('beforeunload', function (e) {
@@ -289,6 +330,24 @@ function setupExpandableInput() {
             // Add class to card for styling
             const card = document.querySelector('.start-input-card');
             if (card) card.classList.add('has-expanded');
+            
+            // Replace file upload text after expansion
+            setTimeout(() => {
+                const draftFileUpload = document.querySelector('.start-file-upload-dropzone');
+                if (draftFileUpload) {
+                    const wrapDivs = draftFileUpload.querySelectorAll('.wrap');
+                    wrapDivs.forEach(wrapDiv => {
+                        if (wrapDiv.textContent.includes('Drop File Here')) {
+                            wrapDiv.childNodes.forEach(node => {
+                                if (node.nodeType === Node.TEXT_NODE && node.textContent.includes('Drop File Here')) {
+                                    console.log('✅ Replacing "Drop File Here" on focus expansion');
+                                    node.textContent = node.textContent.replace('Drop File Here', 'Drop Word or Text File Here');
+                                }
+                            });
+                        }
+                    });
+                }
+            }, 100);
         });
 
         // Also expand on click
@@ -303,6 +362,24 @@ function setupExpandableInput() {
                 // Add class to card for styling
                 const card = document.querySelector('.start-input-card');
                 if (card) card.classList.add('has-expanded');
+                
+                // Replace file upload text after expansion
+                setTimeout(() => {
+                    const draftFileUpload = document.querySelector('.start-file-upload-dropzone');
+                    if (draftFileUpload) {
+                        const wrapDivs = draftFileUpload.querySelectorAll('.wrap');
+                        wrapDivs.forEach(wrapDiv => {
+                            if (wrapDiv.textContent.includes('Drop File Here')) {
+                                wrapDiv.childNodes.forEach(node => {
+                                    if (node.nodeType === Node.TEXT_NODE && node.textContent.includes('Drop File Here')) {
+                                        console.log('✅ Replacing "Drop File Here" on click expansion');
+                                        node.textContent = node.textContent.replace('Drop File Here', 'Drop Word or Text File Here');
+                                    }
+                                });
+                            }
+                        });
+                    }
+                }, 100);
             } else {
                 console.log('✓ Input clicked - already expanded');
             }
@@ -318,6 +395,24 @@ function setupExpandableInput() {
             // Add class to card for styling
             const card = document.querySelector('.start-input-card');
             if (card) card.classList.add('has-expanded');
+            
+            // Replace file upload text after expansion
+            setTimeout(() => {
+                const draftFileUpload = document.querySelector('.start-file-upload-dropzone');
+                if (draftFileUpload) {
+                    const wrapDivs = draftFileUpload.querySelectorAll('.wrap');
+                    wrapDivs.forEach(wrapDiv => {
+                        if (wrapDiv.textContent.includes('Drop File Here')) {
+                            wrapDiv.childNodes.forEach(node => {
+                                if (node.nodeType === Node.TEXT_NODE && node.textContent.includes('Drop File Here')) {
+                                    console.log('✅ Replacing "Drop File Here" on expandCard()');
+                                    node.textContent = node.textContent.replace('Drop File Here', 'Drop Word or Text File Here');
+                                }
+                            });
+                        }
+                    });
+                }
+            }, 100);
         }
 
         // Expand when example buttons are clicked
@@ -1878,7 +1973,15 @@ function setupFileUploadDragAndDrop() {
             if (wrapDiv.textContent.includes('Drop File Here')) {
                 wrapDiv.childNodes.forEach(node => {
                     if (node.nodeType === Node.TEXT_NODE && node.textContent.includes('Drop File Here')) {
-                        node.textContent = node.textContent.replace('Drop File Here', 'Drop Text File Here');
+                        node.textContent = node.textContent.replace('Drop File Here', 'Drop Word or Text File Here');
+                    }
+                });
+            }
+            // Also handle the draft tab text
+            if (wrapDiv.textContent.includes('Drop File Here')) {
+                wrapDiv.childNodes.forEach(node => {
+                    if (node.nodeType === Node.TEXT_NODE && node.textContent.includes('Drop File Here')) {
+                        node.textContent = node.textContent.replace('Drop File Here', 'Drop Word or Text File Here');
                     }
                 });
             }
@@ -1904,6 +2007,45 @@ function setupFileUploadDragAndDrop() {
 
     // Also setup resource upload zones
     setupResourceUploadText();
+    
+    // Setup draft tab file upload text monitoring
+    setupDraftTabFileUpload();
+    
+    // Function to run text replacement after card expansion
+    function runTextReplacementAfterExpansion() {
+        setTimeout(() => {
+            console.log('Card expanded - running replaceDraftTabText()');
+            const draftFileUpload = document.querySelector('.start-file-upload-dropzone');
+            if (draftFileUpload) {
+                const wrapDivs = draftFileUpload.querySelectorAll('.wrap');
+                wrapDivs.forEach(wrapDiv => {
+                    if (wrapDiv.textContent.includes('Drop File Here')) {
+                        wrapDiv.childNodes.forEach(node => {
+                            if (node.nodeType === Node.TEXT_NODE && node.textContent.includes('Drop File Here')) {
+                                node.textContent = node.textContent.replace('Drop File Here', 'Drop Word or Text File Here');
+                            }
+                        });
+                    }
+                });
+            }
+        }, 200); // Delay to let expansion animation complete
+    }
+    
+    // Add event listeners for card expansion triggers
+    document.addEventListener('click', function(e) {
+        // Check if click is on input/textarea or example button that might expand the card
+        if (e.target.matches('input, textarea, button') || 
+            e.target.closest('.doc-title-box, .doc-description-box, .start-feature-item')) {
+            runTextReplacementAfterExpansion();
+        }
+    });
+    
+    document.addEventListener('focus', function(e) {
+        // Check if focus is on input that might expand the card
+        if (e.target.matches('input, textarea')) {
+            runTextReplacementAfterExpansion();
+        }
+    }, true); // Use capture phase to catch focus events early
 
     // Add drag-over class when dragging files over the upload zone
     let dragCounter = 0;
@@ -3050,6 +3192,106 @@ function setupResourceUploadZones() {
             }
         });
     });
+}
+
+// Setup draft tab file upload text monitoring
+function setupDraftTabFileUpload() {
+    console.log('🔧 setupDraftTabFileUpload() called');
+    
+    // Function to replace the draft tab text
+    function replaceDraftTabText() {
+        console.log('🔍 replaceDraftTabText() called');
+        const draftFileUpload = document.querySelector('.start-file-upload-dropzone');
+        console.log('📁 Found start-file-upload-dropzone:', !!draftFileUpload);
+
+        if (draftFileUpload) {
+            const wrapDivs = draftFileUpload.querySelectorAll('.wrap');
+            console.log('📦 Found wrap divs:', wrapDivs.length);
+            
+            wrapDivs.forEach((wrapDiv, index) => {
+                console.log(`📝 Wrap div ${index} text:`, wrapDiv.textContent);
+                
+                if (wrapDiv.textContent.includes('Drop File Here')) {
+                    console.log('✅ Found "Drop File Here" in wrap div', index);
+                    wrapDiv.childNodes.forEach((node, nodeIndex) => {
+                        if (node.nodeType === Node.TEXT_NODE && node.textContent.includes('Drop File Here')) {
+                            console.log(`🔄 Replacing text in node ${nodeIndex}:`, node.textContent);
+                            node.textContent = node.textContent.replace('Drop File Here', 'Drop Word or Text File Here');
+                            console.log(`✨ New text:`, node.textContent);
+                        }
+                    });
+                } else {
+                    console.log('❌ No "Drop File Here" found in wrap div', index);
+                }
+            });
+        } else {
+            console.log('❌ No start-file-upload-dropzone found');
+        }
+    }
+
+    // Try to replace immediately in case it's already visible
+    console.log('🚀 Running initial replaceDraftTabText()');
+    replaceDraftTabText();
+
+    // Watch for the entire document body for changes since the draft tab components appear dynamically
+    const observer = new MutationObserver((mutations) => {
+        console.log('👀 MutationObserver triggered, mutations:', mutations.length);
+        
+        mutations.forEach((mutation, mutIndex) => {
+            console.log(`🔄 Mutation ${mutIndex} type: ${mutation.type}`);
+            
+            if (mutation.type === 'childList') {
+                console.log(`📝 childList - added: ${mutation.addedNodes.length}, removed: ${mutation.removedNodes.length}`);
+                
+                // Check if any added nodes contain file upload components
+                mutation.addedNodes.forEach((node, nodeIndex) => {
+                    if (node.nodeType === Node.ELEMENT_NODE) {
+                        console.log(`🧩 Added Node ${nodeIndex}:`, node.tagName, node.className);
+                        
+                        // Check if this node or its children contain the file upload dropzone
+                        if (node.classList && node.classList.contains('file-upload-dropzone')) {
+                            console.log('🎯 Found file-upload-dropzone as added node!');
+                            setTimeout(replaceDraftTabText, 100);
+                        } else if (node.querySelector && node.querySelector('.file-upload-dropzone')) {
+                            console.log('🎯 Found file-upload-dropzone inside added node!');
+                            setTimeout(replaceDraftTabText, 100);
+                        }
+                    } else {
+                        console.log(`📄 Added text node ${nodeIndex}:`, node.textContent?.substring(0, 50));
+                    }
+                });
+            } else if (mutation.type === 'attributes') {
+                console.log(`🏷️ Attribute change on:`, mutation.target.tagName, mutation.target.className, 'attr:', mutation.attributeName);
+                
+                // Check if visibility/style attributes changed on file upload elements
+                if (mutation.target.classList && mutation.target.classList.contains('file-upload-dropzone')) {
+                    console.log('🎯 File upload dropzone attribute changed!');
+                    setTimeout(replaceDraftTabText, 100);
+                } else if (mutation.target.querySelector && mutation.target.querySelector('.file-upload-dropzone')) {
+                    console.log('🎯 Element with file upload dropzone had attribute change!');
+                    setTimeout(replaceDraftTabText, 100);
+                }
+            }
+        });
+        
+        // Also try replacing text after any mutation
+        setTimeout(replaceDraftTabText, 200);
+    });
+
+    // Observe the entire document body for changes
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['class', 'style', 'hidden']
+    });
+    console.log('👁️ MutationObserver started on document.body');
+
+    // Cleanup observer after a reasonable time to avoid memory leaks
+    setTimeout(() => {
+        observer.disconnect();
+        console.log('🛑 MutationObserver disconnected after 30 seconds');
+    }, 30000); // 30 seconds
 }
 
 // Function to remove a resource from the Start tab
