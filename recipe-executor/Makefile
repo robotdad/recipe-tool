@@ -9,22 +9,22 @@ PYTEST_ARGS += --cov=recipe_executor
 # Create recipe executor code from scratch using modular recipes
 recipe-executor-create:
 	@echo "Generating recipe executor code from modular recipes..."
-	recipe-tool --execute recipes/recipe_executor/build.json model=openai/o4-mini
+	cd $(repo_root) && recipe-tool --execute recipes/codebase_generator/codebase_generator_recipe.json model=openai/o4-mini existing_code_root=recipe-executor/recipe_executor
 
 # Edit existing recipe executor code using modular recipes
 recipe-executor-edit:
 	@echo "Editing recipe executor code from modular recipes..."
-	recipe-tool --execute recipes/recipe_executor/build.json model=openai/o4-mini edit=true existing_code_root=.
+	cd $(repo_root) && recipe-tool --execute recipes/codebase_generator/codebase_generator_recipe.json model=openai/o4-mini edit=true existing_code_root=recipe-executor/recipe_executor
 
 # Create a specific component
 create-component:
 	@echo "Generating component $(COMPONENT)..."
-	recipe-tool --execute recipes/recipe_executor/build.json model=openai/o4-mini component_id=$(COMPONENT)
+	cd $(repo_root) && recipe-tool --execute recipes/codebase_generator/codebase_generator_recipe.json model=openai/o4-mini component_id=$(COMPONENT) existing_code_root=recipe-executor/recipe_executor
 
 # Edit a specific component
 edit-component:
 	@echo "Editing component $(COMPONENT)..."
-	recipe-tool --execute recipes/recipe_executor/build.json model=openai/o4-mini component_id=$(COMPONENT) edit=true existing_code_root=.
+	cd $(repo_root) && recipe-tool --execute recipes/codebase_generator/codebase_generator_recipe.json model=openai/o4-mini component_id=$(COMPONENT) edit=true existing_code_root=recipe-executor/recipe_executor
 
 # Usage examples:
 # make create-component COMPONENT=context
