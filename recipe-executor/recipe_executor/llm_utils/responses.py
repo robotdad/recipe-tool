@@ -34,17 +34,17 @@ def get_openai_responses_model(
     default_model = os.environ.get("DEFAULT_MODEL")
     api_key = os.environ.get("OPENAI_API_KEY")
 
-    # Mask secrets for safe logging
     def mask_secret(secret: Optional[str]) -> str:
         if not secret:
             return ""
-        if len(secret) <= 2:
-            return "*" * len(secret)
-        return f"{secret[0]}{'*' * (len(secret) - 2)}{secret[-1]}"
+        length = len(secret)
+        if length <= 2:
+            return "*" * length
+        return f"{secret[0]}{'*' * (length - 2)}{secret[-1]}"
 
     masked_key = mask_secret(api_key)
     logger.debug(
-        "Loaded environment variables: DEFAULT_MODEL=%s, OPENAI_API_KEY=%r",
+        "Loaded environment variables: DEFAULT_MODEL=%s, OPENAI_API_KEY=%s",
         default_model,
         masked_key,
     )
@@ -64,7 +64,7 @@ def get_openai_responses_model(
 
     # Instantiate the model
     try:
-        responses_model = OpenAIResponsesModel(chosen_model)
+        return OpenAIResponsesModel(chosen_model)
     except Exception as e:
         logger.error(
             "Failed to create OpenAIResponsesModel for model %s: %s",
@@ -73,5 +73,3 @@ def get_openai_responses_model(
             exc_info=True,
         )
         raise
-
-    return responses_model

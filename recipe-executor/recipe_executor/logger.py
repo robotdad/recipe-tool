@@ -7,9 +7,10 @@ Provides a consistent logging interface that writes to stdout and separate log f
 import os
 import sys
 import logging
+from logging import Logger
 
 
-def init_logger(log_dir: str = "logs", stdio_log_level: str = "INFO") -> logging.Logger:
+def init_logger(log_dir: str = "logs", stdio_log_level: str = "INFO") -> Logger:
     """
     Initializes a logger that writes to stdout and to log files (debug/info/error).
     Clears existing logs on each run.

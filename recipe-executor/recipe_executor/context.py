@@ -47,7 +47,7 @@ class Context(ContextProtocol):
 
     def __contains__(self, key: object) -> bool:
         """
-        Return True if the given key (must be a string) exists in artifacts.
+        Return True if the given key exists in artifacts.
         """
         return isinstance(key, str) and key in self._artifacts
 

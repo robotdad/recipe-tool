@@ -5,17 +5,17 @@ DocpackExtractStep: Unpack .docpack archives to extract outline JSON and resourc
 
 import logging
 from pathlib import Path
-from typing import Any, List
+from typing import Any, Dict, List
 
 from recipe_executor.protocols import ContextProtocol
 from recipe_executor.steps.base import BaseStep, StepConfig
 from recipe_executor.utils.templates import render_template
 
+# Attempt to import DocpackHandler from the docpack-file library
 try:
     from docpack_file import DocpackHandler
 except ImportError:
-    # Assuming docpack-file library provides DocpackHandler
-    from docpack_file.handler import DocpackHandler
+    from docpack_file.handler import DocpackHandler  # type: ignore
 
 
 class DocpackExtractConfig(StepConfig):
@@ -25,8 +25,8 @@ class DocpackExtractConfig(StepConfig):
     Fields:
         docpack_path (str): Path to .docpack file to extract (may be templated).
         extract_dir (str): Directory to extract files to (may be templated).
-        outline_key (str): Context key to store outline JSON (may be templated).
-        resources_key (str): Context key to store resource file paths (may be templated).
+        outline_key (str): Context key to store outline JSON (default "outline_data").
+        resources_key (str): Context key to store resource file paths (default "resource_files").
     """
 
     docpack_path: str
@@ -40,13 +40,19 @@ class DocpackExtractStep(BaseStep[DocpackExtractConfig]):
     Step to extract .docpack archives into outline data and resource files.
     """
 
-    def __init__(self, logger: logging.Logger, config: dict[str, Any]) -> None:
-        # Validate and store configuration
+    def __init__(self, logger: logging.Logger, config: Dict[str, Any]) -> None:
+        # Validate and store configuration via Pydantic
         cfg = DocpackExtractConfig.model_validate(config)
         super().__init__(logger, cfg)
 
     async def execute(self, context: ContextProtocol) -> None:
-        # Render templated parameters
+        """
+        Execute the extraction of a .docpack archive.
+
+        Renders templates, validates paths, extracts the package, normalizes paths,
+        updates outline resource paths, and stores results in the context.
+        """
+        # Render templated configuration values
         raw_docpack = render_template(self.config.docpack_path, context)
         raw_extract = render_template(self.config.extract_dir, context)
         outline_key = render_template(self.config.outline_key, context)
@@ -61,17 +67,19 @@ class DocpackExtractStep(BaseStep[DocpackExtractConfig]):
             f"resources_key={resources_key}"
         )
 
-        # Validate .docpack file exists and is a valid .docpack
+        # Validate .docpack file exists
         if not docpack_path.exists() or not docpack_path.is_file():
             msg = f".docpack file not found at path: {docpack_path}"
             self.logger.error(msg)
             raise FileNotFoundError(msg)
+
+        # Validate extension
         if docpack_path.suffix.lower() != ".docpack":
             msg = f"Invalid file extension for docpack: {docpack_path.suffix}, expected .docpack"
             self.logger.error(msg)
             raise ValueError(msg)
 
-        # Prepare extraction directory
+        # Ensure extraction directory exists
         try:
             extract_dir.mkdir(parents=True, exist_ok=True)
         except Exception as e:
@@ -87,7 +95,7 @@ class DocpackExtractStep(BaseStep[DocpackExtractConfig]):
             self.logger.error(msg)
             raise RuntimeError(msg) from e
 
-        # Normalize resource paths to absolute
+        # Normalize resource file paths to absolute
         abs_resources: List[str] = []
         try:
             for rf in resource_files:
@@ -95,7 +103,7 @@ class DocpackExtractStep(BaseStep[DocpackExtractConfig]):
                 p: Path = rf if isinstance(rf, Path) else Path(rf)
                 abs_resources.append(str(p.resolve()))
 
-            # Update outline_data resource paths if present
+            # Update resource paths inside the outline JSON if present
             if isinstance(outline_data, dict) and "resources" in outline_data:
                 resources_list = outline_data.get("resources")
                 if isinstance(resources_list, list):
@@ -107,10 +115,10 @@ class DocpackExtractStep(BaseStep[DocpackExtractConfig]):
             # Non-fatal: log and continue
             self.logger.debug(f"Error normalizing resource paths: {e}")
 
-        # Debug log the list of extracted files
+        # Debug log of extracted files
         self.logger.debug(f"Extracted resource files: {abs_resources}")
 
-        # Store results in context for downstream steps
+        # Store results in context
         context[outline_key] = outline_data
         context[resources_key] = abs_resources
 

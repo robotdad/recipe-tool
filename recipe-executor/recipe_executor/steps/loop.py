@@ -49,12 +49,13 @@ class LoopStep(BaseStep[LoopStepConfig]):
         super().__init__(logger, validated)
 
     async def execute(self, context: ContextProtocol) -> None:
-        # Avoid circular import for Executor
+        # Deferred import to avoid circular dependency
         from recipe_executor.executor import Executor
 
         cfg = self.config
         raw_items = cfg.items
-        # Resolve items: render and path resolution if string
+
+        # Resolve items: template rendering and path lookup
         if isinstance(raw_items, str):
             rendered = render_template(raw_items, context)
             items_obj = _resolve_path(rendered, context)
@@ -77,7 +78,7 @@ class LoopStep(BaseStep[LoopStepConfig]):
         max_conc = cfg.max_concurrency
         self.logger.info(f"LoopStep: Starting processing of {total} items (max_concurrency={max_conc}).")
 
-        # Handle empty
+        # Handle empty collection
         if total == 0:
             empty_res = [] if isinstance(items_obj, list) else {}
             context[cfg.result_key] = empty_res
@@ -86,16 +87,15 @@ class LoopStep(BaseStep[LoopStepConfig]):
             self.logger.info("LoopStep: No items to process.")
             return
 
-        # Prepare containers
+        # Prepare result containers
         results: Union[List[Any], Dict[Any, Any]] = [] if isinstance(items_obj, list) else {}
         errors: List[Dict[str, Any]] = []
         history: List[Dict[str, Any]] = []
 
-        # Concurrency control: None means unlimited
+        # Concurrency control
         semaphore: Optional[asyncio.Semaphore]
         semaphore = asyncio.Semaphore(max_conc) if max_conc > 0 else None
 
-        # Executor for substeps
         executor = Executor(self.logger)
         plan = {"steps": cfg.substeps}
 
@@ -116,7 +116,6 @@ class LoopStep(BaseStep[LoopStepConfig]):
             try:
                 self.logger.debug(f"LoopStep: Processing item {key}.")
                 await executor.execute(plan, item_ctx)
-                # Retrieve result
                 out_val = item_ctx.get(cfg.item_key, value)
                 self.logger.debug(f"LoopStep: Item {key} completed.")
                 return key, out_val, None
@@ -162,14 +161,13 @@ class LoopStep(BaseStep[LoopStepConfig]):
                 if cfg.delay and idx < total - 1:
                     await asyncio.sleep(cfg.delay)
 
-            # Gather results
+            # Collect results
             for t in asyncio.as_completed(tasks):
                 if fail_fast_triggered:
                     break
                 try:
                     k, out, err = await t
                 except Exception as exc:
-                    # Unexpected exception
                     k = None
                     out = None
                     err = str(exc)
@@ -186,19 +184,19 @@ class LoopStep(BaseStep[LoopStepConfig]):
                     else:
                         results[k] = out  # type: ignore
                     completed += 1
-            # Cancel pending tasks on fail-fast
+            # Cancel remaining tasks if aborting
             if fail_fast_triggered:
                 for t in tasks:
                     if not t.done():
                         t.cancel()
 
-        # Execute loop
+        # Execute items
         if max_conc == 1:
             await run_sequential()
         else:
             await run_parallel()
 
-        # Store outputs
+        # Store outputs in parent context
         context[cfg.result_key] = results
         context[f"{cfg.result_key}__errors"] = errors
         context[f"{cfg.result_key}__history"] = history

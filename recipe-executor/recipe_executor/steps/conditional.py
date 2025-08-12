@@ -2,7 +2,7 @@
 import logging
 import os
 import re
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, List
 
 from recipe_executor.protocols import ContextProtocol
 from recipe_executor.steps.base import BaseStep, StepConfig
@@ -83,12 +83,12 @@ def evaluate_condition(
     Supports boolean literals, file checks, comparisons, and logical operations.
     Raises ValueError on render or evaluation errors.
     """
-    # If already a boolean, use it directly
+    # Direct boolean
     if isinstance(expr, bool):
         logger.debug("Using boolean condition: %s", expr)
         return expr
 
-    # Convert non-string to string for rendering
+    # Convert non-string to string for template rendering
     expr_str: str = expr if isinstance(expr, str) else str(expr)
     try:
         rendered: str = render_template(expr_str, context)
@@ -99,19 +99,19 @@ def evaluate_condition(
     text = rendered.strip()
     lowered = text.lower()
 
-    # Interpret boolean literals
+    # Boolean literal handling
     if lowered in ("true", "false"):
         result = lowered == "true"
         logger.debug("Interpreted boolean literal '%s' as %s", text, result)
         return result
 
-    # Replace logical keyword calls to avoid Python keyword conflicts
+    # Avoid Python keyword conflicts for logical functions
     transformed = re.sub(r"\band\(", "and_(", text)
     transformed = re.sub(r"\bor\(", "or_(", transformed)
     transformed = re.sub(r"\bnot\(", "not_(", transformed)
     logger.debug("Transformed expression for eval: '%s'", transformed)
 
-    # Define safe globals for eval
+    # Safe globals for evaluation
     safe_globals: Dict[str, Any] = {
         "__builtins__": {},
         # file utilities
@@ -169,13 +169,14 @@ class ConditionalStep(BaseStep[ConditionalConfig]):
             branch_name,
         )
 
-        # Execute the branch if defined
+        # Execute branch if defined and has steps
         if branch_conf and isinstance(branch_conf, dict):
-            steps = branch_conf.get("steps")
+            steps: Any = branch_conf.get("steps")
             if isinstance(steps, list) and steps:
                 await self._execute_branch(branch_conf, context)
                 return
 
+        # Nothing to execute
         self.logger.debug(
             "No '%s' branch to execute for condition result: %s",
             branch_name,
@@ -190,7 +191,7 @@ class ConditionalStep(BaseStep[ConditionalConfig]):
         """
         Execute a list of steps defined in a branch config.
         """
-        steps = branch.get("steps") or []
+        steps: List[Any] = branch.get("steps") or []
         if not isinstance(steps, list):
             self.logger.debug("Branch 'steps' is not a list, skipping execution")
             return

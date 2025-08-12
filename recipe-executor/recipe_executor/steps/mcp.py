@@ -62,12 +62,12 @@ class MCPStep(BaseStep[MCPConfig]):  # type: ignore
         service_desc: str
         client_cm: Any
 
-        # Decide transport: stdio if command provided, else SSE
+        # Determine transport: stdio if command provided, else SSE
         command_tpl = server_conf.get("command")
         if command_tpl is not None:
             # stdio transport
             cmd = render_template(command_tpl, context)
-            # command arguments
+            # args list
             raw_list = server_conf.get("args") or []
             args_list: List[str] = []
             for item in raw_list:
@@ -78,13 +78,14 @@ class MCPStep(BaseStep[MCPConfig]):  # type: ignore
 
             # environment variables
             env_conf: Optional[Dict[str, str]] = None
-            if server_conf.get("env") is not None:
+            raw_env = server_conf.get("env")
+            if raw_env is not None:
                 env_conf = {}
-                for env_key, env_val in server_conf.get("env", {}).items():
+                for env_key, env_val in raw_env.items():
                     if isinstance(env_val, str):
                         rendered = render_template(env_val, context)
                         if rendered == "":
-                            # try system or .env fallback
+                            # Attempt system or .env fallback
                             env_path = os.path.join(os.getcwd(), ".env")
                             if os.path.exists(env_path):
                                 load_dotenv(env_path)
@@ -112,9 +113,10 @@ class MCPStep(BaseStep[MCPConfig]):  # type: ignore
             # SSE transport
             url = render_template(server_conf.get("url", ""), context)
             headers_conf: Optional[Dict[str, Any]] = None
-            if server_conf.get("headers") is not None:
+            raw_headers = server_conf.get("headers")
+            if raw_headers is not None:
                 headers_conf = {}
-                for hk, hv in server_conf.get("headers", {}).items():
+                for hk, hv in raw_headers.items():
                     if isinstance(hv, str):
                         headers_conf[hk] = render_template(hv, context)
                     else:
@@ -123,10 +125,10 @@ class MCPStep(BaseStep[MCPConfig]):  # type: ignore
             client_cm = sse_client(url, headers=headers_conf)
             service_desc = f"SSE server '{url}'"
 
-        # Connect and call tool
+        # Connect and invoke tool
         self.logger.debug(f"Connecting to MCP server: {service_desc}")
         try:
-            async with client_cm as (read_stream, write_stream):
+            async with client_cm as (read_stream, write_stream):  # type: ignore
                 async with ClientSession(read_stream, write_stream) as session:
                     await session.initialize()
                     self.logger.debug(f"Invoking tool '{tool_name}' with arguments {arguments}")
@@ -136,12 +138,13 @@ class MCPStep(BaseStep[MCPConfig]):  # type: ignore
                         msg = f"Tool invocation failed for '{tool_name}' on {service_desc}: {exc}"
                         raise ValueError(msg) from exc
         except ValueError:
+            # Propagate our ValueError
             raise
         except Exception as exc:
             msg = f"Failed to call tool '{tool_name}' on {service_desc}: {exc}"
             raise ValueError(msg) from exc
 
-        # Convert result to dict
+        # Convert CallToolResult to dict
         try:
             if hasattr(result, "dict"):
                 result_dict: Dict[str, Any] = result.dict()  # type: ignore

@@ -54,14 +54,14 @@ def get_azure_responses_model(
 
         # Validate endpoint
         if not azure_endpoint:
-            raise ValueError("AZURE_OPENAI_BASE_URL must be set for Azure OpenAI integration.")
+            raise ValueError("Environment variable AZURE_OPENAI_BASE_URL must be set for Azure OpenAI integration.")
 
         # Determine deployment name
         deployment = deployment_name or env_deployment or model_name
 
         # Log configuration with masked secrets
         logger.debug(
-            "Azure OpenAI config: use_managed=%s, api_key=%s, client_id=%s, endpoint=%s, api_version=%s, deployment=%s",
+            "Azure OpenAI Responses config: use_managed=%s, api_key=%s, client_id=%s, endpoint=%s, api_version=%s, deployment=%s",
             use_managed,
             _mask_secret(azure_api_key),
             client_id,
@@ -87,7 +87,9 @@ def get_azure_responses_model(
             auth_method = "ManagedIdentity"
         else:
             if not azure_api_key:
-                raise ValueError("AZURE_OPENAI_API_KEY must be set when not using managed identity.")
+                raise ValueError(
+                    "Environment variable AZURE_OPENAI_API_KEY must be set when not using managed identity."
+                )
             logger.info("Authenticating to Azure OpenAI with API Key.")
             azure_client = AsyncAzureOpenAI(
                 azure_endpoint=azure_endpoint,

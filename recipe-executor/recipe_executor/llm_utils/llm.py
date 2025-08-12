@@ -30,10 +30,10 @@ def get_model(
     logger: logging.Logger,
 ) -> Union[OpenAIModel, AnthropicModel, OpenAIResponsesModel]:
     """
-    Initialize an LLM model based on a standardized model_id string.
-    Expected formats: 'provider/model_name' or 'provider/model_name/deployment_name'.
+    Initialize a PydanticAI model based on a standardized model_id string.
+    Supported formats: 'provider/model_name' or 'provider/model_name/deployment_name'.
 
-    Supported providers:
+    Providers:
     - openai
     - azure
     - anthropic
@@ -56,6 +56,7 @@ def get_model(
     parts = model_id.split("/")
     if len(parts) < 2:
         raise ValueError(f"Invalid model_id format: '{model_id}'")
+
     provider = parts[0].lower()
     config = context.get_config()
 
@@ -146,6 +147,21 @@ class LLM:
     ) -> Union[str, BaseModel]:
         """
         Generate an output from the LLM based on the provided prompt.
+
+        Args:
+            prompt: The prompt to send to the model.
+            model: Optional model identifier to override default.
+            max_tokens: Optional max tokens override.
+            output_type: Desired return type (str or BaseModel).
+            mcp_servers: Optional MCP servers override.
+            openai_builtin_tools: Optional built-in tools for Responses API.
+
+        Returns:
+            The model output as plain text or structured data.
+
+        Raises:
+            ValueError: Invalid model identifier.
+            Exception: On network, API, or MCP errors.
         """
         model_id = model or self.default_model_id
         tokens = max_tokens if max_tokens is not None else self.default_max_tokens
@@ -179,6 +195,8 @@ class LLM:
             "output_type": output_type,
             "mcp_servers": servers,
         }
+
+        # Configure built-in tools for Responses API
         if provider_name in ("openai_responses", "azure_responses") and openai_builtin_tools:
             typed_tools: List[Union[WebSearchToolParam, FileSearchToolParam]] = []
             for tool in openai_builtin_tools:
@@ -188,6 +206,7 @@ class LLM:
                     typed_tools.append(FileSearchToolParam(**tool))
             settings = OpenAIResponsesModelSettings(openai_builtin_tools=typed_tools)
             agent_kwargs["model_settings"] = settings
+        # Configure token limit for non-Responses providers
         elif tokens is not None:
             agent_kwargs["model_settings"] = ModelSettings(max_tokens=tokens)
 

@@ -57,10 +57,9 @@ class Executor(ExecutorProtocol):
                 # Raw JSON string case
                 self.logger.debug("Loading recipe from JSON string.")
                 try:
-                    # Let Recipe handle JSON parsing and validation
                     recipe_model = Recipe.model_validate_json(recipe_str)
                 except Exception as e:
-                    # Fallback: try parsing then validating
+                    # Fallback: parse then validate
                     try:
                         parsed = json.loads(recipe_str)
                         recipe_model = Recipe.model_validate(parsed)
@@ -74,20 +73,19 @@ class Executor(ExecutorProtocol):
             summary = recipe_model.model_dump()
         except Exception:
             summary = {}
-        step_count = len(recipe_model.steps or [])
+        step_count = len(recipe_model.steps or [])  # type: ignore
         self.logger.debug(f"Recipe loaded: {{'steps': {step_count}}}. Full recipe: {summary}")
 
         # Execute steps sequentially
         for idx, step in enumerate(recipe_model.steps or []):  # type: ignore
             step_type = step.type
-            config = step.config or {}
+            config: Dict[str, Any] = step.config or {}
             self.logger.debug(f"Executing step {idx} of type '{step_type}' with config: {config}")
 
             if step_type not in STEP_REGISTRY:
                 raise ValueError(f"Unknown step type '{step_type}' at index {idx}")
 
             step_cls = STEP_REGISTRY[step_type]
-            # Instantiate the step: logger and config
             step_instance = step_cls(self.logger, config)
 
             try:

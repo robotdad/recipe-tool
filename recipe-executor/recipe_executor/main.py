@@ -38,7 +38,11 @@ async def main_async() -> None:
 
     # Parse command-line arguments
     parser = argparse.ArgumentParser(description="Recipe Executor CLI")
-    parser.add_argument("recipe_path", type=str, help="Path to the recipe file to execute")
+    parser.add_argument(
+        "recipe_path",
+        type=str,
+        help="Path to the recipe file to execute",
+    )
     parser.add_argument(
         "--log-dir",
         type=str,
@@ -76,15 +80,20 @@ async def main_async() -> None:
     logger.info("Starting Recipe Executor Tool")
     logger.debug("Parsed arguments: %s", args)
 
-    # Parse context artifacts and CLI config pairs
+    # Parse context artifacts
     try:
         artifacts: Dict[str, str] = parse_key_value_pairs(args.context)
+    except ValueError as ve:
+        sys.stderr.write(f"Context Error: {ve}\n")
+        raise SystemExit(1)
+    logger.debug("Initial context artifacts: %s", artifacts)
+
+    # Parse CLI config overrides
+    try:
         cli_config: Dict[str, str] = parse_key_value_pairs(args.config)
     except ValueError as ve:
-        # Propagate for top-level handling
-        raise ve
-
-    logger.debug("Initial context artifacts: %s", artifacts)
+        sys.stderr.write(f"Config Error: {ve}\n")
+        raise SystemExit(1)
 
     # Load and validate recipe
     try:
@@ -127,7 +136,7 @@ def main() -> None:
     try:
         asyncio.run(main_async())
     except ValueError as ve:
-        # Handle parsing errors for context or config
+        # Handle parsing errors
         sys.stderr.write(f"Context Error: {ve}\n")
         sys.exit(1)
     except SystemExit as se:

@@ -30,7 +30,7 @@ class LLMGenerateConfig(StepConfig):
     prompt: str
     model: str = "openai/gpt-4o"
     max_tokens: Optional[Union[str, int]] = None
-    mcp_servers: Optional[List[Dict[str, Any]]] = None
+    mcp_servers: Optional[List[Dict[str, Any]]] = None  # type: ignore
     openai_builtin_tools: Optional[List[Dict[str, Any]]] = None
     output_format: Union[str, Dict[str, Any], List[Any]]
     output_key: str = "llm_output"
@@ -126,7 +126,6 @@ class LLMGenerateStep(BaseStep[LLMGenerateConfig]):
         )
 
         output_format = self.config.output_format
-        result: Any
         try:
             self.logger.debug(
                 "Calling LLM: model=%s, format=%r, max_tokens=%s, mcp_servers=%r, tools=%r",
@@ -154,6 +153,8 @@ class LLMGenerateStep(BaseStep[LLMGenerateConfig]):
                     max_tokens=max_tokens,
                     openai_builtin_tools=validated_tools,
                 )
+                # Ensure correct type
+                assert isinstance(result, FileSpecCollection), f"Expected FileSpecCollection, got {type(result)}"
                 context[output_key] = result.files
 
             elif isinstance(output_format, dict):  # JSON object schema
@@ -164,6 +165,8 @@ class LLMGenerateStep(BaseStep[LLMGenerateConfig]):
                     max_tokens=max_tokens,
                     openai_builtin_tools=validated_tools,
                 )
+                if not isinstance(result, BaseModel):
+                    raise ValueError(f"Expected BaseModel for object output, got {type(result)}")
                 context[output_key] = result.model_dump()
 
             elif isinstance(output_format, list):  # List schema
@@ -182,6 +185,8 @@ class LLMGenerateStep(BaseStep[LLMGenerateConfig]):
                     max_tokens=max_tokens,
                     openai_builtin_tools=validated_tools,
                 )
+                if not isinstance(result, BaseModel):
+                    raise ValueError(f"Expected BaseModel for list output, got {type(result)}")
                 wrapper = result.model_dump()
                 context[output_key] = wrapper.get("items", [])
 

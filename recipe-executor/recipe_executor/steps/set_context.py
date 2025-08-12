@@ -100,7 +100,7 @@ class SetContextStep(BaseStep[SetContextConfig]):
 
         # Render dict values
         if isinstance(raw, dict):
-            return {key: self._render_value(val, context, nested) for key, val in raw.items()}
+            return {k: self._render_value(v, context, nested) for k, v in raw.items()}
 
         # Other types are passed through unchanged
         return raw
