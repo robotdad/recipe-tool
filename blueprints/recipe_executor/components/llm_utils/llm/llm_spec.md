@@ -26,9 +26,10 @@ The LLM component provides a unified interface for interacting with various larg
   - Ollama: Create OpenAIProvider with base_url from context
 - Use PydanticAI's provider-specific model classes:
   - pydantic_ai.models.openai.OpenAIModel (used also for Azure OpenAI and Ollama)
+  - pydantic_ai.models.openai.OpenAIResponsesModel (used for OpenAI Responses API and Azure Responses API)
   - pydantic_ai.models.anthropic.AnthropicModel
-- For `openai_responses` provider: call `get_openai_responses_model(model_name)` which returns the model directly
-- For `azure_responses` provider: call `get_azure_responses_model(model_name, deployment_name)` which returns the model directly
+- For `openai_responses` provider: call `get_openai_responses_model(logger, model_name)` passing the logger instance and model name
+- For `azure_responses` provider: call `get_azure_responses_model(logger, model_name, deployment_name)` passing the logger instance, model name and deployment name
 - Create a PydanticAI Agent with the model, structured output type, and optional MCP servers
 - Support: `output_type: Type[Union[str, BaseModel]] = str`
 - Support: `openai_builtin_tools: Optional[List[Dict[str, Any]]] = None` parameter for built-in tools with Responses API models
@@ -57,7 +58,7 @@ The LLM component provides a unified interface for interacting with various larg
 Create a PydanticAI model for the LLM provider and model name:
 
 ```python
-def get_model(model_id: str, context: ContextProtocol) -> OpenAIModel | AnthropicModel:
+def get_model(model_id: str, context: ContextProtocol) -> Union[OpenAIModel, AnthropicModel, OpenAIResponsesModel]:
     """
     Initialize an LLM model based on a standardized model_id string.
     Expected format: 'provider/model_name' or 'provider/model_name/deployment_name'.
@@ -87,6 +88,7 @@ def get_model(model_id: str, context: ContextProtocol) -> OpenAIModel | Anthropi
     # Access configuration dictionary through context.get_config() and then retrieve the necessary values
     # If 'openai_responses' is the model provider, use the `get_openai_responses_model` function from responses component
     # If 'azure_responses' is the model provider, use the `get_azure_responses_model` function from azure_responses component
+    # Note: These functions require a logger parameter, which should be passed from the LLM class logger instance
 ```
 
 Usage example:
