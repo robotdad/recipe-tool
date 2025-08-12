@@ -18,9 +18,9 @@
       "default": "Create a comprehensive document outline"
     },
     "resources": {
-      "description": "Comma-separated list of resources to include in the outline. Each resource should be a path to a file.",
-      "type": "string",
-      "default": ""
+      "description": "List of resource file paths to include in the outline.",
+      "type": "array", 
+      "default": []
     }
   },
   "steps": [
@@ -126,84 +126,27 @@
           "properties": {
             "title": { "type": "string" },
             "general_instruction": { "type": "string" },
-            "resources": {
-              "type": "array",
-              "items": {
+            "resources": { 
+              "type": "array", 
+              "items": { 
                 "type": "object",
                 "properties": {
                   "key": { "type": "string" },
                   "path": { "type": "string" },
                   "title": { "type": "string" },
                   "description": { "type": "string" }
-                },
-                "required": ["key", "path", "title", "description"]
+                }
               }
             },
-            "sections": {
-              "type": "array",
+            "sections": { 
+              "type": "array", 
               "items": {
                 "type": "object",
                 "properties": {
                   "title": { "type": "string" },
                   "prompt": { "type": "string" },
-                  "sections": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "title": { "type": "string" },
-                        "prompt": { "type": "string" },
-                        "sections": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "title": { "type": "string" },
-                              "prompt": { "type": "string" },
-                              "sections": {
-                                "type": "array",
-                                "items": {
-                                  "type": "object",
-                                  "properties": {
-                                    "title": { "type": "string" },
-                                    "prompt": { "type": "string" },
-                                    "sections": {
-                                      "type": "array",
-                                      "items": { "type": "object" }
-                                    },
-                                    "refs": {
-                                      "type": "array",
-                                      "items": { "type": "string" }
-                                    }
-                                  },
-                                  "required": [
-                                    "title",
-                                    "prompt",
-                                    "sections",
-                                    "refs"
-                                  ]
-                                }
-                              },
-                              "refs": {
-                                "type": "array",
-                                "items": { "type": "string" }
-                              }
-                            },
-                            "required": ["title", "prompt", "sections", "refs"]
-                          }
-                        },
-                        "refs": {
-                          "type": "array",
-                          "items": { "type": "string" }
-                        }
-                      },
-                      "required": ["title", "prompt", "sections", "refs"]
-                    }
-                  },
-                  "refs": {
-                    "type": "array",
-                    "items": { "type": "string" }
-                  }
+                  "sections": { "type": "array", "items": { "type": "object" } },
+                  "refs": { "type": "array", "items": { "type": "string" } }
                 },
                 "required": ["title", "prompt", "sections", "refs"]
               }

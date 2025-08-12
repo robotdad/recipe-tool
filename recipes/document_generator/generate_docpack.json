@@ -18,9 +18,9 @@
       "default": "Create a comprehensive document outline"
     },
     "resources": {
-      "description": "Comma-separated list of resources to include in the outline. Each resource should be a path to a file.",
-      "type": "string",
-      "default": ""
+      "description": "List of resource file paths to include in the outline.",
+      "type": "array",
+      "default": []
     },
     "docpack_name": {
       "description": "Name of the docpack to generate.",
@@ -58,23 +58,17 @@
       }
     },
     {
-      "type": "set_context",
-      "config": {
-        "key": "docpack_file_package_path",
-        "value": "{{ docpack_file_package_path | default: '.venv/bin/docpack_file' }}"
-      }
-    },
-
-    {
       "type": "execute_recipe",
       "config": {
         "recipe_path": "{{ recipe_root }}/recipes/generate_outline.json"
       }
     },
     {
-      "type": "shell",
+      "type": "docpack_create",
       "config": {
-        "command": "{{docpack_file_package_path}} create --outline {{ output_root }}/outline.json --output {{ output_root }}/{{ docpack_name }}",
+        "outline_path": "{{ output_root }}/outline.json",
+        "resource_files": "{{ resources }}",
+        "output_path": "{{ output_root }}/{{ docpack_name }}",
         "output_key": "docpack_result"
       }
     }
