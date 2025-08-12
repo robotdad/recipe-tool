@@ -164,7 +164,6 @@ async def generate_docpack_from_prompt(
     # Setup paths
     APP_ROOT = Path(__file__).resolve().parents[2]
     BUNDLED_RECIPE_PATH = APP_ROOT / "document_generator_app" / "recipes" / "generate_docpack.json"
-    DOCPACK_FILE_PACKAGE_PATH = ""  # use default path in non-bundled scenario, set in recipe
 
     logger.info(f"APP_ROOT: {APP_ROOT}")
     logger.info(f"BUNDLED_RECIPE_PATH: {BUNDLED_RECIPE_PATH}")
@@ -174,20 +173,12 @@ async def generate_docpack_from_prompt(
         RECIPE_PATH = BUNDLED_RECIPE_PATH
         RECIPE_ROOT = RECIPE_PATH.parent
         logger.info(f"Using bundled recipes: {RECIPE_PATH}")
-        if dev_mode:
-            DOCPACK_FILE_PACKAGE_PATH = (
-                Path(__file__).resolve().parents[4] / ".venv/bin/docpack_file"
-            )  # get to correct root location of recipe.
-        else:
-            DOCPACK_FILE_PACKAGE_PATH = APP_ROOT / "antenv" / "bin" / "docpack_file"
     else:
         # Fall back to repo structure
         REPO_ROOT = Path(__file__).resolve().parents[4]
         RECIPE_PATH = REPO_ROOT / "recipes" / "document_generator" / "generate_docpack.json"
         RECIPE_ROOT = RECIPE_PATH.parent
         logger.info(f"Using repo recipes: {RECIPE_PATH}")
-
-    logger.info(f"DOCPACK_FILE_PACKAGE_PATH: {DOCPACK_FILE_PACKAGE_PATH}")
 
     # Use session-scoped temp directory
     session_dir = session_manager.get_session_dir(session_id)
@@ -196,13 +187,12 @@ async def generate_docpack_from_prompt(
     logger.info(f"Using temp directory: {tmpdir}")
 
     try:
-        # Prepare resource paths as comma-separated string
+        # Extract resource paths
         resource_paths = []
         for resource in resources:
             if "path" in resource and resource["path"]:
                 resource_paths.append(resource["path"])
-        resources_str = ",".join(resource_paths)
-        logger.info(f"Resource paths: {resources_str}")
+        logger.info(f"Resource paths: {resource_paths}")
 
         # Initialize recipe logger
         recipe_logger = init_logger(log_dir=tmpdir)
@@ -225,7 +215,6 @@ async def generate_docpack_from_prompt(
                 "resources": resource_paths,
                 "docpack_name": docpack_name,
                 "recipe_root": str(RECIPE_ROOT),
-                "docpack_file_package_path": str(DOCPACK_FILE_PACKAGE_PATH),
             },
             config=config,
         )
