@@ -82,6 +82,16 @@
     "refs": []
   },
   {
+    "id": "steps.docpack_create",
+    "deps": ["context", "protocols", "steps.base", "utils.templates"],
+    "refs": []
+  },
+  {
+    "id": "steps.docpack_extract",
+    "deps": ["context", "protocols", "steps.base", "utils.templates"],
+    "refs": []
+  },
+  {
     "id": "steps.execute_recipe",
     "deps": [
       "context",
