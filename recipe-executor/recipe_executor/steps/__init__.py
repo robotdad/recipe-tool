@@ -8,7 +8,6 @@ from recipe_executor.steps.mcp import MCPStep
 from recipe_executor.steps.parallel import ParallelStep
 from recipe_executor.steps.read_files import ReadFilesStep
 from recipe_executor.steps.set_context import SetContextStep
-from recipe_executor.steps.shell import ShellStep
 from recipe_executor.steps.write_files import WriteFilesStep
 
 # Register standard steps in the global registry
@@ -21,7 +20,6 @@ STEP_REGISTRY.update({
     "parallel": ParallelStep,
     "read_files": ReadFilesStep,
     "set_context": SetContextStep,
-    "shell": ShellStep,
     "write_files": WriteFilesStep,
 })
 
@@ -36,6 +34,5 @@ __all__ = [
     "ParallelStep",
     "ReadFilesStep",
     "SetContextStep",
-    "ShellStep",
     "WriteFilesStep",
 ]
