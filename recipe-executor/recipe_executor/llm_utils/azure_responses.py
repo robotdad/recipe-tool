@@ -6,15 +6,17 @@ Provides Azure OpenAI Responses API integration for PydanticAI Agents.
 
 import logging
 import os
-from typing import Optional
+from typing import Optional, Dict
 
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from openai import AsyncAzureOpenAI
 from pydantic_ai.models.openai import OpenAIResponsesModel
 from pydantic_ai.providers.openai import OpenAIProvider
 
+__all__ = ["get_azure_responses_model"]
 
-def _mask_secret(secret: str) -> str:
+
+def _mask_secret(secret: Optional[str]) -> str:
     """Mask all but first and last character of a secret."""
     if not secret or len(secret) < 2:
         return "**"
@@ -27,7 +29,7 @@ def get_azure_responses_model(
     deployment_name: Optional[str] = None,
 ) -> OpenAIResponsesModel:
     """
-    Create a PydanticAI OpenAIResponsesModel for Azure OpenAI
+    Create a PydanticAI OpenAIResponsesModel for Azure OpenAI.
 
     Args:
         logger: Logger for logging messages.
@@ -43,61 +45,58 @@ def get_azure_responses_model(
     """
     try:
         # Load environment variables
-        base_url = os.getenv("AZURE_OPENAI_BASE_URL")
-        api_version = os.getenv("AZURE_OPENAI_API_VERSION", "2025-03-01-preview")
-        api_key = os.getenv("AZURE_OPENAI_API_KEY")
+        azure_endpoint = os.getenv("AZURE_OPENAI_BASE_URL")
+        azure_api_version = os.getenv("AZURE_OPENAI_API_VERSION", "2025-03-01-preview")
+        azure_api_key = os.getenv("AZURE_OPENAI_API_KEY")
         use_managed = os.getenv("AZURE_USE_MANAGED_IDENTITY", "false").lower() == "true"
         client_id = os.getenv("AZURE_CLIENT_ID")
-        env_deploy = os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME")
+        env_deployment = os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME")
 
-        # Validate base URL
-        if not base_url:
+        # Validate endpoint
+        if not azure_endpoint:
             raise ValueError("AZURE_OPENAI_BASE_URL must be set for Azure OpenAI integration.")
-        # Determine deployment name
-        deployment = deployment_name or env_deploy or model_name
 
-        # Log loaded configuration (mask secrets)
+        # Determine deployment name
+        deployment = deployment_name or env_deployment or model_name
+
+        # Log configuration with masked secrets
         logger.debug(
-            "Azure OpenAI config: use_managed=%s, api_key=%s, client_id=%s, base_url=%s, api_version=%s, deployment=%s",
+            "Azure OpenAI config: use_managed=%s, api_key=%s, client_id=%s, endpoint=%s, api_version=%s, deployment=%s",
             use_managed,
-            _mask_secret(api_key) if api_key else None,
+            _mask_secret(azure_api_key),
             client_id,
-            base_url,
-            api_version,
+            azure_endpoint,
+            azure_api_version,
             deployment,
         )
 
         # Initialize Azure OpenAI client
         if use_managed:
-            # Use Azure AD for authentication
             logger.info("Authenticating to Azure OpenAI with Managed Identity.")
-            # sync credential required
-            cred_kwargs = {}
+            cred_kwargs: Dict[str, str] = {}
             if client_id:
                 cred_kwargs["managed_identity_client_id"] = client_id
             credential = DefaultAzureCredential(**cred_kwargs)
-            # default scope for Cognitive Services
             scope = "https://cognitiveservices.azure.com/.default"
             token_provider = get_bearer_token_provider(credential, scope)
             azure_client = AsyncAzureOpenAI(
-                azure_endpoint=base_url,
-                api_version=api_version,
+                azure_endpoint=azure_endpoint,
+                api_version=azure_api_version,
                 azure_ad_token_provider=token_provider,
             )
             auth_method = "ManagedIdentity"
         else:
-            # Use API key
-            if not api_key:
+            if not azure_api_key:
                 raise ValueError("AZURE_OPENAI_API_KEY must be set when not using managed identity.")
             logger.info("Authenticating to Azure OpenAI with API Key.")
             azure_client = AsyncAzureOpenAI(
-                azure_endpoint=base_url,
-                api_version=api_version,
-                api_key=api_key,
+                azure_endpoint=azure_endpoint,
+                api_version=azure_api_version,
+                api_key=azure_api_key,
             )
             auth_method = "ApiKey"
 
-        # Create Responses model
+        # Create the Azure Responses model
         model = OpenAIResponsesModel(
             deployment,
             provider=OpenAIProvider(openai_client=azure_client),
@@ -110,6 +109,6 @@ def get_azure_responses_model(
         )
         return model
 
-    except Exception as e:
-        logger.debug("Failed to create Azure Responses model: %s", e, exc_info=True)
+    except Exception as exc:
+        logger.debug("Failed to create Azure Responses model: %s", exc, exc_info=True)
         raise

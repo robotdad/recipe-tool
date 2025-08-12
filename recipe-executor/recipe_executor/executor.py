@@ -2,8 +2,8 @@
 import os
 import json
 import logging
-from pathlib import Path
 import inspect
+from pathlib import Path
 from typing import Union, Dict, Any
 
 from recipe_executor.protocols import ExecutorProtocol, ContextProtocol
@@ -29,7 +29,7 @@ class Executor(ExecutorProtocol):
         Load a recipe (from file path, JSON string, dict, or Recipe model),
         validate it, and execute its steps sequentially using the provided context.
         """
-        # Determine and validate recipe model
+        # Load or validate the recipe into a Recipe model
         if isinstance(recipe, Recipe):
             self.logger.debug("Using provided Recipe model instance.")
             recipe_model = recipe
@@ -41,8 +41,8 @@ class Executor(ExecutorProtocol):
                 raise ValueError(f"Invalid recipe structure: {e}") from e
         elif isinstance(recipe, (str, Path)):
             recipe_str = str(recipe)
-            # File path
             if os.path.isfile(recipe_str):
+                # File path case
                 self.logger.debug(f"Loading recipe from file path: {recipe_str}")
                 try:
                     with open(recipe_str, encoding="utf-8") as f:
@@ -54,20 +54,22 @@ class Executor(ExecutorProtocol):
                 except Exception as e:
                     raise ValueError(f"Invalid recipe structure from file '{recipe_str}': {e}") from e
             else:
-                # Raw JSON string
+                # Raw JSON string case
                 self.logger.debug("Loading recipe from JSON string.")
                 try:
-                    parsed = json.loads(recipe_str)
+                    # Let Recipe handle JSON parsing and validation
+                    recipe_model = Recipe.model_validate_json(recipe_str)
                 except Exception as e:
-                    raise ValueError(f"Failed to parse recipe JSON string: {e}") from e
-                try:
-                    recipe_model = Recipe.model_validate(parsed)
-                except Exception as e:
-                    raise ValueError(f"Invalid recipe structure: {e}") from e
+                    # Fallback: try parsing then validating
+                    try:
+                        parsed = json.loads(recipe_str)
+                        recipe_model = Recipe.model_validate(parsed)
+                    except Exception:
+                        raise ValueError(f"Failed to parse or validate recipe JSON string: {e}") from e
         else:
             raise TypeError(f"Unsupported recipe type: {type(recipe)}")
 
-        # Log summary of recipe
+        # Log recipe summary
         try:
             summary = recipe_model.model_dump()
         except Exception:
@@ -75,7 +77,7 @@ class Executor(ExecutorProtocol):
         step_count = len(recipe_model.steps or [])
         self.logger.debug(f"Recipe loaded: {{'steps': {step_count}}}. Full recipe: {summary}")
 
-        # Execute each step sequentially
+        # Execute steps sequentially
         for idx, step in enumerate(recipe_model.steps or []):  # type: ignore
             step_type = step.type
             config = step.config or {}
@@ -85,6 +87,7 @@ class Executor(ExecutorProtocol):
                 raise ValueError(f"Unknown step type '{step_type}' at index {idx}")
 
             step_cls = STEP_REGISTRY[step_type]
+            # Instantiate the step: logger and config
             step_instance = step_cls(self.logger, config)
 
             try:

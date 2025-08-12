@@ -33,65 +33,68 @@ class ParallelStep(BaseStep[ParallelConfig]):
     """Step to execute multiple sub-steps in parallel."""
 
     def __init__(self, logger: logging.Logger, config: Dict[str, Any]) -> None:
-        validated = ParallelConfig.model_validate(config)
+        validated: ParallelConfig = ParallelConfig.model_validate(config)
         super().__init__(logger, validated)
 
     async def execute(self, context: ContextProtocol) -> None:
         substeps: List[Dict[str, Any]] = self.config.substeps or []
-        total: int = len(substeps)
-        max_conc: int = self.config.max_concurrency
-        delay: float = self.config.delay
-        timeout: Optional[float] = self.config.timeout
+        total_steps: int = len(substeps)
+        max_concurrency: int = self.config.max_concurrency
+        delay_between: float = self.config.delay
+        timeout_seconds: Optional[float] = self.config.timeout
 
         self.logger.debug("ParallelStep configuration: %s", self.config)
         self.logger.info(
             "Starting ParallelStep: %d substeps, max_concurrency=%d, delay=%.3f, timeout=%s",
-            total,
-            max_conc,
-            delay,
-            f"{timeout}s" if timeout is not None else "none",
+            total_steps,
+            max_concurrency,
+            delay_between,
+            f"{timeout_seconds}s" if timeout_seconds is not None else "none",
         )
 
-        if total == 0:
+        if total_steps == 0:
             self.logger.info("No substeps to execute; skipping ParallelStep.")
             return
 
-        # Determine concurrency limit (0 or negative means unlimited)
-        concurrency: int = total if max_conc <= 0 else min(max_conc, total)
-        semaphore = asyncio.Semaphore(concurrency)
+        # Determine concurrency limit: 0 or negative => unlimited
+        concurrency_limit: int = total_steps if max_concurrency <= 0 else min(max_concurrency, total_steps)
+        semaphore: asyncio.Semaphore = asyncio.Semaphore(concurrency_limit)
 
         # Track first failure
-        failure: Dict[str, Any] = {"exc": None, "idx": None}
+        failure_exception: Optional[Exception] = None
+        failure_index: Optional[int] = None
         tasks: List[asyncio.Task] = []
 
-        async def run_substep(idx: int, spec: Dict[str, Any]) -> None:
-            sub_logger = self.logger.getChild(f"substep_{idx}")
+        async def run_substep(index: int, spec: Dict[str, Any]) -> None:
+            nonlocal failure_exception, failure_index
+            sub_logger: logging.Logger = self.logger.getChild(f"substep_{index}")
             try:
                 sub_logger.debug(
                     "Preparing substep %d: cloning context; spec=%s",
-                    idx,
+                    index,
                     spec,
                 )
-                sub_context = context.clone()
+                sub_context: ContextProtocol = context.clone()
 
-                step_type = spec.get("type")
+                step_type: Optional[str] = spec.get("type")
                 if not step_type or step_type not in STEP_REGISTRY:
-                    raise RuntimeError(f"Unknown step type '{step_type}' for substep {idx}")
-                step_cfg = spec.get("config", {}) or {}
-                StepClass = STEP_REGISTRY[step_type]
-                step_instance: StepProtocol = StepClass(sub_logger, step_cfg)
+                    raise RuntimeError(f"Unknown step type '{step_type}' for substep {index}")
 
-                sub_logger.info("Launching substep %d of type '%s'", idx, step_type)
+                step_config_dict: Dict[str, Any] = spec.get("config", {}) or {}
+                StepClass: type[StepProtocol] = STEP_REGISTRY[step_type]
+                step_instance: StepProtocol = StepClass(sub_logger, step_config_dict)
+
+                sub_logger.info("Launching substep %d of type '%s'", index, step_type)
                 result = step_instance.execute(sub_context)
                 if isinstance(result, Awaitable):  # type: ignore
                     await result  # type: ignore
-                sub_logger.info("Substep %d completed successfully", idx)
+                sub_logger.info("Substep %d completed successfully", index)
 
             except Exception as exc:
-                if failure["exc"] is None:
-                    failure["exc"] = exc
-                    failure["idx"] = idx
-                sub_logger.error("Substep %d failed: %s", idx, exc, exc_info=True)
+                if failure_exception is None:
+                    failure_exception = exc
+                    failure_index = index
+                sub_logger.error("Substep %d failed: %s", index, exc, exc_info=True)
                 raise
 
             finally:
@@ -99,8 +102,7 @@ class ParallelStep(BaseStep[ParallelConfig]):
 
         # Launch substeps with concurrency control and optional delay
         for idx, spec in enumerate(substeps):
-            # Fail-fast: stop launching new substeps if a failure occurred
-            if failure["exc"]:
+            if failure_exception:
                 self.logger.debug(
                     "Fail-fast: abort launching remaining substeps at index %d",
                     idx,
@@ -108,54 +110,62 @@ class ParallelStep(BaseStep[ParallelConfig]):
                 break
 
             await semaphore.acquire()
-            if delay and delay > 0:
-                await asyncio.sleep(delay)
+            if delay_between > 0:
+                await asyncio.sleep(delay_between)
 
-            task = asyncio.create_task(run_substep(idx, spec))
+            task: asyncio.Task = asyncio.create_task(run_substep(idx, spec))
             tasks.append(task)
 
         if not tasks:
             self.logger.info("No substeps launched; nothing to wait for.")
             return
 
-        # Wait until first exception, all done, or timeout
+        # Wait for first exception, completion, or timeout
         try:
-            if timeout is not None:
-                done, pending = await asyncio.wait(tasks, timeout=timeout, return_when=asyncio.FIRST_EXCEPTION)
+            if timeout_seconds is not None:
+                done, pending = await asyncio.wait(
+                    tasks,
+                    timeout=timeout_seconds,
+                    return_when=asyncio.FIRST_EXCEPTION,
+                )
             else:
-                done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_EXCEPTION)
+                done, pending = await asyncio.wait(
+                    tasks,
+                    return_when=asyncio.FIRST_EXCEPTION,
+                )
         except Exception:
+            # In case of unexpected errors in wait itself
             done, pending = set(tasks), set()
 
-        # Handle failure
-        if failure["exc"] is not None:
-            failed_idx = failure.get("idx")
+        # Handle failure in substep
+        if failure_exception is not None:
+            pending_count: int = len(pending)
             self.logger.error(
                 "Substep %s failed; cancelling %d pending tasks",
-                failed_idx,
-                len(pending),
+                failure_index,
+                pending_count,
             )
-            for p in pending:
-                p.cancel()
+            for pending_task in pending:
+                pending_task.cancel()
             await asyncio.gather(*pending, return_exceptions=True)
-            raise RuntimeError(f"ParallelStep aborted due to failure in substep {failed_idx}") from failure["exc"]
+            raise RuntimeError(f"ParallelStep aborted due to failure in substep {failure_index}") from failure_exception
 
         # Handle timeout without failure
         if pending:
             self.logger.error(
                 "ParallelStep timed out after %.3f seconds; cancelling %d pending tasks",
-                timeout,
+                timeout_seconds,
                 len(pending),
             )
-            for p in pending:
-                p.cancel()
+            for pending_task in pending:
+                pending_task.cancel()
             await asyncio.gather(*pending, return_exceptions=True)
-            raise asyncio.TimeoutError(f"ParallelStep timed out after {timeout} seconds")
+            raise asyncio.TimeoutError(f"ParallelStep timed out after {timeout_seconds} seconds")
 
-        # All succeeded: gather to propagate any unexpected exceptions
+        # All substeps succeeded: ensure to propagate any exceptions
         await asyncio.gather(*done)
         self.logger.info(
             "Completed ParallelStep: %d/%d substeps succeeded",
             len(done),
-            total,
+            total_steps,
         )

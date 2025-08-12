@@ -13,8 +13,7 @@ __all__ = ["ExecuteRecipeConfig", "ExecuteRecipeStep"]
 
 def _render_override(value: Any, context: ContextProtocol) -> Any:
     """
-    Recursively render and parse override values.
-
+    Recursively render and parse override values:
     - Strings are template-rendered, then if the result is a valid Python literal
       (dict or list), parsed into Python objects using ast.literal_eval.
     - Lists and dicts are processed recursively.
@@ -36,6 +35,7 @@ def _render_override(value: Any, context: ContextProtocol) -> Any:
     if isinstance(value, dict):  # type: ignore[type-arg]
         return {key: _render_override(val, context) for key, val in value.items()}
 
+    # Non-string, non-container types are returned as-is
     return value
 
 
@@ -69,7 +69,7 @@ class ExecuteRecipeStep(BaseStep[ExecuteRecipeConfig]):
         Applies context_overrides before execution, shares the same context,
         and logs progress.
         """
-        # Render the recipe path
+        # Render and validate the recipe path
         rendered_path = render_template(self.config.recipe_path, context)
         if not isinstance(rendered_path, str) or not os.path.isfile(rendered_path):
             raise FileNotFoundError(f"Sub-recipe file not found: {rendered_path}")
@@ -79,8 +79,9 @@ class ExecuteRecipeStep(BaseStep[ExecuteRecipeConfig]):
             new_value = _render_override(override_value, context)
             context[key] = new_value
 
+        # Execute the sub-recipe using the Executor
         try:
-            # Import inside method to avoid circular dependencies
+            # Import here to prevent circular dependencies
             from recipe_executor.executor import Executor
 
             self.logger.info(f"Starting sub-recipe execution: {rendered_path}")

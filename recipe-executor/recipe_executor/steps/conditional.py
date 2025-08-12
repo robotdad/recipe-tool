@@ -2,7 +2,7 @@
 import logging
 import os
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from recipe_executor.protocols import ContextProtocol
 from recipe_executor.steps.base import BaseStep, StepConfig
@@ -88,10 +88,10 @@ def evaluate_condition(
         logger.debug("Using boolean condition: %s", expr)
         return expr
 
-    # Ensure expression is a string for template rendering
-    expr_str = expr if isinstance(expr, str) else str(expr)
+    # Convert non-string to string for rendering
+    expr_str: str = expr if isinstance(expr, str) else str(expr)
     try:
-        rendered = render_template(expr_str, context)
+        rendered: str = render_template(expr_str, context)
     except Exception as err:
         raise ValueError(f"Error rendering condition '{expr_str}': {err}")
 
@@ -99,39 +99,42 @@ def evaluate_condition(
     text = rendered.strip()
     lowered = text.lower()
 
-    # Handle boolean literals
+    # Interpret boolean literals
     if lowered in ("true", "false"):
         result = lowered == "true"
         logger.debug("Interpreted boolean literal '%s' as %s", text, result)
         return result
 
-    # Replace logical keywords to avoid Python keyword conflicts
+    # Replace logical keyword calls to avoid Python keyword conflicts
     transformed = re.sub(r"\band\(", "and_(", text)
     transformed = re.sub(r"\bor\(", "or_(", transformed)
     transformed = re.sub(r"\bnot\(", "not_(", transformed)
     logger.debug("Transformed expression for eval: '%s'", transformed)
 
-    # Safe globals for eval
+    # Define safe globals for eval
     safe_globals: Dict[str, Any] = {
         "__builtins__": {},
-        # File utilities
+        # file utilities
         "file_exists": file_exists,
         "all_files_exist": all_files_exist,
         "file_is_newer": file_is_newer,
-        # Logical helpers
+        # logical helpers
         "and_": and_,
         "or_": or_,
         "not_": not_,
-        # Boolean literals
+        # boolean literals
         "true": True,
         "false": False,
+        # null equivalent
+        "null": None,
     }
+
     try:
-        result = eval(transformed, safe_globals, {})  # nosec
+        result_raw = eval(transformed, safe_globals, {})  # nosec
     except Exception as err:
         raise ValueError(f"Invalid condition expression '{transformed}': {err}")
 
-    outcome = bool(result)
+    outcome = bool(result_raw)
     logger.debug("Condition '%s' evaluated to %s", transformed, outcome)
     return outcome
 
@@ -166,7 +169,7 @@ class ConditionalStep(BaseStep[ConditionalConfig]):
             branch_name,
         )
 
-        # Execute the branch if it is defined
+        # Execute the branch if defined
         if branch_conf and isinstance(branch_conf, dict):
             steps = branch_conf.get("steps")
             if isinstance(steps, list) and steps:
@@ -187,7 +190,7 @@ class ConditionalStep(BaseStep[ConditionalConfig]):
         """
         Execute a list of steps defined in a branch config.
         """
-        steps: List[Any] = branch.get("steps") or []
+        steps = branch.get("steps") or []
         if not isinstance(steps, list):
             self.logger.debug("Branch 'steps' is not a list, skipping execution")
             return

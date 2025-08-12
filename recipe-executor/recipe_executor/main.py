@@ -6,7 +6,7 @@ import os
 import sys
 import time
 import traceback
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from dotenv import load_dotenv
 from recipe_executor.config import load_configuration
@@ -33,13 +33,18 @@ def parse_key_value_pairs(pairs: List[str]) -> Dict[str, str]:
 
 
 async def main_async() -> None:
-    # Load environment variables from .env
+    # Load environment variables from .env file (if present)
     load_dotenv()
 
     # Parse command-line arguments
     parser = argparse.ArgumentParser(description="Recipe Executor CLI")
     parser.add_argument("recipe_path", type=str, help="Path to the recipe file to execute")
-    parser.add_argument("--log-dir", type=str, default="logs", help="Directory for log files")
+    parser.add_argument(
+        "--log-dir",
+        type=str,
+        default="logs",
+        help="Directory for log files",
+    )
     parser.add_argument(
         "--context",
         action="append",
@@ -71,17 +76,17 @@ async def main_async() -> None:
     logger.info("Starting Recipe Executor Tool")
     logger.debug("Parsed arguments: %s", args)
 
-    # Parse context and CLI config
+    # Parse context artifacts and CLI config pairs
     try:
         artifacts: Dict[str, str] = parse_key_value_pairs(args.context)
         cli_config: Dict[str, str] = parse_key_value_pairs(args.config)
     except ValueError as ve:
-        # Let main() handle printing the error
+        # Propagate for top-level handling
         raise ve
 
     logger.debug("Initial context artifacts: %s", artifacts)
 
-    # Load recipe file
+    # Load and validate recipe
     try:
         with open(args.recipe_path, "r", encoding="utf-8") as f:
             content = f.read()
@@ -92,18 +97,19 @@ async def main_async() -> None:
 
     # Load configuration from environment and recipe-specific variables
     try:
-        env_config: Dict[str, Any] = load_configuration(getattr(recipe, "env_vars", None))
+        env_vars: Optional[List[str]] = getattr(recipe, "env_vars", None)
+        env_config: Dict[str, Any] = load_configuration(env_vars)
     except Exception as exc:
         logger.error("Configuration loading error: %s", exc, exc_info=True)
         raise SystemExit(1)
 
-    # Merge CLI overrides (CLI takes precedence)
+    # Merge environment config with CLI overrides (CLI takes precedence)
     merged_config: Dict[str, Any] = {**env_config, **cli_config}
 
     # Create execution context
     context = Context(artifacts=artifacts, config=merged_config)
 
-    # Execute recipe
+    # Execute the recipe
     executor = Executor(logger)
     logger.info("Executing recipe: %s", args.recipe_path)
     start_time = time.time()
@@ -121,13 +127,12 @@ def main() -> None:
     try:
         asyncio.run(main_async())
     except ValueError as ve:
-        # Handle context or config parsing errors
+        # Handle parsing errors for context or config
         sys.stderr.write(f"Context Error: {ve}\n")
         sys.exit(1)
     except SystemExit as se:
         sys.exit(se.code)
     except Exception:
-        # Unexpected errors
         sys.stderr.write(traceback.format_exc())
         sys.exit(1)
     else:

@@ -33,7 +33,7 @@ def get_azure_openai_model(
     Args:
         logger (logging.Logger): Logger for logging messages.
         model_name (str): The model name (e.g., "gpt-4o").
-        deployment_name (Optional[str]): The Azure deployment name; defaults to model_name or config.
+        deployment_name (Optional[str]): Azure deployment name; defaults to config or model_name.
         context (ContextProtocol): Context providing configuration values.
 
     Returns:
@@ -55,12 +55,17 @@ def get_azure_openai_model(
         logger.error("Configuration 'azure_openai_base_url' is required")
         raise Exception("Missing AZURE_OPENAI_BASE_URL")
 
-    # Log loaded configuration (mask API key)
-    masked_key = _mask_secret(api_key)
+    # Log loaded configuration with masked API key
+    masked = _mask_secret(api_key)
     logger.debug(
-        f"Azure OpenAI config: endpoint={base_url}, api_version={api_version}, "
-        f"deployment={deployment}, use_managed_identity={use_managed_identity}, "
-        f"client_id={client_id or '<None>'}, api_key={masked_key}"
+        "Azure OpenAI config: endpoint=%s, api_version=%s, deployment=%s, "
+        "use_managed_identity=%s, client_id=%s, api_key=%s",
+        base_url,
+        api_version,
+        deployment,
+        use_managed_identity,
+        client_id or "<None>",
+        masked,
     )
 
     try:

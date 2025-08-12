@@ -87,7 +87,7 @@ class LLMGenerateStep(BaseStep[LLMGenerateConfig]):
             except ValueError:
                 raise ValueError(f"Invalid max_tokens value: {raw_max!r}")
 
-        # Collect MCP server configs
+        # Collect MCP server configs: from step config and context config
         mcp_cfgs: List[Dict[str, Any]] = []
         if self.config.mcp_servers:
             mcp_cfgs.extend(self.config.mcp_servers)  # type: ignore
@@ -101,17 +101,16 @@ class LLMGenerateStep(BaseStep[LLMGenerateConfig]):
             rendered_cfg = _render_config(cfg, context)
             server = get_mcp_server(logger=self.logger, config=rendered_cfg)
             mcp_servers.append(server)
+        servers_arg = mcp_servers or None
 
         # Prepare OpenAI built-in tools
         validated_tools: Optional[List[Dict[str, Any]]] = None
         if self.config.openai_builtin_tools:
-            # Only supported for Responses API models
-            prefix = model_id.split("/")[0]
-            if prefix not in ("openai_responses", "azure_responses"):
+            provider = model_id.split("/")[0]
+            if provider not in ("openai_responses", "azure_responses"):
                 raise ValueError(
                     "Built-in tools only supported with Responses API models (openai_responses/* or azure_responses/*)"
                 )
-            # Validate tool types
             for tool in self.config.openai_builtin_tools:
                 ttype = tool.get("type")
                 if ttype != "web_search_preview":
@@ -123,7 +122,7 @@ class LLMGenerateStep(BaseStep[LLMGenerateConfig]):
             logger=self.logger,
             context=context,
             model=model_id,
-            mcp_servers=mcp_servers or None,
+            mcp_servers=servers_arg,
         )
 
         output_format = self.config.output_format

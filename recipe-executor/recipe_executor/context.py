@@ -25,32 +25,47 @@ class Context(ContextProtocol):
         self._config: Dict[str, Any] = copy.deepcopy(config) if config is not None else {}
 
     def __getitem__(self, key: str) -> Any:
+        """
+        Retrieve an artifact by key. Raises KeyError if not found.
+        """
         try:
             return self._artifacts[key]
         except KeyError:
             raise KeyError(f"Key '{key}' not found in Context.")
 
     def __setitem__(self, key: str, value: Any) -> None:
+        """
+        Store or overwrite an artifact value by key.
+        """
         self._artifacts[key] = value
 
     def __delitem__(self, key: str) -> None:
-        # Let KeyError propagate naturally if key is missing
+        """
+        Remove an artifact by key. KeyError propagates if key is missing.
+        """
         del self._artifacts[key]
 
     def __contains__(self, key: object) -> bool:
-        # Only string keys are valid artifact keys
+        """
+        Return True if the given key (must be a string) exists in artifacts.
+        """
         return isinstance(key, str) and key in self._artifacts
 
     def __iter__(self) -> Iterator[str]:
-        # Iterate over a snapshot of keys to prevent issues during mutation
+        """
+        Iterate over a snapshot of artifact keys.
+        """
         return iter(list(self._artifacts.keys()))
 
     def __len__(self) -> int:
+        """
+        Return the number of artifacts stored.
+        """
         return len(self._artifacts)
 
     def keys(self) -> Iterator[str]:
         """
-        Return an iterator over the artifact keys.
+        Return an iterator over artifact keys.
         """
         return self.__iter__()
 
@@ -64,10 +79,10 @@ class Context(ContextProtocol):
         """
         Create a deep copy of this Context, including artifacts and config.
         """
-        # __init__ will deep-copy the provided dicts
+        # __init__ deep-copies provided dicts
         return Context(artifacts=self._artifacts, config=self._config)
 
-    def dict(self) -> Dict[str, Any]:
+    def dict(self) -> Dict[str, Any]:  # noqa: A003
         """
         Return a deep copy of the artifacts as a standard dict.
         """
