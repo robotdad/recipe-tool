@@ -84,3 +84,7 @@ DocpackHandler.create_package(
 ```
 
 Where outline_data is loaded from the JSON file and resource_file_paths are converted to Path objects.
+
+### Template Rendering Considerations
+
+When resource_files is "{{ resources }}", access the context value directly rather than template rendering to preserve list structure.
