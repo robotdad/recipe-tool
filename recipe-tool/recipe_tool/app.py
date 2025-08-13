@@ -2,7 +2,7 @@ import argparse
 import asyncio
 import os
 import sys
-from typing import Dict, List
+from typing import Any, Dict, List
 from dotenv import load_dotenv
 
 from recipe_executor.context import Context
@@ -10,13 +10,25 @@ from recipe_executor.executor import Executor
 from recipe_executor.logger import init_logger
 
 
-def parse_context_args(args: List[str]) -> Dict[str, str]:
-    """Parse command line arguments into context key-value pairs."""
+def parse_context_args(args: List[str]) -> Dict[str, Any]:
+    """Parse command line arguments into context key-value pairs.
+
+    Supports array syntax:
+    - resources=file1.md,file2.md -> ["file1.md", "file2.md"]
+    - model=openai/gpt-4o -> "openai/gpt-4o"
+    """
     context_dict = {}
     for arg in args:
         if "=" in arg:
             key, value = arg.split("=", 1)
-            context_dict[key] = value
+
+            # Detect array syntax: comma-separated values
+            if "," in value and not any(quote in value for quote in ['"', "'"]):
+                # Parse: resources=file1.md,file2.md -> ["file1.md", "file2.md"]
+                context_dict[key] = [item.strip() for item in value.split(",") if item.strip()]
+            else:
+                # Regular string
+                context_dict[key] = value
         else:
             # If no equals sign, treat the whole thing as a key with empty value
             context_dict[arg] = ""
