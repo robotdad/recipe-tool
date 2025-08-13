@@ -49,26 +49,27 @@ class MCPStep(BaseStep[MCPConfig]):  # type: ignore
         tool_name: str = render_template(self.config.tool_name, context)
 
         # Render arguments
-        raw_args = self.config.arguments or {}
+        raw_args: Dict[str, Any] = self.config.arguments or {}
         arguments: Dict[str, Any] = {}
-        for key, val in raw_args.items():
+        for key, val in raw_args.items():  # type: ignore
             if isinstance(val, str):
                 arguments[key] = render_template(val, context)
             else:
                 arguments[key] = val
 
-        # Prepare server config
-        server_conf = self.config.server
+        # Prepare server configuration
+        server_conf: Dict[str, Any] = self.config.server
         service_desc: str
         client_cm: Any
 
         # Determine transport: stdio if command provided, else SSE
-        command_tpl = server_conf.get("command")
+        command_tpl: Optional[str] = server_conf.get("command")  # type: ignore
         if command_tpl is not None:
             # stdio transport
-            cmd = render_template(command_tpl, context)
-            # args list
-            raw_list = server_conf.get("args") or []
+            cmd: str = render_template(command_tpl, context)
+
+            # Render args list
+            raw_list: List[Any] = server_conf.get("args") or []  # type: ignore
             args_list: List[str] = []
             for item in raw_list:
                 if isinstance(item, str):
@@ -76,12 +77,12 @@ class MCPStep(BaseStep[MCPConfig]):  # type: ignore
                 else:
                     args_list.append(str(item))
 
-            # environment variables
+            # Environment variables
             env_conf: Optional[Dict[str, str]] = None
-            raw_env = server_conf.get("env")
+            raw_env: Optional[Dict[str, Any]] = server_conf.get("env")  # type: ignore
             if raw_env is not None:
                 env_conf = {}
-                for env_key, env_val in raw_env.items():
+                for env_key, env_val in raw_env.items():  # type: ignore
                     if isinstance(env_val, str):
                         rendered = render_template(env_val, context)
                         if rendered == "":
@@ -96,10 +97,10 @@ class MCPStep(BaseStep[MCPConfig]):  # type: ignore
                     else:
                         env_conf[env_key] = str(env_val)
 
-            # working directory
+            # Working directory
             cwd: Optional[str] = None
-            if server_conf.get("working_dir") is not None:
-                cwd = render_template(server_conf.get("working_dir", ""), context)
+            if server_conf.get("working_dir") is not None:  # type: ignore
+                cwd = render_template(server_conf.get("working_dir", ""), context)  # type: ignore
 
             server_params = StdioServerParameters(
                 command=cmd,
@@ -111,12 +112,12 @@ class MCPStep(BaseStep[MCPConfig]):  # type: ignore
             service_desc = f"stdio command '{cmd}'"
         else:
             # SSE transport
-            url = render_template(server_conf.get("url", ""), context)
+            url: str = render_template(server_conf.get("url", ""), context)  # type: ignore
             headers_conf: Optional[Dict[str, Any]] = None
-            raw_headers = server_conf.get("headers")
+            raw_headers: Optional[Dict[str, Any]] = server_conf.get("headers")  # type: ignore
             if raw_headers is not None:
                 headers_conf = {}
-                for hk, hv in raw_headers.items():
+                for hk, hv in raw_headers.items():  # type: ignore
                     if isinstance(hv, str):
                         headers_conf[hk] = render_template(hv, context)
                     else:

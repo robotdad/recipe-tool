@@ -59,7 +59,7 @@ class LLMGenerateConfig(BaseModel):
     )
     output_format: Optional[str] = Field(
         None,
-        description="Optional format of the output, e.g., 'files', 'text', etc.",
+        description="Optional format of the output, e.g., 'files', 'text', etc.'",
     )
     output_key: Optional[str] = Field(
         None,

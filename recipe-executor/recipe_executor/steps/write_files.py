@@ -47,31 +47,31 @@ class WriteFilesStep(BaseStep[WriteFilesConfig]):
         # 1. Direct files in config take precedence
         if self.config.files is not None:
             for entry in self.config.files:
-                # Determine raw path or path_key
+                # Determine raw path
                 if "path" in entry:
                     raw_path = entry["path"]
                 elif "path_key" in entry:
-                    path_key = entry["path_key"]
-                    if path_key not in context:
-                        raise KeyError(f"Path key '{path_key}' not found in context.")
-                    raw_path = context[path_key]
+                    key = entry["path_key"]
+                    if key not in context:
+                        raise KeyError(f"Path key '{key}' not found in context.")
+                    raw_path = context[key]
                 else:
                     raise ValueError("Each file entry must have 'path' or 'path_key'.")
 
                 path_str = str(raw_path)
                 try:
-                    path: str = render_template(path_str, context)
+                    path = render_template(path_str, context)
                 except Exception as err:
                     raise ValueError(f"Failed to render file path '{path_str}': {err}")
 
-                # Determine raw content or content_key
+                # Determine raw content
                 if "content" in entry:
                     raw_content = entry["content"]
                 elif "content_key" in entry:
-                    content_key = entry["content_key"]
-                    if content_key not in context:
-                        raise KeyError(f"Content key '{content_key}' not found in context.")
-                    raw_content = context[content_key]
+                    key = entry["content_key"]
+                    if key not in context:
+                        raise KeyError(f"Content key '{key}' not found in context.")
+                    raw_content = context[key]
                 else:
                     raise ValueError("Each file entry must have 'content' or 'content_key'.")
 
@@ -79,23 +79,23 @@ class WriteFilesStep(BaseStep[WriteFilesConfig]):
 
         # 2. files_key in context
         elif self.config.files_key:
-            files_key = self.config.files_key
-            if files_key not in context:
-                raise KeyError(f"Files key '{files_key}' not found in context.")
-            raw = context[files_key]
+            key = self.config.files_key
+            if key not in context:
+                raise KeyError(f"Files key '{key}' not found in context.")
+            raw = context[key]
 
-            # Normalize to list of specs
+            # Normalize single or list
             if isinstance(raw, FileSpec):
                 items: List[Union[FileSpec, Dict[str, Any]]] = [raw]
             elif isinstance(raw, dict):
                 if "path" in raw and "content" in raw:
-                    items = [raw]  # type: ignore
+                    items = [raw]
                 else:
-                    raise ValueError(f"Malformed file dict under key '{files_key}': {raw}")
+                    raise ValueError(f"Malformed file dict under key '{key}': {raw}")
             elif isinstance(raw, list):
                 items = raw  # type: ignore
             else:
-                raise ValueError(f"Unsupported type for files_key '{files_key}': {type(raw)}")
+                raise ValueError(f"Unsupported type for files_key '{key}': {type(raw)}")
 
             for item in items:
                 if isinstance(item, FileSpec):
@@ -103,7 +103,7 @@ class WriteFilesStep(BaseStep[WriteFilesConfig]):
                     raw_content = item.content
                 elif isinstance(item, dict):
                     if "path" not in item or "content" not in item:
-                        raise ValueError(f"Invalid file entry under '{files_key}': {item}")
+                        raise ValueError(f"Invalid file entry under '{key}': {item}")
                     raw_path = item["path"]
                     raw_content = item["content"]
                 else:
@@ -113,7 +113,7 @@ class WriteFilesStep(BaseStep[WriteFilesConfig]):
 
                 path_str = str(raw_path)
                 try:
-                    path: str = render_template(path_str, context)
+                    path = render_template(path_str, context)
                 except Exception as err:
                     raise ValueError(f"Failed to render file path '{path_str}': {err}")
 
@@ -122,29 +122,29 @@ class WriteFilesStep(BaseStep[WriteFilesConfig]):
         else:
             raise ValueError("Either 'files' or 'files_key' must be provided in WriteFilesConfig.")
 
-        # Write each file to disk
+        # Write files to disk
         for entry in files_to_write:
-            rel_path: str = entry.get("path", "")  # relative path
+            rel_path: str = entry.get("path", "")
             content = entry.get("content")
 
             # Resolve final path
             combined = os.path.join(root, rel_path) if root else rel_path
             final_path = os.path.normpath(combined)
 
-            # Ensure parent directory exists
-            parent_dir = os.path.dirname(final_path)
-            if parent_dir and not os.path.exists(parent_dir):
+            # Ensure directory exists
+            parent = os.path.dirname(final_path)
+            if parent and not os.path.exists(parent):
                 try:
-                    os.makedirs(parent_dir, exist_ok=True)
+                    os.makedirs(parent, exist_ok=True)
                 except Exception as err:
-                    raise IOError(f"Failed to create directory '{parent_dir}': {err}")
+                    raise IOError(f"Failed to create directory '{parent}': {err}")
 
-            # Serialize content if needed
+            # Serialize content
             if isinstance(content, (dict, list)):
                 try:
                     text = json.dumps(content, ensure_ascii=False, indent=2)
-                except Exception as serr:
-                    raise ValueError(f"Failed to serialize JSON for '{final_path}': {serr}")
+                except Exception as err:
+                    raise ValueError(f"Failed to serialize JSON for '{final_path}': {err}")
             else:
                 if content is None:
                     text = ""
@@ -153,10 +153,10 @@ class WriteFilesStep(BaseStep[WriteFilesConfig]):
                 else:
                     text = content
 
-            # Debug log before writing
+            # Debug log
             self.logger.debug(f"[WriteFilesStep] Writing file: {final_path}\nContent:\n{text}")
 
-            # Write file with UTF-8 encoding
+            # Write to disk
             try:
                 with open(final_path, "w", encoding="utf-8") as f:
                     f.write(text)
@@ -164,6 +164,6 @@ class WriteFilesStep(BaseStep[WriteFilesConfig]):
                 self.logger.error(f"[WriteFilesStep] Error writing file '{rel_path}': {err}")
                 raise IOError(f"Error writing file '{final_path}': {err}")
 
-            # Info log after success
+            # Info log
             size = len(text.encode("utf-8"))
             self.logger.info(f"[WriteFilesStep] Wrote file: {final_path} ({size} bytes)")

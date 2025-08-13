@@ -40,7 +40,7 @@ class ReadFilesStep(BaseStep[ReadFilesConfig]):
 
     async def execute(self, context: ContextProtocol) -> None:
         cfg = self.config
-        # Render the key under which to store content
+        # Render storage key
         rendered_key: str = render_template(cfg.content_key, context)
 
         # Resolve and normalize input paths
@@ -51,19 +51,20 @@ class ReadFilesStep(BaseStep[ReadFilesConfig]):
             matches = glob.glob(pattern)
             return sorted(matches) if matches else [pattern]
 
+        # Handle string path (with comma split) or list of paths
         if isinstance(raw_path, str):
-            rendered_paths = render_template(raw_path, context)
-            candidates = [p.strip() for p in rendered_paths.split(",") if p.strip()]
-            for cand in candidates:
-                paths.extend(expand_pattern(cand))
-        elif isinstance(raw_path, list):
+            rendered = render_template(raw_path, context)
+            candidates = [p.strip() for p in rendered.split(",") if p.strip()]
+            for candidate in candidates:
+                paths.extend(expand_pattern(candidate))
+        elif isinstance(raw_path, list):  # type: ignore
             for entry in raw_path:
                 if not isinstance(entry, str):
                     raise ValueError(f"Invalid path entry type: {entry!r}")
-                rendered_entry = render_template(entry, context)
-                if not rendered_entry:
+                rendered = render_template(entry, context)
+                if not rendered:
                     continue
-                paths.extend(expand_pattern(rendered_entry))
+                paths.extend(expand_pattern(rendered))
         else:
             raise ValueError(f"Invalid type for path: {type(raw_path)}")
 
@@ -73,11 +74,11 @@ class ReadFilesStep(BaseStep[ReadFilesConfig]):
         for path in paths:
             self.logger.debug(f"Reading file at path: {path}")
             if not os.path.exists(path):
-                message = f"File not found: {path}"
+                msg = f"File not found: {path}"
                 if cfg.optional:
                     self.logger.warning(f"Optional file missing, skipping: {path}")
                     continue
-                raise FileNotFoundError(message)
+                raise FileNotFoundError(msg)
 
             try:
                 with open(path, mode="r", encoding="utf-8") as f:
@@ -85,6 +86,7 @@ class ReadFilesStep(BaseStep[ReadFilesConfig]):
             except Exception as exc:
                 raise IOError(f"Error reading file {path}: {exc}")
 
+            # Attempt to parse based on extension
             content: Any = raw_text
             ext = os.path.splitext(path)[1].lower()
             if ext == ".json":
@@ -102,7 +104,7 @@ class ReadFilesStep(BaseStep[ReadFilesConfig]):
             results.append(content)
             result_map[path] = content
 
-        # Determine final content based on read results and merge_mode
+        # Merge results according to mode
         if not results:
             if len(paths) <= 1:
                 final_content: Any = ""
@@ -124,6 +126,6 @@ class ReadFilesStep(BaseStep[ReadFilesConfig]):
                         segments.append(f"{p}\n{segment}")
                 final_content = "\n".join(segments)
 
-        # Store aggregated content in context
+        # Store in context
         context[rendered_key] = final_content
         self.logger.info(f"Stored file content under key '{rendered_key}'")

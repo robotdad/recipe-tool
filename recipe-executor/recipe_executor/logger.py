@@ -28,30 +28,30 @@ def init_logger(log_dir: str = "logs", stdio_log_level: str = "INFO") -> Logger:
     Raises:
         Exception: If log directory cannot be created or log files cannot be opened.
     """
-    # Acquire the root logger and set minimum level to DEBUG to capture all messages
+    # Acquire root logger and capture all levels
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)
 
-    # Remove existing handlers
+    # Remove existing handlers to reset configuration
     for handler in list(logger.handlers):
         logger.removeHandler(handler)
 
-    # Log initialization start
+    # Log initialization start at DEBUG level
     logger.debug("Initializing logger with dir='%s', stdio_level='%s'", log_dir, stdio_log_level)
 
-    # Ensure the log directory exists
+    # Ensure log directory exists
     try:
         os.makedirs(log_dir, exist_ok=True)
     except Exception as exc:
         raise Exception(f"Failed to create log directory '{log_dir}': {exc}")
-    logger.debug("Created log directory: %s", log_dir)
+    logger.debug("Log directory created: %s", log_dir)
 
-    # Define formatter
+    # Define log formatters
     fmt = "%(asctime)s.%(msecs)03d [%(levelname)s] (%(filename)s:%(lineno)d) %(message)s"
     datefmt = "%Y-%m-%d %H:%M:%S"
     formatter = logging.Formatter(fmt=fmt, datefmt=datefmt)
 
-    # File handlers for DEBUG, INFO, ERROR
+    # Set up file handlers for DEBUG, INFO, and ERROR levels
     level_map = [
         ("debug", logging.DEBUG),
         ("info", logging.INFO),
@@ -67,14 +67,15 @@ def init_logger(log_dir: str = "logs", stdio_log_level: str = "INFO") -> Logger:
         except Exception as exc:
             raise Exception(f"Failed to set up {name} log file '{file_path}': {exc}")
 
-    # Configure console handler
+    # Configure console (stdout) handler
     level_name = stdio_log_level.upper()
     if level_name == "WARN":
         level_name = "WARNING"
+    # Fallback to INFO if invalid
     if level_name not in ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"):
         level_name = "INFO"
-
     console_level = getattr(logging, level_name, logging.INFO)
+
     ch = logging.StreamHandler(sys.stdout)
     ch.setLevel(console_level)
     ch.setFormatter(formatter)

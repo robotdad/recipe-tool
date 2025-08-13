@@ -16,8 +16,7 @@ def _has_unrendered_tags(s: str) -> bool:
     Detect if the string still contains Liquid tags that need rendering,
     ignoring content inside {% raw %}...{% endraw %} blocks.
     """
-    # Remove raw blocks so tags within them are not considered
-    cleaned = _RAW_BLOCK_RE.sub("", s)
+    cleaned: str = _RAW_BLOCK_RE.sub("", s)
     return ("{{" in cleaned) or ("{%" in cleaned)
 
 
@@ -88,18 +87,18 @@ class SetContextStep(BaseStep[SetContextConfig]):
             result: str = rendered
             # Continue rendering until no unrendered tags remain or no change
             while _has_unrendered_tags(result):  # type: ignore
-                previous = result
+                previous: str = result
                 result = render_template(result, context)
                 if result == previous:
                     break
             return result
 
         # Render list elements
-        if isinstance(raw, list):
+        if isinstance(raw, list):  # type: ignore
             return [self._render_value(item, context, nested) for item in raw]
 
         # Render dict values
-        if isinstance(raw, dict):
+        if isinstance(raw, dict):  # type: ignore
             return {k: self._render_value(v, context, nested) for k, v in raw.items()}
 
         # Other types are passed through unchanged

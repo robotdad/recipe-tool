@@ -42,27 +42,26 @@ class DocpackCreateStep(BaseStep[DocpackCreateConfig]):
         self.logger = logger
 
     async def execute(self, context: ContextProtocol) -> None:
-        # Render templated parameters
+        # Render outline and output paths
         raw_outline = render_template(self.config.outline_path, context)
         raw_output = render_template(self.config.output_path, context)
-        raw_resources = self.config.resource_files
         raw_output_key = self.config.output_key
+        raw_resources = self.config.resource_files
 
         self.logger.debug(
-            "DocpackCreateStep config: outline_path=%s, resource_files=%s, output_path=%s, output_key=%s",
+            "DocpackCreateStep parameters: outline_path=%s, resource_files=%s, output_path=%s, output_key=%s",
             raw_outline,
             raw_resources,
             raw_output,
             raw_output_key,
         )
 
-        # Validate outline file exists and load JSON
+        # Validate outline file and load JSON
         outline_path = Path(raw_outline)
         if not outline_path.is_file():
             msg = f"Outline file does not exist or is not a file: '{outline_path}'"
             self.logger.error(msg)
             raise IOError(msg)
-
         try:
             with outline_path.open("r", encoding="utf-8") as f:
                 outline_data = json.load(f)
@@ -75,29 +74,47 @@ class DocpackCreateStep(BaseStep[DocpackCreateConfig]):
             self.logger.error(msg)
             raise IOError(msg)
 
-        # Prepare resource file paths
-        entries: List[str]
+        # Prepare resource entries
+        entries: List[Any]
         if isinstance(raw_resources, list):
             entries = raw_resources
         else:
-            entries = [str(raw_resources)]
+            resources_str = raw_resources.strip()
+            # Detect a pure template for a list
+            if resources_str.startswith("{{") and resources_str.endswith("}}"):
+                var = resources_str[2:-2].strip()
+                val = context.get(var)
+                if isinstance(val, list):  # preserve list structure
+                    entries = val
+                else:
+                    rendered = render_template(raw_resources, context)
+                    entries = [rendered]
+            else:
+                rendered = render_template(raw_resources, context)
+                entries = [rendered]
 
+        # Resolve to Path objects, splitting comma-separated values
         paths: List[Path] = []
         for entry in entries:
-            rendered = render_template(entry, context)
-            for part in rendered.split(","):
-                part = part.strip()
-                if part:
-                    paths.append(Path(part))
-        self.logger.debug("Resolved resource paths: %s", paths)
+            if isinstance(entry, list):  # nested list
+                for item in entry:
+                    item_str = str(item).strip()
+                    if item_str:
+                        paths.append(Path(item_str))
+            else:
+                for part in str(entry).split(","):
+                    part = part.strip()
+                    if part:
+                        paths.append(Path(part))
+        self.logger.debug("Resolved resource file paths: %s", paths)
 
-        # Validate existence, skip missing
+        # Validate existence, warn and skip missing
         valid_paths: List[Path] = []
         for p in paths:
             if p.is_file():
                 valid_paths.append(p)
             else:
-                self.logger.warning(f"Resource file not found and will be skipped: '{p}'")
+                self.logger.warning("Resource file not found and will be skipped: '%s'", p)
         self.logger.debug("Valid resource files: %s", valid_paths)
 
         # Ensure output directory exists
@@ -109,66 +126,55 @@ class DocpackCreateStep(BaseStep[DocpackCreateConfig]):
             self.logger.error(msg)
             raise IOError(msg)
 
-        # Handle duplicate filenames by renaming in a temp dir if needed
+        # Handle duplicate filenames
         name_counts: Dict[str, int] = {}
         for p in valid_paths:
             name_counts[p.name] = name_counts.get(p.name, 0) + 1
+        has_duplicates = any(count > 1 for count in name_counts.values())
 
-        duplicates = any(count > 1 for count in name_counts.values())
-        if duplicates:
-            self.logger.debug("Filename conflicts detected, renaming duplicates in a temporary directory")
-            with tempfile.TemporaryDirectory() as tmpdir_str:
-                tmpdir = Path(tmpdir_str)
-                name_index: Dict[str, int] = {}
-                resource_paths_to_package: List[Path] = []
-
-                for original in valid_paths:
-                    name = original.name
-                    count = name_counts[name]
-                    idx = name_index.get(name, 0)
-                    if count > 1:
-                        new_name = name if idx == 0 else f"{original.stem}_{idx}{original.suffix}"
-                        dest = tmpdir / new_name
-                        try:
-                            shutil.copy2(original, dest)
-                        except Exception as e:
-                            msg = f"Failed to copy resource '{original}' to '{dest}': {e}"
-                            self.logger.error(msg)
-                            raise IOError(msg)
-                        resource_paths_to_package.append(dest)
-                        self.logger.debug("Copied '%s' to '%s'", original, dest)
-                        name_index[name] = idx + 1
-                    else:
-                        resource_paths_to_package.append(original)
-
-                # Create the .docpack
-                try:
+        try:
+            if has_duplicates:
+                self.logger.debug("Filename conflicts detected, using temporary directory to rename duplicates")
+                with tempfile.TemporaryDirectory() as tmpdir_str:
+                    tmpdir = Path(tmpdir_str)
+                    name_index: Dict[str, int] = {}
+                    to_package: List[Path] = []
+                    for orig in valid_paths:
+                        count = name_counts[orig.name]
+                        idx = name_index.get(orig.name, 0)
+                        if count > 1:
+                            new_name = orig.name if idx == 0 else f"{orig.stem}_{idx}{orig.suffix}"
+                            dest = tmpdir / new_name
+                            try:
+                                shutil.copy2(orig, dest)
+                            except Exception as e:
+                                msg = f"Failed to copy resource '{orig}' to '{dest}': {e}"
+                                self.logger.error(msg)
+                                raise IOError(msg)
+                            to_package.append(dest)
+                            name_index[orig.name] = idx + 1
+                        else:
+                            to_package.append(orig)
                     DocpackHandler.create_package(
                         outline_data=outline_data,
-                        resource_files=resource_paths_to_package,
+                        resource_files=to_package,
                         output_path=output_path,
                     )
-                except Exception as e:
-                    msg = f"Failed to create docpack '{output_path}': {e}"
-                    self.logger.error(msg)
-                    raise RuntimeError(msg)
-        else:
-            # No conflicts, package directly
-            try:
+            else:
                 DocpackHandler.create_package(
                     outline_data=outline_data,
                     resource_files=valid_paths,
                     output_path=output_path,
                 )
-            except Exception as e:
-                msg = f"Failed to create docpack '{output_path}': {e}"
-                self.logger.error(msg)
-                raise RuntimeError(msg)
+        except Exception as e:
+            msg = f"Failed to create .docpack at '{output_path}': {e}"
+            self.logger.error(msg)
+            raise RuntimeError(msg)
 
         resource_count = len(valid_paths)
         self.logger.info("Created .docpack at '%s' with %d resource files.", output_path, resource_count)
 
-        # Store result in context if requested
+        # Store result in context
         if raw_output_key:
             key = render_template(raw_output_key, context)
             result: Dict[str, Any] = {

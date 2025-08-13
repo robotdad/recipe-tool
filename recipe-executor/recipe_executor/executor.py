@@ -58,13 +58,13 @@ class Executor(ExecutorProtocol):
                 self.logger.debug("Loading recipe from JSON string.")
                 try:
                     recipe_model = Recipe.model_validate_json(recipe_str)
-                except Exception as e:
+                except Exception as primary_err:
                     # Fallback: parse then validate
                     try:
                         parsed = json.loads(recipe_str)
                         recipe_model = Recipe.model_validate(parsed)
-                    except Exception:
-                        raise ValueError(f"Failed to parse or validate recipe JSON string: {e}") from e
+                    except Exception as e:
+                        raise ValueError(f"Failed to parse or validate recipe JSON string: {primary_err}") from e
         else:
             raise TypeError(f"Unsupported recipe type: {type(recipe)}")
 

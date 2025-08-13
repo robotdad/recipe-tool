@@ -41,7 +41,7 @@ class DocpackExtractStep(BaseStep[DocpackExtractConfig]):
     """
 
     def __init__(self, logger: logging.Logger, config: Dict[str, Any]) -> None:
-        # Validate and store configuration via Pydantic
+        # Validate and store configuration
         cfg = DocpackExtractConfig.model_validate(config)
         super().__init__(logger, cfg)
 
@@ -67,13 +67,13 @@ class DocpackExtractStep(BaseStep[DocpackExtractConfig]):
             f"resources_key={resources_key}"
         )
 
-        # Validate .docpack file exists
+        # Validate .docpack file exists and is a file
         if not docpack_path.exists() or not docpack_path.is_file():
             msg = f".docpack file not found at path: {docpack_path}"
             self.logger.error(msg)
             raise FileNotFoundError(msg)
 
-        # Validate extension
+        # Validate file extension
         if docpack_path.suffix.lower() != ".docpack":
             msg = f"Invalid file extension for docpack: {docpack_path.suffix}, expected .docpack"
             self.logger.error(msg)
@@ -95,30 +95,29 @@ class DocpackExtractStep(BaseStep[DocpackExtractConfig]):
             self.logger.error(msg)
             raise RuntimeError(msg) from e
 
-        # Normalize resource file paths to absolute
+        # Normalize resource file paths to absolute strings
         abs_resources: List[str] = []
         try:
             for rf in resource_files:
-                # rf may be str or Path
-                p: Path = rf if isinstance(rf, Path) else Path(rf)
+                p = rf if isinstance(rf, Path) else Path(rf)
                 abs_resources.append(str(p.resolve()))
 
-            # Update resource paths inside the outline JSON if present
+            # Update resource paths inside outline JSON
             if isinstance(outline_data, dict) and "resources" in outline_data:
-                resources_list = outline_data.get("resources")
+                resources_list = outline_data.get("resources")  # type: ignore
                 if isinstance(resources_list, list):
                     for item in resources_list:
                         if isinstance(item, dict) and "path" in item:
-                            item_path = Path(item["path"])  # type: ignore
-                            item["path"] = str(item_path.resolve())  # type: ignore
+                            new_path = Path(item["path"])  # type: ignore
+                            item["path"] = str(new_path.resolve())  # type: ignore
         except Exception as e:
-            # Non-fatal: log and continue
+            # Non-fatal normalization error
             self.logger.debug(f"Error normalizing resource paths: {e}")
 
         # Debug log of extracted files
         self.logger.debug(f"Extracted resource files: {abs_resources}")
 
-        # Store results in context
+        # Store results in context for subsequent steps
         context[outline_key] = outline_data
         context[resources_key] = abs_resources
 

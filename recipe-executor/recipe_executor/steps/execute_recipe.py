@@ -27,7 +27,8 @@ def _render_override(value: Any, context: ContextProtocol) -> Any:
             parsed = ast.literal_eval(rendered)
             if isinstance(parsed, (dict, list)):
                 return parsed
-        except (ValueError, SyntaxError):  # Not a literal or invalid
+        except (ValueError, SyntaxError):
+            # Not a literal or invalid syntax; fall back to rendered string
             pass
         return rendered
 
@@ -79,7 +80,7 @@ class ExecuteRecipeStep(BaseStep[ExecuteRecipeConfig]):
         # Apply context overrides
         for key, override_value in self.config.context_overrides.items():
             new_value = _render_override(override_value, context)
-            context[key] = new_value
+            context[key] = new_value  # type: ignore[index]
 
         # Execute the sub-recipe using the Executor
         try:

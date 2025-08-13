@@ -49,7 +49,7 @@ def get_azure_openai_model(
     use_managed_identity = config.get("azure_use_managed_identity", False)
     client_id = config.get("azure_client_id")
 
-    # determine deployment name
+    # Determine deployment name
     deployment = deployment_name or config.get("azure_openai_deployment_name") or model_name
 
     if not base_url:
@@ -73,12 +73,10 @@ def get_azure_openai_model(
         # Choose authentication method
         if use_managed_identity:
             logger.info("Using Azure Managed Identity for authentication")
-            # create credential
             if client_id:
                 credential = ManagedIdentityCredential(client_id=client_id)
             else:
                 credential = DefaultAzureCredential()
-            # token scope for Azure OpenAI
             scope = "https://cognitiveservices.azure.com/.default"
             token_provider = get_bearer_token_provider(credential, scope)
             azure_client = AsyncAzureOpenAI(

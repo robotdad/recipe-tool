@@ -62,7 +62,6 @@ def render_template(text: str, context: ContextProtocol) -> str:
     Raises:
         ValueError: If there is an error during template parsing or rendering.
     """
-    # Prepare context data
     data = context.dict()
     try:
         template = _env.from_string(text)

@@ -30,10 +30,10 @@ def get_model(
     logger: logging.Logger,
 ) -> Union[OpenAIModel, AnthropicModel, OpenAIResponsesModel]:
     """
-    Initialize a PydanticAI model based on a standardized model_id string.
-    Supported formats: 'provider/model_name' or 'provider/model_name/deployment_name'.
+    Initialize an LLM model based on a standardized model_id string.
+    Expected format: 'provider/model_name' or 'provider/model_name/deployment_name'.
 
-    Providers:
+    Supported providers:
     - openai
     - azure
     - anthropic
@@ -42,16 +42,16 @@ def get_model(
     - azure_responses
 
     Args:
-        model_id: Identifier in format 'provider/model_name' or
-                  'provider/model_name/deployment_name'.
-        context: Context for configuration values.
-        logger: Logger for logging messages.
+        model_id (str): Model identifier in format 'provider/model_name'
+            or 'provider/model_name/deployment_name'.
+        context (ContextProtocol): Context containing configuration values.
+        logger (logging.Logger): Logger for logging messages.
 
     Returns:
-        A configured PydanticAI model instance.
+        The model instance for the specified provider and model.
 
     Raises:
-        ValueError: Invalid format or unsupported provider.
+        ValueError: If model_id format is invalid or if the provider is unsupported.
     """
     parts = model_id.split("/")
     if len(parts) < 2:
@@ -60,6 +60,7 @@ def get_model(
     provider = parts[0].lower()
     config = context.get_config()
 
+    # OpenAI provider
     if provider == "openai":
         if len(parts) != 2:
             raise ValueError(f"Invalid OpenAI model_id: '{model_id}'")
@@ -68,6 +69,7 @@ def get_model(
         provider_obj = OpenAIProvider(api_key=api_key)
         return OpenAIModel(model_name=model_name, provider=provider_obj)
 
+    # Azure OpenAI
     if provider == "azure":
         if len(parts) == 2:
             model_name, deployment = parts[1], None
@@ -82,6 +84,7 @@ def get_model(
             context=context,
         )
 
+    # Anthropic provider
     if provider == "anthropic":
         if len(parts) != 2:
             raise ValueError(f"Invalid Anthropic model_id: '{model_id}'")
@@ -90,6 +93,7 @@ def get_model(
         provider_obj = AnthropicProvider(api_key=api_key)
         return AnthropicModel(model_name=model_name, provider=provider_obj)
 
+    # Ollama (OpenAI-compatible) provider
     if provider == "ollama":
         if len(parts) != 2:
             raise ValueError(f"Invalid Ollama model_id: '{model_id}'")
@@ -98,12 +102,14 @@ def get_model(
         provider_obj = OpenAIProvider(base_url=f"{base_url}/v1")
         return OpenAIModel(model_name=model_name, provider=provider_obj)
 
+    # OpenAI Responses API
     if provider == "openai_responses":
         if len(parts) != 2:
             raise ValueError(f"Invalid OpenAI Responses model_id: '{model_id}'")
         model_name = parts[1]
         return get_openai_responses_model(logger, model_name)
 
+    # Azure Responses API
     if provider == "azure_responses":
         if len(parts) == 2:
             model_name, deployment = parts[1], None

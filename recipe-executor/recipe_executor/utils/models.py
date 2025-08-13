@@ -25,6 +25,7 @@ def json_object_to_pydantic_model(object_schema: Dict[str, Any], model_name: str
     Raises:
         ValueError: If the schema is invalid or unsupported.
     """
+    # Basic validation of the root schema
     if not isinstance(object_schema, dict):
         raise ValueError("Schema must be a dictionary.")
 
@@ -41,14 +42,13 @@ def json_object_to_pydantic_model(object_schema: Dict[str, Any], model_name: str
         raise ValueError('Schema "properties" must be a dictionary if present.')
     if not isinstance(required_fields, list):
         raise ValueError('Schema "required" must be a list if present.')
-
     for field in required_fields:
         if not isinstance(field, str):
             raise ValueError(f"Required field names must be strings, got {field!r}.")
         if field not in properties:
             raise ValueError(f"Required field '{field}' not found in properties.")
 
-    # Counter for nested model naming
+    # Counter for naming nested models deterministically
     counter = itertools.count(1)
 
     def _parse_field(
@@ -61,7 +61,7 @@ def json_object_to_pydantic_model(object_schema: Dict[str, Any], model_name: str
         if f_type is None:
             raise ValueError(f"Schema for field '{field_name}' missing required 'type'.")
 
-        # Primitive types
+        # Determine the Python type hint
         if f_type == "string":
             hint: Any = str
         elif f_type == "integer":
@@ -70,31 +70,29 @@ def json_object_to_pydantic_model(object_schema: Dict[str, Any], model_name: str
             hint = float
         elif f_type == "boolean":
             hint = bool
-        # Nested object
         elif f_type == "object":
+            # Nested object: create a sub-model
             nested_props = field_schema.get("properties", {})
             if not isinstance(nested_props, dict):
                 raise ValueError(f"Properties for nested object '{field_name}' must be a dictionary.")
             nested_id = next(counter)
-            # Preserve original casing except first letter uppercase for readability
-            suffix = field_name[0].upper() + field_name[1:]
+            suffix = field_name[0].upper() + field_name[1:] if field_name else "Object"
             nested_name = f"{parent_name}_{suffix}Model{nested_id}"
             nested_model = _build_model(field_schema, nested_name)
             hint = nested_model
-        # Array type
         elif f_type in ("array", "list"):
-            items = field_schema.get("items")
-            if items is None:
+            items_schema = field_schema.get("items")
+            if items_schema is None:
                 raise ValueError(f"Array field '{field_name}' must have an 'items' schema.")
-            item_hint, _ = _parse_field(items, f"{field_name}_item", parent_name, True)
+            item_hint, _ = _parse_field(items_schema, f"{field_name}_item", parent_name, True)
             hint = List[item_hint]  # type: ignore
-        # Fallback for unsupported or missing types
         else:
+            # Fallback for unsupported types
             hint = Any
 
-        # Default or required
+        # Manage required vs optional
         if is_required:
-            default: Any = ...
+            default: Any = ...  # required
         else:
             hint = Optional[hint]  # type: ignore
             default = None
@@ -102,7 +100,7 @@ def json_object_to_pydantic_model(object_schema: Dict[str, Any], model_name: str
         return hint, default
 
     def _build_model(schema: Dict[str, Any], name: str) -> Type[BaseModel]:
-        # schema is expected to have type 'object'
+        # Expect an object schema
         props = schema.get("properties", {})
         req = schema.get("required", [])
 

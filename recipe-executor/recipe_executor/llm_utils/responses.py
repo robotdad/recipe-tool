@@ -40,7 +40,7 @@ def get_openai_responses_model(
         length = len(secret)
         if length <= 2:
             return "*" * length
-        return f"{secret[0]}{'*' * (length - 2)}{secret[-1]}"
+        return f"{secret[0]}{'*' * (length - 2)}{secret[-1]}"  # mask all but first/last
 
     masked_key = mask_secret(api_key)
     logger.debug(

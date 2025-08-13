@@ -94,7 +94,6 @@ class ParallelStep(BaseStep[ParallelConfig]):
                     failure_exception = exc
                     failure_index = index
                 sub_logger.error("Substep %d failed: %s", index, exc, exc_info=True)
-                # propagate to allow wait to wake
                 raise
 
             finally:
@@ -117,8 +116,8 @@ class ParallelStep(BaseStep[ParallelConfig]):
             self.logger.info("No substeps launched; nothing to wait for.")
             return
 
-        done: Set[asyncio.Task] = set()
-        pending: Set[asyncio.Task] = set()
+        done: Set[asyncio.Task]
+        pending: Set[asyncio.Task]
 
         # Wait for substeps with first-exception or timeout handling
         try:
@@ -134,7 +133,6 @@ class ParallelStep(BaseStep[ParallelConfig]):
                     return_when=asyncio.FIRST_EXCEPTION,
                 )
         except Exception:
-            # Unexpected wait error; consider all tasks done
             done, pending = set(tasks), set()
 
         # Handle failure
@@ -147,7 +145,6 @@ class ParallelStep(BaseStep[ParallelConfig]):
             )
             for t in pending:
                 t.cancel()
-            # wait for cancellations
             await asyncio.gather(*pending, return_exceptions=True)
             raise RuntimeError(f"ParallelStep aborted due to failure in substep {failure_index}") from failure_exception
 
@@ -164,8 +161,7 @@ class ParallelStep(BaseStep[ParallelConfig]):
             await asyncio.gather(*pending, return_exceptions=True)
             raise asyncio.TimeoutError(f"ParallelStep timed out after {timeout_seconds} seconds")
 
-        # All successful
-        # Gather done to propagate any unexpected exceptions
+        # All successful: gather to propagate exceptions
         await asyncio.gather(*done)
         self.logger.info(
             "Completed ParallelStep: %d/%d substeps succeeded",

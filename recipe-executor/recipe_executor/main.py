@@ -38,32 +38,13 @@ async def main_async() -> None:
 
     # Parse command-line arguments
     parser = argparse.ArgumentParser(description="Recipe Executor CLI")
-    parser.add_argument(
-        "recipe_path",
-        type=str,
-        help="Path to the recipe file to execute",
-    )
-    parser.add_argument(
-        "--log-dir",
-        type=str,
-        default="logs",
-        help="Directory for log files",
-    )
-    parser.add_argument(
-        "--context",
-        action="append",
-        default=[],
-        help="Context artifact values as key=value pairs",
-    )
-    parser.add_argument(
-        "--config",
-        action="append",
-        default=[],
-        help="Static configuration values as key=value pairs",
-    )
+    parser.add_argument("recipe_path", type=str, help="Path to the recipe file to execute")
+    parser.add_argument("--log-dir", type=str, default="logs", help="Directory for log files")
+    parser.add_argument("--context", action="append", default=[], help="Context artifact values as key=value pairs")
+    parser.add_argument("--config", action="append", default=[], help="Static configuration values as key=value pairs")
     args = parser.parse_args()
 
-    # Ensure log directory exists
+    # Prepare log directory
     try:
         os.makedirs(args.log_dir, exist_ok=True)
     except Exception as exc:
@@ -88,7 +69,7 @@ async def main_async() -> None:
         raise SystemExit(1)
     logger.debug("Initial context artifacts: %s", artifacts)
 
-    # Parse CLI config overrides
+    # Parse CLI configuration overrides
     try:
         cli_config: Dict[str, str] = parse_key_value_pairs(args.config)
     except ValueError as ve:
@@ -106,8 +87,8 @@ async def main_async() -> None:
 
     # Load configuration from environment and recipe-specific variables
     try:
-        env_vars: Optional[List[str]] = getattr(recipe, "env_vars", None)
-        env_config: Dict[str, Any] = load_configuration(env_vars)
+        recipe_env_vars: Optional[List[str]] = getattr(recipe, "env_vars", None)
+        env_config: Dict[str, Any] = load_configuration(recipe_env_vars)
     except Exception as exc:
         logger.error("Configuration loading error: %s", exc, exc_info=True)
         raise SystemExit(1)
