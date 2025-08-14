@@ -19,7 +19,8 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-*experiments/
+examples/experiments/
+recipes/
 
 # Virtual environments
 .venv/

@@ -2,6 +2,7 @@ import argparse
 import asyncio
 import json
 import os
+import subprocess
 import tempfile
 import time
 import uuid
@@ -9,6 +10,8 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 import gradio as gr
+import pypandoc
+from docx import Document
 from docpack_file import DocpackHandler
 from dotenv import load_dotenv
 
@@ -21,6 +24,80 @@ load_dotenv()
 
 # Global variable to track if app is running in dev mode
 IS_DEV_MODE = False
+
+# Supported file types for uploads
+SUPPORTED_FILE_TYPES = [
+    ".txt", ".md", ".py", ".c", ".cpp", ".h", ".java", ".js", ".ts", ".jsx", ".tsx",
+    ".json", ".xml", ".yaml", ".yml", ".toml", ".ini", ".cfg", ".conf", ".sh", ".bash",
+    ".zsh", ".fish", ".ps1", ".bat", ".cmd", ".rs", ".go", ".rb", ".php", ".pl", ".lua",
+    ".r", ".m", ".swift", ".kt", ".scala", ".clj", ".ex", ".exs", ".elm", ".fs", ".ml",
+    ".sql", ".html", ".htm", ".css", ".scss", ".sass", ".less", ".vue", ".svelte", ".astro",
+    ".tex", ".rst", ".adoc", ".org", ".csv", ".docx"
+]
+
+
+def markdown_to_docx(markdown_content: str, output_path: str) -> str:
+    """Convert markdown content to docx file and return the output path."""
+    try:
+        pypandoc.convert_text(
+            markdown_content, 
+            'docx', 
+            format='md',
+            outputfile=output_path,
+            extra_args=['--extract-media=.']  # Extract images to current directory
+        )
+        return output_path
+    except Exception as e:
+        raise Exception(f"Failed to convert markdown to docx: {str(e)}")
+
+
+def check_docx_protected(docx_path: str) -> tuple[bool, str]:
+    """Check if a docx file is protected/encrypted without fully extracting text.
+    Returns (is_protected, error_message)
+    """
+    try:
+        from docx import Document
+        filename = os.path.basename(docx_path)
+        # Try to open the document
+        doc = Document(docx_path)
+        # Try to access at least one paragraph to ensure it's readable
+        _ = len(doc.paragraphs)
+        return False, ""
+    except Exception as e:
+        error_msg = str(e).lower()
+        filename = os.path.basename(docx_path)
+        # Check for common security/encryption error messages
+        if any(term in error_msg for term in ['package not found']):
+            return True, (
+                f"Document '{filename}' appears to be protected or encrypted and cannot be processed."
+            )
+        else:
+            # Some other error, but not protection-related
+            return False, f"Document '{filename}' may have issues: {str(e)}"
+
+
+def docx_to_text(docx_path: str) -> str:
+    """Extract text content from a docx file."""
+    try:
+        doc = Document(docx_path)
+        paragraphs = []
+        
+        for paragraph in doc.paragraphs:
+            if paragraph.text.strip():  # Only add non-empty paragraphs
+                paragraphs.append(paragraph.text.strip())
+        
+        return '\n\n'.join(paragraphs)
+    except Exception as e:
+        error_msg = str(e).lower()
+        filename = os.path.basename(docx_path)
+        # Check for common security/encryption error messages
+        if any(term in error_msg for term in ['package not found']):
+            raise Exception(
+                f"Document '{filename}' may be protected or encrypted and cannot be processed."
+            )
+        else:
+            raise Exception(f"Failed to extract text from '{filename}': {str(e)}")
+
 
 
 def json_to_outline(json_data: Dict[str, Any]) -> Outline:
@@ -362,13 +439,14 @@ async def handle_document_generation(title, description, resources, blocks, sess
         # Generate the document
         generated_content = await generate_document(outline, session_id, IS_DEV_MODE)
 
-        # Save to temporary file for download
-        filename = f"{title}.md" if title else "document.md"
-        file_path = os.path.join(temp_dir, filename)
-        with open(file_path, "w") as f:
-            f.write(generated_content)
+        # Save markdown to temporary file for download as docx
+        docx_filename = f"{title}.docx" if title else "document.docx"
+        docx_file_path = os.path.join(temp_dir, docx_filename)
+        
+        # Convert markdown to docx
+        markdown_to_docx(generated_content, docx_file_path)
 
-        return json_str, generated_content, file_path, filename
+        return json_str, generated_content, docx_file_path, docx_filename
 
     except Exception as e:
         error_msg = f"Error generating document: {str(e)}"
@@ -581,8 +659,14 @@ def update_block_resources(blocks, block_id, resource_json, title, description, 
 
                 # Auto-load the file content into the text block
                 try:
-                    with open(resource_data["path"], "r", encoding="utf-8") as f:
-                        block["content"] = f.read()
+                    file_path = resource_data["path"]
+                    if file_path.lower().endswith('.docx'):
+                        # Extract text from docx file
+                        block["content"] = docx_to_text(file_path)
+                    else:
+                        # Read as regular text file
+                        with open(file_path, "r", encoding="utf-8") as f:
+                            block["content"] = f.read()
                 except Exception as e:
                     print(f"Error loading file content: {e}")
                     # Keep existing content if file can't be read
@@ -658,7 +742,7 @@ def generate_resource_html(resources):
     """Generate HTML for resource panel display."""
     if not resources:
         return (
-            "<p style='color: #666; font-size: 12px'>(.md, .csv, .py, .json, .txt, etc.)</p>"
+            "<p style='color: #666; font-size: 12px'>(.docx, .md, .csv, .py, .json, .txt, etc.)</p>"
             "<p style='color: #666; font-size: 12px'>These reference files will be used for AI context.</p>"
         )
 
@@ -691,7 +775,7 @@ def generate_resource_html(resources):
             f'<div class="resource-filename">{resource["name"]}</div>'
             f'<div class="resource-upload-zone" data-resource-path="{path}">'
             f'<span class="upload-text">Drop file here to replace</span>'
-            f'<input type="file" class="resource-file-input" accept=".txt,.md,.py,.c,.cpp,.h,.java,.js,.ts,.jsx,.tsx,.json,.xml,.yaml,.yml,.toml,.ini,.cfg,.conf,.sh,.bash,.zsh,.fish,.ps1,.bat,.cmd,.rs,.go,.rb,.php,.pl,.lua,.r,.m,.swift,.kt,.scala,.clj,.ex,.exs,.elm,.fs,.ml,.sql,.html,.htm,.css,.scss,.sass,.less,.vue,.svelte,.astro,.tex,.rst,.adoc,.org,.csv" '
+            f'<input type="file" class="resource-file-input" accept=".txt,.md,.py,.c,.cpp,.h,.java,.js,.ts,.jsx,.tsx,.json,.xml,.yaml,.yml,.toml,.ini,.cfg,.conf,.sh,.bash,.zsh,.fish,.ps1,.bat,.cmd,.rs,.go,.rb,.php,.pl,.lua,.r,.m,.swift,.kt,.scala,.clj,.ex,.exs,.elm,.fs,.ml,.sql,.html,.htm,.css,.scss,.sass,.less,.vue,.svelte,.astro,.tex,.rst,.adoc,.org,.csv,.docx" '
             f"onchange=\"handleResourceFileUpload('{path}', this)\" />"
             f"</div>"
             f"</div>"
@@ -1477,15 +1561,23 @@ def render_blocks(blocks, focused_block_id=None):
 def handle_start_file_upload(files, current_resources):
     """Handle file uploads on the Start tab."""
     if not files:
-        return current_resources, None
+        return current_resources, None, gr.update(visible=False)
 
     # Add new files to resources
     new_resources = current_resources.copy() if current_resources else []
+    warnings = []
 
     for file_path in files:
         if file_path:
             file_name = os.path.basename(file_path)
             file_size = os.path.getsize(file_path)
+
+            # Check if it's a docx file and if it's protected
+            if file_path.lower().endswith('.docx'):
+                is_protected, error_msg = check_docx_protected(file_path)
+                if is_protected:
+                    warnings.append(error_msg)
+                    continue  # Skip adding this file to resources
 
             # Format file size
             if file_size < 1024:
@@ -1503,7 +1595,23 @@ def handle_start_file_upload(files, current_resources):
                     "size": size_str,
                 })
 
-    return new_resources, None  # Return None to clear the file upload component
+    # Create warning message if there were any protected files
+    if warnings:
+        import random
+        warning_id = f"warning_{random.randint(1000, 9999)}"
+        warning_html = f"""
+        <div id="{warning_id}" style='position: relative; color: #dc2626; background: #fee2e2; padding: 8px 30px 8px 12px; border-radius: 4px; margin-top: 8px; font-size: 14px;'>
+            <button onclick="document.getElementById('{warning_id}').style.display='none'" 
+                    style='position: absolute; top: 4px; right: 5px; background: none; border: none; color: #dc2626; font-size: 18px; cursor: pointer; padding: 0 5px; opacity: 0.6;' 
+                    onmouseover="this.style.opacity='1'" 
+                    onmouseout="this.style.opacity='0.6'"
+                    title='Close'>×</button>
+            {"<br>".join(warnings)}
+        </div>
+        """
+        return new_resources, None, gr.update(value=warning_html, visible=True)
+    
+    return new_resources, None, gr.update(visible=False)
 
 
 def handle_start_draft_click_wrapper(prompt, resources, session_id=None):
@@ -1540,7 +1648,14 @@ async def handle_start_draft_click(prompt, resources, session_id=None):
             gr.update(),  # save_doc_btn
             gr.update(),  # switch_tab_trigger
             gr.update(
-                value=f'<div style="color: #dc2626; padding: 8px 12px; background: #fee2e2; border-radius: 4px; margin-top: 8px;">{error_msg}</div>',
+                value=f'''<div id="prompt_error" style="position: relative; color: #dc2626; padding: 8px 30px 8px 12px; background: #fee2e2; border-radius: 4px; margin-top: 8px; font-size: 14px;">
+                    <button onclick="document.getElementById('prompt_error').style.display='none'" 
+                            style="position: absolute; top: 4px; right: 5px; background: none; border: none; color: #dc2626; font-size: 18px; cursor: pointer; padding: 0 5px; opacity: 0.6;" 
+                            onmouseover="this.style.opacity='1'" 
+                            onmouseout="this.style.opacity='0.6'"
+                            title="Close">×</button>
+                    {error_msg}
+                </div>''',
                 visible=True,
             ),  # start_error_message
             gr.update(),  # start_prompt_input - no change
@@ -1684,7 +1799,14 @@ async def handle_start_draft_click(prompt, resources, session_id=None):
                 gr.update(),  # save_doc_btn
                 gr.update(),  # switch_tab_trigger
                 gr.update(
-                    value=f'<div style="color: #dc2626; padding: 8px 12px; background: #fee2e2; border-radius: 4px; margin-top: 8px;">{error_msg}</div>',
+                    value=f'''<div id="outline_error" style="position: relative; color: #dc2626; padding: 8px 30px 8px 12px; background: #fee2e2; border-radius: 4px; margin-top: 8px; font-size: 14px;">
+                        <button onclick="document.getElementById('outline_error').style.display='none'" 
+                                style="position: absolute; top: 4px; right: 5px; background: none; border: none; color: #dc2626; font-size: 18px; cursor: pointer; padding: 0 5px; opacity: 0.6;" 
+                                onmouseover="this.style.opacity='1'" 
+                                onmouseout="this.style.opacity='0.6'"
+                                title="Close">×</button>
+                        {error_msg}
+                    </div>''',
                     visible=True,
                 ),  # start_error_message
                 gr.update(lines=4, max_lines=10),  # start_prompt_input - preserve lines
@@ -1711,7 +1833,14 @@ async def handle_start_draft_click(prompt, resources, session_id=None):
             gr.update(),  # save_doc_btn
             gr.update(),  # switch_tab_trigger
             gr.update(
-                value=f'<div style="color: #dc2626; padding: 8px 12px; background: #fee2e2; border-radius: 4px; margin-top: 8px;">{error_msg}</div>',
+                value=f'''<div id="exception_error" style="position: relative; color: #dc2626; padding: 8px 30px 8px 12px; background: #fee2e2; border-radius: 4px; margin-top: 8px; font-size: 14px;">
+                    <button onclick="document.getElementById('exception_error').style.display='none'" 
+                            style="position: absolute; top: 4px; right: 5px; background: none; border: none; color: #dc2626; font-size: 18px; cursor: pointer; padding: 0 5px; opacity: 0.6;" 
+                            onmouseover="this.style.opacity='1'" 
+                            onmouseout="this.style.opacity='0.6'"
+                            title="Close">×</button>
+                    {error_msg}
+                </div>''',
                 visible=True,
             ),  # start_error_message
             gr.update(),  # start_prompt_input
@@ -1723,7 +1852,8 @@ def handle_file_upload(files, current_resources, title, description, blocks, ses
     """Handle uploaded files and return HTML display of file names."""
     if not files:
         # Don't return None for outline and json_output to avoid clearing them
-        return current_resources, None, gr.update(), gr.update(), session_id
+        # Don't hide warning on empty upload - keep existing warning visible
+        return current_resources, None, gr.update(), gr.update(), session_id, gr.update()
 
     # Debug: Check what we're receiving
     print(f"DEBUG handle_file_upload - title: {title}, description: {description}, blocks: {blocks}")
@@ -1734,6 +1864,7 @@ def handle_file_upload(files, current_resources, title, description, blocks, ses
 
     # Add new files to resources
     new_resources = current_resources.copy() if current_resources else []
+    warnings = []
 
     # Get session files directory
     files_dir = session_manager.get_files_dir(session_id)
@@ -1743,6 +1874,13 @@ def handle_file_upload(files, current_resources, title, description, blocks, ses
             import shutil
 
             file_name = os.path.basename(file_path)
+            
+            # Check if it's a docx file and if it's protected
+            if file_path.lower().endswith('.docx'):
+                is_protected, error_msg = check_docx_protected(file_path)
+                if is_protected:
+                    warnings.append(error_msg)
+                    continue  # Skip adding this file to resources
 
             # Copy file to session directory
             session_file_path = files_dir / file_name
@@ -1771,12 +1909,32 @@ def handle_file_upload(files, current_resources, title, description, blocks, ses
     print(f"  - json_str type: {type(json_str)}, length: {len(json_str)}")
     print(f"  - session_id: {session_id}")
 
+    # Create warning message if there were any protected files
+    if warnings:
+        import random
+        warning_id = f"warning_{random.randint(1000, 9999)}"
+        warning_html = f"""
+        <div id="{warning_id}" style='position: relative; color: #dc2626; background: #fee2e2; padding: 10px 30px 10px 12px; border-radius: 4px; margin: 10px 0;'>
+            <button onclick="document.getElementById('{warning_id}').style.display='none'" 
+                    style='position: absolute; top: 5px; right: 5px; background: none; border: none; color: #dc2626; font-size: 18px; cursor: pointer; padding: 0 5px; opacity: 0.6;' 
+                    onmouseover="this.style.opacity='1'" 
+                    onmouseout="this.style.opacity='0.6'"
+                    title='Close'>×</button>
+            {"<br>".join(warnings)}
+            <br><small style='color: #991b1b; margin-top: 5px; display: block;'>Protected files were not added to resources.</small>
+        </div>
+        """
+        warning_update = gr.update(value=warning_html, visible=True)
+    else:
+        warning_update = gr.update(visible=False)
+    
     return (
         new_resources,
         None,  # Clear file upload
         outline,
         json_str,
         session_id,
+        warning_update,
     )
 
 
@@ -1857,9 +2015,27 @@ def delete_resource_gradio(resources, resource_path, title, description, blocks)
 def replace_resource_file_gradio(resources, old_resource_path, new_file, title, description, blocks, session_id=None):
     """Replace a resource file from Gradio component."""
     if not new_file:
-        return resources, None, "{}", None
+        return resources, None, "{}", None, gr.update(visible=False)
 
     try:
+        # Check if the new file is a protected docx
+        if new_file.name.lower().endswith('.docx'):
+            is_protected, error_msg = check_docx_protected(new_file.name)
+            if is_protected:
+                import random
+                warning_id = f"warning_{random.randint(1000, 9999)}"
+                warning_html = f"""
+                <div id="{warning_id}" style='position: relative; color: #dc2626; background: #fee2e2; padding: 8px 25px 8px 8px; border-radius: 4px; margin: 5px 0; font-size: 13px;'>
+                    <button onclick="document.getElementById('{warning_id}').style.display='none'" 
+                            style='position: absolute; top: 2px; right: 2px; background: none; border: none; color: #dc2626; font-size: 16px; cursor: pointer; padding: 0 3px; line-height: 1; opacity: 0.6;' 
+                            onmouseover="this.style.opacity='1'" 
+                            onmouseout="this.style.opacity='0.6'"
+                            title='Close'>×</button>
+                    <strong>⚠️ Cannot Replace:</strong><br>{error_msg}
+                </div>
+                """
+                return resources, None, "{}", None, gr.update(value=warning_html, visible=True)
+        
         # Get or create session
         if not session_id:
             session_id = str(uuid.uuid4())
@@ -1914,8 +2090,13 @@ def replace_resource_file_gradio(resources, old_resource_path, new_file, title, 
                                 # If it's a text block, reload the content
                                 if block["type"] == "text":
                                     try:
-                                        with open(dest_path, "r", encoding="utf-8") as f:
-                                            block["content"] = f.read()
+                                        if dest_path.lower().endswith('.docx'):
+                                            # Extract text from docx file
+                                            block["content"] = docx_to_text(dest_path)
+                                        else:
+                                            # Read as regular text file
+                                            with open(dest_path, "r", encoding="utf-8") as f:
+                                                block["content"] = f.read()
                                     except Exception as e:
                                         print(f"Error loading new file content: {e}")
 
@@ -1924,12 +2105,38 @@ def replace_resource_file_gradio(resources, old_resource_path, new_file, title, 
         # Regenerate outline
         outline, json_str = regenerate_outline_from_state(title, description, resources, blocks)
 
-        # Return with cleared file input
-        return resources, outline, json_str, None
+        # Return with cleared file input and no warning
+        return resources, outline, json_str, None, gr.update(visible=False)
 
     except Exception as e:
         print(f"Error replacing resource file: {e}")
-        return resources, None, "{}", None
+        import random
+        warning_id = f"warning_{random.randint(1000, 9999)}"
+        # Check if it's a protection error
+        if "protected or encrypted" in str(e):
+            warning_html = f"""
+            <div id="{warning_id}" style='position: relative; color: #dc2626; background: #fee2e2; padding: 8px 25px 8px 8px; border-radius: 4px; margin: 5px 0; font-size: 13px;'>
+                <button onclick="document.getElementById('{warning_id}').style.display='none'" 
+                        style='position: absolute; top: 2px; right: 2px; background: none; border: none; color: #dc2626; font-size: 16px; cursor: pointer; padding: 0 3px; line-height: 1; opacity: 0.6;' 
+                        onmouseover="this.style.opacity='1'" 
+                        onmouseout="this.style.opacity='0.6'"
+                        title='Close'>×</button>
+                <strong>⚠️ Replace Failed:</strong><br>{str(e)}
+            </div>
+            """
+            return resources, None, "{}", None, gr.update(value=warning_html, visible=True)
+        # For other errors, show a generic error message
+        warning_html = f"""
+        <div id="{warning_id}" style='position: relative; color: #92400e; background: #fef3c7; padding: 8px 25px 8px 8px; border-radius: 4px; margin: 5px 0; font-size: 13px;'>
+            <button onclick="document.getElementById('{warning_id}').style.display='none'" 
+                    style='position: absolute; top: 2px; right: 2px; background: none; border: none; color: #92400e; font-size: 16px; cursor: pointer; padding: 0 3px; line-height: 1; opacity: 0.6;' 
+                    onmouseover="this.style.opacity='1'" 
+                    onmouseout="this.style.opacity='0.6'"
+                    title='Close'>×</button>
+            <strong>⚠️ Error:</strong><br>Failed to replace file: {str(e)}
+        </div>
+        """
+        return resources, None, "{}", None, gr.update(value=warning_html, visible=True)
 
 
 def create_app():
@@ -2043,77 +2250,21 @@ def create_app():
 
                             # Upload area - full width
                             gr.TextArea(
-                                label="Add reference files for AI context. (Text files only: .md, .csv, .py, .json, .txt, etc.)",
+                                label="Add reference files for AI context. (.docx, .md, .csv, .py, .json, .txt, etc.)",
                                 elem_classes="resource-drop-label",
                             )
                             # File upload dropzone
                             start_file_upload = gr.File(
                                 label="Drop files here or click to upload",
                                 file_count="multiple",
-                                file_types=[
-                                    ".txt",
-                                    ".md",
-                                    ".py",
-                                    ".c",
-                                    ".cpp",
-                                    ".h",
-                                    ".java",
-                                    ".js",
-                                    ".ts",
-                                    ".jsx",
-                                    ".tsx",
-                                    ".json",
-                                    ".xml",
-                                    ".yaml",
-                                    ".yml",
-                                    ".toml",
-                                    ".ini",
-                                    ".cfg",
-                                    ".conf",
-                                    ".sh",
-                                    ".bash",
-                                    ".zsh",
-                                    ".fish",
-                                    ".ps1",
-                                    ".bat",
-                                    ".cmd",
-                                    ".rs",
-                                    ".go",
-                                    ".rb",
-                                    ".php",
-                                    ".pl",
-                                    ".lua",
-                                    ".r",
-                                    ".m",
-                                    ".swift",
-                                    ".kt",
-                                    ".scala",
-                                    ".clj",
-                                    ".ex",
-                                    ".exs",
-                                    ".elm",
-                                    ".fs",
-                                    ".ml",
-                                    ".sql",
-                                    ".html",
-                                    ".htm",
-                                    ".css",
-                                    ".scss",
-                                    ".sass",
-                                    ".less",
-                                    ".vue",
-                                    ".svelte",
-                                    ".astro",
-                                    ".tex",
-                                    ".rst",
-                                    ".adoc",
-                                    ".org",
-                                    ".csv",
-                                ],
+                                file_types=SUPPORTED_FILE_TYPES,
                                 elem_classes="start-file-upload-dropzone",
                                 show_label=False,
                                 height=90,
                             )
+                            
+                            # Warning message for protected files
+                            start_upload_warning = gr.HTML(visible=False)
 
                             # Draft button - full width below dropzone
                             get_started_btn = gr.Button(
@@ -2144,8 +2295,10 @@ def create_app():
                                 height=150,
                                 container=False,
                                 elem_classes="start-feature-image",
+                                elem_id="template-control-image",
                                 show_download_button=False,
                                 show_fullscreen_button=False,
+                                interactive=False,
                             )
                             gr.Markdown("### Template Control", elem_classes="start-feature-item-title")
                             gr.Markdown(
@@ -2163,8 +2316,10 @@ def create_app():
                                 height=150,
                                 container=False,
                                 elem_classes="start-feature-image",
+                                elem_id="evergreen-content-image",
                                 show_download_button=False,
                                 show_fullscreen_button=False,
+                                interactive=False,
                             )
                             gr.Markdown("### Evergreen Content", elem_classes="start-feature-item-title")
                             gr.Markdown(
@@ -2182,8 +2337,10 @@ def create_app():
                                 height=150,
                                 container=False,
                                 elem_classes="start-feature-image",
+                                elem_id="smart-regeneration-image",
                                 show_download_button=False,
                                 show_fullscreen_button=False,
+                                interactive=False,
                             )
                             gr.Markdown("### Smart Regeneration", elem_classes="start-feature-item-title")
                             gr.Markdown(
@@ -2308,9 +2465,9 @@ def create_app():
 
                 # Import and Save buttons
                 with gr.Column():
-                    with gr.Row():
+                    with gr.Row(elem_classes="header-buttons-row"):
                         # Add empty space to push buttons to the right
-                        gr.HTML("<div style='flex: 1;'></div>")
+                        gr.HTML("<div class='button-spacer' style='flex: 1;'></div>")
                         # Try Examples button with dropdown container
                         with gr.Column(elem_classes="try-examples-container"):
                             gr.Button(
@@ -2409,71 +2566,15 @@ def create_app():
                     file_upload = gr.File(
                         label="Drop Text File Here",
                         file_count="multiple",
-                        file_types=[
-                            ".txt",
-                            ".md",
-                            ".py",
-                            ".c",
-                            ".cpp",
-                            ".h",
-                            ".java",
-                            ".js",
-                            ".ts",
-                            ".jsx",
-                            ".tsx",
-                            ".json",
-                            ".xml",
-                            ".yaml",
-                            ".yml",
-                            ".toml",
-                            ".ini",
-                            ".cfg",
-                            ".conf",
-                            ".sh",
-                            ".bash",
-                            ".zsh",
-                            ".fish",
-                            ".ps1",
-                            ".bat",
-                            ".cmd",
-                            ".rs",
-                            ".go",
-                            ".rb",
-                            ".php",
-                            ".pl",
-                            ".lua",
-                            ".r",
-                            ".m",
-                            ".swift",
-                            ".kt",
-                            ".scala",
-                            ".clj",
-                            ".ex",
-                            ".exs",
-                            ".elm",
-                            ".fs",
-                            ".ml",
-                            ".sql",
-                            ".html",
-                            ".htm",
-                            ".css",
-                            ".scss",
-                            ".sass",
-                            ".less",
-                            ".vue",
-                            ".svelte",
-                            ".astro",
-                            ".tex",
-                            ".rst",
-                            ".adoc",
-                            ".org",
-                            ".csv",
-                        ],
+                        file_types=SUPPORTED_FILE_TYPES,
                         elem_classes="file-upload-dropzone",
                         visible=True,
                         height=90,
                         show_label=False,
                     )
+                    
+                    # Warning message for protected files - placed before the render area
+                    file_upload_warning = gr.HTML(visible=False, elem_classes="file-upload-warning")
 
                     # Container for dynamic resource components
                     with gr.Column(elem_classes="resources-display-area"):
@@ -2482,7 +2583,7 @@ def create_app():
                         def render_resource_components(resources):
                             if not resources:
                                 gr.HTML(
-                                    value="<p style='color: #666; font-size: 12px'>(.md, .csv, .py, .json, .txt, etc.)</p>"
+                                    value="<p style='color: #666; font-size: 12px'>(.docx, .md, .csv, .py, .json, .txt, etc.)</p>"
                                     "<p style='color: #666; font-size: 12px'>These reference files will be used for AI context.</p>"
                                 )
                             else:
@@ -2529,70 +2630,14 @@ def create_app():
                                         # File replacement upload area
                                         replace_file = gr.File(
                                             label="Drop file here to replace",
-                                            file_types=[
-                                                ".txt",
-                                                ".md",
-                                                ".py",
-                                                ".c",
-                                                ".cpp",
-                                                ".h",
-                                                ".java",
-                                                ".js",
-                                                ".ts",
-                                                ".jsx",
-                                                ".tsx",
-                                                ".json",
-                                                ".xml",
-                                                ".yaml",
-                                                ".yml",
-                                                ".toml",
-                                                ".ini",
-                                                ".cfg",
-                                                ".conf",
-                                                ".sh",
-                                                ".bash",
-                                                ".zsh",
-                                                ".fish",
-                                                ".ps1",
-                                                ".bat",
-                                                ".cmd",
-                                                ".rs",
-                                                ".go",
-                                                ".rb",
-                                                ".php",
-                                                ".pl",
-                                                ".lua",
-                                                ".r",
-                                                ".m",
-                                                ".swift",
-                                                ".kt",
-                                                ".scala",
-                                                ".clj",
-                                                ".ex",
-                                                ".exs",
-                                                ".elm",
-                                                ".fs",
-                                                ".ml",
-                                                ".sql",
-                                                ".html",
-                                                ".htm",
-                                                ".css",
-                                                ".scss",
-                                                ".sass",
-                                                ".less",
-                                                ".vue",
-                                                ".svelte",
-                                                ".astro",
-                                                ".tex",
-                                                ".rst",
-                                                ".adoc",
-                                                ".org",
-                                                ".csv",
-                                            ],
+                                            file_types=SUPPORTED_FILE_TYPES,
                                             elem_classes="resource-upload-gradio",
                                             scale=1,
                                             show_label=False,
                                         )
+                                        
+                                        # Warning message for protected files
+                                        replace_warning = gr.HTML(visible=False)
 
                                         # Connect events for this resource
                                         resource_path = resource["path"]
@@ -2666,7 +2711,7 @@ def create_app():
                                         )
 
                                         # File replacement
-                                        replace_file.change(
+                                        replace_file.upload(
                                             fn=replace_resource_file_gradio,
                                             inputs=[
                                                 resources_state,
@@ -2677,7 +2722,7 @@ def create_app():
                                                 blocks_state,
                                                 session_state,
                                             ],
-                                            outputs=[resources_state, outline_state, json_output, replace_file],
+                                            outputs=[resources_state, outline_state, json_output, replace_file, replace_warning],
                                         ).then(
                                             # Force JSON update after resources render
                                             fn=lambda title, desc, res, blocks: regenerate_outline_from_state(
@@ -2691,6 +2736,22 @@ def create_app():
                 with gr.Column(scale=1, elem_classes="workspace-col"):
                     with gr.Row(elem_classes="square-btn-row"):
                         ai_btn = gr.Button("+ Add Section", elem_classes="add-section-btn", size="sm")
+                        # Add spacer to push collapse/expand buttons to the right
+                        gr.HTML("<div style='flex: 1;'></div>")
+                        # Collapse all button (same chevron as content blocks, rotated)
+                        collapse_all_btn = gr.Button(
+                            "⌵", 
+                            elem_classes="collapse-all-btn workspace-collapse-btn",
+                            elem_id="collapse-all-btn",
+                            size="sm"
+                        )
+                        # Expand all button (same chevron as content blocks) 
+                        expand_all_btn = gr.Button(
+                            "⌵",
+                            elem_classes="expand-all-btn workspace-collapse-btn", 
+                            elem_id="expand-all-btn",
+                            size="sm"
+                        )
 
                     # Workspace panel for stacking content blocks
                     with gr.Column(elem_classes="workspace-display"):
@@ -2860,66 +2921,7 @@ def create_app():
                         replace_resource_file_input = gr.File(
                             visible=False,
                             elem_id="replace-resource-file",
-                            file_types=[
-                                ".txt",
-                                ".md",
-                                ".py",
-                                ".c",
-                                ".cpp",
-                                ".h",
-                                ".java",
-                                ".js",
-                                ".ts",
-                                ".jsx",
-                                ".tsx",
-                                ".json",
-                                ".xml",
-                                ".yaml",
-                                ".yml",
-                                ".toml",
-                                ".ini",
-                                ".cfg",
-                                ".conf",
-                                ".sh",
-                                ".bash",
-                                ".zsh",
-                                ".fish",
-                                ".ps1",
-                                ".bat",
-                                ".cmd",
-                                ".rs",
-                                ".go",
-                                ".rb",
-                                ".php",
-                                ".pl",
-                                ".lua",
-                                ".r",
-                                ".m",
-                                ".swift",
-                                ".kt",
-                                ".scala",
-                                ".clj",
-                                ".ex",
-                                ".exs",
-                                ".elm",
-                                ".fs",
-                                ".ml",
-                                ".sql",
-                                ".html",
-                                ".htm",
-                                ".css",
-                                ".scss",
-                                ".sass",
-                                ".less",
-                                ".vue",
-                                ".svelte",
-                                ".astro",
-                                ".tex",
-                                ".rst",
-                                ".adoc",
-                                ".org",
-                                ".csv",
-                            ],
+                            file_types=SUPPORTED_FILE_TYPES,
                         )
                         replace_resource_trigger = gr.Button(
                             "Replace Resource", visible=False, elem_id="replace-resource-trigger"
@@ -2982,6 +2984,18 @@ def create_app():
             blocks = add_text_block(blocks, None)
             outline, json_str = regenerate_outline_from_state(title, description, resources, blocks)
             return blocks, outline, json_str
+        
+        # Helper function to collapse all blocks
+        def collapse_all_blocks(blocks):
+            for block in blocks:
+                block["collapsed"] = True
+            return blocks
+        
+        # Helper function to expand all blocks  
+        def expand_all_blocks(blocks):
+            for block in blocks:
+                block["collapsed"] = False
+            return blocks
 
         # Connect button click to add AI block
         ai_btn.click(
@@ -2994,6 +3008,20 @@ def create_app():
                 resources_state,
             ],  # Always pass None for focused_block_id
             outputs=[blocks_state, outline_state, json_output],
+        ).then(fn=render_blocks, inputs=[blocks_state, focused_block_state], outputs=blocks_display)
+        
+        # Connect collapse all button
+        collapse_all_btn.click(
+            fn=collapse_all_blocks,
+            inputs=[blocks_state],
+            outputs=[blocks_state]
+        ).then(fn=render_blocks, inputs=[blocks_state, focused_block_state], outputs=blocks_display)
+        
+        # Connect expand all button
+        expand_all_btn.click(
+            fn=expand_all_blocks,
+            inputs=[blocks_state],
+            outputs=[blocks_state]
         ).then(fn=render_blocks, inputs=[blocks_state, focused_block_state], outputs=blocks_display)
 
         # Connect button click to add Text block
@@ -3169,10 +3197,10 @@ def create_app():
         )
 
         # Handle file uploads (defined after json_output is created)
-        file_upload.change(
+        file_upload.upload(
             fn=handle_file_upload,
             inputs=[file_upload, resources_state, doc_title, doc_description, blocks_state, session_state],
-            outputs=[resources_state, file_upload, outline_state, json_output, session_state],
+            outputs=[resources_state, file_upload, outline_state, json_output, session_state, file_upload_warning],
         ).then(
             # Force JSON update after resources render
             fn=lambda title, desc, res, blocks: regenerate_outline_from_state(title, desc, res, blocks)[1],
@@ -3405,7 +3433,14 @@ def create_app():
                 # Show error message, hide loading, enable button
                 return (
                     gr.update(
-                        value='<div style="color: #dc2626; padding: 8px 12px; background: #fee2e2; border-radius: 4px; margin-top: 8px; font-size: 14px;">Please enter a description of what you\'d like to create.</div>',
+                        value='''<div id="prompt_error" style="position: relative; color: #dc2626; padding: 8px 30px 8px 12px; background: #fee2e2; border-radius: 4px; margin-top: 8px; font-size: 14px;">
+                            <button onclick="document.getElementById('prompt_error').style.display='none'" 
+                                    style="position: absolute; top: 4px; right: 5px; background: none; border: none; color: #dc2626; font-size: 18px; cursor: pointer; padding: 0 5px; opacity: 0.6;" 
+                                    onmouseover="this.style.opacity='1'" 
+                                    onmouseout="this.style.opacity='0.6'"
+                                    title="Close">×</button>
+                            Please enter a description of what you'd like to create.
+                        </div>''',
                         visible=True,
                     ),
                     gr.update(interactive=True),  # Enable button
@@ -3450,15 +3485,15 @@ def create_app():
         # Wrapper for file upload that includes rendering
         def handle_start_file_upload_with_render(files, current_resources):
             """Handle file uploads and render the resources."""
-            new_resources, clear_upload = handle_start_file_upload(files, current_resources)
+            new_resources, clear_upload, warning_update = handle_start_file_upload(files, current_resources)
             resources_html = render_start_resources(new_resources)
-            return new_resources, clear_upload, resources_html
+            return new_resources, clear_upload, resources_html, warning_update
 
         # Start tab file upload handler
         start_file_upload.upload(
             fn=handle_start_file_upload_with_render,
             inputs=[start_file_upload, start_resources_state],
-            outputs=[start_resources_state, start_file_upload, start_resources_display],
+            outputs=[start_resources_state, start_file_upload, start_resources_display, start_upload_warning],
         )
 
         # Clear error message when user starts typing
