@@ -22,6 +22,13 @@
     {
       "type": "set_context",
       "config": {
+        "key": "output_root",
+        "value": "{{ output_root | default: 'output' }}"
+      }
+    },
+    {
+      "type": "set_context",
+      "config": {
         "key": "extract_dir",
         "value": "{{ output_root }}/docpack_extracted"
       }
