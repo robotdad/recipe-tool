@@ -196,6 +196,16 @@
       ]
     },
     {
+      "title": "Common Liquid Patterns & Pitfalls",
+      "prompt": "This section addresses frequently encountered challenges with Liquid templating in recipes. Cover the following key areas:\n\n**Extra Filters & Extensions:**\n- Explain that recipes use `extra=True` in the Liquid environment, enabling additional filters not in standard Liquid\n- List key extra filters: `snakecase`, `upcase`, `datetime`, `json` (with parameters), `money`, etc.\n- Show examples of each with proper syntax\n\n**Filter Argument Syntax:**\n- Demonstrate both colon and equals syntax: `datetime: format: 'MMM d, y'` vs `json: indent: 2`\n- Explain when to use named vs positional arguments\n- Common mistakes with argument placement and quoting\n\n**Complex Filter Chaining:**\n- Show real examples from sample recipes of complex chains like `{{ file | default: 'doc' | replace: '\\\\', '/' | split: '/' | last | snakecase | upcase }}`\n- Break down the evaluation order and intermediate results\n- Tips for debugging long chains\n\n**Nested Rendering & Context Issues:**\n- When to use `nested_render: true` in `set_context`\n- Proper escaping of Liquid tags within templates\n- Context variable availability across different step scopes\n\n**Common Anti-patterns:**\n- Overuse of the `| json` filter when direct object passing works\n- Forgetting quotes around filter arguments with special characters\n- Mixing string concatenation with object merging in context\n- Using undefined variables without `default` filters\n\n**Quick Reference Table:**\nProvide a table of the most commonly used extra filters with syntax examples.",
+      "refs": [
+        "liquid_docs",
+        "sample_recipes",
+        "recipe_executor_code",
+        "codebase_generator_recipes"
+      ]
+    },
+    {
       "title": "Recipe Cookbook",
       "prompt": "Provide **four** ready-to-paste snippets covering common automation patterns:\n1. Conditional file check & fallback.\n2. Batch loop over items (with concurrency).\n3. Parallel independent tasks.\n4. Reusing logic via `execute_recipe` (sub-recipe composition).\nFor each snippet include: purpose, typical use cases, natural-language flow summary, a Mermaid diagram (if helpful), and the JSON snippet.\nEnsure snippets compile against current executor code.",
       "refs": [
