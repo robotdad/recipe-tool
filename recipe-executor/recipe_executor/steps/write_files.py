@@ -31,7 +31,6 @@ class WriteFilesStep(BaseStep[WriteFilesConfig]):
     """
 
     def __init__(self, logger: logging.Logger, config: Dict[str, Any]) -> None:
-        # Validate configuration using Pydantic
         validated = WriteFilesConfig.model_validate(config)
         super().__init__(logger, validated)
 
@@ -48,7 +47,7 @@ class WriteFilesStep(BaseStep[WriteFilesConfig]):
         # 1. Direct files in config take precedence
         if self.config.files is not None:
             for entry in self.config.files:
-                # Extract raw path
+                # Determine raw path
                 if "path" in entry:
                     raw_path = entry["path"]
                 elif "path_key" in entry:
@@ -65,7 +64,7 @@ class WriteFilesStep(BaseStep[WriteFilesConfig]):
                 except Exception as err:
                     raise ValueError(f"Failed to render file path '{path_str}': {err}")
 
-                # Extract raw content
+                # Determine raw content
                 if "content" in entry:
                     raw_content = entry["content"]
                 elif "content_key" in entry:
@@ -85,12 +84,12 @@ class WriteFilesStep(BaseStep[WriteFilesConfig]):
                 raise KeyError(f"Files key '{key}' not found in context.")
             raw = context[key]
 
-            # Normalize raw into list of specs
+            # Normalize single or list
             if isinstance(raw, FileSpec):
                 items: List[Union[FileSpec, Dict[str, Any]]] = [raw]
             elif isinstance(raw, dict):
                 if "path" in raw and "content" in raw:
-                    items = [raw]  # type: ignore
+                    items = [raw]
                 else:
                     raise ValueError(f"Malformed file dict under key '{key}': {raw}")
             elif isinstance(raw, list):
@@ -123,46 +122,48 @@ class WriteFilesStep(BaseStep[WriteFilesConfig]):
         else:
             raise ValueError("Either 'files' or 'files_key' must be provided in WriteFilesConfig.")
 
-        # Write each file to disk
+        # Write files to disk
         for entry in files_to_write:
             rel_path: str = entry.get("path", "")
             content = entry.get("content")
 
-            # Determine final path
+            # Resolve final path
             combined = os.path.join(root, rel_path) if root else rel_path
             final_path = os.path.normpath(combined)
 
-            try:
-                # Ensure parent directories exist
-                parent_dir = os.path.dirname(final_path)
-                if parent_dir and not os.path.exists(parent_dir):
-                    os.makedirs(parent_dir, exist_ok=True)
+            # Ensure directory exists
+            parent = os.path.dirname(final_path)
+            if parent and not os.path.exists(parent):
+                try:
+                    os.makedirs(parent, exist_ok=True)
+                except Exception as err:
+                    raise IOError(f"Failed to create directory '{parent}': {err}")
 
-                # Serialize content to text
-                if isinstance(content, (dict, list)):
-                    try:
-                        text = json.dumps(content, ensure_ascii=False, indent=2)
-                    except Exception as err:
-                        raise ValueError(f"Failed to serialize content for '{final_path}': {err}")
+            # Serialize content
+            if isinstance(content, (dict, list)):
+                try:
+                    text = json.dumps(content, ensure_ascii=False, indent=2)
+                except Exception as err:
+                    raise ValueError(f"Failed to serialize JSON for '{final_path}': {err}")
+            else:
+                if content is None:
+                    text = ""
+                elif not isinstance(content, str):
+                    text = str(content)
                 else:
-                    if content is None:
-                        text = ""
-                    elif not isinstance(content, str):
-                        text = str(content)
-                    else:
-                        text = content
+                    text = content
 
-                # Debug log before writing
-                self.logger.debug(f"[WriteFilesStep] Writing file: {final_path}\nContent:\n{text}")
+            # Debug log
+            self.logger.debug(f"[WriteFilesStep] Writing file: {final_path}\nContent:\n{text}")
 
-                # Write file using UTF-8
+            # Write to disk
+            try:
                 with open(final_path, "w", encoding="utf-8") as f:
                     f.write(text)
+            except Exception as err:
+                self.logger.error(f"[WriteFilesStep] Error writing file '{rel_path}': {err}")
+                raise IOError(f"Error writing file '{final_path}': {err}")
 
-                # Info log after success
-                size = len(text.encode("utf-8"))
-                self.logger.info(f"[WriteFilesStep] Wrote file: {final_path} ({size} bytes)")
-
-            except Exception as exc:
-                self.logger.error(f"[WriteFilesStep] Error writing file '{rel_path}': {exc}")
-                raise
+            # Info log
+            size = len(text.encode("utf-8"))
+            self.logger.info(f"[WriteFilesStep] Wrote file: {final_path} ({size} bytes)")

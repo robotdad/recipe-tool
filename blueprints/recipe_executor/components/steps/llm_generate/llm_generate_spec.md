@@ -53,7 +53,12 @@ The LLMGenerateStep component enables recipes to generate content using large la
     class FileSpecCollection(BaseModel):
         files: List[FileSpec]
     ```
-  - After receiving the results, store the `files` value (not the entire `FileSpecCollection`) in the context
+  - After receiving the results, cast to FileSpecCollection and store the `files` value:
+    ```python
+    result = await llm.generate(...)
+    assert isinstance(result, FileSpecCollection), f"Expected FileSpecCollection, got {type(result)}"
+    context[output_key] = result.files
+    ```
 - Instantiate the `LLM` component with optional MCP servers from context config:
   ```python
   mcp_server_configs = context.get_config().get("mcp_servers", [])
@@ -93,7 +98,12 @@ The LLMGenerateStep component enables recipes to generate content using large la
 - **Models**: Uses the `FileSpec` model for file generation output
 - **LLM**: Uses the LLM component class `LLM` from `llm_utils.llm` to interact with language models and optional MCP servers
 - **MCP**: Uses the `get_mcp_server` function to convert MCP server configurations to `MCPServer` instances
-- **Utils/Models**: Uses `json_object_to_pydantic_model` to create dynamic Pydantic models from JSON objects, after receiving the results from the LLM use `.model_dump()` to convert the Pydantic model to a dictionary
+- **Utils/Models**: Uses `json_object_to_pydantic_model` to create dynamic Pydantic models from JSON objects, after receiving the results from the LLM cast to BaseModel and use `.model_dump()` to convert the Pydantic model to a dictionary:
+  ```python
+  result = await llm.generate(...)
+  assert isinstance(result, BaseModel), f"Expected BaseModel, got {type(result)}"
+  context[output_key] = result.model_dump()
+  ```
 - **Utils/Templates**: Uses `render_template` for dynamic content resolution in prompts and model identifiers
 
 ### External Libraries

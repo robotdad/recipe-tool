@@ -46,6 +46,8 @@ None
 # recipe_executor/steps/__init__.py
 from recipe_executor.steps.registry import STEP_REGISTRY
 from recipe_executor.steps.conditional import ConditionalStep
+from recipe_executor.steps.docpack_create import DocpackCreateStep
+from recipe_executor.steps.docpack_extract import DocpackExtractStep
 from recipe_executor.steps.execute_recipe import ExecuteRecipeStep
 from recipe_executor.steps.llm_generate import LLMGenerateStep
 from recipe_executor.steps.loop import LoopStep
@@ -58,6 +60,8 @@ from recipe_executor.steps.write_files import WriteFilesStep
 # Register steps by updating the registry
 STEP_REGISTRY.update({
     "conditional": ConditionalStep,
+    "docpack_create": DocpackCreateStep,
+    "docpack_extract": DocpackExtractStep,
     "execute_recipe": ExecuteRecipeStep,
     "llm_generate": LLMGenerateStep,
     "loop": LoopStep,

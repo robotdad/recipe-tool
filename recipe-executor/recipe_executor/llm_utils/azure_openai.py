@@ -33,7 +33,7 @@ def get_azure_openai_model(
     Args:
         logger (logging.Logger): Logger for logging messages.
         model_name (str): The model name (e.g., "gpt-4o").
-        deployment_name (Optional[str]): The Azure deployment name; defaults to model_name or config.
+        deployment_name (Optional[str]): Deployment name; defaults to config or model_name.
         context (ContextProtocol): Context providing configuration values.
 
     Returns:
@@ -49,21 +49,28 @@ def get_azure_openai_model(
     use_managed_identity = config.get("azure_use_managed_identity", False)
     client_id = config.get("azure_client_id")
 
-    deployment = deployment_name or config.get("azure_openai_deployment_name", model_name)
+    # Determine deployment name
+    deployment = deployment_name or config.get("azure_openai_deployment_name") or model_name
 
     if not base_url:
-        logger.error("Configuration 'azure_openai_base_url' is required")
-        raise Exception("Missing AZURE_OPENAI_BASE_URL")
+        logger.error("Configuration 'azure_openai_base_url' is required for Azure OpenAI")
+        raise Exception("Missing azure_openai_base_url in configuration")
 
-    # Log loaded configuration (mask API key)
+    # Log loaded configuration (with masked API key)
     masked_key = _mask_secret(api_key)
     logger.debug(
-        f"Azure OpenAI config: endpoint={base_url}, api_version={api_version}, "
-        f"deployment={deployment}, use_managed_identity={use_managed_identity}, "
-        f"client_id={client_id or '<None>'}, api_key={masked_key}"
+        "Azure OpenAI config: endpoint=%s, api_version=%s, deployment=%s, "
+        "use_managed_identity=%s, client_id=%s, api_key=%s",
+        base_url,
+        api_version,
+        deployment,
+        use_managed_identity,
+        client_id or "<None>",
+        masked_key,
     )
 
     try:
+        # Choose authentication method
         if use_managed_identity:
             logger.info("Using Azure Managed Identity for authentication")
             if client_id:
@@ -82,7 +89,7 @@ def get_azure_openai_model(
         else:
             if not api_key:
                 logger.error("Configuration 'azure_openai_api_key' is required for API key authentication")
-                raise Exception("Missing AZURE_OPENAI_API_KEY")
+                raise Exception("Missing azure_openai_api_key in configuration")
             logger.info("Using API Key authentication for Azure OpenAI")
             azure_client = AsyncAzureOpenAI(
                 api_key=api_key,
@@ -92,11 +99,12 @@ def get_azure_openai_model(
             )
             auth_method = "API Key"
     except Exception as err:
-        logger.error(f"Failed to create AsyncAzureOpenAI client: {err}")
+        logger.error(f"Failed to create Azure OpenAI client: {err}")
         raise
 
     logger.info(f"Creating Azure OpenAI model '{model_name}' with {auth_method}")
     provider = OpenAIProvider(openai_client=azure_client)
+
     try:
         model = OpenAIModel(model_name=model_name, provider=provider)
     except Exception as err:

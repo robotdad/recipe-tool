@@ -4,6 +4,7 @@ Utility functions for generating Pydantic models from JSON-Schema object definit
 """
 
 from typing import Any, Dict, List, Optional, Type, Tuple
+import itertools
 
 from pydantic import BaseModel, create_model
 
@@ -15,7 +16,7 @@ def json_object_to_pydantic_model(object_schema: Dict[str, Any], model_name: str
     Convert a JSON-Schema object fragment into a Pydantic BaseModel subclass.
 
     Args:
-        object_schema: A JSON-Schema fragment describing an object (root type must be "object").
+        object_schema: A JSON-Schema fragment describing a root-level object.
         model_name: Name for the generated Pydantic model class.
 
     Returns:
@@ -24,14 +25,15 @@ def json_object_to_pydantic_model(object_schema: Dict[str, Any], model_name: str
     Raises:
         ValueError: If the schema is invalid or unsupported.
     """
-    # Validate top-level schema
+    # Basic validation of the root schema
     if not isinstance(object_schema, dict):
         raise ValueError("Schema must be a dictionary.")
+
     root_type = object_schema.get("type")
     if root_type is None:
         raise ValueError('Schema missing required "type" property.')
     if root_type != "object":
-        raise ValueError('Root schema type must be "object".')
+        raise ValueError(f"Root schema type must be 'object', got '{root_type}'.")
 
     properties = object_schema.get("properties", {})
     required_fields = object_schema.get("required", [])
@@ -40,79 +42,85 @@ def json_object_to_pydantic_model(object_schema: Dict[str, Any], model_name: str
         raise ValueError('Schema "properties" must be a dictionary if present.')
     if not isinstance(required_fields, list):
         raise ValueError('Schema "required" must be a list if present.')
+    for field in required_fields:
+        if not isinstance(field, str):
+            raise ValueError(f"Required field names must be strings, got {field!r}.")
+        if field not in properties:
+            raise ValueError(f"Required field '{field}' not found in properties.")
 
-    # Counter for nested model naming
-    class _Counter:
-        def __init__(self) -> None:
-            self._n = 0
+    # Counter for naming nested models deterministically
+    counter = itertools.count(1)
 
-        def next(self) -> int:
-            self._n += 1
-            return self._n
-
-    counter = _Counter()
-
-    def _build_model(schema: Dict[str, Any], name: str) -> Type[BaseModel]:
-        if not isinstance(schema, dict):
-            raise ValueError(f"Schema for model '{name}' must be a dictionary.")
-        if schema.get("type") != "object":
-            raise ValueError(f"Schema for model '{name}' must be of type 'object'.")
-
-        props = schema.get("properties", {})
-        req = schema.get("required", [])
-        if not isinstance(props, dict):
-            raise ValueError(f"Properties of '{name}' must be a dictionary.")
-        if not isinstance(req, list):
-            raise ValueError(f"Required list of '{name}' must be a list.")
-
-        fields: Dict[str, Tuple[Any, Any]] = {}
-        for prop, prop_schema in props.items():
-            is_req = prop in req
-            hint, default = _wrap_optional(prop_schema, is_req, prop, name)
-            fields[prop] = (hint, default)
-
-        return create_model(name, **fields)  # type: ignore
-
-    def _parse_field(field_schema: Any, field_name: str, parent_name: str) -> Tuple[Any, Any]:
+    def _parse_field(
+        field_schema: Dict[str, Any], field_name: str, parent_name: str, is_required: bool
+    ) -> Tuple[Any, Any]:
         if not isinstance(field_schema, dict):
             raise ValueError(f"Schema for field '{field_name}' must be a dictionary.")
+
         f_type = field_schema.get("type")
         if f_type is None:
             raise ValueError(f"Schema for field '{field_name}' missing required 'type'.")
 
-        # Primitives
+        # Determine the Python type hint
         if f_type == "string":
-            return str, ...
-        if f_type == "integer":
-            return int, ...
-        if f_type == "number":
-            return float, ...
-        if f_type == "boolean":
-            return bool, ...
-
-        # Nested object
-        if f_type == "object":
-            nested_name = f"{parent_name}_{field_name.capitalize()}Model{counter.next()}"
+            hint: Any = str
+        elif f_type == "integer":
+            hint = int
+        elif f_type == "number":
+            hint = float
+        elif f_type == "boolean":
+            hint = bool
+        elif f_type == "object":
+            # Nested object: create a sub-model
+            nested_props = field_schema.get("properties", {})
+            if not isinstance(nested_props, dict):
+                raise ValueError(f"Properties for nested object '{field_name}' must be a dictionary.")
+            nested_id = next(counter)
+            suffix = field_name[0].upper() + field_name[1:] if field_name else "Object"
+            nested_name = f"{parent_name}_{suffix}Model{nested_id}"
             nested_model = _build_model(field_schema, nested_name)
-            return nested_model, ...
+            hint = nested_model
+        elif f_type in ("array", "list"):
+            items_schema = field_schema.get("items")
+            if items_schema is None:
+                raise ValueError(f"Array field '{field_name}' must have an 'items' schema.")
+            item_hint, _ = _parse_field(items_schema, f"{field_name}_item", parent_name, True)
+            hint = List[item_hint]  # type: ignore
+        else:
+            # Fallback for unsupported types
+            hint = Any
 
-        # Array or list
-        if f_type in ("array", "list"):
-            items = field_schema.get("items")
-            if not isinstance(items, dict):
-                raise ValueError(f"Array field '{field_name}' must have a valid 'items' schema.")
-            item_hint, _ = _parse_field(items, f"{field_name}_item", parent_name)
-            return List[item_hint], ...  # type: ignore
-
-        # Fallback unsupported type
-        return Any, ...
-
-    def _wrap_optional(field_schema: Any, required: bool, field_name: str, parent: str) -> Tuple[Any, Any]:
-        hint, default = _parse_field(field_schema, field_name, parent)
-        if not required:
+        # Manage required vs optional
+        if is_required:
+            default: Any = ...  # required
+        else:
             hint = Optional[hint]  # type: ignore
             default = None
+
         return hint, default
 
+    def _build_model(schema: Dict[str, Any], name: str) -> Type[BaseModel]:
+        # Expect an object schema
+        props = schema.get("properties", {})
+        req = schema.get("required", [])
+
+        if not isinstance(props, dict):
+            raise ValueError(f"Properties for model '{name}' must be a dictionary.")
+        if not isinstance(req, list):
+            raise ValueError(f"Required list for model '{name}' must be a list.")
+
+        fields: Dict[str, Tuple[Any, Any]] = {}
+        for prop_name, prop_schema in props.items():
+            if not isinstance(prop_name, str):
+                raise ValueError(f"Property names must be strings in model '{name}'.")
+            is_req = prop_name in req
+            hint, default = _parse_field(prop_schema, prop_name, name, is_req)
+            fields[prop_name] = (hint, default)
+
+        return create_model(name, **fields)  # type: ignore
+
     # Build and return the root model
-    return _build_model({"type": "object", "properties": properties, "required": required_fields}, model_name)
+    return _build_model(
+        {"type": "object", "properties": properties, "required": required_fields},
+        model_name,
+    )

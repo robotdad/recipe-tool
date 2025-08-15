@@ -20,34 +20,54 @@ class RecipeExecutorConfig(BaseSettings):
     """
 
     # Standard AI Provider API Keys
-    openai_api_key: Optional[str] = Field(default=None, alias="OPENAI_API_KEY", description="API key for OpenAI")
+    openai_api_key: Optional[str] = Field(
+        default=None,
+        alias="OPENAI_API_KEY",
+        description="API key for OpenAI",
+    )
     anthropic_api_key: Optional[str] = Field(
-        default=None, alias="ANTHROPIC_API_KEY", description="API key for Anthropic"
+        default=None,
+        alias="ANTHROPIC_API_KEY",
+        description="API key for Anthropic",
     )
 
     # Azure OpenAI Credentials
     azure_openai_api_key: Optional[str] = Field(
-        default=None, alias="AZURE_OPENAI_API_KEY", description="API key for Azure OpenAI"
+        default=None,
+        alias="AZURE_OPENAI_API_KEY",
+        description="API key for Azure OpenAI",
     )
     azure_openai_base_url: Optional[str] = Field(
-        default=None, alias="AZURE_OPENAI_BASE_URL", description="Base URL for Azure OpenAI endpoint"
+        default=None,
+        alias="AZURE_OPENAI_BASE_URL",
+        description="Base URL for Azure OpenAI endpoint",
     )
-    azure_openai_api_version: str = Field(
-        default="2025-03-01-preview", alias="AZURE_OPENAI_API_VERSION", description="API version for Azure OpenAI"
+    azure_openai_api_version: Optional[str] = Field(
+        default="2025-03-01-preview",
+        alias="AZURE_OPENAI_API_VERSION",
+        description="API version for Azure OpenAI",
     )
     azure_openai_deployment_name: Optional[str] = Field(
-        default=None, alias="AZURE_OPENAI_DEPLOYMENT_NAME", description="Deployment name for Azure OpenAI"
+        default=None,
+        alias="AZURE_OPENAI_DEPLOYMENT_NAME",
+        description="Deployment name for Azure OpenAI",
     )
     azure_use_managed_identity: bool = Field(
-        default=False, alias="AZURE_USE_MANAGED_IDENTITY", description="Use Azure managed identity for authentication"
+        default=False,
+        alias="AZURE_USE_MANAGED_IDENTITY",
+        description="Use Azure managed identity for authentication",
     )
     azure_client_id: Optional[str] = Field(
-        default=None, alias="AZURE_CLIENT_ID", description="Client ID for Azure managed identity"
+        default=None,
+        alias="AZURE_CLIENT_ID",
+        description="Client ID for Azure managed identity",
     )
 
     # Ollama Settings
     ollama_base_url: str = Field(
-        default="http://localhost:11434", alias="OLLAMA_BASE_URL", description="Base URL for Ollama API"
+        default="http://localhost:11434",
+        alias="OLLAMA_BASE_URL",
+        description="Base URL for Ollama API",
     )
 
     model_config = SettingsConfigDict(
@@ -55,7 +75,7 @@ class RecipeExecutorConfig(BaseSettings):
         env_file=".env",
         env_file_encoding="utf-8",
         case_sensitive=False,
-        extra="ignore",  # Allow extra fields from .env file
+        extra="ignore",
     )
 
 
@@ -81,7 +101,7 @@ def load_configuration(recipe_env_vars: Optional[List[str]] = None) -> Dict[str,
         for var_name in recipe_env_vars:
             value = os.getenv(var_name)
             if value is not None:
-                # Key names are lowercase for consistency
+                # key names are lowercase for consistency
                 key = var_name.lower()
                 config[key] = value
 

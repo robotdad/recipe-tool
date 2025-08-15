@@ -7,46 +7,51 @@ Provides a consistent logging interface that writes to stdout and separate log f
 import os
 import sys
 import logging
+from logging import Logger
 
 
-def init_logger(log_dir: str = "logs", stdio_log_level: str = "INFO") -> logging.Logger:
+def init_logger(log_dir: str = "logs", stdio_log_level: str = "INFO") -> Logger:
     """
-    Initializes and configures the root logger. Logs are written to separate files for DEBUG, INFO, and ERROR levels,
-    and to stdout at the specified level. Previous logs are cleared on each run.
+    Initializes a logger that writes to stdout and to log files (debug/info/error).
+    Clears existing logs on each run.
 
     Args:
         log_dir (str): Directory to store log files. Default is "logs".
         stdio_log_level (str): Log level for stdout. Default is "INFO".
             Options: "DEBUG", "INFO", "WARN", "ERROR" (case-insensitive).
+            If set to "DEBUG", all logs will be printed to stdout.
+            If set to "INFO", only INFO and higher level logs will be printed to stdout.
 
     Returns:
-        logging.Logger: Configured root logger instance.
+        logging.Logger: Configured logger instance.
 
     Raises:
-        Exception: If the log directory cannot be created or log files cannot be opened.
+        Exception: If log directory cannot be created or log files cannot be opened.
     """
-    # Acquire root logger and set overall minimum level
+    # Acquire root logger and capture all levels
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)
 
-    # Remove existing handlers to start fresh
+    # Remove existing handlers to reset configuration
     for handler in list(logger.handlers):
         logger.removeHandler(handler)
+
+    # Log initialization start at DEBUG level
+    logger.debug("Initializing logger with dir='%s', stdio_level='%s'", log_dir, stdio_log_level)
 
     # Ensure log directory exists
     try:
         os.makedirs(log_dir, exist_ok=True)
     except Exception as exc:
         raise Exception(f"Failed to create log directory '{log_dir}': {exc}")
+    logger.debug("Log directory created: %s", log_dir)
 
-    logger.debug("Created log directory: %s", log_dir)
+    # Define log formatters
+    fmt = "%(asctime)s.%(msecs)03d [%(levelname)s] (%(filename)s:%(lineno)d) %(message)s"
+    datefmt = "%Y-%m-%d %H:%M:%S"
+    formatter = logging.Formatter(fmt=fmt, datefmt=datefmt)
 
-    # Define log formatting
-    formatter = logging.Formatter(
-        fmt="%(asctime)s.%(msecs)03d [%(levelname)s] (%(filename)s:%(lineno)d) %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
-    )
-
-    # File handlers for DEBUG, INFO, and ERROR levels
+    # Set up file handlers for DEBUG, INFO, and ERROR levels
     level_map = [
         ("debug", logging.DEBUG),
         ("info", logging.INFO),
@@ -55,28 +60,29 @@ def init_logger(log_dir: str = "logs", stdio_log_level: str = "INFO") -> logging
     for name, level in level_map:
         file_path = os.path.join(log_dir, f"{name}.log")
         try:
-            handler = logging.FileHandler(file_path, mode="w", encoding="utf-8")
-            handler.setLevel(level)
-            handler.setFormatter(formatter)
-            logger.addHandler(handler)
+            fh = logging.FileHandler(file_path, mode="w", encoding="utf-8")
+            fh.setLevel(level)
+            fh.setFormatter(formatter)
+            logger.addHandler(fh)
         except Exception as exc:
             raise Exception(f"Failed to set up {name} log file '{file_path}': {exc}")
 
-    # Configure console output (stdout)
+    # Configure console (stdout) handler
     level_name = stdio_log_level.upper()
     if level_name == "WARN":
         level_name = "WARNING"
+    # Fallback to INFO if invalid
     if level_name not in ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"):
         level_name = "INFO"
     console_level = getattr(logging, level_name, logging.INFO)
 
-    console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setLevel(console_level)
-    console_handler.setFormatter(formatter)
-    logger.addHandler(console_handler)
+    ch = logging.StreamHandler(sys.stdout)
+    ch.setLevel(console_level)
+    ch.setFormatter(formatter)
+    logger.addHandler(ch)
 
-    # Log initialization details
-    logger.debug("Logger initialized with dir='%s', stdio_level='%s'", log_dir, level_name)
+    # Log completion
+    logger.debug("Logger handlers configured (dir='%s', stdio_level='%s')", log_dir, level_name)
     logger.info("Logger initialized successfully")
 
     return logger

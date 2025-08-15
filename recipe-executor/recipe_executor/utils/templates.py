@@ -62,13 +62,14 @@ def render_template(text: str, context: ContextProtocol) -> str:
     Raises:
         ValueError: If there is an error during template parsing or rendering.
     """
+    data = context.dict()
     try:
         template = _env.from_string(text)
-        result = template.render(**context.dict())
+        result = template.render(**data)
         return result
     except LiquidError as e:
-        err = f"Liquid template rendering error: {e}. Template: {text!r}. Context: {context.dict()!r}"
-        raise ValueError(err) from e
+        message = f"Liquid template rendering error: {e}. Template: {text!r}. Context: {data!r}"
+        raise ValueError(message) from e
     except Exception as e:
-        err = f"Error rendering template: {e}. Template: {text!r}. Context: {context.dict()!r}"
-        raise ValueError(err) from e
+        message = f"Error rendering template: {e}. Template: {text!r}. Context: {data!r}"
+        raise ValueError(message) from e

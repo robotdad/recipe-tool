@@ -30,7 +30,7 @@ class LLMGenerateConfig(StepConfig):
     prompt: str
     model: str = "openai/gpt-4o"
     max_tokens: Optional[Union[str, int]] = None
-    mcp_servers: Optional[List[Dict[str, Any]]] = None
+    mcp_servers: Optional[List[Dict[str, Any]]] = None  # type: ignore
     openai_builtin_tools: Optional[List[Dict[str, Any]]] = None
     output_format: Union[str, Dict[str, Any], List[Any]]
     output_key: str = "llm_output"
@@ -87,7 +87,7 @@ class LLMGenerateStep(BaseStep[LLMGenerateConfig]):
             except ValueError:
                 raise ValueError(f"Invalid max_tokens value: {raw_max!r}")
 
-        # Collect MCP server configs
+        # Collect MCP server configs: from step config and context config
         mcp_cfgs: List[Dict[str, Any]] = []
         if self.config.mcp_servers:
             mcp_cfgs.extend(self.config.mcp_servers)  # type: ignore
@@ -101,17 +101,16 @@ class LLMGenerateStep(BaseStep[LLMGenerateConfig]):
             rendered_cfg = _render_config(cfg, context)
             server = get_mcp_server(logger=self.logger, config=rendered_cfg)
             mcp_servers.append(server)
+        servers_arg = mcp_servers or None
 
         # Prepare OpenAI built-in tools
         validated_tools: Optional[List[Dict[str, Any]]] = None
         if self.config.openai_builtin_tools:
-            # Only supported for Responses API models
-            prefix = model_id.split("/")[0]
-            if prefix not in ("openai_responses", "azure_responses"):
+            provider = model_id.split("/")[0]
+            if provider not in ("openai_responses", "azure_responses"):
                 raise ValueError(
                     "Built-in tools only supported with Responses API models (openai_responses/* or azure_responses/*)"
                 )
-            # Validate tool types
             for tool in self.config.openai_builtin_tools:
                 ttype = tool.get("type")
                 if ttype != "web_search_preview":
@@ -123,11 +122,10 @@ class LLMGenerateStep(BaseStep[LLMGenerateConfig]):
             logger=self.logger,
             context=context,
             model=model_id,
-            mcp_servers=mcp_servers or None,
+            mcp_servers=servers_arg,
         )
 
         output_format = self.config.output_format
-        result: Any
         try:
             self.logger.debug(
                 "Calling LLM: model=%s, format=%r, max_tokens=%s, mcp_servers=%r, tools=%r",
@@ -155,6 +153,8 @@ class LLMGenerateStep(BaseStep[LLMGenerateConfig]):
                     max_tokens=max_tokens,
                     openai_builtin_tools=validated_tools,
                 )
+                # Ensure correct type
+                assert isinstance(result, FileSpecCollection), f"Expected FileSpecCollection, got {type(result)}"
                 context[output_key] = result.files
 
             elif isinstance(output_format, dict):  # JSON object schema
@@ -165,6 +165,8 @@ class LLMGenerateStep(BaseStep[LLMGenerateConfig]):
                     max_tokens=max_tokens,
                     openai_builtin_tools=validated_tools,
                 )
+                if not isinstance(result, BaseModel):
+                    raise ValueError(f"Expected BaseModel for object output, got {type(result)}")
                 context[output_key] = result.model_dump()
 
             elif isinstance(output_format, list):  # List schema
@@ -183,6 +185,8 @@ class LLMGenerateStep(BaseStep[LLMGenerateConfig]):
                     max_tokens=max_tokens,
                     openai_builtin_tools=validated_tools,
                 )
+                if not isinstance(result, BaseModel):
+                    raise ValueError(f"Expected BaseModel for list output, got {type(result)}")
                 wrapper = result.model_dump()
                 context[output_key] = wrapper.get("items", [])
 
