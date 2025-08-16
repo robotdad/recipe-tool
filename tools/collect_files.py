@@ -25,7 +25,7 @@ import pathlib
 from typing import List, Optional, Set, Tuple
 
 # Default exclude patterns: common directories and binary files to ignore.
-DEFAULT_EXCLUDE = [".venv", "node_modules", "*.lock", ".git", "__pycache__", "*.pyc", "*.ruff_cache", "logs", "output"]
+DEFAULT_EXCLUDE = [".venv", "node_modules", "*.lock", ".git", "__pycache__", "*.pyc", "*.ruff_cache", "logs", "output", ".DS_Store", "*.DS_Store"]
 
 
 def parse_patterns(pattern_str: str) -> List[str]:

@@ -161,6 +161,24 @@
             "sample_recipes",
             "codebase_generator_recipes"
           ]
+        },
+
+        {
+          "title": "`docpack_create`",
+          "prompt": "From the resource docs, write a full reference entry for this step: purpose, when to use, key configuration (with defaults), notable pitfalls, and at least one runnable example (more if important to show variants of use cases). Note that this step is primarily used in document generation workflows for creating portable docpack files.",
+          "refs": [
+            "recipe_executor_blueprints",
+            "sample_recipes"
+          ]
+        },
+
+        {
+          "title": "`docpack_extract`",
+          "prompt": "From the resource docs, write a full reference entry for this step: purpose, when to use, key configuration (with defaults), notable pitfalls, and at least one runnable example (more if important to show variants of use cases). Note that this step is primarily used in document generation workflows for extracting portable docpack files.",
+          "refs": [
+            "recipe_executor_blueprints",
+            "sample_recipes"
+          ]
         }
       ]
     },
@@ -193,6 +211,16 @@
         "implementation_philosophy",
         "recipe_executor_code",
         "sample_recipes"
+      ]
+    },
+    {
+      "title": "Common Liquid Patterns & Pitfalls",
+      "prompt": "This section addresses frequently encountered challenges with Liquid templating in recipes. Cover the following key areas:\n\n**Extra Filters & Extensions:**\n- Explain that recipes use `extra=True` in the Liquid environment, enabling additional filters not in standard Liquid\n- List key extra filters: `snakecase`, `upcase`, `datetime`, `json` (with parameters), `money`, etc.\n- Show examples of each with proper syntax\n\n**Filter Argument Syntax:**\n- Demonstrate both colon and equals syntax: `datetime: format: 'MMM d, y'` vs `json: indent: 2`\n- Explain when to use named vs positional arguments\n- Common mistakes with argument placement and quoting\n\n**Complex Filter Chaining:**\n- Show real examples from sample recipes of complex chains like `{{ file | default: 'doc' | replace: '\\\\', '/' | split: '/' | last | snakecase | upcase }}`\n- Break down the evaluation order and intermediate results\n- Tips for debugging long chains\n\n**Nested Rendering & Context Issues:**\n- When to use `nested_render: true` in `set_context`\n- Proper escaping of Liquid tags within templates\n- Context variable availability across different step scopes\n\n**Common Anti-patterns:**\n- Overuse of the `| json` filter when direct object passing works\n- Forgetting quotes around filter arguments with special characters\n- Mixing string concatenation with object merging in context\n- Using undefined variables without `default` filters\n\n**Quick Reference Table:**\nProvide a table of the most commonly used extra filters with syntax examples.",
+      "refs": [
+        "liquid_docs",
+        "sample_recipes",
+        "recipe_executor_code",
+        "codebase_generator_recipes"
       ]
     },
     {

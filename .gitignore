@@ -40,6 +40,7 @@ next-steps.md
 # Generated files
 output
 logs
+ai_working/tmp
 
 # Test files
 .coverage

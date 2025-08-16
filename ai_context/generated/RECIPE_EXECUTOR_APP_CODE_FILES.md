@@ -3,9 +3,9 @@
 [collect-files]
 
 **Search:** ['apps/recipe-executor/recipe_executor_app']
-**Exclude:** ['.venv', 'node_modules', '*.lock', '.git', '__pycache__', '*.pyc', '*.ruff_cache', 'logs', 'output']
+**Exclude:** ['.venv', 'node_modules', '*.lock', '.git', '__pycache__', '*.pyc', '*.ruff_cache', 'logs', 'output', '.DS_Store', '*.DS_Store']
 **Include:** []
-**Date:** 6/18/2025, 3:22:46 PM
+**Date:** 8/15/2025, 3:42:41 PM
 **Files:** 7
 
 === File: apps/recipe-executor/recipe_executor_app/__init__.py ===

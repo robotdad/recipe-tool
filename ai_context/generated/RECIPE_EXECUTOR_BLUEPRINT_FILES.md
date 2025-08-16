@@ -3,10 +3,10 @@
 [collect-files]
 
 **Search:** ['blueprints/recipe_executor']
-**Exclude:** ['.venv', 'node_modules', '*.lock', '.git', '__pycache__', '*.pyc', '*.ruff_cache', 'logs', 'output']
+**Exclude:** ['.venv', 'node_modules', '*.lock', '.git', '__pycache__', '*.pyc', '*.ruff_cache', 'logs', 'output', '.DS_Store', '*.DS_Store']
 **Include:** []
-**Date:** 6/18/2025, 1:25:39 PM
-**Files:** 55
+**Date:** 8/15/2025, 3:42:41 PM
+**Files:** 59
 
 === File: blueprints/recipe_executor/README.md ===
 # Recipe Executor Recipes
@@ -142,6 +142,16 @@ See the [document_generator](../../recipes/document_generator/README.md) recipe 
   },
   {
     "id": "steps.conditional",
+    "deps": ["context", "protocols", "steps.base", "utils.templates"],
+    "refs": []
+  },
+  {
+    "id": "steps.docpack_create",
+    "deps": ["context", "protocols", "steps.base", "utils.templates"],
+    "refs": []
+  },
+  {
+    "id": "steps.docpack_extract",
     "deps": ["context", "protocols", "steps.base", "utils.templates"],
     "refs": []
   },
@@ -1368,9 +1378,10 @@ The LLM component provides a unified interface for interacting with various larg
   - Ollama: Create OpenAIProvider with base_url from context
 - Use PydanticAI's provider-specific model classes:
   - pydantic_ai.models.openai.OpenAIModel (used also for Azure OpenAI and Ollama)
+  - pydantic_ai.models.openai.OpenAIResponsesModel (used for OpenAI Responses API and Azure Responses API)
   - pydantic_ai.models.anthropic.AnthropicModel
-- For `openai_responses` provider: call `get_openai_responses_model(model_name)` which returns the model directly
-- For `azure_responses` provider: call `get_azure_responses_model(model_name, deployment_name)` which returns the model directly
+- For `openai_responses` provider: call `get_openai_responses_model(logger, model_name)` passing the logger instance and model name
+- For `azure_responses` provider: call `get_azure_responses_model(logger, model_name, deployment_name)` passing the logger instance, model name and deployment name
 - Create a PydanticAI Agent with the model, structured output type, and optional MCP servers
 - Support: `output_type: Type[Union[str, BaseModel]] = str`
 - Support: `openai_builtin_tools: Optional[List[Dict[str, Any]]] = None` parameter for built-in tools with Responses API models
@@ -1399,7 +1410,7 @@ The LLM component provides a unified interface for interacting with various larg
 Create a PydanticAI model for the LLM provider and model name:
 
 ```python
-def get_model(model_id: str, context: ContextProtocol) -> OpenAIModel | AnthropicModel:
+def get_model(model_id: str, context: ContextProtocol) -> Union[OpenAIModel, AnthropicModel, OpenAIResponsesModel]:
     """
     Initialize an LLM model based on a standardized model_id string.
     Expected format: 'provider/model_name' or 'provider/model_name/deployment_name'.
@@ -1429,6 +1440,7 @@ def get_model(model_id: str, context: ContextProtocol) -> OpenAIModel | Anthropi
     # Access configuration dictionary through context.get_config() and then retrieve the necessary values
     # If 'openai_responses' is the model provider, use the `get_openai_responses_model` function from responses component
     # If 'azure_responses' is the model provider, use the `get_azure_responses_model` function from azure_responses component
+    # Note: These functions require a logger parameter, which should be passed from the LLM class logger instance
 ```
 
 Usage example:
@@ -2942,6 +2954,578 @@ None
 - `recipe_executor/steps/conditional.py`
 
 
+=== File: blueprints/recipe_executor/components/steps/docpack_create/docpack_create_docs.md ===
+# DocpackCreateStep Component Usage
+
+## Importing
+
+```python
+from recipe_executor.steps.docpack_create import DocpackCreateStep, DocpackCreateConfig
+```
+
+## Configuration
+
+### DocpackCreateConfig Parameters
+
+```python
+class DocpackCreateConfig(StepConfig):
+    """
+    Configuration for DocpackCreateStep.
+
+    Fields:
+        outline_path (str): Path to outline JSON file (may be templated).
+        resource_files (Union[str, List[str]]): Comma-separated string or list of resource file paths (may be templated).
+        output_path (str): Path for the created .docpack file (may be templated).
+        output_key (Optional[str]): Context key to store result info (may be templated).
+    """
+    outline_path: str
+    resource_files: Union[str, List[str]]
+    output_path: str
+    output_key: Optional[str] = None
+```
+
+## Step Registration
+
+The DocpackCreateStep is typically registered in the steps package:
+
+```python
+from recipe_executor.steps.registry import STEP_REGISTRY
+from recipe_executor.steps.docpack_create import DocpackCreateStep
+
+STEP_REGISTRY["docpack_create"] = DocpackCreateStep
+```
+
+## Usage in Recipes
+
+### Basic Usage
+
+```json
+{
+  "type": "docpack_create",
+  "config": {
+    "outline_path": "output/outline.json",
+    "resource_files": "data/file1.txt,data/file2.csv",
+    "output_path": "output/package.docpack"
+  }
+}
+```
+
+### With Template Variables
+
+```json
+{
+  "type": "docpack_create", 
+  "config": {
+    "outline_path": "{{ output_root }}/outline.json",
+    "resource_files": "{{ resources }}",
+    "output_path": "{{ output_root }}/{{ docpack_name }}",
+    "output_key": "docpack_result"
+  }
+}
+```
+
+### With Resource List from Context
+
+```json
+{
+  "type": "docpack_create",
+  "config": {
+    "outline_path": "session/outline.json",
+    "resource_files": "{{ resource_paths | join: ',' }}",
+    "output_path": "session/bundle.docpack"
+  }
+}
+```
+
+## Context Integration
+
+### Input Context Keys
+
+The step reads configuration values and can resolve template variables from context:
+
+- Resource file paths can be provided as comma-separated strings
+- All path parameters support Liquid template rendering
+- Template variables are resolved before file operations
+
+### Output Context Keys
+
+When `output_key` is specified, stores packaging results:
+
+```python
+{
+    "output_path": "/path/to/created.docpack",
+    "resource_count": 5,
+    "success": True
+}
+```
+
+## Integration with Other Steps
+
+### Common Patterns
+
+**After Outline Generation**:
+```json
+[
+  {
+    "type": "llm_generate",
+    "config": {
+      "prompt": "Generate document outline...",
+      "output_key": "outline_json"
+    }
+  },
+  {
+    "type": "write_files",
+    "config": {
+      "files": [
+        {
+          "path": "{{ output_root }}/outline.json",
+          "content": "{{ outline_json }}"
+        }
+      ]
+    }
+  },
+  {
+    "type": "docpack_create",
+    "config": {
+      "outline_path": "{{ output_root }}/outline.json",
+      "resource_files": "{{ resources }}",
+      "output_path": "{{ output_root }}/document.docpack"
+    }
+  }
+]
+```
+
+**With Resource Collection**:
+```json
+[
+  {
+    "type": "read_files",
+    "config": {
+      "paths": ["data/*.txt", "templates/*.md"],
+      "output_key": "collected_resources"
+    }
+  },
+  {
+    "type": "docpack_create",
+    "config": {
+      "outline_path": "config/outline.json", 
+      "resource_files": "{{ collected_resources | map: 'path' | join: ',' }}",
+      "output_path": "dist/package.docpack"
+    }
+  }
+]
+```
+
+## Important Notes
+
+- Outline file must exist and contain valid JSON before packaging
+- Resource files are validated for existence before inclusion
+- Missing resource files generate warnings but don't fail the packaging
+- File name conflicts are automatically resolved with numeric suffixes
+- The .docpack format is a ZIP archive compatible with standard tools
+- All file paths support cross-platform compatibility via pathlib
+- Template rendering occurs before any file operations
+
+=== File: blueprints/recipe_executor/components/steps/docpack_create/docpack_create_spec.md ===
+# DocpackCreateStep Component Specification
+
+## Purpose
+
+The Docpack Create step packages outline JSON files and associated resource files into a single .docpack archive for distribution, sharing, or storage. It provides a secure, template-aware interface to the docpack-file library's create functionality within the recipe execution system.
+
+## Core Requirements
+
+- Create .docpack archives from outline JSON and resource files
+- Support Liquid template rendering for all configuration parameters
+- Validate input files exist before packaging
+- Handle filename conflicts with automatic renaming
+- Store results in context for subsequent steps
+- Follow the standard step interface pattern with configuration validation
+- Support both individual resource files and resource lists
+- Provide clear error messages for missing or invalid inputs
+
+## Implementation Considerations
+
+- Use DocpackHandler.create_package() from docpack-file library directly
+- Validate outline_path exists and is readable JSON before proceeding
+- Convert resource file paths to Path objects for library compatibility
+- Support template rendering for all path parameters
+- Handle resource_files as either comma-separated string or list
+- Use pathlib.Path for all file operations to ensure cross-platform compatibility
+- Capture any packaging errors and re-raise with helpful context
+
+### Type Annotation Guidelines
+
+- Configuration fields should use concrete types (e.g., `str` for path fields)
+- Method signatures should follow async patterns where appropriate for step consistency
+- Use proper Union syntax when multiple types are needed (e.g., `Union[str, List[str]]`)
+- Prefer standard library types and avoid incomplete type annotations
+
+## Component Dependencies
+
+### Internal Components
+
+- **Base Step** - (Required) Inherits from BaseStep for standard step lifecycle
+- **Context** - (Required) Uses Context to retrieve configuration and store results
+- **Templates** - (Required) Uses render_template for dynamic path resolution
+
+### External Libraries
+
+- **docpack-file** - (Required) Uses DocpackHandler for .docpack creation functionality
+- **pathlib** - (Required) Uses Path for file system operations
+- **json** - (Required) Uses json.load for outline validation
+- **pydantic** - (Required) Uses BaseModel for configuration validation
+
+### Configuration Dependencies
+
+None
+
+## Output Files
+
+- `recipe_executor/steps/docpack_create.py`
+
+## Logging
+
+- Debug: Log configuration parameters, input file paths, and successful packaging details
+- Info: Log .docpack creation with output path and file count
+- Error: Log specific errors for missing files, JSON parsing failures, or packaging errors
+
+## Error Handling
+
+- Validate outline_path exists and contains valid JSON before packaging
+- Check that resource files exist and are readable
+- Provide specific error messages identifying problematic files or paths
+- Include original exception details for debugging packaging failures
+- Raise ValueError for configuration issues, IOError for file system problems
+
+## Dependency Integration Considerations
+
+### DocpackHandler Integration
+
+The step should use DocpackHandler.create_package() with proper error handling:
+
+```python
+DocpackHandler.create_package(
+    outline_data=outline_data,
+    resource_files=resource_file_paths,
+    output_path=output_path
+)
+```
+
+Where outline_data is loaded from the JSON file and resource_file_paths are converted to Path objects.
+
+### Template Rendering Considerations
+
+When resource_files is "{{ resources }}", access the context value directly rather than template rendering to preserve list structure.
+
+=== File: blueprints/recipe_executor/components/steps/docpack_extract/docpack_extract_docs.md ===
+# DocpackExtractStep Component Usage
+
+## Importing
+
+```python
+from recipe_executor.steps.docpack_extract import DocpackExtractStep, DocpackExtractConfig
+```
+
+## Configuration
+
+### DocpackExtractConfig Parameters
+
+```python
+class DocpackExtractConfig(StepConfig):
+    """
+    Configuration for DocpackExtractStep.
+
+    Fields:
+        docpack_path (str): Path to .docpack file to extract (may be templated).
+        extract_dir (str): Directory to extract files to (may be templated).
+        outline_key (str): Context key to store outline JSON (may be templated).
+        resources_key (str): Context key to store resource file paths (may be templated).
+    """
+    docpack_path: str
+    extract_dir: str
+    outline_key: str = "outline_data"
+    resources_key: str = "resource_files"
+```
+
+## Step Registration
+
+The DocpackExtractStep is typically registered in the steps package:
+
+```python
+from recipe_executor.steps.registry import STEP_REGISTRY
+from recipe_executor.steps.docpack_extract import DocpackExtractStep
+
+STEP_REGISTRY["docpack_extract"] = DocpackExtractStep
+```
+
+## Usage in Recipes
+
+### Basic Usage
+
+```json
+{
+  "type": "docpack_extract",
+  "config": {
+    "docpack_path": "input/package.docpack",
+    "extract_dir": "session/extracted"
+  }
+}
+```
+
+### With Custom Context Keys
+
+```json
+{
+  "type": "docpack_extract",
+  "config": {
+    "docpack_path": "{{ input_docpack }}",
+    "extract_dir": "{{ session_dir }}/unpacked",
+    "outline_key": "imported_outline",
+    "resources_key": "imported_resources"
+  }
+}
+```
+
+### With Template Variables
+
+```json
+{
+  "type": "docpack_extract",
+  "config": {
+    "docpack_path": "uploads/{{ docpack_filename }}",
+    "extract_dir": "{{ output_root }}/import_{{ timestamp }}",
+    "outline_key": "user_outline",
+    "resources_key": "user_resources"
+  }
+}
+```
+
+## Context Integration
+
+### Input Context Keys
+
+The step reads configuration values and resolves template variables from context:
+
+- All path parameters support Liquid template rendering
+- Template variables are resolved before file operations
+
+### Output Context Keys
+
+**Outline Data** (default key: `outline_data`):
+```json
+{
+  "title": "Document Title",
+  "general_instruction": "Document description",
+  "resources": [
+    {
+      "key": "resource1",
+      "path": "/extracted/path/file1.txt",
+      "title": "Resource 1",
+      "description": "First resource file"
+    }
+  ],
+  "sections": [...]
+}
+```
+
+**Resource Files** (default key: `resource_files`):
+```json
+[
+  "/extracted/path/file1.txt",
+  "/extracted/path/file2.csv",
+  "/extracted/path/document.md"
+]
+```
+
+## Integration with Other Steps
+
+### Common Patterns
+
+**Import and Process Docpack**:
+```json
+[
+  {
+    "type": "docpack_extract",
+    "config": {
+      "docpack_path": "{{ user_upload }}",
+      "extract_dir": "{{ session_dir }}/imported",
+      "outline_key": "imported_outline"
+    }
+  },
+  {
+    "type": "llm_generate",
+    "config": {
+      "prompt": "Enhance this outline: {{ imported_outline | json }}",
+      "output_key": "enhanced_outline"
+    }
+  }
+]
+```
+
+**Extract for Resource Processing**:
+```json
+[
+  {
+    "type": "docpack_extract",
+    "config": {
+      "docpack_path": "templates/base.docpack", 
+      "extract_dir": "working/template",
+      "resources_key": "template_files"
+    }
+  },
+  {
+    "type": "read_files",
+    "config": {
+      "paths": "{{ template_files }}",
+      "output_key": "template_content"
+    }
+  }
+]
+```
+
+**Recipe Bundle Extraction** (Future):
+```json
+[
+  {
+    "type": "docpack_extract",
+    "config": {
+      "docpack_path": "shared/recipe-bundle.docpack",
+      "extract_dir": "{{ temp_dir }}/recipes",
+      "outline_key": "recipe_manifest",
+      "resources_key": "recipe_files"
+    }
+  },
+  {
+    "type": "execute_recipe",
+    "config": {
+      "recipe_path": "{{ temp_dir }}/recipes/main.json"
+    }
+  }
+]
+```
+
+## File Organization
+
+### Extraction Structure
+
+When extracting a .docpack, files are organized as:
+
+```
+extract_dir/
+├── outline.json          # Main outline file
+└── files/               # Resource files subdirectory
+    ├── resource1.txt
+    ├── resource2.csv
+    └── document.md
+```
+
+### Path Updates
+
+- Resource paths in outline JSON are automatically updated to point to extracted locations
+- Original filenames are preserved unless conflicts require renaming
+- All paths use absolute paths for recipe compatibility
+
+## Important Notes
+
+- .docpack files must be valid ZIP archives with outline.json
+- Missing or corrupted .docpack files will cause step failure
+- Extraction directory is created automatically if it doesn't exist
+- Resource paths in the outline are updated to absolute paths
+- Files subdirectory contains all resource files from the archive
+- Template rendering occurs before any file operations
+- All file paths support cross-platform compatibility via pathlib
+
+=== File: blueprints/recipe_executor/components/steps/docpack_extract/docpack_extract_spec.md ===
+# DocpackExtractStep Component Specification
+
+## Purpose
+
+The Docpack Extract step unpacks .docpack archives to extract outline JSON files and associated resource files for use in recipe execution. It provides a secure, template-aware interface to the docpack-file library's extract functionality within the recipe execution system.
+
+## Core Requirements
+
+- Extract .docpack archives to specified directories
+- Support Liquid template rendering for all configuration parameters
+- Validate .docpack files before extraction
+- Organize extracted files with clear directory structure
+- Store extraction results in context for subsequent steps
+- Follow the standard step interface pattern with configuration validation
+- Update resource paths in outline JSON to point to extracted locations
+- Provide detailed extraction metadata including file lists and paths
+
+## Implementation Considerations
+
+- Use DocpackHandler.extract_package() from docpack-file library directly
+- Validate docpack_path exists and is a valid .docpack file before extraction
+- Create extraction directory if it doesn't exist
+- Support template rendering for all path parameters
+- Use pathlib.Path for all file operations to ensure cross-platform compatibility
+- Store both outline data and extracted file paths in context
+- Handle extraction errors gracefully with helpful error messages  
+- Preserve original file structure while updating paths for recipe compatibility
+- Initialize `abs_resources` variable before try block to ensure it's always bound, even if path resolution fails
+
+### Method Implementation Guidelines
+
+- The execute method must be async (`async def execute(self, context: ContextProtocol) -> None:`) to match BaseStep interface
+- Pass Path objects directly to DocpackHandler.extract_package() without string conversion
+- Use proper error handling patterns for file operations and validation
+- Ensure type safety in path resolution and context storage
+
+## Component Dependencies
+
+### Internal Components
+
+- **Base Step** - (Required) Inherits from BaseStep for standard step lifecycle
+- **Context** - (Required) Uses Context to retrieve configuration and store results
+- **Templates** - (Required) Uses render_template for dynamic path resolution
+
+### External Libraries
+
+- **docpack-file** - (Required) Uses DocpackHandler for .docpack extraction functionality
+- **pathlib** - (Required) Uses Path for file system operations
+- **json** - (Required) Uses json.dumps/loads for outline data handling
+- **pydantic** - (Required) Uses BaseModel for configuration validation
+
+### Configuration Dependencies
+
+None
+
+## Output Files
+
+- `recipe_executor/steps/docpack_extract.py`
+
+## Logging
+
+- Debug: Log configuration parameters, extraction directory, and detailed file list
+- Info: Log successful extraction with .docpack path, destination, and file count
+- Error: Log specific errors for missing files, invalid archives, or extraction failures
+
+## Error Handling
+
+- Validate docpack_path exists and is a readable .docpack file before extraction
+- Check that extraction directory is writable or can be created
+- Provide specific error messages identifying problematic files or paths
+- Include original exception details for debugging extraction failures
+- Raise ValueError for configuration issues, IOError for file system problems
+- Handle corrupted or invalid .docpack files gracefully
+
+## Dependency Integration Considerations
+
+### DocpackHandler Integration
+
+The step should use DocpackHandler.extract_package() with proper error handling:
+
+```python
+outline_data, resource_files = DocpackHandler.extract_package(
+    docpack_path,
+    extract_dir
+)
+```
+
+The extracted outline_data and resource_files list should be stored in context with the specified keys for use by subsequent recipe steps.
+
 === File: blueprints/recipe_executor/components/steps/execute_recipe/execute_recipe_docs.md ===
 # ExecuteRecipeStep Component Usage
 
@@ -3606,7 +4190,12 @@ The LLMGenerateStep component enables recipes to generate content using large la
     class FileSpecCollection(BaseModel):
         files: List[FileSpec]
     ```
-  - After receiving the results, store the `files` value (not the entire `FileSpecCollection`) in the context
+  - After receiving the results, cast to FileSpecCollection and store the `files` value:
+    ```python
+    result = await llm.generate(...)
+    assert isinstance(result, FileSpecCollection), f"Expected FileSpecCollection, got {type(result)}"
+    context[output_key] = result.files
+    ```
 - Instantiate the `LLM` component with optional MCP servers from context config:
   ```python
   mcp_server_configs = context.get_config().get("mcp_servers", [])
@@ -3646,7 +4235,12 @@ The LLMGenerateStep component enables recipes to generate content using large la
 - **Models**: Uses the `FileSpec` model for file generation output
 - **LLM**: Uses the LLM component class `LLM` from `llm_utils.llm` to interact with language models and optional MCP servers
 - **MCP**: Uses the `get_mcp_server` function to convert MCP server configurations to `MCPServer` instances
-- **Utils/Models**: Uses `json_object_to_pydantic_model` to create dynamic Pydantic models from JSON objects, after receiving the results from the LLM use `.model_dump()` to convert the Pydantic model to a dictionary
+- **Utils/Models**: Uses `json_object_to_pydantic_model` to create dynamic Pydantic models from JSON objects, after receiving the results from the LLM cast to BaseModel and use `.model_dump()` to convert the Pydantic model to a dictionary:
+  ```python
+  result = await llm.generate(...)
+  assert isinstance(result, BaseModel), f"Expected BaseModel, got {type(result)}"
+  context[output_key] = result.model_dump()
+  ```
 - **Utils/Templates**: Uses `render_template` for dynamic content resolution in prompts and model identifiers
 
 ### External Libraries
@@ -4873,6 +5467,8 @@ None
 # recipe_executor/steps/__init__.py
 from recipe_executor.steps.registry import STEP_REGISTRY
 from recipe_executor.steps.conditional import ConditionalStep
+from recipe_executor.steps.docpack_create import DocpackCreateStep
+from recipe_executor.steps.docpack_extract import DocpackExtractStep
 from recipe_executor.steps.execute_recipe import ExecuteRecipeStep
 from recipe_executor.steps.llm_generate import LLMGenerateStep
 from recipe_executor.steps.loop import LoopStep
@@ -4885,6 +5481,8 @@ from recipe_executor.steps.write_files import WriteFilesStep
 # Register steps by updating the registry
 STEP_REGISTRY.update({
     "conditional": ConditionalStep,
+    "docpack_create": DocpackCreateStep,
+    "docpack_extract": DocpackExtractStep,
     "execute_recipe": ExecuteRecipeStep,
     "llm_generate": LLMGenerateStep,
     "loop": LoopStep,
@@ -5520,12 +6118,12 @@ Provide reusable helpers for Pydantic models, such as conversion from JSON-Schem
   Converts any root-level **object** (incl. nested structures & `"required"`) into a `BaseModel` created with `pydantic.create_model`.
 - The schema must be a valid JSON-Schema object fragment. Chilren of the root object can be:
   - JSON-Schema primitive types: `"string"`, `"integer"`, `"number"`, `"boolean"`.
-  - Compound types: `"object"`, `"array"` (alias `"list"`).
+  - Compound types: `"object"` (with or without properties), `"array"` (alias `"list"`).
   - Unknown / unsupported `"type"` values fall back to `typing.Any`.
 - All schema types must yield a valid BaseModel subclass:
   - Root object schemas become a model with fields matching properties
   - Any other root type (e.g., array, string, number) is rejected as invalid.
-- Strictly validate input schemas before processing.
+- Validate input schemas before processing, but allow flexible object schemas (e.g., `{"type": "object"}` without properties for dynamic content).
 - Stateless, synchronous, no logging, no I/O.
 - Raise `ValueError` on malformed schemas (e.g., missing `"type"`).
 
@@ -5533,6 +6131,7 @@ Provide reusable helpers for Pydantic models, such as conversion from JSON-Schem
 
 - Use **`pydantic.create_model`** for creating all models.
 - Generate deterministic nested-model names using a counter for nested objects.
+- Do not validate that object types have properties - pass object schemas directly to model creation without properties validation.
 - Provide clear error messages for schema validation issues.
 
 ## Component Dependencies
@@ -5558,7 +6157,7 @@ None
 
 - Raise **`ValueError`** with a clear message when the input schema is invalid or unsupported.
 - Include details about the specific validation error in the error message.
-- Validate schema types before processing to avoid cryptic errors.
+- Validate basic schema structure (e.g., presence of "type") but avoid over-validation that restricts legitimate use cases.
 
 ## Dependency Integration Considerations
 
@@ -5981,6 +6580,16 @@ None
         "implementation_philosophy",
         "recipe_executor_code",
         "sample_recipes"
+      ]
+    },
+    {
+      "title": "Common Liquid Patterns & Pitfalls",
+      "prompt": "This section addresses frequently encountered challenges with Liquid templating in recipes. Cover the following key areas:\n\n**Extra Filters & Extensions:**\n- Explain that recipes use `extra=True` in the Liquid environment, enabling additional filters not in standard Liquid\n- List key extra filters: `snakecase`, `upcase`, `datetime`, `json` (with parameters), `money`, etc.\n- Show examples of each with proper syntax\n\n**Filter Argument Syntax:**\n- Demonstrate both colon and equals syntax: `datetime: format: 'MMM d, y'` vs `json: indent: 2`\n- Explain when to use named vs positional arguments\n- Common mistakes with argument placement and quoting\n\n**Complex Filter Chaining:**\n- Show real examples from sample recipes of complex chains like `{{ file | default: 'doc' | replace: '\\\\', '/' | split: '/' | last | snakecase | upcase }}`\n- Break down the evaluation order and intermediate results\n- Tips for debugging long chains\n\n**Nested Rendering & Context Issues:**\n- When to use `nested_render: true` in `set_context`\n- Proper escaping of Liquid tags within templates\n- Context variable availability across different step scopes\n\n**Common Anti-patterns:**\n- Overuse of the `| json` filter when direct object passing works\n- Forgetting quotes around filter arguments with special characters\n- Mixing string concatenation with object merging in context\n- Using undefined variables without `default` filters\n\n**Quick Reference Table:**\nProvide a table of the most commonly used extra filters with syntax examples.",
+      "refs": [
+        "liquid_docs",
+        "sample_recipes",
+        "recipe_executor_code",
+        "codebase_generator_recipes"
       ]
     },
     {

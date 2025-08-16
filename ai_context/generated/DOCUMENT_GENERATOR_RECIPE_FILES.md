@@ -3,18 +3,46 @@
 [collect-files]
 
 **Search:** ['recipes/document_generator']
-**Exclude:** ['.venv', 'node_modules', '*.lock', '.git', '__pycache__', '*.pyc', '*.ruff_cache', 'logs', 'output']
+**Exclude:** ['.venv', 'node_modules', '*.lock', '.git', '__pycache__', '*.pyc', '*.ruff_cache', 'logs', 'output', '.DS_Store', '*.DS_Store']
 **Include:** []
-**Date:** 7/1/2025, 4:21:06 PM
-**Files:** 15
+**Date:** 8/15/2025, 3:42:41 PM
+**Files:** 18
 
 === File: recipes/document_generator/README.md ===
 # Document Generator
 
-Recipe for generating comprehensive documents from structured JSON outlines.
+Recipes for generating comprehensive documents from structured JSON outlines, with support for creating and consuming portable docpack files.
+
+## Recipe Overview
+
+The document generator provides four main workflows:
+
+1. **Direct document generation** - Generate documents from pre-existing JSON outlines
+2. **Two-step generation** - Generate outline from resources, then generate document
+3. **Docpack creation** - Create portable docpack files from resource files and descriptions  
+4. **Docpack consumption** - Extract docpack files and generate documents from their contents
+
+## Recipes
+
+### Core Recipes
+
+#### `document_generator_recipe.json`
+Core recipe for generating documents from JSON outlines with embedded resource files.
+
+#### `recipes/generate_outline.json`  
+Generates a JSON outline from resource files and a document description. Can be used standalone.
+
+### Docpack Recipes
+
+#### `generate_docpack.json` 
+Creates a portable `.docpack` file containing an outline and embedded resource files.
+
+#### `generate_document_from_docpack.json`
+Extracts a `.docpack` file and generates the final document from its contents.
 
 ## Quick Examples
 
+### Direct Document Generation
 ```bash
 # Basic usage
 recipe-tool --execute recipes/document_generator/document_generator_recipe.json \
@@ -26,7 +54,73 @@ recipe-tool --execute recipes/document_generator/document_generator_recipe.json 
    output_root=output/docs
 ```
 
-JSON outline format: `title`, `general_instructions`, and `sections` array. See `examples/readme.json`.
+### Two-Step Generation (Outline → Document)
+```bash
+# Step 1: Generate outline from resource files
+recipe-tool --execute recipes/document_generator/recipes/generate_outline.json \
+  document_description="Comprehensive README analyzing Recipe Executor architecture and implementation" \
+  resources=ai_context/generated/RECIPE_EXECUTOR_BLUEPRINT_FILES.md,ai_context/generated/RECIPE_EXECUTOR_CODE_FILES.md \
+  output_root=output
+
+# Step 2: Generate document from the created outline
+recipe-tool --execute recipes/document_generator/document_generator_recipe.json \
+  outline_file=output/outline.json \
+  output_root=output
+```
+
+### Docpack Workflow (Portable)
+```bash
+# Step 1: Create docpack from resource files
+recipe-tool --execute recipes/document_generator/generate_docpack.json \
+  document_description="Generate a comprehensive README analyzing the Recipe Executor architecture and implementation" \
+  resources=ai_context/generated/RECIPE_EXECUTOR_BLUEPRINT_FILES.md,ai_context/generated/RECIPE_EXECUTOR_CODE_FILES.md \
+  docpack_name="recipe_executor_readme.docpack" \
+  output_root=output
+
+# Step 2: Generate final document from docpack
+recipe-tool --execute recipes/document_generator/generate_document_from_docpack.json \
+  docpack_path=output/recipe_executor_readme.docpack \
+  output_root=output
+```
+
+## Docpack Format
+
+Docpack files (`.docpack`) are portable ZIP archives containing:
+- `outline.json` - Generated document structure and resource references
+- `files/` directory - All referenced resource files
+
+This allows documents to be generated on one system and processed on another, with all dependencies included.
+
+## Array Parameter Support
+
+The docpack recipes support CLI array parameters using comma-separated syntax:
+
+```bash
+# Multiple resource files
+resources=file1.md,file2.csv,file3.txt
+
+# Equivalent to programmatic: ["file1.md", "file2.csv", "file3.txt"]
+```
+
+## Examples with Repository Files
+
+Using files from this repository:
+
+```bash
+# Create docpack analyzing Recipe Executor 
+recipe-tool --execute recipes/document_generator/generate_docpack.json \
+  document_description="Technical analysis of Recipe Executor architecture" \
+  resources=ai_context/generated/RECIPE_EXECUTOR_BLUEPRINT_FILES.md,ai_context/generated/RECIPE_EXECUTOR_CODE_FILES.md \
+  docpack_name="analysis.docpack"
+
+# Create docpack analyzing project structure
+recipe-tool --execute recipes/document_generator/generate_docpack.json \
+  document_description="Project overview and implementation guide" \
+  resources=README.md,CLAUDE.md \
+  docpack_name="project_guide.docpack"
+```
+
+JSON outline format: `title`, `general_instructions`, `resources` array, and `sections` array. See `examples/readme.json`.
 
 
 === File: recipes/document_generator/docs/diagram.md ===
@@ -552,6 +646,329 @@ The Customer Analytics Dashboard is a cloud-native B2B SaaS platform that provid
 - 10 million events per day processing
 - 1000 custom metrics per account
 - 90-day data retention (configurable)
+
+
+=== File: recipes/document_generator/generate_docpack.json ===
+{
+  "name": "Document Generator Docpack",
+  "description": "Generates a docpack outline to be used by the Document Generator.",
+  "inputs": {
+    "model": {
+      "description": "LLM model to use for generation.",
+      "type": "string",
+      "default": "openai/gpt-4o"
+    },
+    "output_root": {
+      "description": "Directory to save the generated docpack.",
+      "type": "string",
+      "default": "output"
+    },
+    "document_description": {
+      "description": "Description of the document to generate.",
+      "type": "string",
+      "default": "Create a comprehensive document outline"
+    },
+    "resources": {
+      "description": "List of resource file paths to include in the outline.",
+      "type": "array",
+      "default": []
+    },
+    "docpack_name": {
+      "description": "Name of the docpack to generate.",
+      "type": "string",
+      "default": ""
+    }
+  },
+  "steps": [
+    {
+      "type": "set_context",
+      "config": {
+        "key": "model",
+        "value": "{{ model | default: 'openai/gpt-4o' }}"
+      }
+    },
+    {
+      "type": "set_context",
+      "config": {
+        "key": "output_root",
+        "value": "{{ output_root | default: 'output' }}"
+      }
+    },
+    {
+      "type": "set_context",
+      "config": {
+        "key": "docpack_name",
+        "value": "{{ docpack_name | default: 'document.docpack' }}"
+      }
+    },
+    {
+      "type": "set_context",
+      "config": {
+        "key": "recipe_root",
+        "value": "{{ recipe_root | default: 'recipes/document_generator' }}"
+      }
+    },
+    {
+      "type": "execute_recipe",
+      "config": {
+        "recipe_path": "{{ recipe_root }}/recipes/generate_outline.json"
+      }
+    },
+    {
+      "type": "docpack_create",
+      "config": {
+        "outline_path": "{{ output_root }}/outline.json",
+        "resource_files": "{{ resources }}",
+        "output_path": "{{ output_root }}/{{ docpack_name }}",
+        "output_key": "docpack_result"
+      }
+    }
+  ]
+}
+
+
+=== File: recipes/document_generator/generate_document_from_docpack.json ===
+{
+  "name": "Generate Document from Docpack",
+  "description": "Extract a docpack file and use its contents to generate the final document using the document generator.",
+  "inputs": {
+    "docpack_path": {
+      "description": "Path to the .docpack file to extract and process",
+      "type": "string",
+      "default": "output/example.docpack"
+    },
+    "output_root": {
+      "description": "Directory for final document output",
+      "type": "string",
+      "default": "output"
+    },
+    "model": {
+      "description": "LLM model to use for document generation",
+      "type": "string",
+      "default": "openai/gpt-4o"
+    }
+  },
+  "steps": [
+    {
+      "type": "set_context",
+      "config": {
+        "key": "output_root",
+        "value": "{{ output_root | default: 'output' }}"
+      }
+    },
+    {
+      "type": "set_context",
+      "config": {
+        "key": "extract_dir",
+        "value": "{{ output_root }}/docpack_extracted"
+      }
+    },
+    {
+      "type": "docpack_extract",
+      "config": {
+        "docpack_path": "{{ docpack_path }}",
+        "extract_dir": "{{ extract_dir }}",
+        "output_key": "extraction_result"
+      }
+    },
+    {
+      "type": "set_context",
+      "config": {
+        "key": "outline_file",
+        "value": "{{ extract_dir }}/outline.json"
+      }
+    },
+    {
+      "type": "set_context",
+      "config": {
+        "key": "recipe_root",
+        "value": "recipes/document_generator"
+      }
+    },
+    {
+      "type": "execute_recipe",
+      "config": {
+        "recipe_path": "recipes/document_generator/document_generator_recipe.json"
+      }
+    }
+  ]
+}
+
+
+=== File: recipes/document_generator/recipes/generate_outline.json ===
+{
+  "name": "Document Generator Outline",
+  "description": "Generates an outline to be used by the Document Generator.",
+  "inputs": {
+    "model": {
+      "description": "LLM model to use for generation.",
+      "type": "string",
+      "default": "openai/gpt-4o"
+    },
+    "output_root": {
+      "description": "Directory to save the generated outline.",
+      "type": "string",
+      "default": "output"
+    },
+    "document_description": {
+      "description": "Description of the document to generate.",
+      "type": "string",
+      "default": "Create a comprehensive document outline"
+    },
+    "resources": {
+      "description": "List of resource file paths to include in the outline.",
+      "type": "array", 
+      "default": []
+    }
+  },
+  "steps": [
+    {
+      "type": "set_context",
+      "config": {
+        "key": "model",
+        "value": "{{ model | default: 'openai/gpt-4o' }}"
+      }
+    },
+    {
+      "type": "set_context",
+      "config": {
+        "key": "output_root",
+        "value": "{{ output_root | default: 'output' }}"
+      }
+    },
+    {
+      "type": "set_context",
+      "config": {
+        "key": "document_description",
+        "value": "{{ document_description | default: 'Create a comprehensive document outline' }}"
+      }
+    },
+    {
+      "type": "set_context",
+      "config": {
+        "key": "has_resources",
+        "value": "{% if resources %}true{% else %}false{% endif %}"
+      }
+    },
+    {
+      "type": "set_context",
+      "config": {
+        "key": "resource_summaries",
+        "value": []
+      }
+    },
+    {
+      "type": "conditional",
+      "config": {
+        "condition": "{{ has_resources }}",
+        "if_true": {
+          "steps": [
+            {
+              "type": "loop",
+              "config": {
+                "items": "resources",
+                "item_key": "resource_path",
+                "max_concurrency": 3,
+                "delay": 0.1,
+                "fail_fast": false,
+                "substeps": [
+                  {
+                    "type": "read_files",
+                    "config": {
+                      "path": "{{ resource_path }}",
+                      "content_key": "resource_content",
+                      "optional": false
+                    }
+                  },
+                  {
+                    "type": "llm_generate",
+                    "config": {
+                      "prompt": "Summarize the following resource content for use in document outline generation:\n\nFile: {{ resource_path }}\n\nContent:\n{{ resource_content }}\n\nProvide a concise summary that captures the key information from this resource.",
+                      "model": "{{ model}}",
+                      "output_format": {
+                        "type": "object",
+                        "properties": {
+                          "resource": { "type": "string" },
+                          "summary": { "type": "string" }
+                        },
+                        "required": ["resource", "summary"]
+                      },
+                      "output_key": "summary"
+                    }
+                  },
+                  {
+                    "type": "set_context",
+                    "config": {
+                      "key": "resource_path",
+                      "value": {
+                        "resource": "{{ resource_path }}",
+                        "summary": "{{ summary.summary }}"
+                      }
+                    }
+                  }
+                ],
+                "result_key": "resource_summaries"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "llm_generate",
+      "config": {
+        "prompt": "Generate a detailed outline in JSON format based on the user provided document description and resource summaries:\n\nUser provided document description:\n{{ document_description }}\n\nResource summaries:\n{{ resource_summaries | json }}\n\nAvailable resource paths (ONLY use these - do not create any new resources):\n{{ resources | json }}\n\nThe outline must follow this exact JSON structure:\n{\n  \"title\": \"Document Title\",\n  \"general_instruction\": \"Overall instructions for document generation\",\n  \"resources\": [\n    {\n      \"key\": \"resource_1\",\n      \"path\": \"path/to/file\",\n      \"title\": \"filename\",\n      \"description\": \"description of what this resource contains or why it was included. Consider resources summaries for context here.\"\n    }\n  ],\n  \"sections\": [\n    {\n      \"title\": \"Section Title\",\n      \"prompt\": \"Instructions for generating this section's content\",\n      \"sections\": [],  // nested subsections if needed\n      \"refs\": [\"resource_1\", \"resource_2\"]  // array of resource keys\n    }\n  ]\n}\n\nIMPORTANT:\n- Each section must have: title, prompt, sections (can be empty array), and refs\n- The \"prompt\" field contains instructions for generating that section's content\n- The \"refs\" field is an array of resource keys (not full objects)\n- Sections can be nested by placing subsections in the \"sections\" array\n- Resource keys should match between the resources array and the refs arrays.\n- Consider the resources provided for which ones would be the most appropriate to include in the refs for each section. If a resource based on its name and summary do not appear relevant to a section, do not include it as a ref. There can be none, one, or more up to the total resources provided for the refs.\n- CRITICAL: Only include resources from the 'Available resource paths' list above. Do NOT create or reference any resources that were not provided.\n- The 'path' field in each resource MUST exactly match one of the available resource paths\n\nReturn only the JSON object.",
+        "model": "{{ model }}",
+        "output_format": {
+          "type": "object",
+          "properties": {
+            "title": { "type": "string" },
+            "general_instruction": { "type": "string" },
+            "resources": { 
+              "type": "array", 
+              "items": { 
+                "type": "object",
+                "properties": {
+                  "key": { "type": "string" },
+                  "path": { "type": "string" },
+                  "title": { "type": "string" },
+                  "description": { "type": "string" }
+                }
+              }
+            },
+            "sections": { 
+              "type": "array", 
+              "items": {
+                "type": "object",
+                "properties": {
+                  "title": { "type": "string" },
+                  "prompt": { "type": "string" },
+                  "sections": { "type": "array", "items": { "type": "object" } },
+                  "refs": { "type": "array", "items": { "type": "string" } }
+                },
+                "required": ["title", "prompt", "sections", "refs"]
+              }
+            }
+          },
+          "required": ["title", "general_instruction", "resources", "sections"]
+        },
+        "output_key": "outline"
+      }
+    },
+    {
+      "type": "write_files",
+      "config": {
+        "files": [
+          {
+            "path": "outline.json",
+            "content_key": "outline"
+          }
+        ],
+        "root": "{{ output_root }}"
+      }
+    }
+  ]
+}
 
 
 === File: recipes/document_generator/recipes/load_outline.json ===
