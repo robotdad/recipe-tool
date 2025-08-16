@@ -161,6 +161,24 @@
             "sample_recipes",
             "codebase_generator_recipes"
           ]
+        },
+
+        {
+          "title": "`docpack_create`",
+          "prompt": "From the resource docs, write a full reference entry for this step: purpose, when to use, key configuration (with defaults), notable pitfalls, and at least one runnable example (more if important to show variants of use cases). Note that this step is primarily used in document generation workflows for creating portable docpack files.",
+          "refs": [
+            "recipe_executor_blueprints",
+            "sample_recipes"
+          ]
+        },
+
+        {
+          "title": "`docpack_extract`",
+          "prompt": "From the resource docs, write a full reference entry for this step: purpose, when to use, key configuration (with defaults), notable pitfalls, and at least one runnable example (more if important to show variants of use cases). Note that this step is primarily used in document generation workflows for extracting portable docpack files.",
+          "refs": [
+            "recipe_executor_blueprints",
+            "sample_recipes"
+          ]
         }
       ]
     },
