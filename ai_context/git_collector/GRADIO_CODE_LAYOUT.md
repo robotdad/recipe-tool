@@ -3,7 +3,7 @@
 [git-collector-data]
 
 **URL:** https://github.com/gradio-app/gradio/tree/main/gradio  
-**Date:** 7/2/2025, 3:22:15 PM  
+**Date:** 8/15/2025, 3:42:49 PM  
 **Files:** 10  
 
 === File: gradio/blocks.py ===
@@ -563,6 +563,7 @@ class BlockFunction:
         concurrency_id: str | None = None,
         tracks_progress: bool = False,
         api_name: str | Literal[False] = False,
+        api_description: str | None | Literal[False] = None,
         js: str | Literal[True] | None = None,
         show_progress: Literal["full", "minimal", "hidden"] = "full",
         show_progress_on: Sequence[Component] | None = None,
@@ -570,6 +571,7 @@ class BlockFunction:
         collects_event_data: bool = False,
         trigger_after: int | None = None,
         trigger_only_on_success: bool = False,
+        trigger_only_on_failure: bool = False,
         trigger_mode: Literal["always_last", "once", "multiple"] = "once",
         queue: bool = True,
         scroll_to_output: bool = False,
@@ -604,6 +606,7 @@ class BlockFunction:
         self.targets = targets
         self.name = getattr(fn, "__name__", "fn") if fn is not None else None
         self.api_name = api_name
+        self.api_description = api_description
         self.js = js
         self.show_progress = show_progress
         self.show_progress_on = show_progress_on
@@ -611,6 +614,7 @@ class BlockFunction:
         self.collects_event_data = collects_event_data
         self.trigger_after = trigger_after
         self.trigger_only_on_success = trigger_only_on_success
+        self.trigger_only_on_failure = trigger_only_on_failure
         self.trigger_mode = trigger_mode
         self.queue = False if fn is None else queue
         self.scroll_to_output = False if utils.get_space() else scroll_to_output
@@ -666,6 +670,7 @@ class BlockFunction:
             "js": self.js,
             "queue": self.queue,
             "api_name": self.api_name,
+            "api_description": self.api_description,
             "scroll_to_output": self.scroll_to_output,
             "show_progress": self.show_progress,
             "show_progress_on": None
@@ -681,6 +686,7 @@ class BlockFunction:
             "collects_event_data": self.collects_event_data,
             "trigger_after": self.trigger_after,
             "trigger_only_on_success": self.trigger_only_on_success,
+            "trigger_only_on_failure": self.trigger_only_on_failure,
             "trigger_mode": self.trigger_mode,
             "show_api": self.show_api,
             "rendered_in": self.rendered_in._id if self.rendered_in else None,
@@ -778,6 +784,7 @@ class BlocksConfig:
         show_progress: Literal["full", "minimal", "hidden"] = "full",
         show_progress_on: Component | Sequence[Component] | None = None,
         api_name: str | None | Literal[False] = None,
+        api_description: str | None | Literal[False] = None,
         js: str | Literal[True] | None = None,
         no_target: bool = False,
         queue: bool = True,
@@ -787,6 +794,7 @@ class BlocksConfig:
         collects_event_data: bool | None = None,
         trigger_after: int | None = None,
         trigger_only_on_success: bool = False,
+        trigger_only_on_failure: bool = False,
         trigger_mode: Literal["once", "multiple", "always_last"] | None = "once",
         concurrency_limit: int | None | Literal["default"] = "default",
         concurrency_id: str | None = None,
@@ -813,7 +821,8 @@ class BlocksConfig:
             scroll_to_output: whether to scroll to output of dependency on trigger
             show_progress: how to show the progress animation while event is running: "full" shows a spinner which covers the output component area as well as a runtime display in the upper right corner, "minimal" only shows the runtime display, "hidden" shows no progress animation at all
             show_progress_on: Component or list of components to show the progress animation on. If None, will show the progress animation on all of the output components.
-            api_name: defines how the endpoint appears in the API docs. Can be a string, None, or False. If set to a string, the endpoint will be exposed in the API docs with the given name. If None (default), the name of the function will be used as the API endpoint. If False, the endpoint will not be exposed in the API docs and downstream apps (including those that `gr.load` this app) will not be able to use this event.
+            api_name: Defines how the endpoint appears in the API docs. Can be a string, None, or False. If set to a string, the endpoint will be exposed in the API docs with the given name. If None, the name of the function will be used as the API endpoint. If False, the endpoint will not be exposed in the API docs and downstream apps (including those that `gr.load` this app) will not be able to use this event.
+            api_description: Description of the API endpoint. Can be a string, None, or False. If set to a string, the endpoint will be exposed in the API docs with the given description. If None, the function's docstring will be used as the API endpoint description. If False, then no description will be displayed in the API docs.
             js: Optional frontend js method to run before running 'fn'. Input arguments for js method are values of 'inputs' and 'outputs', return should be a list of values for output components
             no_target: if True, sets "targets" to [], used for the Blocks.load() event and .then() events
             queue: If True, will place the request on the queue, if the queue has been enabled. If False, will not put this event on the queue, even if the queue has been enabled. If None, will use the queue setting of the gradio app.
@@ -823,6 +832,7 @@ class BlocksConfig:
             collects_event_data: whether to collect event data for this event
             trigger_after: if set, this event will be triggered after 'trigger_after' function index
             trigger_only_on_success: if True, this event will only be triggered if the previous event was successful (only applies if `trigger_after` is set)
+            trigger_only_on_failure: if True, this event will only be triggered if the previous event failed i.e. raised an exception (only applies if `trigger_after` is set)
             trigger_mode: If "once" (default for all events except `.change()`) would not allow any submissions while an event is pending. If set to "multiple", unlimited submissions are allowed while pending, and "always_last" (default for `.change()` and `.key_up()` events) would allow a second submission after the pending event is complete.
             concurrency_limit: If set, this is the maximum number of this event that can be running simultaneously. Can be set to None to mean no concurrency_limit (any number of this event can be running simultaneously). Set to "default" to use the default concurrency limit (defined by the `default_concurrency_limit` parameter in `queue()`, which itself is 1 by default).
             concurrency_id: If set, this is the id of the concurrency group. Events with the same concurrency_id will be limited by the lowest set concurrency_limit.
@@ -951,6 +961,7 @@ class BlocksConfig:
             concurrency_id=concurrency_id,
             tracks_progress=progress_index is not None,
             api_name=api_name,
+            api_description=api_description,
             js=js,
             show_progress=show_progress,
             show_progress_on=show_progress_on,
@@ -958,6 +969,7 @@ class BlocksConfig:
             collects_event_data=collects_event_data,
             trigger_after=trigger_after,
             trigger_only_on_success=trigger_only_on_success,
+            trigger_only_on_failure=trigger_only_on_failure,
             trigger_mode=trigger_mode,
             queue=queue,
             scroll_to_output=scroll_to_output,
@@ -1267,11 +1279,12 @@ class Blocks(BlockContext, BlocksEvents, metaclass=BlocksMeta):
         self.favicon_path = None
         self.auth = None
         self.dev_mode = bool(os.getenv("GRADIO_WATCH_DIRS", ""))
+        self.vibe_mode = bool(os.getenv("GRADIO_VIBE_MODE", ""))
         self.app_id = random.getrandbits(64)
         self.upload_file_set = set()
         self.temp_file_sets = [self.upload_file_set]
         self.title = title
-        self.show_api = not wasm_utils.IS_WASM
+        self.show_api_in_footer = not wasm_utils.IS_WASM
 
         # Only used when an Interface is loaded from a config
         self.predict = None
@@ -1471,6 +1484,9 @@ class Blocks(BlockContext, BlocksEvents, metaclass=BlocksMeta):
                     dependency["trigger_only_on_success"] = dependency.pop(
                         "trigger_only_on_success"
                     )
+                    dependency["trigger_only_on_failure"] = dependency.pop(
+                        "trigger_only_on_failure", False
+                    )
                     dependency["no_target"] = True
                 else:
                     targets = [
@@ -1554,6 +1570,7 @@ class Blocks(BlockContext, BlocksEvents, metaclass=BlocksMeta):
             collects_event_data=None,
             trigger_after=None,
             trigger_only_on_success=False,
+            trigger_only_on_failure=False,
             trigger_mode="once",
             concurrency_limit="default",
             concurrency_id=None,
@@ -2044,6 +2061,10 @@ Received inputs:
                     state._update_value_in_config(
                         block._id, prediction_value_serialized
                     )
+                elif not block_fn.postprocess:
+                    if block._id not in state:
+                        state[block._id] = block
+                    state._update_value_in_config(block._id, prediction_value)
 
                 outputs_cached = await processing_utils.async_move_files_to_cache(
                     prediction_value,
@@ -2334,6 +2355,7 @@ Received inputs:
             "mode": self.mode,
             "app_id": self.app_id,
             "dev_mode": self.dev_mode,
+            "vibe_mode": self.vibe_mode,
             "analytics_enabled": self.analytics_enabled,
             "components": [],
             "css": self.css,
@@ -2344,7 +2366,7 @@ Received inputs:
             "space_id": self.space_id,
             "enable_queue": True,  # launch attributes
             "show_error": getattr(self, "show_error", False),
-            "show_api": self.show_api,
+            "show_api": self.show_api_in_footer,
             "is_colab": utils.colab_check(),
             "max_file_size": getattr(self, "max_file_size", None),
             "stylesheets": self.stylesheets,
@@ -2428,7 +2450,7 @@ Received inputs:
         else:
             self.parent.children.extend(self.children)
         self.config = self.get_config_file()
-        self.app = App.create_app(self)
+        self.app = App.create_app(self, mcp_server=False)
         self.progress_tracking = any(
             block_fn.tracks_progress for block_fn in self.fns.values()
         )
@@ -2481,7 +2503,7 @@ Received inputs:
             blocks=self,
             default_concurrency_limit=default_concurrency_limit,
         )
-        self.app = App.create_app(self)
+        self.app = App.create_app(self, mcp_server=False)
         return self
 
     def validate_queue_settings(self):
@@ -2724,7 +2746,7 @@ Received inputs:
             ssr_mode=self.ssr_mode,
             mcp_server=mcp_server,
         )
-        if self.mcp_server and not quiet:
+        if self.mcp_error and not quiet:
             print(self.mcp_error)
 
         self.config = self.get_config_file()
@@ -2776,6 +2798,8 @@ Received inputs:
             )
             self.share_server_tls_certificate = share_server_tls_certificate
             self.has_launched = True
+            if self.mcp_server_obj:
+                self.mcp_server_obj._local_url = self.local_url
 
             self.protocol = (
                 "https"
@@ -2920,7 +2944,9 @@ Received inputs:
         mcp_subpath = API_PREFIX + "/mcp"
         if self.mcp_server:
             print(
-                f"\n🔨 MCP server (using SSE) running at: {self.share_url or self.local_url.rstrip('/')}/{mcp_subpath.lstrip('/')}/sse"
+                "\n🔨 Launching MCP server:"
+                f"\n** Streamable HTTP URL: {self.share_url or self.local_url.rstrip('/')}/{mcp_subpath.lstrip('/')}/"
+                f"\n* [Deprecated] SSE URL: {self.share_url or self.local_url.rstrip('/')}/{mcp_subpath.lstrip('/')}/sse"
             )
 
         if inbrowser and not wasm_utils.IS_WASM:
@@ -3145,9 +3171,15 @@ Received inputs:
                 "returns": [],
                 "show_api": fn.show_api,
             }
-            fn_info = utils.get_function_params(fn.fn)  # type: ignore
-            description, _, _ = utils.get_function_description(fn.fn)
-            if description:
+            fn_info = utils.get_function_params(fn.fn)
+            if fn.api_description is False:
+                dependency_info["description"] = ""
+            elif fn.api_description is None:
+                description, _, _ = utils.get_function_description(fn.fn)
+                dependency_info["description"] = description
+            else:
+                description = fn.api_description
+                assert isinstance(description, str)  # noqa: S101
                 dependency_info["description"] = description
             skip_endpoint = False
 
@@ -3211,7 +3243,9 @@ Received inputs:
                         "type": info,
                         "python_type": {
                             "type": python_type,
-                            "description": info.get("additional_description", ""),
+                            "description": (info or {}).get(
+                                "additional_description", ""
+                            ),
                         },
                         "component": type.capitalize(),
                         "example_input": example,
@@ -3434,6 +3468,8 @@ class ChatInterface(Blocks):
         fill_height: bool = True,
         fill_width: bool = False,
         api_name: str | Literal[False] = "chat",
+        api_description: str | None | Literal[False] = None,
+        show_api: bool = True,
         save_history: bool = False,
     ):
         """
@@ -3475,6 +3511,8 @@ class ChatInterface(Blocks):
             fill_height: if True, the chat interface will expand to the height of window.
             fill_width: Whether to horizontally expand to fill container fully. If False, centers and constrains app to a maximum width.
             api_name: defines how the chat endpoint appears in the API docs. Can be a string or False. If set to a string, the chat endpoint will be exposed in the API docs with the given name. If False, the chat endpoint will not be exposed in the API docs and downstream apps (including those that `gr.load` this app) will not be able to call this chat endpoint.
+            api_description: Description of the API endpoint. Can be a string, None, or False. If set to a string, the endpoint will be exposed in the API docs with the given description. If None, the function's docstring will be used as the API endpoint description. If False, then no description will be displayed in the API docs.
+            show_api: whether to show the chat endpoint in the "view API" page of the Gradio app, or in the ".view_api()" method of the Gradio clients. Unlike setting api_name to False, setting show_api to False will still allow downstream apps as well as the Clients to use this event. If fn is None, show_api will automatically be set to False.
             save_history: if True, will save the chat history to the browser's local storage and display previous conversations in a side panel.
         """
         super().__init__(
@@ -3492,6 +3530,8 @@ class ChatInterface(Blocks):
             delete_cache=delete_cache,
         )
         self.api_name: str | Literal[False] = api_name
+        self.api_description: str | None | Literal[False] = api_description
+        self.show_api = show_api
         self.type = type
         self.multimodal = multimodal
         self.concurrency_limit = concurrency_limit
@@ -3940,6 +3980,8 @@ class ChatInterface(Blocks):
             [self.textbox, self.chatbot_state] + self.additional_inputs,
             [self.api_response, self.chatbot_state] + self.additional_outputs,
             api_name=self.api_name,
+            api_description=self.api_description,
+            show_api=self.show_api,
             concurrency_limit=cast(
                 Union[int, Literal["default"], None], self.concurrency_limit
             ),
@@ -4585,7 +4627,9 @@ class Interface(Blocks):
         analytics_enabled: bool | None = None,
         batch: bool = False,
         max_batch_size: int = 4,
+        show_api: bool = True,
         api_name: str | Literal[False] | None = "predict",
+        api_description: str | None | Literal[False] = None,
         _api_mode: bool = False,
         allow_duplication: bool = False,
         concurrency_limit: int | None | Literal["default"] = "default",
@@ -4634,6 +4678,8 @@ class Interface(Blocks):
             batch: if True, then the function should process a batch of inputs, meaning that it should accept a list of input values for each parameter. The lists should be of equal length (and be up to length `max_batch_size`). The function is then *required* to return a tuple of lists (even if there is only 1 output component), with each list in the tuple corresponding to one output component.
             max_batch_size: the maximum number of inputs to batch together if this is called from the queue (only relevant if batch=True)
             api_name: defines how the prediction endpoint appears in the API docs. Can be a string, None, or False. If set to a string, the endpoint will be exposed in the API docs with the given name. If None, the name of the prediction function will be used as the API endpoint. If False, the endpoint will not be exposed in the API docs and downstream apps (including those that `gr.load` this app) will not be able to use this prediction endpoint.
+            api_description: Description of the API endpoint. Can be a string, None, or False. If set to a string, the endpoint will be exposed in the API docs with the given description. If None, the function's docstring will be used as the API endpoint description. If False, then no description will be displayed in the API docs.
+            show_api: whether to show the prediction endpoint in the "view API" page of the Gradio app, or in the ".view_api()" method of the Gradio clients. Unlike setting api_name to False, setting show_api to False will still allow downstream apps as well as the Clients to use this event.
             allow_duplication: if True, then will show a 'Duplicate Spaces' button on Hugging Face Spaces.
             concurrency_limit: if set, this is the maximum number of this event that can be running simultaneously. Can be set to None to mean no concurrency_limit (any number of this event can be running simultaneously). Set to "default" to use the default concurrency limit (defined by the `default_concurrency_limit` parameter in `.queue()`, which itself is 1 by default).
             css: Custom css as a code string. This css will be included in the demo webpage.
@@ -4680,6 +4726,8 @@ class Interface(Blocks):
         self.time_limit = time_limit
         self.stream_every = stream_every
         self.api_name: str | Literal[False] | None = api_name
+        self.api_description: str | None | Literal[False] = api_description
+        self.show_api = show_api
         self.interface_type = InterfaceTypes.STANDARD
         if (inputs is None or inputs == []) and (outputs is None or outputs == []):
             raise ValueError("Must provide at least one of `inputs` or `outputs`")
@@ -4758,7 +4806,7 @@ class Interface(Blocks):
 
             if cache_examples:
                 warnings.warn(
-                    "Cache examples cannot be used with state inputs and outputs."
+                    "Cache examples cannot be used with state inputs and outputs. "
                     "Setting cache_examples to False."
                 )
             self.cache_examples = False
@@ -4878,7 +4926,7 @@ class Interface(Blocks):
         # (2) check for env variable, (3) default to "manual"
         if allow_flagging is not None:
             warnings.warn(
-                "The `allow_flagging` parameter in `Interface` is deprecated."
+                "The `allow_flagging` parameter in `Interface` is deprecated. "
                 "Use `flagging_mode` instead."
             )
             flagging_mode = allow_flagging
@@ -5186,6 +5234,8 @@ class Interface(Blocks):
                     None,
                     self.output_components,
                     api_name=self.api_name,
+                    show_api=self.show_api,
+                    api_description=self.api_description,
                     preprocess=not (self.api_mode),
                     postprocess=not (self.api_mode),
                     batch=self.batch,
@@ -5206,6 +5256,8 @@ class Interface(Blocks):
                     self.input_components,
                     self.output_components,
                     api_name=self.api_name,
+                    api_description=self.api_description,
+                    show_api=self.show_api,
                     preprocess=not (self.api_mode),
                     postprocess=not (self.api_mode),
                     show_progress="hidden" if streaming_event else self.show_progress,
@@ -5254,6 +5306,8 @@ class Interface(Blocks):
                     self.input_components,
                     self.output_components,
                     api_name=self.api_name,
+                    show_api=self.show_api,
+                    api_description=self.api_description,
                     scroll_to_output=True,
                     preprocess=not (self.api_mode),
                     postprocess=not (self.api_mode),
@@ -5287,6 +5341,8 @@ class Interface(Blocks):
                     self.input_components,
                     self.output_components,
                     api_name=self.api_name,
+                    show_api=self.show_api,
+                    api_description=self.api_description,
                     scroll_to_output=True,
                     preprocess=not (self.api_mode),
                     postprocess=not (self.api_mode),

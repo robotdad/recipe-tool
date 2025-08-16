@@ -3,7 +3,7 @@
 [git-collector-data]
 
 **URL:** https://github.com/gradio-app/gradio/tree/main/gradio  
-**Date:** 7/2/2025, 3:22:13 PM  
+**Date:** 8/15/2025, 3:42:48 PM  
 **Files:** 50  
 
 === File: gradio/components/__init__.py ===
@@ -30,6 +30,7 @@ from gradio.components.dataframe import Dataframe
 from gradio.components.dataset import Dataset
 from gradio.components.datetime import DateTime
 from gradio.components.deep_link_button import DeepLinkButton
+from gradio.components.dialogue import Dialogue
 from gradio.components.download_button import DownloadButton
 from gradio.components.dropdown import Dropdown
 from gradio.components.duplicate_button import DuplicateButton
@@ -87,6 +88,7 @@ __all__ = [
     "Dataframe",
     "DataFrame",
     "Dataset",
+    "Dialogue",
     "DownloadButton",
     "DuplicateButton",
     "Fallback",
@@ -3278,6 +3280,7 @@ class ColorPicker(Component):
 
 from __future__ import annotations
 
+import re
 import warnings
 from collections.abc import Callable, Sequence
 from typing import (
@@ -3351,7 +3354,9 @@ class Dataframe(Component):
         headers: list[str] | None = None,
         row_count: int | tuple[int, str] = (1, "dynamic"),
         col_count: int | tuple[int, str] | None = None,
-        datatype: Literal["str", "number", "bool", "date", "markdown", "html", "image"]
+        datatype: Literal[
+            "str", "number", "bool", "date", "markdown", "html", "image", "auto"
+        ]
         | Sequence[
             Literal["str", "number", "bool", "date", "markdown", "html"]
         ] = "str",
@@ -3388,7 +3393,7 @@ class Dataframe(Component):
             headers: List of str header names. These are used to set the column headers of the dataframe if the value does not have headers. If None, no headers are shown.
             row_count: Limit number of rows for input and decide whether user can create new rows or delete existing rows. The first element of the tuple is an `int`, the row count; the second should be 'fixed' or 'dynamic', the new row behaviour. If an `int` is passed the rows default to 'dynamic'
             col_count: Limit number of columns for input and decide whether user can create new columns or delete existing columns. The first element of the tuple is an `int`, the number of columns; the second should be 'fixed' or 'dynamic', the new column behaviour. If an `int` is passed the columns default to 'dynamic'
-            datatype: Datatype of values in sheet. Can be provided per column as a list of strings, or for the entire sheet as a single string. Valid datatypes are "str", "number", "bool", "date", and "markdown". Boolean columns will display as checkboxes.
+            datatype: Datatype of values in sheet. Can be provided per column as a list of strings, or for the entire sheet as a single string. Valid datatypes are "str", "number", "bool", "date", and "markdown". Boolean columns will display as checkboxes. If the datatype "auto" is used, the column datatypes are automatically selected based on the value input if possible.
             type: Type of value to be returned by component. "pandas" for pandas dataframe, "numpy" for numpy array, "polars" for polars dataframe, or "array" for a Python list of lists.
             label: the label for this component. Appears above the component and is also used as the header if there are a table of examples for this component. If None and used in a `gr.Interface`, the label will be the name of the parameter this component is assigned to.
             latex_delimiters: A list of dicts of the form {"left": open delimiter (str), "right": close delimiter (str), "display": whether to display in newline (bool)} that will be used to render LaTeX expressions. If not provided, `latex_delimiters` is set to `[{ "left": "$$", "right": "$$", "display": True }]`, so only expressions enclosed in $$ delimiters will be rendered as LaTeX, and in a new line. Pass in an empty list to disable LaTeX rendering. For more information, see the [KaTeX documentation](https://katex.org/docs/autorender.html). Only applies to columns whose datatype is "markdown".
@@ -3435,7 +3440,7 @@ class Dataframe(Component):
             if headers is not None
             else [str(i) for i in (range(1, self.col_count[0] + 1))]
         )
-        self.datatype = datatype
+
         valid_types = ["pandas", "numpy", "array", "polars"]
         if type not in valid_types:
             raise ValueError(
@@ -3446,6 +3451,11 @@ class Dataframe(Component):
                 "Polars is not installed. Please install using `pip install polars`."
             )
         self.type = type
+
+        if datatype == "auto":
+            self.set_auto_datatype(value)
+        else:
+            self.datatype = datatype
 
         if latex_delimiters is None:
             latex_delimiters = [{"left": "$$", "right": "$$", "display": True}]
@@ -3736,6 +3746,89 @@ class Dataframe(Component):
             data=data,
             metadata=metadata,  # type: ignore
         )
+
+    def set_auto_datatype(self, value):
+        """
+        Automatically sets the datatype of each column based on the data provided. If the datatype can't be inferred, it defaults to "str".
+        """
+        import pandas as pd
+        from pandas.io.formats.style import Styler
+
+        dtype_mapping = {
+            "str": "str",
+            "object": "str",
+            "string": "str",
+            "utf": "str",
+            "int": "number",
+            "float": "number",
+            "bool": "bool",
+            "boolean": "bool",
+            "datetime": "date",
+            "date": "date",
+            "timedelta": "date",
+            "timestamp": "date",
+            "category": "str",
+            "categorical": "str",
+        }
+
+        brackets_re = re.compile(
+            r"\[.*?\]|\(.*?\)"
+        )  # Matches brackets and their contents
+        numbers_re = re.compile(r"\s*\d+\s*$")  # Matches trailing numbers and spaces
+
+        if isinstance(value, pd.DataFrame):
+            self.datatype = [
+                dtype_mapping.get(
+                    numbers_re.sub("", brackets_re.sub("", str(dtype))).lower(), "str"
+                )
+                for dtype in value.dtypes
+            ]
+
+        elif isinstance(value, Styler):
+            self.datatype = [
+                dtype_mapping.get(
+                    numbers_re.sub("", brackets_re.sub("", str(dtype))).lower(), "str"
+                )
+                for dtype in value.data.dtypes
+            ]
+
+        elif isinstance(value, np.ndarray):
+            self.datatype = [
+                dtype_mapping.get(
+                    numbers_re.sub(
+                        "", brackets_re.sub("", str(type(value[0, i]).__name__))
+                    ).lower(),
+                    "str",
+                )
+                for i in range(value.shape[1])
+            ]
+
+        elif isinstance(value, list):
+            self.datatype = [
+                dtype_mapping.get(
+                    numbers_re.sub(
+                        "", brackets_re.sub("", str(type(val).__name__))
+                    ).lower(),
+                    "str",
+                )
+                for val in value[0]
+            ]
+
+        elif _is_polars_available():
+            pl = _import_polars()
+            if isinstance(value, pl.DataFrame):
+                self.datatype = [
+                    dtype_mapping.get(
+                        numbers_re.sub("", brackets_re.sub("", str(dtype))).lower(),
+                        "str",
+                    )
+                    for dtype in value.dtypes
+                ]
+            else:
+                self.datatype = "str"
+
+        else:
+            self.datatype = "str"
 
     @staticmethod
     def __extract_metadata(
@@ -4294,7 +4387,7 @@ class DeepLinkButton(Button):
             f"""
         () => {{
             const sessionHash = window.__gradio_session_hash__;
-            fetch(`/gradio_api/deep_link?session_hash=${{sessionHash}}`)
+            fetch(`gradio_api/deep_link?session_hash=${{sessionHash}}`)
                 .then(response => {{
                     if (!response.ok) {{
                         throw new Error('Network response was not ok');
@@ -7008,6 +7101,7 @@ class ImageSlider(Component):
 from __future__ import annotations
 
 import json
+import warnings
 from collections.abc import Callable, Sequence
 from typing import (
     TYPE_CHECKING,
@@ -7118,8 +7212,27 @@ class JSON(Component):
         Returns:
             Returns the JSON as a `list` or `dict`.
         """
+
+        def default_json(o):
+            """
+            Check if the string representation of the object is already a valid JSON string. If it is,
+            parse it as JSON without the need to double quote it as string.
+            """
+            try:
+                return orjson.loads(str(o))
+            except orjson.JSONDecodeError:
+                return str(o)
+
         if value is None:
             return None
+
+        if not isinstance(value, (str, dict, list, Callable)):
+            warnings.warn(
+                f"JSON component received unexpected type {type(value)}. "
+                "Expected a string (including a valid JSON string), dict, list, or Callable.",
+                UserWarning,
+            )
+
         if isinstance(value, str):
             return JsonData(orjson.loads(value))
         else:
@@ -7132,7 +7245,7 @@ class JSON(Component):
                         value,
                         option=orjson.OPT_SERIALIZE_NUMPY
                         | orjson.OPT_PASSTHROUGH_DATETIME,
-                        default=str,
+                        default=default_json,
                     )
                 )
             )
@@ -8774,6 +8887,7 @@ class ScatterPlot(NativePlot):
 
 from __future__ import annotations
 
+import json
 from collections.abc import Callable, Sequence
 from typing import TYPE_CHECKING, Any
 
@@ -8873,7 +8987,7 @@ class Number(FormComponent):
         )
 
     @staticmethod
-    def _round_to_precision(num: float | int, precision: int | None) -> float | int:
+    def round_to_precision(num: float | int, precision: int | None) -> float | int:
         """
         Round to a given precision.
 
@@ -8892,6 +9006,15 @@ class Number(FormComponent):
         else:
             return round(num, precision)
 
+    @staticmethod
+    def raise_if_out_of_bounds(
+        num: float | int, minimum: float | int | None, maximum: float | int | None
+    ) -> None:
+        if minimum is not None and num < minimum:
+            raise Error(f"Value {num} is less than minimum value {minimum}.")
+        if maximum is not None and num > maximum:
+            raise Error(f"Value {num} is greater than maximum value {maximum}.")
+
     def preprocess(self, payload: float | None) -> float | int | None:
         """
         Parameters:
@@ -8901,13 +9024,8 @@ class Number(FormComponent):
         """
         if payload is None:
             return None
-        elif self.minimum is not None and payload < self.minimum:
-            raise Error(f"Value {payload} is less than minimum value {self.minimum}.")
-        elif self.maximum is not None and payload > self.maximum:
-            raise Error(
-                f"Value {payload} is greater than maximum value {self.maximum}."
-            )
-        return self._round_to_precision(payload, self.precision)
+        self.raise_if_out_of_bounds(payload, self.minimum, self.maximum)
+        return self.round_to_precision(payload, self.precision)
 
     def postprocess(self, value: float | int | None) -> float | int | None:
         """
@@ -8918,16 +9036,26 @@ class Number(FormComponent):
         """
         if value is None:
             return None
-        return self._round_to_precision(value, self.precision)
+        return self.round_to_precision(value, self.precision)
 
     def api_info(self) -> dict[str, str]:
+        if self.precision == 0:
+            return {"type": "integer"}
         return {"type": "number"}
 
     def example_payload(self) -> Any:
-        return 3
+        return self.round_to_precision(
+            3 if self.minimum is None else self.minimum, self.precision
+        )
 
     def example_value(self) -> Any:
-        return 3
+        return self.round_to_precision(
+            3 if self.minimum is None else self.minimum, self.precision
+        )
+
+    def read_from_flag(self, payload: str):
+        """Numbers are stored as strings in the flagging file, so we need to parse them as json."""
+        return json.loads(payload)
 
 
 === File: gradio/components/paramviewer.py ===
@@ -9780,6 +9908,7 @@ class ScatterPlot(Plot):
 
 from __future__ import annotations
 
+import json
 import math
 import random
 from collections.abc import Callable, Sequence
@@ -9788,6 +9917,7 @@ from typing import TYPE_CHECKING, Any
 from gradio_client.documentation import document
 
 from gradio.components.base import Component, FormComponent
+from gradio.components.number import Number
 from gradio.events import Events
 from gradio.i18n import I18nData
 
@@ -9813,6 +9943,7 @@ class Slider(FormComponent):
         value: float | Callable | None = None,
         *,
         step: float | None = None,
+        precision: int | None = None,
         label: str | I18nData | None = None,
         info: str | I18nData | None = None,
         every: Timer | float | None = None,
@@ -9833,10 +9964,11 @@ class Slider(FormComponent):
     ):
         """
         Parameters:
-            minimum: minimum value for slider.
-            maximum: maximum value for slider.
+            minimum: minimum value for slider. When used as an input, if a user provides a smaller value, a gr.Error exception is raised by the backend.
+            maximum: maximum value for slider. When used as an input, if a user provides a larger value, a gr.Error exception is raised by the backend.
             value: default value for slider. If a function is provided, the function will be called each time the app loads to set the initial value of this component. Ignored if randomized=True.
             step: increment between slider values.
+            precision: Precision to round input/output to. If set to 0, will round to nearest integer and convert type to int. If None, no rounding happens.
             label: the label for this component, displayed above the component if `show_label` is `True` and is also used as the header if there are a table of examples for this component. If None and used in a `gr.Interface`, the label will be the name of the parameter this component corresponds to.
             info: additional component description, appears below the label in smaller font. Supports markdown / HTML syntax.
             every: Continously calls `value` to recalculate it if `value` is a function (has no effect otherwise). Can provide a Timer whose tick resets `value`, or a float that provides the regular interval for the reset Timer.
@@ -9857,6 +9989,7 @@ class Slider(FormComponent):
         """
         self.minimum = minimum
         self.maximum = maximum
+        self.precision = precision
         if step is None:
             difference = maximum - minimum
             power = math.floor(math.log10(difference) - 2)
@@ -9887,7 +10020,7 @@ class Slider(FormComponent):
 
     def api_info(self) -> dict[str, Any]:
         return {
-            "type": "number",
+            "type": "integer" if self.precision == 0 else "number",
             "description": f"numeric value between {self.minimum} and {self.maximum}",
         }
 
@@ -9914,7 +10047,9 @@ class Slider(FormComponent):
         Returns:
             The value of the slider within the range.
         """
-        return self.minimum if value is None else value
+        return Number.round_to_precision(
+            self.minimum if value is None else value, self.precision
+        )
 
     def preprocess(self, payload: float) -> float:
         """
@@ -9923,7 +10058,12 @@ class Slider(FormComponent):
         Returns:
             Passes slider value as a {float} into the function.
         """
-        return payload
+        Number.raise_if_out_of_bounds(payload, self.minimum, self.maximum)
+        return Number.round_to_precision(payload, self.precision)
+
+    def read_from_flag(self, payload: Any):
+        """Sliders are stored as strings in the flagging file, so we need to parse them as json."""
+        return json.loads(payload)
 
 
 === File: gradio/components/state.py ===
@@ -9966,8 +10106,8 @@ class State(Component):
         Parameters:
             value: the initial value (of arbitrary type) of the state. The provided argument is deepcopied. If a callable is provided, the function will be called whenever the app loads to set the initial value of the state.
             render: should always be True, is included for consistency with other components.
-            time_to_live: The number of seconds the state should be stored for after it is created or updated. If None, the state will be stored indefinitely. Gradio automatically deletes state variables after a user closes the browser tab or refreshes the page, so this is useful for clearing state for potentially long running sessions.
-            delete_callback: A function that is called when the state is deleted. The function should take the state value as an argument.
+            time_to_live: the number of seconds the state should be stored for after it is created or updated. If None, the state will be stored indefinitely. Gradio automatically deletes state variables after a user closes the browser tab or refreshes the page, so this is useful for clearing state for potentially long running sessions.
+            delete_callback: a function that is called when the state is deleted. The function should take the state value as an argument.
         """
         self.time_to_live = self.time_to_live = (
             math.inf if time_to_live is None else time_to_live
@@ -10051,7 +10191,7 @@ if TYPE_CHECKING:
 @dataclasses.dataclass
 class InputHTMLAttributes:
     """
-    A dataclass for specifying HTML attributes for the input/textarea element. If any of these attributes are not provided, the browser will use its default value.
+    A dataclass for specifying HTML attributes for the input/textarea element. If any of these attributes are not provided, the browser will use the default value.
     Parameters:
         autocapitalize: The autocapitalize attribute for the input/textarea element. Can be "off", "none", "on", "sentences", "words", or "characters".
         autocorrect: The autocorrect attribute for the input/textarea element. Can be True (enabled) or False (disabled).
@@ -10060,9 +10200,6 @@ class InputHTMLAttributes:
         tabindex: The tabindex attribute for the input/textarea element. An integer specifying the tab order.
         enterkeyhint: The enterkeyhint attribute for the input/textarea element. Can be "enter", "done", "go", "next", "previous", "search", or "send".
         lang: The lang attribute for the input/textarea element. A string containing a language code (e.g., "en", "es", "fr").
-        aria_label: The aria-label attribute for the input/textarea element. A string providing an accessible name for screen readers.
-        aria_describedby: The aria-describedby attribute for the input/textarea element. A string containing IDs of elements that describe this element.
-        aria_placeholder: The aria-placeholder attribute for the input/textarea element. A string providing placeholder text for screen readers.
     """
 
     autocapitalize: Optional[
@@ -10076,9 +10213,6 @@ class InputHTMLAttributes:
         Literal["enter", "done", "go", "next", "previous", "search", "send"]
     ] = None
     lang: Optional[str] = None
-    aria_label: Optional[str] = None
-    aria_describedby: Optional[str] = None
-    aria_placeholder: Optional[str] = None
 
 
 @document()

@@ -3,10 +3,10 @@
 [collect-files]
 
 **Search:** ['recipe-executor/recipe_executor']
-**Exclude:** ['.venv', 'node_modules', '*.lock', '.git', '__pycache__', '*.pyc', '*.ruff_cache', 'logs', 'output']
+**Exclude:** ['.venv', 'node_modules', '*.lock', '.git', '__pycache__', '*.pyc', '*.ruff_cache', 'logs', 'output', '.DS_Store', '*.DS_Store']
 **Include:** ['README.md', 'pyproject.toml', '.env.example']
-**Date:** 7/2/2025, 3:22:05 PM
-**Files:** 29
+**Date:** 8/15/2025, 3:42:41 PM
+**Files:** 31
 
 === File: .env.example ===
 # While all variables have aliases to work without the RECIPE_EXECUTOR_ prefix,
@@ -436,9 +436,10 @@ Any use of third-party trademarks or logos are subject to those third-party's po
 members = [
     "recipe-tool",
     "recipe-executor",
+    "docpack-file",
     "shared/gradio-components",
     "apps/document-generator",
-    "apps/experimental/document-generator-v2",
+    "apps/experimental/document-generator-v1",
     "apps/recipe-executor",
     "apps/recipe-tool",
     "mcp-servers/docs-server",
@@ -450,10 +451,11 @@ members = [
 # Core libraries
 recipe-executor = { workspace = true }
 recipe-tool = { workspace = true }
+docpack-file = { workspace = true }
 gradio-components = { workspace = true }
 # Apps
 document-generator-app = { workspace = true }
-document-generator-v2-app = { workspace = true }
+document-generator-v1-app = { workspace = true }
 recipe-executor-app = { workspace = true }
 recipe-tool-app = { workspace = true }
 # MCP servers
@@ -497,34 +499,54 @@ class RecipeExecutorConfig(BaseSettings):
     """
 
     # Standard AI Provider API Keys
-    openai_api_key: Optional[str] = Field(default=None, alias="OPENAI_API_KEY", description="API key for OpenAI")
+    openai_api_key: Optional[str] = Field(
+        default=None,
+        alias="OPENAI_API_KEY",
+        description="API key for OpenAI",
+    )
     anthropic_api_key: Optional[str] = Field(
-        default=None, alias="ANTHROPIC_API_KEY", description="API key for Anthropic"
+        default=None,
+        alias="ANTHROPIC_API_KEY",
+        description="API key for Anthropic",
     )
 
     # Azure OpenAI Credentials
     azure_openai_api_key: Optional[str] = Field(
-        default=None, alias="AZURE_OPENAI_API_KEY", description="API key for Azure OpenAI"
+        default=None,
+        alias="AZURE_OPENAI_API_KEY",
+        description="API key for Azure OpenAI",
     )
     azure_openai_base_url: Optional[str] = Field(
-        default=None, alias="AZURE_OPENAI_BASE_URL", description="Base URL for Azure OpenAI endpoint"
+        default=None,
+        alias="AZURE_OPENAI_BASE_URL",
+        description="Base URL for Azure OpenAI endpoint",
     )
-    azure_openai_api_version: str = Field(
-        default="2025-03-01-preview", alias="AZURE_OPENAI_API_VERSION", description="API version for Azure OpenAI"
+    azure_openai_api_version: Optional[str] = Field(
+        default="2025-03-01-preview",
+        alias="AZURE_OPENAI_API_VERSION",
+        description="API version for Azure OpenAI",
     )
     azure_openai_deployment_name: Optional[str] = Field(
-        default=None, alias="AZURE_OPENAI_DEPLOYMENT_NAME", description="Deployment name for Azure OpenAI"
+        default=None,
+        alias="AZURE_OPENAI_DEPLOYMENT_NAME",
+        description="Deployment name for Azure OpenAI",
     )
     azure_use_managed_identity: bool = Field(
-        default=False, alias="AZURE_USE_MANAGED_IDENTITY", description="Use Azure managed identity for authentication"
+        default=False,
+        alias="AZURE_USE_MANAGED_IDENTITY",
+        description="Use Azure managed identity for authentication",
     )
     azure_client_id: Optional[str] = Field(
-        default=None, alias="AZURE_CLIENT_ID", description="Client ID for Azure managed identity"
+        default=None,
+        alias="AZURE_CLIENT_ID",
+        description="Client ID for Azure managed identity",
     )
 
     # Ollama Settings
     ollama_base_url: str = Field(
-        default="http://localhost:11434", alias="OLLAMA_BASE_URL", description="Base URL for Ollama API"
+        default="http://localhost:11434",
+        alias="OLLAMA_BASE_URL",
+        description="Base URL for Ollama API",
     )
 
     model_config = SettingsConfigDict(
@@ -532,7 +554,7 @@ class RecipeExecutorConfig(BaseSettings):
         env_file=".env",
         env_file_encoding="utf-8",
         case_sensitive=False,
-        extra="ignore",  # Allow extra fields from .env file
+        extra="ignore",
     )
 
 
@@ -558,7 +580,7 @@ def load_configuration(recipe_env_vars: Optional[List[str]] = None) -> Dict[str,
         for var_name in recipe_env_vars:
             value = os.getenv(var_name)
             if value is not None:
-                # Key names are lowercase for consistency
+                # key names are lowercase for consistency
                 key = var_name.lower()
                 config[key] = value
 
@@ -593,32 +615,47 @@ class Context(ContextProtocol):
         self._config: Dict[str, Any] = copy.deepcopy(config) if config is not None else {}
 
     def __getitem__(self, key: str) -> Any:
+        """
+        Retrieve an artifact by key. Raises KeyError if not found.
+        """
         try:
             return self._artifacts[key]
         except KeyError:
             raise KeyError(f"Key '{key}' not found in Context.")
 
     def __setitem__(self, key: str, value: Any) -> None:
+        """
+        Store or overwrite an artifact value by key.
+        """
         self._artifacts[key] = value
 
     def __delitem__(self, key: str) -> None:
-        # Let KeyError propagate naturally if key is missing
+        """
+        Remove an artifact by key. KeyError propagates if key is missing.
+        """
         del self._artifacts[key]
 
     def __contains__(self, key: object) -> bool:
-        # Only string keys are valid artifact keys
+        """
+        Return True if the given key exists in artifacts.
+        """
         return isinstance(key, str) and key in self._artifacts
 
     def __iter__(self) -> Iterator[str]:
-        # Iterate over a snapshot of keys to prevent issues during mutation
+        """
+        Iterate over a snapshot of artifact keys.
+        """
         return iter(list(self._artifacts.keys()))
 
     def __len__(self) -> int:
+        """
+        Return the number of artifacts stored.
+        """
         return len(self._artifacts)
 
     def keys(self) -> Iterator[str]:
         """
-        Return an iterator over the artifact keys.
+        Return an iterator over artifact keys.
         """
         return self.__iter__()
 
@@ -632,10 +669,10 @@ class Context(ContextProtocol):
         """
         Create a deep copy of this Context, including artifacts and config.
         """
-        # __init__ will deep-copy the provided dicts
+        # __init__ deep-copies provided dicts
         return Context(artifacts=self._artifacts, config=self._config)
 
-    def dict(self) -> Dict[str, Any]:
+    def dict(self) -> Dict[str, Any]:  # noqa: A003
         """
         Return a deep copy of the artifacts as a standard dict.
         """
@@ -665,8 +702,8 @@ class Context(ContextProtocol):
 import os
 import json
 import logging
-from pathlib import Path
 import inspect
+from pathlib import Path
 from typing import Union, Dict, Any
 
 from recipe_executor.protocols import ExecutorProtocol, ContextProtocol
@@ -692,7 +729,7 @@ class Executor(ExecutorProtocol):
         Load a recipe (from file path, JSON string, dict, or Recipe model),
         validate it, and execute its steps sequentially using the provided context.
         """
-        # Determine and validate recipe model
+        # Load or validate the recipe into a Recipe model
         if isinstance(recipe, Recipe):
             self.logger.debug("Using provided Recipe model instance.")
             recipe_model = recipe
@@ -704,8 +741,8 @@ class Executor(ExecutorProtocol):
                 raise ValueError(f"Invalid recipe structure: {e}") from e
         elif isinstance(recipe, (str, Path)):
             recipe_str = str(recipe)
-            # File path
             if os.path.isfile(recipe_str):
+                # File path case
                 self.logger.debug(f"Loading recipe from file path: {recipe_str}")
                 try:
                     with open(recipe_str, encoding="utf-8") as f:
@@ -717,31 +754,32 @@ class Executor(ExecutorProtocol):
                 except Exception as e:
                     raise ValueError(f"Invalid recipe structure from file '{recipe_str}': {e}") from e
             else:
-                # Raw JSON string
+                # Raw JSON string case
                 self.logger.debug("Loading recipe from JSON string.")
                 try:
-                    parsed = json.loads(recipe_str)
-                except Exception as e:
-                    raise ValueError(f"Failed to parse recipe JSON string: {e}") from e
-                try:
-                    recipe_model = Recipe.model_validate(parsed)
-                except Exception as e:
-                    raise ValueError(f"Invalid recipe structure: {e}") from e
+                    recipe_model = Recipe.model_validate_json(recipe_str)
+                except Exception as primary_err:
+                    # Fallback: parse then validate
+                    try:
+                        parsed = json.loads(recipe_str)
+                        recipe_model = Recipe.model_validate(parsed)
+                    except Exception as e:
+                        raise ValueError(f"Failed to parse or validate recipe JSON string: {primary_err}") from e
         else:
             raise TypeError(f"Unsupported recipe type: {type(recipe)}")
 
-        # Log summary of recipe
+        # Log recipe summary
         try:
             summary = recipe_model.model_dump()
         except Exception:
             summary = {}
-        step_count = len(recipe_model.steps or [])
+        step_count = len(recipe_model.steps or [])  # type: ignore
         self.logger.debug(f"Recipe loaded: {{'steps': {step_count}}}. Full recipe: {summary}")
 
-        # Execute each step sequentially
+        # Execute steps sequentially
         for idx, step in enumerate(recipe_model.steps or []):  # type: ignore
             step_type = step.type
-            config = step.config or {}
+            config: Dict[str, Any] = step.config or {}
             self.logger.debug(f"Executing step {idx} of type '{step_type}' with config: {config}")
 
             if step_type not in STEP_REGISTRY:
@@ -799,7 +837,7 @@ def get_azure_openai_model(
     Args:
         logger (logging.Logger): Logger for logging messages.
         model_name (str): The model name (e.g., "gpt-4o").
-        deployment_name (Optional[str]): The Azure deployment name; defaults to model_name or config.
+        deployment_name (Optional[str]): Deployment name; defaults to config or model_name.
         context (ContextProtocol): Context providing configuration values.
 
     Returns:
@@ -815,21 +853,28 @@ def get_azure_openai_model(
     use_managed_identity = config.get("azure_use_managed_identity", False)
     client_id = config.get("azure_client_id")
 
-    deployment = deployment_name or config.get("azure_openai_deployment_name", model_name)
+    # Determine deployment name
+    deployment = deployment_name or config.get("azure_openai_deployment_name") or model_name
 
     if not base_url:
-        logger.error("Configuration 'azure_openai_base_url' is required")
-        raise Exception("Missing AZURE_OPENAI_BASE_URL")
+        logger.error("Configuration 'azure_openai_base_url' is required for Azure OpenAI")
+        raise Exception("Missing azure_openai_base_url in configuration")
 
-    # Log loaded configuration (mask API key)
+    # Log loaded configuration (with masked API key)
     masked_key = _mask_secret(api_key)
     logger.debug(
-        f"Azure OpenAI config: endpoint={base_url}, api_version={api_version}, "
-        f"deployment={deployment}, use_managed_identity={use_managed_identity}, "
-        f"client_id={client_id or '<None>'}, api_key={masked_key}"
+        "Azure OpenAI config: endpoint=%s, api_version=%s, deployment=%s, "
+        "use_managed_identity=%s, client_id=%s, api_key=%s",
+        base_url,
+        api_version,
+        deployment,
+        use_managed_identity,
+        client_id or "<None>",
+        masked_key,
     )
 
     try:
+        # Choose authentication method
         if use_managed_identity:
             logger.info("Using Azure Managed Identity for authentication")
             if client_id:
@@ -848,7 +893,7 @@ def get_azure_openai_model(
         else:
             if not api_key:
                 logger.error("Configuration 'azure_openai_api_key' is required for API key authentication")
-                raise Exception("Missing AZURE_OPENAI_API_KEY")
+                raise Exception("Missing azure_openai_api_key in configuration")
             logger.info("Using API Key authentication for Azure OpenAI")
             azure_client = AsyncAzureOpenAI(
                 api_key=api_key,
@@ -858,11 +903,12 @@ def get_azure_openai_model(
             )
             auth_method = "API Key"
     except Exception as err:
-        logger.error(f"Failed to create AsyncAzureOpenAI client: {err}")
+        logger.error(f"Failed to create Azure OpenAI client: {err}")
         raise
 
     logger.info(f"Creating Azure OpenAI model '{model_name}' with {auth_method}")
     provider = OpenAIProvider(openai_client=azure_client)
+
     try:
         model = OpenAIModel(model_name=model_name, provider=provider)
     except Exception as err:
@@ -881,15 +927,17 @@ Provides Azure OpenAI Responses API integration for PydanticAI Agents.
 
 import logging
 import os
-from typing import Optional
+from typing import Optional, Dict
 
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from openai import AsyncAzureOpenAI
 from pydantic_ai.models.openai import OpenAIResponsesModel
 from pydantic_ai.providers.openai import OpenAIProvider
 
+__all__ = ["get_azure_responses_model"]
 
-def _mask_secret(secret: str) -> str:
+
+def _mask_secret(secret: Optional[str]) -> str:
     """Mask all but first and last character of a secret."""
     if not secret or len(secret) < 2:
         return "**"
@@ -902,7 +950,7 @@ def get_azure_responses_model(
     deployment_name: Optional[str] = None,
 ) -> OpenAIResponsesModel:
     """
-    Create a PydanticAI OpenAIResponsesModel for Azure OpenAI
+    Create a PydanticAI OpenAIResponsesModel for Azure OpenAI.
 
     Args:
         logger: Logger for logging messages.
@@ -918,61 +966,60 @@ def get_azure_responses_model(
     """
     try:
         # Load environment variables
-        base_url = os.getenv("AZURE_OPENAI_BASE_URL")
-        api_version = os.getenv("AZURE_OPENAI_API_VERSION", "2025-03-01-preview")
-        api_key = os.getenv("AZURE_OPENAI_API_KEY")
+        azure_endpoint = os.getenv("AZURE_OPENAI_BASE_URL")
+        azure_api_version = os.getenv("AZURE_OPENAI_API_VERSION", "2025-03-01-preview")
+        azure_api_key = os.getenv("AZURE_OPENAI_API_KEY")
         use_managed = os.getenv("AZURE_USE_MANAGED_IDENTITY", "false").lower() == "true"
         client_id = os.getenv("AZURE_CLIENT_ID")
-        env_deploy = os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME")
+        env_deployment = os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME")
 
-        # Validate base URL
-        if not base_url:
-            raise ValueError("AZURE_OPENAI_BASE_URL must be set for Azure OpenAI integration.")
+        # Validate endpoint
+        if not azure_endpoint:
+            raise ValueError("Environment variable AZURE_OPENAI_BASE_URL must be set for Azure OpenAI integration.")
+
         # Determine deployment name
-        deployment = deployment_name or env_deploy or model_name
+        deployment = deployment_name or env_deployment or model_name
 
-        # Log loaded configuration (mask secrets)
+        # Log configuration with masked secrets
         logger.debug(
-            "Azure OpenAI config: use_managed=%s, api_key=%s, client_id=%s, base_url=%s, api_version=%s, deployment=%s",
+            "Azure OpenAI Responses config: use_managed=%s, api_key=%s, client_id=%s, endpoint=%s, api_version=%s, deployment=%s",
             use_managed,
-            _mask_secret(api_key) if api_key else None,
+            _mask_secret(azure_api_key),
             client_id,
-            base_url,
-            api_version,
+            azure_endpoint,
+            azure_api_version,
             deployment,
         )
 
         # Initialize Azure OpenAI client
         if use_managed:
-            # Use Azure AD for authentication
             logger.info("Authenticating to Azure OpenAI with Managed Identity.")
-            # sync credential required
-            cred_kwargs = {}
+            cred_kwargs: Dict[str, str] = {}
             if client_id:
                 cred_kwargs["managed_identity_client_id"] = client_id
             credential = DefaultAzureCredential(**cred_kwargs)
-            # default scope for Cognitive Services
             scope = "https://cognitiveservices.azure.com/.default"
             token_provider = get_bearer_token_provider(credential, scope)
             azure_client = AsyncAzureOpenAI(
-                azure_endpoint=base_url,
-                api_version=api_version,
+                azure_endpoint=azure_endpoint,
+                api_version=azure_api_version,
                 azure_ad_token_provider=token_provider,
             )
             auth_method = "ManagedIdentity"
         else:
-            # Use API key
-            if not api_key:
-                raise ValueError("AZURE_OPENAI_API_KEY must be set when not using managed identity.")
+            if not azure_api_key:
+                raise ValueError(
+                    "Environment variable AZURE_OPENAI_API_KEY must be set when not using managed identity."
+                )
             logger.info("Authenticating to Azure OpenAI with API Key.")
             azure_client = AsyncAzureOpenAI(
-                azure_endpoint=base_url,
-                api_version=api_version,
-                api_key=api_key,
+                azure_endpoint=azure_endpoint,
+                api_version=azure_api_version,
+                api_key=azure_api_key,
             )
             auth_method = "ApiKey"
 
-        # Create Responses model
+        # Create the Azure Responses model
         model = OpenAIResponsesModel(
             deployment,
             provider=OpenAIProvider(openai_client=azure_client),
@@ -985,14 +1032,13 @@ def get_azure_responses_model(
         )
         return model
 
-    except Exception as e:
-        logger.debug("Failed to create Azure Responses model: %s", e, exc_info=True)
+    except Exception as exc:
+        logger.debug("Failed to create Azure Responses model: %s", exc, exc_info=True)
         raise
 
 
 === File: recipe-executor/recipe_executor/llm_utils/llm.py ===
 # This file was generated by Codebase-Generator, do not edit directly
-import os
 import time
 import logging
 from typing import Optional, List, Type, Union, Dict, Any
@@ -1000,7 +1046,11 @@ from typing import Optional, List, Type, Union, Dict, Any
 from pydantic import BaseModel
 from pydantic_ai import Agent
 from pydantic_ai.settings import ModelSettings
-from pydantic_ai.models.openai import OpenAIModel, OpenAIResponsesModel, OpenAIResponsesModelSettings
+from pydantic_ai.models.openai import (
+    OpenAIModel,
+    OpenAIResponsesModel,
+    OpenAIResponsesModelSettings,
+)
 from pydantic_ai.models.anthropic import AnthropicModel
 from pydantic_ai.providers.openai import OpenAIProvider
 from pydantic_ai.providers.anthropic import AnthropicProvider
@@ -1015,32 +1065,42 @@ from recipe_executor.protocols import ContextProtocol
 
 
 def get_model(
-    logger: logging.Logger, model_id: str, context: ContextProtocol
+    model_id: str,
+    context: ContextProtocol,
+    logger: logging.Logger,
 ) -> Union[OpenAIModel, AnthropicModel, OpenAIResponsesModel]:
     """
     Initialize an LLM model based on a standardized model_id string.
-    Expected formats:
-      - 'provider/model_name'
-      - 'provider/model_name/deployment_name'
+    Expected format: 'provider/model_name' or 'provider/model_name/deployment_name'.
 
     Supported providers:
-      - openai
-      - azure
-      - anthropic
-      - ollama
-      - openai_responses
-      - azure_responses
+    - openai
+    - azure
+    - anthropic
+    - ollama
+    - openai_responses
+    - azure_responses
+
+    Args:
+        model_id (str): Model identifier in format 'provider/model_name'
+            or 'provider/model_name/deployment_name'.
+        context (ContextProtocol): Context containing configuration values.
+        logger (logging.Logger): Logger for logging messages.
+
+    Returns:
+        The model instance for the specified provider and model.
 
     Raises:
-        ValueError: If model_id format is invalid or provider unsupported.
+        ValueError: If model_id format is invalid or if the provider is unsupported.
     """
     parts = model_id.split("/")
     if len(parts) < 2:
         raise ValueError(f"Invalid model_id format: '{model_id}'")
+
     provider = parts[0].lower()
     config = context.get_config()
 
-    # OpenAI
+    # OpenAI provider
     if provider == "openai":
         if len(parts) != 2:
             raise ValueError(f"Invalid OpenAI model_id: '{model_id}'")
@@ -1051,7 +1111,6 @@ def get_model(
 
     # Azure OpenAI
     if provider == "azure":
-        # azure/model_name or azure/model_name/deployment_name
         if len(parts) == 2:
             model_name, deployment = parts[1], None
         elif len(parts) == 3:
@@ -1065,7 +1124,7 @@ def get_model(
             context=context,
         )
 
-    # Anthropic
+    # Anthropic provider
     if provider == "anthropic":
         if len(parts) != 2:
             raise ValueError(f"Invalid Anthropic model_id: '{model_id}'")
@@ -1074,12 +1133,12 @@ def get_model(
         provider_obj = AnthropicProvider(api_key=api_key)
         return AnthropicModel(model_name=model_name, provider=provider_obj)
 
-    # Ollama
+    # Ollama (OpenAI-compatible) provider
     if provider == "ollama":
         if len(parts) != 2:
             raise ValueError(f"Invalid Ollama model_id: '{model_id}'")
         model_name = parts[1]
-        base_url = config.get("ollama_base_url") or os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+        base_url = config.get("ollama_base_url") or "http://localhost:11434"
         provider_obj = OpenAIProvider(base_url=f"{base_url}/v1")
         return OpenAIModel(model_name=model_name, provider=provider_obj)
 
@@ -1092,7 +1151,6 @@ def get_model(
 
     # Azure Responses API
     if provider == "azure_responses":
-        # azure_responses/model_name or azure_responses/model_name/deployment_name
         if len(parts) == 2:
             model_name, deployment = parts[1], None
         elif len(parts) == 3:
@@ -1135,6 +1193,21 @@ class LLM:
     ) -> Union[str, BaseModel]:
         """
         Generate an output from the LLM based on the provided prompt.
+
+        Args:
+            prompt: The prompt to send to the model.
+            model: Optional model identifier to override default.
+            max_tokens: Optional max tokens override.
+            output_type: Desired return type (str or BaseModel).
+            mcp_servers: Optional MCP servers override.
+            openai_builtin_tools: Optional built-in tools for Responses API.
+
+        Returns:
+            The model output as plain text or structured data.
+
+        Raises:
+            ValueError: Invalid model identifier.
+            Exception: On network, API, or MCP errors.
         """
         model_id = model or self.default_model_id
         tokens = max_tokens if max_tokens is not None else self.default_max_tokens
@@ -1158,7 +1231,7 @@ class LLM:
         )
 
         try:
-            model_instance = get_model(self.logger, model_id, self.context)
+            model_instance = get_model(model_id, self.context, self.logger)
         except ValueError as err:
             self.logger.error("Invalid model_id '%s': %s", model_id, err)
             raise
@@ -1168,7 +1241,8 @@ class LLM:
             "output_type": output_type,
             "mcp_servers": servers,
         }
-        # Responses API with built-in tools
+
+        # Configure built-in tools for Responses API
         if provider_name in ("openai_responses", "azure_responses") and openai_builtin_tools:
             typed_tools: List[Union[WebSearchToolParam, FileSearchToolParam]] = []
             for tool in openai_builtin_tools:
@@ -1178,7 +1252,7 @@ class LLM:
                     typed_tools.append(FileSearchToolParam(**tool))
             settings = OpenAIResponsesModelSettings(openai_builtin_tools=typed_tools)
             agent_kwargs["model_settings"] = settings
-        # max_tokens for other models
+        # Configure token limit for non-Responses providers
         elif tokens is not None:
             agent_kwargs["model_settings"] = ModelSettings(max_tokens=tokens)
 
@@ -1225,6 +1299,10 @@ class LLM:
 
 === File: recipe-executor/recipe_executor/llm_utils/mcp.py ===
 # This file was generated by Codebase-Generator, do not edit directly
+"""
+Utilities for creating MCP server clients based on configuration.
+"""
+
 import os
 import logging
 from typing import Any, Dict, List, Optional
@@ -1258,12 +1336,12 @@ def get_mcp_server(logger: logging.Logger, config: Dict[str, Any]) -> MCPServer:
     if not isinstance(config, dict):
         raise ValueError("MCP server configuration must be a dict")
 
-    # Mask sensitive info for logging
-    sensitive = {"api_key", "apikey", "authorization", "auth", "token", "secret", "password"}
+    # Mask sensitive values for logging
+    sensitive = {"api_key", "apikey", "auth", "authorization", "token", "secret", "password"}
     masked: Dict[str, Any] = {}
     for key, value in config.items():
-        low = key.lower()
-        if low in sensitive:
+        lk = key.lower()
+        if lk in sensitive:
             masked[key] = "***"
         elif key in ("headers", "env") and isinstance(value, dict):
             masked[key] = {k: "***" for k in value}
@@ -1271,28 +1349,26 @@ def get_mcp_server(logger: logging.Logger, config: Dict[str, Any]) -> MCPServer:
             masked[key] = value
     logger.debug("MCP server configuration: %s", masked)
 
-    # HTTP(S) transport
+    # HTTP transport
     if "url" in config:
         url = config.get("url")
         if not isinstance(url, str) or not url.strip():
             raise ValueError("HTTP MCP server requires a non-empty 'url' string")
-
         headers = config.get("headers")
         if headers is not None and not isinstance(headers, dict):
             raise ValueError("HTTP MCP server 'headers' must be a dict if provided")
-
         tool_prefix = config.get("tool_prefix")
         if tool_prefix is not None and not isinstance(tool_prefix, str):
             raise ValueError("HTTP MCP server 'tool_prefix' must be a string if provided")
 
         logger.info("Creating HTTP MCP server for URL: %s", url)
         try:
-            http_kwargs: Dict[str, Any] = {"url": url}
+            params: Dict[str, Any] = {"url": url}
             if headers is not None:
-                http_kwargs["headers"] = headers
+                params["headers"] = headers
             if tool_prefix is not None:
-                http_kwargs["tool_prefix"] = tool_prefix
-            return MCPServerHTTP(**http_kwargs)
+                params["tool_prefix"] = tool_prefix
+            return MCPServerHTTP(**params)
         except Exception as exc:
             raise RuntimeError(f"Failed to create HTTP MCP server: {exc}") from exc
 
@@ -1303,9 +1379,12 @@ def get_mcp_server(logger: logging.Logger, config: Dict[str, Any]) -> MCPServer:
             raise ValueError("Stdio MCP server requires a non-empty 'command' string")
 
         args_cfg = config.get("args")
-        if not isinstance(args_cfg, list) or not all(isinstance(a, str) for a in args_cfg):
-            raise ValueError("Stdio MCP server 'args' must be a list of strings")
-        args: List[str] = args_cfg  # type: ignore
+        if args_cfg is None:
+            args: List[str] = []
+        elif isinstance(args_cfg, list) and all(isinstance(a, str) for a in args_cfg):
+            args = args_cfg  # type: ignore
+        else:
+            raise ValueError("Stdio MCP server 'args' must be a list of strings if provided")
 
         # Environment variables
         env_cfg = config.get("env")
@@ -1313,7 +1392,7 @@ def get_mcp_server(logger: logging.Logger, config: Dict[str, Any]) -> MCPServer:
         if env_cfg is not None:
             if not isinstance(env_cfg, dict):
                 raise ValueError("Stdio MCP server 'env' must be a dict if provided")
-            # load .env if any value is empty and dotenv is available
+            # load .env if empty values exist
             if load_dotenv and any(v == "" for v in env_cfg.values()):  # type: ignore
                 load_dotenv()  # type: ignore
             env = {}
@@ -1327,10 +1406,8 @@ def get_mcp_server(logger: logging.Logger, config: Dict[str, Any]) -> MCPServer:
                 else:
                     env[k] = v
 
-        # Working directory (cwd or alias working_dir)
-        cwd = config.get("cwd")
-        if cwd is None:
-            cwd = config.get("working_dir")
+        # Working directory
+        cwd = config.get("cwd") or config.get("working_dir")
         if cwd is not None and not isinstance(cwd, str):
             raise ValueError("Stdio MCP server 'cwd' must be a string if provided")
 
@@ -1340,18 +1417,17 @@ def get_mcp_server(logger: logging.Logger, config: Dict[str, Any]) -> MCPServer:
 
         logger.info("Creating stdio MCP server with command: %s %s", command, args)
         try:
-            stdio_kwargs: Dict[str, Any] = {"command": command, "args": args}
-            if cwd is not None:
-                stdio_kwargs["cwd"] = cwd
+            params: Dict[str, Any] = {"command": command, "args": args}
+            if cwd:
+                params["cwd"] = cwd
             if env is not None:
-                stdio_kwargs["env"] = env
+                params["env"] = env
             if tool_prefix is not None:
-                stdio_kwargs["tool_prefix"] = tool_prefix
-            return MCPServerStdio(**stdio_kwargs)
+                params["tool_prefix"] = tool_prefix
+            return MCPServerStdio(**params)
         except Exception as exc:
             raise RuntimeError(f"Failed to create stdio MCP server: {exc}") from exc
 
-    # No valid transport found
     raise ValueError("Invalid MCP server configuration: must contain 'url' for HTTP or 'command' for stdio transport")
 
 
@@ -1359,7 +1435,7 @@ def get_mcp_server(logger: logging.Logger, config: Dict[str, Any]) -> MCPServer:
 # This file was generated by Codebase-Generator, do not edit directly
 """
 Responses component for Recipe Executor.
-Provides OpenAI Responses API integration via PydanticAI.
+Provides OpenAI built-in tool integration via PydanticAI Responses API.
 """
 
 import logging
@@ -1374,34 +1450,40 @@ def get_openai_responses_model(
     model_name: Optional[str] = None,
 ) -> OpenAIResponsesModel:
     """
-    Create an OpenAIResponsesModel for the given model name.
+    Create and return an OpenAIResponsesModel configured for built-in tool usage.
 
     Args:
-        logger (logging.Logger): Logger for logging messages.
-        model_name: Name of the model (e.g., "gpt-4o").
+        logger (logging.Logger): Logger for debug and info messages.
+        model_name (Optional[str]): Specific model name to use (e.g., "gpt-4o").
+            If not provided, DEFAULT_MODEL environment variable will be used.
 
     Returns:
-        OpenAIResponsesModel: A PydanticAI OpenAIResponsesModel instance.
+        OpenAIResponsesModel: Configured PydanticAI OpenAIResponsesModel instance.
 
     Raises:
-        ValueError: If required environment variables are missing or model_name is not provided.
-        Exception: If the model cannot be created.
+        ValueError: If OPENAI_API_KEY or model name is missing.
+        Exception: If model instantiation fails.
     """
-    # Load environment variables
+    # Load environment configuration
     default_model = os.environ.get("DEFAULT_MODEL")
     api_key = os.environ.get("OPENAI_API_KEY")
 
-    # Helper to mask secrets for logging
-    def mask_secret(val: Optional[str]) -> str:
-        if not val:
+    def mask_secret(secret: Optional[str]) -> str:
+        if not secret:
             return ""
-        if len(val) <= 2:
-            return "*" * len(val)
-        return val[0] + "*" * (len(val) - 2) + val[-1]
+        length = len(secret)
+        if length <= 2:
+            return "*" * length
+        return f"{secret[0]}{'*' * (length - 2)}{secret[-1]}"  # mask all but first/last
 
     masked_key = mask_secret(api_key)
-    logger.debug(f"Loaded environment variables: DEFAULT_MODEL={default_model}, OPENAI_API_KEY={masked_key!r}")
+    logger.debug(
+        "Loaded environment variables: DEFAULT_MODEL=%s, OPENAI_API_KEY=%s",
+        default_model,
+        masked_key,
+    )
 
+    # Ensure API key is present
     if not api_key:
         logger.error("OPENAI_API_KEY environment variable is not set")
         raise ValueError("Missing OPENAI_API_KEY environment variable")
@@ -1409,18 +1491,22 @@ def get_openai_responses_model(
     # Determine which model to use
     chosen_model = model_name or default_model
     if not chosen_model:
-        logger.error("Model name not provided and DEFAULT_MODEL is not set")
+        logger.error("Model name not provided and DEFAULT_MODEL environment variable is not set")
         raise ValueError("Model name must be provided or set via DEFAULT_MODEL environment variable")
 
-    logger.info(f"Using OpenAI Responses model: {chosen_model}")
+    logger.info("Using OpenAI Responses model: %s", chosen_model)
 
+    # Instantiate the model
     try:
-        # Instantiate the OpenAIResponsesModel
-        responses_model = OpenAIResponsesModel(chosen_model)
+        return OpenAIResponsesModel(chosen_model)
     except Exception as e:
-        logger.error("Failed to create OpenAIResponsesModel for model %s: %s", chosen_model, e, exc_info=True)
+        logger.error(
+            "Failed to create OpenAIResponsesModel for model %s: %s",
+            chosen_model,
+            str(e),
+            exc_info=True,
+        )
         raise
-    return responses_model
 
 
 === File: recipe-executor/recipe_executor/logger.py ===
@@ -1433,46 +1519,51 @@ Provides a consistent logging interface that writes to stdout and separate log f
 import os
 import sys
 import logging
+from logging import Logger
 
 
-def init_logger(log_dir: str = "logs", stdio_log_level: str = "INFO") -> logging.Logger:
+def init_logger(log_dir: str = "logs", stdio_log_level: str = "INFO") -> Logger:
     """
-    Initializes and configures the root logger. Logs are written to separate files for DEBUG, INFO, and ERROR levels,
-    and to stdout at the specified level. Previous logs are cleared on each run.
+    Initializes a logger that writes to stdout and to log files (debug/info/error).
+    Clears existing logs on each run.
 
     Args:
         log_dir (str): Directory to store log files. Default is "logs".
         stdio_log_level (str): Log level for stdout. Default is "INFO".
             Options: "DEBUG", "INFO", "WARN", "ERROR" (case-insensitive).
+            If set to "DEBUG", all logs will be printed to stdout.
+            If set to "INFO", only INFO and higher level logs will be printed to stdout.
 
     Returns:
-        logging.Logger: Configured root logger instance.
+        logging.Logger: Configured logger instance.
 
     Raises:
-        Exception: If the log directory cannot be created or log files cannot be opened.
+        Exception: If log directory cannot be created or log files cannot be opened.
     """
-    # Acquire root logger and set overall minimum level
+    # Acquire root logger and capture all levels
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)
 
-    # Remove existing handlers to start fresh
+    # Remove existing handlers to reset configuration
     for handler in list(logger.handlers):
         logger.removeHandler(handler)
+
+    # Log initialization start at DEBUG level
+    logger.debug("Initializing logger with dir='%s', stdio_level='%s'", log_dir, stdio_log_level)
 
     # Ensure log directory exists
     try:
         os.makedirs(log_dir, exist_ok=True)
     except Exception as exc:
         raise Exception(f"Failed to create log directory '{log_dir}': {exc}")
+    logger.debug("Log directory created: %s", log_dir)
 
-    logger.debug("Created log directory: %s", log_dir)
+    # Define log formatters
+    fmt = "%(asctime)s.%(msecs)03d [%(levelname)s] (%(filename)s:%(lineno)d) %(message)s"
+    datefmt = "%Y-%m-%d %H:%M:%S"
+    formatter = logging.Formatter(fmt=fmt, datefmt=datefmt)
 
-    # Define log formatting
-    formatter = logging.Formatter(
-        fmt="%(asctime)s.%(msecs)03d [%(levelname)s] (%(filename)s:%(lineno)d) %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
-    )
-
-    # File handlers for DEBUG, INFO, and ERROR levels
+    # Set up file handlers for DEBUG, INFO, and ERROR levels
     level_map = [
         ("debug", logging.DEBUG),
         ("info", logging.INFO),
@@ -1481,28 +1572,29 @@ def init_logger(log_dir: str = "logs", stdio_log_level: str = "INFO") -> logging
     for name, level in level_map:
         file_path = os.path.join(log_dir, f"{name}.log")
         try:
-            handler = logging.FileHandler(file_path, mode="w", encoding="utf-8")
-            handler.setLevel(level)
-            handler.setFormatter(formatter)
-            logger.addHandler(handler)
+            fh = logging.FileHandler(file_path, mode="w", encoding="utf-8")
+            fh.setLevel(level)
+            fh.setFormatter(formatter)
+            logger.addHandler(fh)
         except Exception as exc:
             raise Exception(f"Failed to set up {name} log file '{file_path}': {exc}")
 
-    # Configure console output (stdout)
+    # Configure console (stdout) handler
     level_name = stdio_log_level.upper()
     if level_name == "WARN":
         level_name = "WARNING"
+    # Fallback to INFO if invalid
     if level_name not in ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"):
         level_name = "INFO"
     console_level = getattr(logging, level_name, logging.INFO)
 
-    console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setLevel(console_level)
-    console_handler.setFormatter(formatter)
-    logger.addHandler(console_handler)
+    ch = logging.StreamHandler(sys.stdout)
+    ch.setLevel(console_level)
+    ch.setFormatter(formatter)
+    logger.addHandler(ch)
 
-    # Log initialization details
-    logger.debug("Logger initialized with dir='%s', stdio_level='%s'", log_dir, level_name)
+    # Log completion
+    logger.debug("Logger handlers configured (dir='%s', stdio_level='%s')", log_dir, level_name)
     logger.info("Logger initialized successfully")
 
     return logger
@@ -1517,7 +1609,7 @@ import os
 import sys
 import time
 import traceback
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from dotenv import load_dotenv
 from recipe_executor.config import load_configuration
@@ -1544,28 +1636,18 @@ def parse_key_value_pairs(pairs: List[str]) -> Dict[str, str]:
 
 
 async def main_async() -> None:
-    # Load environment variables from .env
+    # Load environment variables from .env file (if present)
     load_dotenv()
 
     # Parse command-line arguments
     parser = argparse.ArgumentParser(description="Recipe Executor CLI")
     parser.add_argument("recipe_path", type=str, help="Path to the recipe file to execute")
     parser.add_argument("--log-dir", type=str, default="logs", help="Directory for log files")
-    parser.add_argument(
-        "--context",
-        action="append",
-        default=[],
-        help="Context artifact values as key=value pairs",
-    )
-    parser.add_argument(
-        "--config",
-        action="append",
-        default=[],
-        help="Static configuration values as key=value pairs",
-    )
+    parser.add_argument("--context", action="append", default=[], help="Context artifact values as key=value pairs")
+    parser.add_argument("--config", action="append", default=[], help="Static configuration values as key=value pairs")
     args = parser.parse_args()
 
-    # Ensure log directory exists
+    # Prepare log directory
     try:
         os.makedirs(args.log_dir, exist_ok=True)
     except Exception as exc:
@@ -1582,17 +1664,22 @@ async def main_async() -> None:
     logger.info("Starting Recipe Executor Tool")
     logger.debug("Parsed arguments: %s", args)
 
-    # Parse context and CLI config
+    # Parse context artifacts
     try:
         artifacts: Dict[str, str] = parse_key_value_pairs(args.context)
-        cli_config: Dict[str, str] = parse_key_value_pairs(args.config)
     except ValueError as ve:
-        # Let main() handle printing the error
-        raise ve
-
+        sys.stderr.write(f"Context Error: {ve}\n")
+        raise SystemExit(1)
     logger.debug("Initial context artifacts: %s", artifacts)
 
-    # Load recipe file
+    # Parse CLI configuration overrides
+    try:
+        cli_config: Dict[str, str] = parse_key_value_pairs(args.config)
+    except ValueError as ve:
+        sys.stderr.write(f"Config Error: {ve}\n")
+        raise SystemExit(1)
+
+    # Load and validate recipe
     try:
         with open(args.recipe_path, "r", encoding="utf-8") as f:
             content = f.read()
@@ -1603,18 +1690,19 @@ async def main_async() -> None:
 
     # Load configuration from environment and recipe-specific variables
     try:
-        env_config: Dict[str, Any] = load_configuration(getattr(recipe, "env_vars", None))
+        recipe_env_vars: Optional[List[str]] = getattr(recipe, "env_vars", None)
+        env_config: Dict[str, Any] = load_configuration(recipe_env_vars)
     except Exception as exc:
         logger.error("Configuration loading error: %s", exc, exc_info=True)
         raise SystemExit(1)
 
-    # Merge CLI overrides (CLI takes precedence)
+    # Merge environment config with CLI overrides (CLI takes precedence)
     merged_config: Dict[str, Any] = {**env_config, **cli_config}
 
     # Create execution context
     context = Context(artifacts=artifacts, config=merged_config)
 
-    # Execute recipe
+    # Execute the recipe
     executor = Executor(logger)
     logger.info("Executing recipe: %s", args.recipe_path)
     start_time = time.time()
@@ -1632,13 +1720,12 @@ def main() -> None:
     try:
         asyncio.run(main_async())
     except ValueError as ve:
-        # Handle context or config parsing errors
+        # Handle parsing errors
         sys.stderr.write(f"Context Error: {ve}\n")
         sys.exit(1)
     except SystemExit as se:
         sys.exit(se.code)
     except Exception:
-        # Unexpected errors
         sys.stderr.write(traceback.format_exc())
         sys.exit(1)
     else:
@@ -1652,7 +1739,7 @@ if __name__ == "__main__":  # pragma: no cover
 === File: recipe-executor/recipe_executor/models.py ===
 # This file was generated by Codebase-Generator, do not edit directly
 """
-Models for Recipe Executor system.
+Models for the Recipe Executor system.
 
 Defines Pydantic models for file specifications, step configurations, and recipe structures.
 """
@@ -1674,39 +1761,66 @@ class FileSpec(BaseModel):
     """
 
     path: str = Field(..., description="Relative file path to write to")
-    content: Union[str, Dict[str, Any], List[Dict[str, Any]]] = Field(..., description="Content of the file")
+    content: Union[str, Dict[str, Any], List[Dict[str, Any]]] = Field(
+        ...,
+        description=("Content of the file, as raw text, a structured dict, or a list of dicts for multiple files"),
+    )
 
 
 class ReadFilesConfig(BaseModel):
     """Configuration for a 'read_files' recipe step."""
 
-    path: str = Field(..., description="File path to read")
-    content_key: str = Field(..., description="Key under which the file content will be stored in context")
+    path: str = Field(..., description="Path of the file to read")
+    content_key: str = Field(
+        ...,
+        description="Key under which the content of the file will be stored in the execution context",
+    )
 
 
 class McpServer(BaseModel):
     """Definition of an MCP server for LLM generation steps."""
 
-    command: str = Field(..., description="Command to start the MCP server")
-    args: List[str] = Field(..., description="List of arguments for the command")
-    env: Optional[Dict[str, str]] = Field(None, description="Environment variables mapping")
+    command: str = Field(..., description="Command to invoke the MCP server")
+    args: List[str] = Field(..., description="List of arguments for the MCP server command")
+    env: Optional[Dict[str, str]] = Field(
+        None,
+        description="Optional environment variables mapping to set when starting the server",
+    )
 
 
 class LLMGenerateConfig(BaseModel):
     """Configuration for a 'llm_generate' recipe step."""
 
     prompt: str = Field(..., description="Prompt template for the language model")
-    model: Optional[str] = Field(None, description="Language model identifier to use")
-    output_format: Optional[str] = Field(None, description="Format of the output, e.g., 'files'")
-    output_key: Optional[str] = Field(None, description="Key under which to store the output in context")
-    mcp_servers: Optional[List[McpServer]] = Field(None, description="List of MCP server definitions")
+    model: Optional[str] = Field(
+        None,
+        description="Optional language model identifier to use, e.g., 'openai/gpt-4'",
+    )
+    output_format: Optional[str] = Field(
+        None,
+        description="Optional format of the output, e.g., 'files', 'text', etc.'",
+    )
+    output_key: Optional[str] = Field(
+        None,
+        description="Optional key under which to store the generated output in context",
+    )
+    mcp_servers: Optional[List[McpServer]] = Field(
+        None,
+        description="Optional list of MCP server definitions for local or custom LLM invocation",
+    )
 
 
 class WriteFilesConfig(BaseModel):
     """Configuration for a 'write_files' recipe step."""
 
-    files_key: str = Field(..., description="Context key containing the list of files to write")
-    root: Optional[str] = Field(None, description="Root directory for writing files")
+    files_key: str = Field(
+        ...,
+        description="Context key containing the list of FileSpec objects to write to disk",
+    )
+    root: Optional[str] = Field(
+        None,
+        description="Optional root directory under which to write the files",
+    )
 
 
 class RecipeStep(BaseModel):
@@ -1714,23 +1828,32 @@ class RecipeStep(BaseModel):
 
     Attributes:
         type: The type of the recipe step (e.g., 'read_files', 'llm_generate', 'write_files').
-        config: Configuration for the step, validated against known step config models or left as a dict for unknown types.
+        config: Step-specific configuration as a dict or Pydantic model.
     """
 
-    type: str = Field(..., description="Type of the recipe step")
-    config: Dict[str, Any] = Field(..., description="Step configuration")
+    type: str = Field(..., description="Type of the recipe step to execute")
+    config: Dict[str, Any] = Field(
+        ...,
+        description=(
+            "Configuration for the step. Known step types may be validated against their Pydantic models; "
+            "unknown types remain a raw dict."
+        ),
+    )
 
 
 class Recipe(BaseModel):
-    """A complete recipe with multiple steps.
+    """A complete recipe composed of multiple steps and optional environment variable declarations.
 
     Attributes:
-        steps: A list of steps defining the recipe.
-        env_vars: Optional list of environment variable names this recipe requires.
+        steps: Ordered list of steps to run.
+        env_vars: Optional list of environment variable names required by the recipe.
     """
 
     steps: List[RecipeStep] = Field(..., description="Ordered list of recipe steps")
-    env_vars: Optional[List[str]] = Field(None, description="Environment variables required by the recipe")
+    env_vars: Optional[List[str]] = Field(
+        None,
+        description="Optional list of environment variable names required for the recipe",
+    )
 
 
 __all__ = [
@@ -1827,8 +1950,11 @@ class ExecutorProtocol(Protocol):
 
 === File: recipe-executor/recipe_executor/steps/__init__.py ===
 # This file was generated by Codebase-Generator, do not edit directly
+
 from recipe_executor.steps.registry import STEP_REGISTRY
 from recipe_executor.steps.conditional import ConditionalStep
+from recipe_executor.steps.docpack_create import DocpackCreateStep
+from recipe_executor.steps.docpack_extract import DocpackExtractStep
 from recipe_executor.steps.execute_recipe import ExecuteRecipeStep
 from recipe_executor.steps.llm_generate import LLMGenerateStep
 from recipe_executor.steps.loop import LoopStep
@@ -1838,23 +1964,11 @@ from recipe_executor.steps.read_files import ReadFilesStep
 from recipe_executor.steps.set_context import SetContextStep
 from recipe_executor.steps.write_files import WriteFilesStep
 
-# Register standard steps in the global registry
-STEP_REGISTRY.update({
-    "conditional": ConditionalStep,
-    "execute_recipe": ExecuteRecipeStep,
-    "llm_generate": LLMGenerateStep,
-    "loop": LoopStep,
-    "mcp": MCPStep,
-    "parallel": ParallelStep,
-    "read_files": ReadFilesStep,
-    "set_context": SetContextStep,
-    "write_files": WriteFilesStep,
-})
-
-# Public API of the steps package
 __all__ = [
     "STEP_REGISTRY",
     "ConditionalStep",
+    "DocpackCreateStep",
+    "DocpackExtractStep",
     "ExecuteRecipeStep",
     "LLMGenerateStep",
     "LoopStep",
@@ -1864,6 +1978,21 @@ __all__ = [
     "SetContextStep",
     "WriteFilesStep",
 ]
+
+# Register steps by updating the registry
+STEP_REGISTRY.update({
+    "conditional": ConditionalStep,
+    "docpack_create": DocpackCreateStep,
+    "docpack_extract": DocpackExtractStep,
+    "execute_recipe": ExecuteRecipeStep,
+    "llm_generate": LLMGenerateStep,
+    "loop": LoopStep,
+    "mcp": MCPStep,
+    "parallel": ParallelStep,
+    "read_files": ReadFilesStep,
+    "set_context": SetContextStep,
+    "write_files": WriteFilesStep,
+})
 
 
 === File: recipe-executor/recipe_executor/steps/base.py ===
@@ -1942,7 +2071,7 @@ class BaseStep(Generic[StepConfigType]):
 import logging
 import os
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional, List
 
 from recipe_executor.protocols import ContextProtocol
 from recipe_executor.steps.base import BaseStep, StepConfig
@@ -2023,15 +2152,15 @@ def evaluate_condition(
     Supports boolean literals, file checks, comparisons, and logical operations.
     Raises ValueError on render or evaluation errors.
     """
-    # If already a boolean, use it directly
+    # Direct boolean
     if isinstance(expr, bool):
         logger.debug("Using boolean condition: %s", expr)
         return expr
 
-    # Ensure expression is a string for template rendering
-    expr_str = expr if isinstance(expr, str) else str(expr)
+    # Convert non-string to string for template rendering
+    expr_str: str = expr if isinstance(expr, str) else str(expr)
     try:
-        rendered = render_template(expr_str, context)
+        rendered: str = render_template(expr_str, context)
     except Exception as err:
         raise ValueError(f"Error rendering condition '{expr_str}': {err}")
 
@@ -2039,39 +2168,42 @@ def evaluate_condition(
     text = rendered.strip()
     lowered = text.lower()
 
-    # Handle boolean literals
+    # Boolean literal handling
     if lowered in ("true", "false"):
         result = lowered == "true"
         logger.debug("Interpreted boolean literal '%s' as %s", text, result)
         return result
 
-    # Replace logical keywords to avoid Python keyword conflicts
+    # Avoid Python keyword conflicts for logical functions
     transformed = re.sub(r"\band\(", "and_(", text)
     transformed = re.sub(r"\bor\(", "or_(", transformed)
     transformed = re.sub(r"\bnot\(", "not_(", transformed)
     logger.debug("Transformed expression for eval: '%s'", transformed)
 
-    # Safe globals for eval
+    # Safe globals for evaluation
     safe_globals: Dict[str, Any] = {
         "__builtins__": {},
-        # File utilities
+        # file utilities
         "file_exists": file_exists,
         "all_files_exist": all_files_exist,
         "file_is_newer": file_is_newer,
-        # Logical helpers
+        # logical helpers
         "and_": and_,
         "or_": or_,
         "not_": not_,
-        # Boolean literals
+        # boolean literals
         "true": True,
         "false": False,
+        # null equivalent
+        "null": None,
     }
+
     try:
-        result = eval(transformed, safe_globals, {})  # nosec
+        result_raw = eval(transformed, safe_globals, {})  # nosec
     except Exception as err:
         raise ValueError(f"Invalid condition expression '{transformed}': {err}")
 
-    outcome = bool(result)
+    outcome = bool(result_raw)
     logger.debug("Condition '%s' evaluated to %s", transformed, outcome)
     return outcome
 
@@ -2106,13 +2238,14 @@ class ConditionalStep(BaseStep[ConditionalConfig]):
             branch_name,
         )
 
-        # Execute the branch if it is defined
+        # Execute branch if defined and has steps
         if branch_conf and isinstance(branch_conf, dict):
-            steps = branch_conf.get("steps")
+            steps: Any = branch_conf.get("steps")
             if isinstance(steps, list) and steps:
                 await self._execute_branch(branch_conf, context)
                 return
 
+        # Nothing to execute
         self.logger.debug(
             "No '%s' branch to execute for condition result: %s",
             branch_name,
@@ -2156,12 +2289,329 @@ class ConditionalStep(BaseStep[ConditionalConfig]):
 STEP_REGISTRY["conditional"] = ConditionalStep
 
 
+=== File: recipe-executor/recipe_executor/steps/docpack_create.py ===
+# This file was generated by Codebase-Generator, do not edit directly
+from __future__ import annotations
+
+import json
+import logging
+import shutil
+import tempfile
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Union
+
+from recipe_executor.protocols import ContextProtocol
+from recipe_executor.steps.base import BaseStep, StepConfig
+from recipe_executor.utils.templates import render_template
+
+from docpack_file import DocpackHandler
+
+
+class DocpackCreateConfig(StepConfig):
+    """
+    Configuration for DocpackCreateStep.
+
+    Fields:
+        outline_path (str): Path to outline JSON file (may be templated).
+        resource_files (Union[str, List[str]]): Comma-separated string or list of resource file paths (may be templated).
+        output_path (str): Path for the created .docpack file (may be templated).
+        output_key (Optional[str]): Context key to store result info (may be templated).
+    """
+
+    outline_path: str
+    resource_files: Union[str, List[str]]
+    output_path: str
+    output_key: Optional[str] = None
+
+
+class DocpackCreateStep(BaseStep[DocpackCreateConfig]):
+    """
+    Step that packages an outline JSON and resource files into a .docpack archive.
+    """
+
+    def __init__(self, logger: logging.Logger, config: Dict[str, Any]) -> None:
+        super().__init__(logger, DocpackCreateConfig.model_validate(config))
+        self.logger = logger
+
+    async def execute(self, context: ContextProtocol) -> None:
+        # Render outline and output paths
+        raw_outline = render_template(self.config.outline_path, context)
+        raw_output = render_template(self.config.output_path, context)
+        raw_output_key = self.config.output_key
+        raw_resources = self.config.resource_files
+
+        self.logger.debug(
+            "DocpackCreateStep parameters: outline_path=%s, resource_files=%s, output_path=%s, output_key=%s",
+            raw_outline,
+            raw_resources,
+            raw_output,
+            raw_output_key,
+        )
+
+        # Validate outline file and load JSON
+        outline_path = Path(raw_outline)
+        if not outline_path.is_file():
+            msg = f"Outline file does not exist or is not a file: '{outline_path}'"
+            self.logger.error(msg)
+            raise IOError(msg)
+        try:
+            with outline_path.open("r", encoding="utf-8") as f:
+                outline_data = json.load(f)
+        except json.JSONDecodeError as e:
+            msg = f"Outline JSON parsing failed for '{outline_path}': {e}"
+            self.logger.error(msg)
+            raise ValueError(msg)
+        except Exception as e:
+            msg = f"Failed to read outline file '{outline_path}': {e}"
+            self.logger.error(msg)
+            raise IOError(msg)
+
+        # Prepare resource entries
+        entries: List[Any]
+        if isinstance(raw_resources, list):
+            entries = raw_resources
+        else:
+            resources_str = raw_resources.strip()
+            # Detect a pure template for a list
+            if resources_str.startswith("{{") and resources_str.endswith("}}"):
+                var = resources_str[2:-2].strip()
+                val = context.get(var)
+                if isinstance(val, list):  # preserve list structure
+                    entries = val
+                else:
+                    rendered = render_template(raw_resources, context)
+                    entries = [rendered]
+            else:
+                rendered = render_template(raw_resources, context)
+                entries = [rendered]
+
+        # Resolve to Path objects, splitting comma-separated values
+        paths: List[Path] = []
+        for entry in entries:
+            if isinstance(entry, list):  # nested list
+                for item in entry:
+                    item_str = str(item).strip()
+                    if item_str:
+                        paths.append(Path(item_str))
+            else:
+                for part in str(entry).split(","):
+                    part = part.strip()
+                    if part:
+                        paths.append(Path(part))
+        self.logger.debug("Resolved resource file paths: %s", paths)
+
+        # Validate existence, warn and skip missing
+        valid_paths: List[Path] = []
+        for p in paths:
+            if p.is_file():
+                valid_paths.append(p)
+            else:
+                self.logger.warning("Resource file not found and will be skipped: '%s'", p)
+        self.logger.debug("Valid resource files: %s", valid_paths)
+
+        # Ensure output directory exists
+        output_path = Path(raw_output)
+        try:
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+        except Exception as e:
+            msg = f"Failed to create directory for output path '{output_path.parent}': {e}"
+            self.logger.error(msg)
+            raise IOError(msg)
+
+        # Handle duplicate filenames
+        name_counts: Dict[str, int] = {}
+        for p in valid_paths:
+            name_counts[p.name] = name_counts.get(p.name, 0) + 1
+        has_duplicates = any(count > 1 for count in name_counts.values())
+
+        try:
+            if has_duplicates:
+                self.logger.debug("Filename conflicts detected, using temporary directory to rename duplicates")
+                with tempfile.TemporaryDirectory() as tmpdir_str:
+                    tmpdir = Path(tmpdir_str)
+                    name_index: Dict[str, int] = {}
+                    to_package: List[Path] = []
+                    for orig in valid_paths:
+                        count = name_counts[orig.name]
+                        idx = name_index.get(orig.name, 0)
+                        if count > 1:
+                            new_name = orig.name if idx == 0 else f"{orig.stem}_{idx}{orig.suffix}"
+                            dest = tmpdir / new_name
+                            try:
+                                shutil.copy2(orig, dest)
+                            except Exception as e:
+                                msg = f"Failed to copy resource '{orig}' to '{dest}': {e}"
+                                self.logger.error(msg)
+                                raise IOError(msg)
+                            to_package.append(dest)
+                            name_index[orig.name] = idx + 1
+                        else:
+                            to_package.append(orig)
+                    DocpackHandler.create_package(
+                        outline_data=outline_data,
+                        resource_files=to_package,
+                        output_path=output_path,
+                    )
+            else:
+                DocpackHandler.create_package(
+                    outline_data=outline_data,
+                    resource_files=valid_paths,
+                    output_path=output_path,
+                )
+        except Exception as e:
+            msg = f"Failed to create .docpack at '{output_path}': {e}"
+            self.logger.error(msg)
+            raise RuntimeError(msg)
+
+        resource_count = len(valid_paths)
+        self.logger.info("Created .docpack at '%s' with %d resource files.", output_path, resource_count)
+
+        # Store result in context
+        if raw_output_key:
+            key = render_template(raw_output_key, context)
+            result: Dict[str, Any] = {
+                "output_path": str(output_path),
+                "resource_count": resource_count,
+                "success": True,
+            }
+            context[key] = result
+            self.logger.debug("Stored docpack result in context under '%s': %s", key, result)
+
+
+=== File: recipe-executor/recipe_executor/steps/docpack_extract.py ===
+# This file was generated by Codebase-Generator, do not edit directly
+"""
+DocpackExtractStep: Unpack .docpack archives to extract outline JSON and resources.
+"""
+
+import logging
+from pathlib import Path
+from typing import Any, Dict, List
+
+from recipe_executor.protocols import ContextProtocol
+from recipe_executor.steps.base import BaseStep, StepConfig
+from recipe_executor.utils.templates import render_template
+
+# Attempt to import DocpackHandler from the docpack-file library
+try:
+    from docpack_file import DocpackHandler
+except ImportError:
+    from docpack_file.handler import DocpackHandler  # type: ignore
+
+
+class DocpackExtractConfig(StepConfig):
+    """
+    Configuration for DocpackExtractStep.
+
+    Fields:
+        docpack_path (str): Path to .docpack file to extract (may be templated).
+        extract_dir (str): Directory to extract files to (may be templated).
+        outline_key (str): Context key to store outline JSON (default "outline_data").
+        resources_key (str): Context key to store resource file paths (default "resource_files").
+    """
+
+    docpack_path: str
+    extract_dir: str
+    outline_key: str = "outline_data"
+    resources_key: str = "resource_files"
+
+
+class DocpackExtractStep(BaseStep[DocpackExtractConfig]):
+    """
+    Step to extract .docpack archives into outline data and resource files.
+    """
+
+    def __init__(self, logger: logging.Logger, config: Dict[str, Any]) -> None:
+        # Validate and store configuration
+        cfg = DocpackExtractConfig.model_validate(config)
+        super().__init__(logger, cfg)
+
+    async def execute(self, context: ContextProtocol) -> None:
+        """
+        Execute the extraction of a .docpack archive.
+
+        Renders templates, validates paths, extracts the package, normalizes paths,
+        updates outline resource paths, and stores results in the context.
+        """
+        # Render templated configuration values
+        raw_docpack = render_template(self.config.docpack_path, context)
+        raw_extract = render_template(self.config.extract_dir, context)
+        outline_key = render_template(self.config.outline_key, context)
+        resources_key = render_template(self.config.resources_key, context)
+
+        docpack_path = Path(raw_docpack)
+        extract_dir = Path(raw_extract)
+
+        self.logger.debug(
+            f"DocpackExtractStep config resolved: docpack_path={docpack_path}, "
+            f"extract_dir={extract_dir}, outline_key={outline_key}, "
+            f"resources_key={resources_key}"
+        )
+
+        # Validate .docpack file exists and is a file
+        if not docpack_path.exists() or not docpack_path.is_file():
+            msg = f".docpack file not found at path: {docpack_path}"
+            self.logger.error(msg)
+            raise FileNotFoundError(msg)
+
+        # Validate file extension
+        if docpack_path.suffix.lower() != ".docpack":
+            msg = f"Invalid file extension for docpack: {docpack_path.suffix}, expected .docpack"
+            self.logger.error(msg)
+            raise ValueError(msg)
+
+        # Ensure extraction directory exists
+        try:
+            extract_dir.mkdir(parents=True, exist_ok=True)
+        except Exception as e:
+            msg = f"Cannot create or access extract directory at {extract_dir}: {e}"
+            self.logger.error(msg)
+            raise IOError(msg)
+
+        # Perform extraction
+        try:
+            outline_data, resource_files = DocpackHandler.extract_package(docpack_path, extract_dir)
+        except Exception as e:
+            msg = f"Failed to extract .docpack archive at {docpack_path}: {e}"
+            self.logger.error(msg)
+            raise RuntimeError(msg) from e
+
+        # Normalize resource file paths to absolute strings
+        abs_resources: List[str] = []
+        try:
+            for rf in resource_files:
+                p = rf if isinstance(rf, Path) else Path(rf)
+                abs_resources.append(str(p.resolve()))
+
+            # Update resource paths inside outline JSON
+            if isinstance(outline_data, dict) and "resources" in outline_data:
+                resources_list = outline_data.get("resources")  # type: ignore
+                if isinstance(resources_list, list):
+                    for item in resources_list:
+                        if isinstance(item, dict) and "path" in item:
+                            new_path = Path(item["path"])  # type: ignore
+                            item["path"] = str(new_path.resolve())  # type: ignore
+        except Exception as e:
+            # Non-fatal normalization error
+            self.logger.debug(f"Error normalizing resource paths: {e}")
+
+        # Debug log of extracted files
+        self.logger.debug(f"Extracted resource files: {abs_resources}")
+
+        # Store results in context for subsequent steps
+        context[outline_key] = outline_data
+        context[resources_key] = abs_resources
+
+        count = len(abs_resources)
+        self.logger.info(f"Successfully extracted {count} resource file(s) from {docpack_path} into {extract_dir}")
+
+
 === File: recipe-executor/recipe_executor/steps/execute_recipe.py ===
 # This file was generated by Codebase-Generator, do not edit directly
 import os
 import ast
-from typing import Any, Dict
 import logging
+from typing import Any, Dict
 
 from recipe_executor.steps.base import BaseStep, StepConfig
 from recipe_executor.protocols import ContextProtocol
@@ -2172,20 +2622,22 @@ __all__ = ["ExecuteRecipeConfig", "ExecuteRecipeStep"]
 
 def _render_override(value: Any, context: ContextProtocol) -> Any:
     """
-    Recursively render and parse override values.
-
+    Recursively render and parse override values:
     - Strings are template-rendered, then if the result is a valid Python literal
       (dict or list), parsed into Python objects using ast.literal_eval.
     - Lists and dicts are processed recursively.
     - Other types are returned unchanged.
     """
     if isinstance(value, str):
+        # Render the string template against the context
         rendered = render_template(value, context)
+        # Attempt to parse Python literal for dict or list
         try:
             parsed = ast.literal_eval(rendered)
             if isinstance(parsed, (dict, list)):
                 return parsed
-        except (ValueError, SyntaxError):  # not a literal or invalid
+        except (ValueError, SyntaxError):
+            # Not a literal or invalid syntax; fall back to rendered string
             pass
         return rendered
 
@@ -2195,6 +2647,7 @@ def _render_override(value: Any, context: ContextProtocol) -> Any:
     if isinstance(value, dict):  # type: ignore[type-arg]
         return {key: _render_override(val, context) for key, val in value.items()}
 
+    # Non-string, non-container types are returned as-is
     return value
 
 
@@ -2228,7 +2681,7 @@ class ExecuteRecipeStep(BaseStep[ExecuteRecipeConfig]):
         Applies context_overrides before execution, shares the same context,
         and logs progress.
         """
-        # Render the recipe path
+        # Render the recipe path template
         rendered_path = render_template(self.config.recipe_path, context)
         if not isinstance(rendered_path, str) or not os.path.isfile(rendered_path):
             raise FileNotFoundError(f"Sub-recipe file not found: {rendered_path}")
@@ -2236,10 +2689,11 @@ class ExecuteRecipeStep(BaseStep[ExecuteRecipeConfig]):
         # Apply context overrides
         for key, override_value in self.config.context_overrides.items():
             new_value = _render_override(override_value, context)
-            context[key] = new_value
+            context[key] = new_value  # type: ignore[index]
 
+        # Execute the sub-recipe using the Executor
         try:
-            # Import inside method to avoid circular dependencies
+            # Import here to avoid circular dependencies
             from recipe_executor.executor import Executor
 
             self.logger.info(f"Starting sub-recipe execution: {rendered_path}")
@@ -2284,7 +2738,7 @@ class LLMGenerateConfig(StepConfig):
     prompt: str
     model: str = "openai/gpt-4o"
     max_tokens: Optional[Union[str, int]] = None
-    mcp_servers: Optional[List[Dict[str, Any]]] = None
+    mcp_servers: Optional[List[Dict[str, Any]]] = None  # type: ignore
     openai_builtin_tools: Optional[List[Dict[str, Any]]] = None
     output_format: Union[str, Dict[str, Any], List[Any]]
     output_key: str = "llm_output"
@@ -2341,7 +2795,7 @@ class LLMGenerateStep(BaseStep[LLMGenerateConfig]):
             except ValueError:
                 raise ValueError(f"Invalid max_tokens value: {raw_max!r}")
 
-        # Collect MCP server configs
+        # Collect MCP server configs: from step config and context config
         mcp_cfgs: List[Dict[str, Any]] = []
         if self.config.mcp_servers:
             mcp_cfgs.extend(self.config.mcp_servers)  # type: ignore
@@ -2355,17 +2809,16 @@ class LLMGenerateStep(BaseStep[LLMGenerateConfig]):
             rendered_cfg = _render_config(cfg, context)
             server = get_mcp_server(logger=self.logger, config=rendered_cfg)
             mcp_servers.append(server)
+        servers_arg = mcp_servers or None
 
         # Prepare OpenAI built-in tools
         validated_tools: Optional[List[Dict[str, Any]]] = None
         if self.config.openai_builtin_tools:
-            # Only supported for Responses API models
-            prefix = model_id.split("/")[0]
-            if prefix not in ("openai_responses", "azure_responses"):
+            provider = model_id.split("/")[0]
+            if provider not in ("openai_responses", "azure_responses"):
                 raise ValueError(
                     "Built-in tools only supported with Responses API models (openai_responses/* or azure_responses/*)"
                 )
-            # Validate tool types
             for tool in self.config.openai_builtin_tools:
                 ttype = tool.get("type")
                 if ttype != "web_search_preview":
@@ -2377,11 +2830,10 @@ class LLMGenerateStep(BaseStep[LLMGenerateConfig]):
             logger=self.logger,
             context=context,
             model=model_id,
-            mcp_servers=mcp_servers or None,
+            mcp_servers=servers_arg,
         )
 
         output_format = self.config.output_format
-        result: Any
         try:
             self.logger.debug(
                 "Calling LLM: model=%s, format=%r, max_tokens=%s, mcp_servers=%r, tools=%r",
@@ -2409,6 +2861,8 @@ class LLMGenerateStep(BaseStep[LLMGenerateConfig]):
                     max_tokens=max_tokens,
                     openai_builtin_tools=validated_tools,
                 )
+                # Ensure correct type
+                assert isinstance(result, FileSpecCollection), f"Expected FileSpecCollection, got {type(result)}"
                 context[output_key] = result.files
 
             elif isinstance(output_format, dict):  # JSON object schema
@@ -2419,6 +2873,8 @@ class LLMGenerateStep(BaseStep[LLMGenerateConfig]):
                     max_tokens=max_tokens,
                     openai_builtin_tools=validated_tools,
                 )
+                if not isinstance(result, BaseModel):
+                    raise ValueError(f"Expected BaseModel for object output, got {type(result)}")
                 context[output_key] = result.model_dump()
 
             elif isinstance(output_format, list):  # List schema
@@ -2437,6 +2893,8 @@ class LLMGenerateStep(BaseStep[LLMGenerateConfig]):
                     max_tokens=max_tokens,
                     openai_builtin_tools=validated_tools,
                 )
+                if not isinstance(result, BaseModel):
+                    raise ValueError(f"Expected BaseModel for list output, got {type(result)}")
                 wrapper = result.model_dump()
                 context[output_key] = wrapper.get("items", [])
 
@@ -2451,14 +2909,15 @@ class LLMGenerateStep(BaseStep[LLMGenerateConfig]):
 === File: recipe-executor/recipe_executor/steps/loop.py ===
 # This file was generated by Codebase-Generator, do not edit directly
 """
-LoopStep: iterate over a collection, execute substeps for each item with optional concurrency.
+LoopStep: iterate over a collection of items and execute substeps for each item.
+Supports template rendering, context isolation, error handling, and configurable concurrency.
 """
 
 import asyncio
 import logging
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-from recipe_executor.protocols import ContextProtocol, ExecutorProtocol
+from recipe_executor.protocols import ContextProtocol
 from recipe_executor.steps.base import BaseStep, StepConfig
 from recipe_executor.utils.templates import render_template
 
@@ -2491,7 +2950,7 @@ class LoopStepConfig(StepConfig):
 class LoopStep(BaseStep[LoopStepConfig]):
     """
     LoopStep: iterate over a collection and execute configured substeps for each item.
-    Supports async parallelism, staggered delays, and fail-fast behavior.
+    Supports async parallelism, staggered delays, structured history, and fail-fast behavior.
     """
 
     def __init__(self, logger: logging.Logger, config: Dict[str, Any]) -> None:
@@ -2499,75 +2958,78 @@ class LoopStep(BaseStep[LoopStepConfig]):
         super().__init__(logger, validated)
 
     async def execute(self, context: ContextProtocol) -> None:
-        # Avoid circular import of concrete Executor
+        """
+        Execute the loop step: resolve items, process each item in isolation,
+        collect results, errors, and history into the parent context.
+        """
+        # Deferred import to avoid circular dependency
         from recipe_executor.executor import Executor
 
-        cfg = self.config
-        # Resolve items definition: render if string
-        items_def = cfg.items
-        if isinstance(items_def, str):
-            rendered = render_template(items_def, context)
-            items_obj = _resolve_path(rendered, context)
-        else:
-            items_obj = items_def
+        cfg: LoopStepConfig = self.config
+        raw_items = cfg.items
 
-        # Validate collection
+        # Resolve items: template rendering if string, then path lookup
+        if isinstance(raw_items, str):  # type: ignore
+            rendered: str = render_template(raw_items, context)
+            items_obj: Any = _resolve_path(rendered, context)
+        else:
+            items_obj = raw_items  # type: ignore
+
+        # Validate resolved collection
         if items_obj is None:
-            raise ValueError(f"LoopStep: Items '{items_def}' not found in context.")
+            raise ValueError(f"LoopStep: Items '{raw_items}' not found in context.")
         if not isinstance(items_obj, (list, dict)):
             raise ValueError(f"LoopStep: Items must be a list or dict, got {type(items_obj).__name__}.")
 
-        # Flatten items to list of (key, value)
+        # Prepare iterable list of (key, value)
         if isinstance(items_obj, list):
             items_list: List[Tuple[int, Any]] = list(enumerate(items_obj))
         else:
             items_list = list(items_obj.items())  # type: ignore
 
-        total = len(items_list)
-        max_conc = cfg.max_concurrency
-        self.logger.info(f"LoopStep: Processing {total} items with max_concurrency={max_conc}.")
+        total: int = len(items_list)
+        max_conc: int = cfg.max_concurrency
+        self.logger.info(f"LoopStep: Starting processing of {total} items (max_concurrency={max_conc}).")
 
         # Handle empty collection
         if total == 0:
-            empty = [] if isinstance(items_obj, list) else {}
-            context[cfg.result_key] = empty
+            empty_res: Union[List[Any], Dict[Any, Any]] = [] if isinstance(items_obj, list) else {}
+            context[cfg.result_key] = empty_res
+            context[f"{cfg.result_key}__errors"] = []
+            context[f"{cfg.result_key}__history"] = []
             self.logger.info("LoopStep: No items to process.")
             return
 
-        # Prepare result and error containers
+        # Containers for results
         results: Union[List[Any], Dict[Any, Any]] = [] if isinstance(items_obj, list) else {}
-        errors: Union[List[Dict[str, Any]], Dict[Any, Dict[str, Any]]] = [] if isinstance(items_obj, list) else {}
+        errors: List[Dict[str, Any]] = []
+        history: List[Dict[str, Any]] = []
 
-        # Concurrency control
-        semaphore: Optional[asyncio.Semaphore]
-        if cfg.max_concurrency > 0:
-            semaphore = asyncio.Semaphore(cfg.max_concurrency)
-        else:
-            semaphore = None  # unlimited
+        # Concurrency control: semaphore if max_concurrency > 0
+        semaphore: Optional[asyncio.Semaphore] = asyncio.Semaphore(max_conc) if max_conc > 0 else None
 
-        # Executor instance
-        executor: ExecutorProtocol = Executor(self.logger)
+        executor = Executor(self.logger)
         plan: Dict[str, Any] = {"steps": cfg.substeps}
 
-        fail_fast = cfg.fail_fast
-        fail_fast_triggered = False
-        completed = 0
+        fail_fast: bool = cfg.fail_fast
+        fail_fast_triggered: bool = False
+        completed: int = 0
         tasks: List[asyncio.Task] = []
 
         async def process_item(key: Any, value: Any) -> Tuple[Any, Any, Optional[str]]:
+            # Clone context for isolation
             item_ctx = context.clone()
             item_ctx[cfg.item_key] = value
-            # expose index/key for templates
+            # Expose index or key
             if isinstance(items_obj, list):
                 item_ctx["__index"] = key  # type: ignore
             else:
                 item_ctx["__key"] = key  # type: ignore
             try:
-                self.logger.debug(f"LoopStep: Starting item {key}.")
+                self.logger.debug(f"LoopStep: Processing item {key}.")
                 await executor.execute(plan, item_ctx)
-                # collect output, default to original value
-                out_val = item_ctx.get(cfg.item_key, value)
-                self.logger.debug(f"LoopStep: Finished item {key}.")
+                out_val = item_ctx.get(cfg.item_key)
+                self.logger.debug(f"LoopStep: Item {key} completed.")
                 return key, out_val, None
             except Exception as exc:
                 err_msg = str(exc)
@@ -2580,11 +3042,9 @@ class LoopStep(BaseStep[LoopStepConfig]):
                 if fail_fast_triggered:
                     break
                 k, out, err = await process_item(key, val)
+                history.append({"key": k, "result": out, "error": err})
                 if err:
-                    if isinstance(errors, list):
-                        errors.append({"index": k, "error": err})
-                    else:
-                        errors[k] = {"error": err}  # type: ignore
+                    errors.append({"key": k, "error": err})
                     if fail_fast:
                         fail_fast_triggered = True
                         break
@@ -2598,66 +3058,60 @@ class LoopStep(BaseStep[LoopStepConfig]):
         async def run_parallel() -> None:
             nonlocal fail_fast_triggered, completed
 
-            async def schedule_one(k: Any, v: Any) -> Tuple[Any, Any, Optional[str]]:
-                if semaphore is not None:
+            async def schedule(k: Any, v: Any) -> Tuple[Any, Any, Optional[str]]:
+                if semaphore:
                     async with semaphore:
                         return await process_item(k, v)
                 return await process_item(k, v)
 
-            # launch tasks with optional delay
+            # Schedule tasks with optional delay
             for idx, (k, v) in enumerate(items_list):
                 if fail_fast_triggered:
                     break
-                task = asyncio.create_task(schedule_one(k, v))
+                task = asyncio.create_task(schedule(k, v))
                 tasks.append(task)
                 if cfg.delay and idx < total - 1:
                     await asyncio.sleep(cfg.delay)
 
-            # collect results
-            for task in asyncio.as_completed(tasks):
+            # Collect results as they complete
+            for t in asyncio.as_completed(tasks):
                 if fail_fast_triggered:
                     break
                 try:
-                    k, out, err = await task
-                    if err:
-                        if isinstance(errors, list):
-                            errors.append({"index": k, "error": err})
-                        else:
-                            errors[k] = {"error": err}  # type: ignore
-                        if fail_fast:
-                            fail_fast_triggered = True
-                            # cancel remaining
-                            break
-                    else:
-                        if isinstance(results, list):
-                            results.append(out)
-                        else:
-                            results[k] = out  # type: ignore
-                        completed += 1
+                    k, out, err = await t
                 except Exception as exc:
-                    self.logger.error(f"LoopStep: Unexpected error: {exc}")
+                    k, out, err = None, None, str(exc)
+                    self.logger.error(f"LoopStep: Unexpected error: {err}")
+                history.append({"key": k, "result": out, "error": err})
+                if err:
+                    errors.append({"key": k, "error": err})
                     if fail_fast:
                         fail_fast_triggered = True
                         break
-            # cancel pending tasks if fail fast
+                else:
+                    if isinstance(results, list):
+                        results.append(out)
+                    else:
+                        results[k] = out  # type: ignore
+                    completed += 1
+            # Cancel remaining tasks if aborting
             if fail_fast_triggered:
                 for t in tasks:
                     if not t.done():
                         t.cancel()
 
-        # Choose execution strategy
-        if cfg.max_concurrency == 1:
+        # Choose execution mode
+        if max_conc == 1:
             await run_sequential()
         else:
             await run_parallel()
 
-        # store results and errors
+        # Store outputs back to parent context
         context[cfg.result_key] = results
-        if errors:
-            context[f"{cfg.result_key}__errors"] = errors
+        context[f"{cfg.result_key}__errors"] = errors
+        context[f"{cfg.result_key}__history"] = history
 
-        err_count = len(errors) if isinstance(errors, (list, dict)) else 0
-        self.logger.info(f"LoopStep: Completed {completed}/{total} items. Errors: {err_count}.")
+        self.logger.info(f"LoopStep: Completed {completed}/{total} items. Errors: {len(errors)}.")
 
 
 def _resolve_path(path: str, context: ContextProtocol) -> Any:
@@ -2665,11 +3119,11 @@ def _resolve_path(path: str, context: ContextProtocol) -> Any:
     Resolve a dot-notated path against the context or nested dicts.
     """
     current: Any = context
-    for segment in path.split("."):
-        if isinstance(current, ContextProtocol):  # context lookup
-            current = current.get(segment)
-        elif isinstance(current, dict):  # dict lookup
-            current = current.get(segment)
+    for part in path.split("."):
+        if isinstance(current, ContextProtocol):
+            current = current.get(part)
+        elif isinstance(current, dict):
+            current = current.get(part)
         else:
             return None
         if current is None:
@@ -2725,14 +3179,14 @@ class MCPStep(BaseStep[MCPConfig]):  # type: ignore
         super().__init__(logger, cfg)
 
     async def execute(self, context: ContextProtocol) -> None:
-        # Render the tool name
+        # Render tool name
         tool_name: str = render_template(self.config.tool_name, context)
 
-        # Render tool arguments
+        # Render arguments
         raw_args: Dict[str, Any] = self.config.arguments or {}
         arguments: Dict[str, Any] = {}
-        for key, val in raw_args.items():
-            if isinstance(val, str):  # templated
+        for key, val in raw_args.items():  # type: ignore
+            if isinstance(val, str):
                 arguments[key] = render_template(val, context)
             else:
                 arguments[key] = val
@@ -2742,13 +3196,16 @@ class MCPStep(BaseStep[MCPConfig]):  # type: ignore
         service_desc: str
         client_cm: Any
 
-        # Choose transport: stdio if command provided, otherwise SSE
-        if server_conf.get("command") is not None:
+        # Determine transport: stdio if command provided, else SSE
+        command_tpl: Optional[str] = server_conf.get("command")  # type: ignore
+        if command_tpl is not None:
             # stdio transport
-            cmd: str = render_template(server_conf.get("command", ""), context)
-            raw_args_list: List[Any] = server_conf.get("args", []) or []
+            cmd: str = render_template(command_tpl, context)
+
+            # Render args list
+            raw_list: List[Any] = server_conf.get("args") or []  # type: ignore
             args_list: List[str] = []
-            for item in raw_args_list:
+            for item in raw_list:
                 if isinstance(item, str):
                     args_list.append(render_template(item, context))
                 else:
@@ -2756,27 +3213,28 @@ class MCPStep(BaseStep[MCPConfig]):  # type: ignore
 
             # Environment variables
             env_conf: Optional[Dict[str, str]] = None
-            if server_conf.get("env") is not None:
+            raw_env: Optional[Dict[str, Any]] = server_conf.get("env")  # type: ignore
+            if raw_env is not None:
                 env_conf = {}
-                for env_key, env_val in server_conf.get("env", {}).items():
+                for env_key, env_val in raw_env.items():  # type: ignore
                     if isinstance(env_val, str):
                         rendered = render_template(env_val, context)
                         if rendered == "":
-                            # try system or .env
+                            # Attempt system or .env fallback
                             env_path = os.path.join(os.getcwd(), ".env")
                             if os.path.exists(env_path):
                                 load_dotenv(env_path)
-                                system_val = os.getenv(env_key)
-                                if system_val is not None:
-                                    rendered = system_val
+                                sys_val = os.getenv(env_key)
+                                if sys_val is not None:
+                                    rendered = sys_val
                         env_conf[env_key] = rendered
                     else:
                         env_conf[env_key] = str(env_val)
 
             # Working directory
             cwd: Optional[str] = None
-            if server_conf.get("working_dir") is not None:
-                cwd = render_template(server_conf.get("working_dir", ""), context)
+            if server_conf.get("working_dir") is not None:  # type: ignore
+                cwd = render_template(server_conf.get("working_dir", ""), context)  # type: ignore
 
             server_params = StdioServerParameters(
                 command=cmd,
@@ -2788,11 +3246,12 @@ class MCPStep(BaseStep[MCPConfig]):  # type: ignore
             service_desc = f"stdio command '{cmd}'"
         else:
             # SSE transport
-            url: str = render_template(server_conf.get("url", ""), context)
+            url: str = render_template(server_conf.get("url", ""), context)  # type: ignore
             headers_conf: Optional[Dict[str, Any]] = None
-            if server_conf.get("headers") is not None:
+            raw_headers: Optional[Dict[str, Any]] = server_conf.get("headers")  # type: ignore
+            if raw_headers is not None:
                 headers_conf = {}
-                for hk, hv in server_conf.get("headers", {}).items():
+                for hk, hv in raw_headers.items():  # type: ignore
                     if isinstance(hv, str):
                         headers_conf[hk] = render_template(hv, context)
                     else:
@@ -2801,29 +3260,26 @@ class MCPStep(BaseStep[MCPConfig]):  # type: ignore
             client_cm = sse_client(url, headers=headers_conf)
             service_desc = f"SSE server '{url}'"
 
-        # Connect and invoke the tool
+        # Connect and invoke tool
         self.logger.debug(f"Connecting to MCP server: {service_desc}")
         try:
-            async with client_cm as (read_stream, write_stream):
+            async with client_cm as (read_stream, write_stream):  # type: ignore
                 async with ClientSession(read_stream, write_stream) as session:
                     await session.initialize()
                     self.logger.debug(f"Invoking tool '{tool_name}' with arguments {arguments}")
                     try:
-                        result: CallToolResult = await session.call_tool(
-                            name=tool_name,
-                            arguments=arguments,
-                        )
+                        result: CallToolResult = await session.call_tool(name=tool_name, arguments=arguments)
                     except Exception as exc:
                         msg = f"Tool invocation failed for '{tool_name}' on {service_desc}: {exc}"
                         raise ValueError(msg) from exc
         except ValueError:
-            # re-raise invocation errors
+            # Propagate our ValueError
             raise
         except Exception as exc:
             msg = f"Failed to call tool '{tool_name}' on {service_desc}: {exc}"
             raise ValueError(msg) from exc
 
-        # Convert result to plain dict
+        # Convert CallToolResult to dict
         try:
             if hasattr(result, "dict"):
                 result_dict: Dict[str, Any] = result.dict()  # type: ignore
@@ -2832,7 +3288,7 @@ class MCPStep(BaseStep[MCPConfig]):  # type: ignore
         except Exception:
             result_dict = {k: getattr(result, k) for k in dir(result) if not k.startswith("_")}
 
-        # Store in context
+        # Store result in context
         context[self.config.result_key] = result_dict
 
 
@@ -2844,8 +3300,7 @@ ParallelStep allows concurrent execution of multiple sub-steps (execute_recipe s
 
 import asyncio
 import logging
-from typing import Any, Dict, List, Optional
-from collections.abc import Awaitable
+from typing import Any, Dict, List, Optional, Awaitable, Set
 
 from recipe_executor.steps.base import BaseStep, StepConfig
 from recipe_executor.steps.registry import STEP_REGISTRY
@@ -2872,65 +3327,68 @@ class ParallelStep(BaseStep[ParallelConfig]):
     """Step to execute multiple sub-steps in parallel."""
 
     def __init__(self, logger: logging.Logger, config: Dict[str, Any]) -> None:
-        validated = ParallelConfig.model_validate(config)
+        validated: ParallelConfig = ParallelConfig.model_validate(config)
         super().__init__(logger, validated)
 
     async def execute(self, context: ContextProtocol) -> None:
         substeps: List[Dict[str, Any]] = self.config.substeps or []
-        total: int = len(substeps)
-        max_conc: int = self.config.max_concurrency
-        delay: float = self.config.delay
-        timeout: Optional[float] = self.config.timeout
+        total_steps: int = len(substeps)
+        max_concurrency: int = self.config.max_concurrency
+        delay_between: float = self.config.delay
+        timeout_seconds: Optional[float] = self.config.timeout
 
         self.logger.debug("ParallelStep configuration: %s", self.config)
         self.logger.info(
             "Starting ParallelStep: %d substeps, max_concurrency=%d, delay=%.3f, timeout=%s",
-            total,
-            max_conc,
-            delay,
-            f"{timeout}s" if timeout is not None else "none",
+            total_steps,
+            max_concurrency,
+            delay_between,
+            f"{timeout_seconds}s" if timeout_seconds is not None else "none",
         )
 
-        if total == 0:
+        if total_steps == 0:
             self.logger.info("No substeps to execute; skipping ParallelStep.")
             return
 
-        # Determine concurrency limit (0 or negative means unlimited)
-        concurrency: int = total if max_conc <= 0 else min(max_conc, total)
-        semaphore = asyncio.Semaphore(concurrency)
+        # Determine concurrency limit: 0 or negative => unlimited
+        concurrency_limit: int = total_steps if max_concurrency <= 0 else min(max_concurrency, total_steps)
+        semaphore: asyncio.Semaphore = asyncio.Semaphore(concurrency_limit)
 
-        # Track first failure
-        failure: Dict[str, Any] = {"exc": None, "idx": None}
+        # Track failure
+        failure_exception: Optional[Exception] = None
+        failure_index: Optional[int] = None
         tasks: List[asyncio.Task] = []
 
-        async def run_substep(idx: int, spec: Dict[str, Any]) -> None:
-            sub_logger = self.logger.getChild(f"substep_{idx}")
+        async def run_substep(index: int, spec: Dict[str, Any]) -> None:
+            nonlocal failure_exception, failure_index
+            sub_logger: logging.Logger = self.logger.getChild(f"substep_{index}")
             try:
                 sub_logger.debug(
                     "Preparing substep %d: cloning context; spec=%s",
-                    idx,
+                    index,
                     spec,
                 )
-                sub_context = context.clone()
+                sub_context: ContextProtocol = context.clone()
 
-                step_type = spec.get("type")
+                step_type: Optional[str] = spec.get("type")
                 if not step_type or step_type not in STEP_REGISTRY:
-                    raise RuntimeError(f"Unknown step type '{step_type}' for substep {idx}")
-                step_cfg = spec.get("config", {}) or {}
-                StepClass = STEP_REGISTRY[step_type]
-                step_instance: StepProtocol = StepClass(sub_logger, step_cfg)
+                    raise RuntimeError(f"Unknown step type '{step_type}' for substep {index}")
 
-                sub_logger.info("Launching substep %d of type '%s'", idx, step_type)
+                step_config_dict: Dict[str, Any] = spec.get("config", {}) or {}
+                StepClass: type[StepProtocol] = STEP_REGISTRY[step_type]
+                step_instance: StepProtocol = StepClass(sub_logger, step_config_dict)
+
+                sub_logger.info("Launching substep %d of type '%s'", index, step_type)
                 result = step_instance.execute(sub_context)
                 if isinstance(result, Awaitable):  # type: ignore
                     await result  # type: ignore
-                sub_logger.info("Substep %d completed successfully", idx)
+                sub_logger.info("Substep %d completed successfully", index)
 
             except Exception as exc:
-                if failure["exc"] is None:
-                    failure["exc"] = exc
-                    failure["idx"] = idx
-                sub_logger.error("Substep %d failed: %s", idx, exc, exc_info=True)
+                if failure_exception is None:
+                    failure_exception = exc
+                    failure_index = index
+                sub_logger.error("Substep %d failed: %s", index, exc, exc_info=True)
                 raise
 
             finally:
@@ -2938,17 +3396,13 @@ class ParallelStep(BaseStep[ParallelConfig]):
 
         # Launch substeps with concurrency control and optional delay
         for idx, spec in enumerate(substeps):
-            # Fail-fast: stop launching new substeps if a failure occurred
-            if failure["exc"]:
-                self.logger.debug(
-                    "Fail-fast: abort launching remaining substeps at index %d",
-                    idx,
-                )
+            if failure_exception:
+                self.logger.debug("Fail-fast: abort launching remaining substeps at index %d", idx)
                 break
 
             await semaphore.acquire()
-            if delay and delay > 0:
-                await asyncio.sleep(delay)
+            if delay_between > 0:
+                await asyncio.sleep(delay_between)
 
             task = asyncio.create_task(run_substep(idx, spec))
             tasks.append(task)
@@ -2957,55 +3411,66 @@ class ParallelStep(BaseStep[ParallelConfig]):
             self.logger.info("No substeps launched; nothing to wait for.")
             return
 
-        # Wait until first exception, all done, or timeout
+        done: Set[asyncio.Task]
+        pending: Set[asyncio.Task]
+
+        # Wait for substeps with first-exception or timeout handling
         try:
-            if timeout is not None:
-                done, pending = await asyncio.wait(tasks, timeout=timeout, return_when=asyncio.FIRST_EXCEPTION)
+            if timeout_seconds is not None:
+                done, pending = await asyncio.wait(
+                    tasks,
+                    timeout=timeout_seconds,
+                    return_when=asyncio.FIRST_EXCEPTION,
+                )
             else:
-                done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_EXCEPTION)
+                done, pending = await asyncio.wait(
+                    tasks,
+                    return_when=asyncio.FIRST_EXCEPTION,
+                )
         except Exception:
             done, pending = set(tasks), set()
 
         # Handle failure
-        if failure["exc"] is not None:
-            failed_idx = failure.get("idx")
+        if failure_exception is not None:
+            pending_count = len(pending)
             self.logger.error(
                 "Substep %s failed; cancelling %d pending tasks",
-                failed_idx,
-                len(pending),
+                failure_index,
+                pending_count,
             )
-            for p in pending:
-                p.cancel()
+            for t in pending:
+                t.cancel()
             await asyncio.gather(*pending, return_exceptions=True)
-            raise RuntimeError(f"ParallelStep aborted due to failure in substep {failed_idx}") from failure["exc"]
+            raise RuntimeError(f"ParallelStep aborted due to failure in substep {failure_index}") from failure_exception
 
         # Handle timeout without failure
         if pending:
+            pending_count = len(pending)
             self.logger.error(
                 "ParallelStep timed out after %.3f seconds; cancelling %d pending tasks",
-                timeout,
-                len(pending),
+                timeout_seconds,
+                pending_count,
             )
-            for p in pending:
-                p.cancel()
+            for t in pending:
+                t.cancel()
             await asyncio.gather(*pending, return_exceptions=True)
-            raise asyncio.TimeoutError(f"ParallelStep timed out after {timeout} seconds")
+            raise asyncio.TimeoutError(f"ParallelStep timed out after {timeout_seconds} seconds")
 
-        # All succeeded: gather to propagate any unexpected exceptions
+        # All successful: gather to propagate exceptions
         await asyncio.gather(*done)
         self.logger.info(
             "Completed ParallelStep: %d/%d substeps succeeded",
             len(done),
-            total,
+            total_steps,
         )
 
 
 === File: recipe-executor/recipe_executor/steps/read_files.py ===
 # This file was generated by Codebase-Generator, do not edit directly
 import os
+import glob
 import json
 import logging
-import glob
 from typing import Any, Dict, List, Union
 
 import yaml
@@ -3020,12 +3485,10 @@ class ReadFilesConfig(StepConfig):
     Configuration for ReadFilesStep.
 
     Fields:
-        path (Union[str, List[str]]): Path, comma-separated string, or list of paths to the file(s) to read (may be templated).
-        content_key (str): Name under which to store file content in the context (may be templated).
-        optional (bool): Whether to continue if a file is not found (default: False).
-        merge_mode (str): How to handle multiple files' content. Options:
-            - "concat" (default): Concatenate all files with newlines between filename headers + content
-            - "dict": Store a dictionary with file paths as keys and content as values
+        path: Path, comma-separated string, or list of paths to read (may be templated).
+        content_key: Template for the context key under which content will be stored.
+        optional: If True, missing files are skipped instead of raising.
+        merge_mode: Mode to merge multiple files: "concat" or "dict".
     """
 
     path: Union[str, List[str]]
@@ -3036,46 +3499,40 @@ class ReadFilesConfig(StepConfig):
 
 class ReadFilesStep(BaseStep[ReadFilesConfig]):
     """
-    Step that reads one or more files from disk and stores their content in the execution context.
+    Step to read one or more files, optionally parse JSON/YAML, and store content in context.
     """
 
     def __init__(self, logger: logging.Logger, config: Dict[str, Any]) -> None:
-        validated = ReadFilesConfig.model_validate(config)
+        validated: ReadFilesConfig = ReadFilesConfig.model_validate(config)
         super().__init__(logger, validated)
 
     async def execute(self, context: ContextProtocol) -> None:
         cfg = self.config
-        # Render the key to store content under
-        rendered_key = render_template(cfg.content_key, context)
+        # Render storage key
+        rendered_key: str = render_template(cfg.content_key, context)
 
-        # Normalize input paths
+        # Resolve and normalize input paths
         raw_path = cfg.path
         paths: List[str] = []
 
+        def expand_pattern(pattern: str) -> List[str]:
+            matches = glob.glob(pattern)
+            return sorted(matches) if matches else [pattern]
+
+        # Handle string path (with comma split) or list of paths
         if isinstance(raw_path, str):
             rendered = render_template(raw_path, context)
-            # split comma-separated
-            parts = [p.strip() for p in rendered.split(",") if p.strip()]
-            for part in parts:
-                matches = glob.glob(part)
-                if matches:
-                    for m in sorted(matches):
-                        paths.append(m)
-                else:
-                    paths.append(part)
-        elif isinstance(raw_path, list):
+            candidates = [p.strip() for p in rendered.split(",") if p.strip()]
+            for candidate in candidates:
+                paths.extend(expand_pattern(candidate))
+        elif isinstance(raw_path, list):  # type: ignore
             for entry in raw_path:
                 if not isinstance(entry, str):
                     raise ValueError(f"Invalid path entry type: {entry!r}")
                 rendered = render_template(entry, context)
                 if not rendered:
                     continue
-                matches = glob.glob(rendered)
-                if matches:
-                    for m in sorted(matches):
-                        paths.append(m)
-                else:
-                    paths.append(rendered)
+                paths.extend(expand_pattern(rendered))
         else:
             raise ValueError(f"Invalid type for path: {type(raw_path)}")
 
@@ -3093,31 +3550,29 @@ class ReadFilesStep(BaseStep[ReadFilesConfig]):
 
             try:
                 with open(path, mode="r", encoding="utf-8") as f:
-                    text = f.read()
+                    raw_text = f.read()
             except Exception as exc:
                 raise IOError(f"Error reading file {path}: {exc}")
 
-            # Attempt structured parsing
-            content: Any = text
+            # Attempt to parse based on extension
+            content: Any = raw_text
             ext = os.path.splitext(path)[1].lower()
             if ext == ".json":
                 try:
-                    content = json.loads(text)
+                    content = json.loads(raw_text)
                 except Exception as exc:
                     self.logger.warning(f"Failed to parse JSON from {path}: {exc}")
-                    content = text
-            elif ext in (".yaml", ".yml"):  # type: ignore
+            elif ext in (".yaml", ".yml"):
                 try:
-                    content = yaml.safe_load(text)
+                    content = yaml.safe_load(raw_text)
                 except Exception as exc:
                     self.logger.warning(f"Failed to parse YAML from {path}: {exc}")
-                    content = text
 
             self.logger.info(f"Successfully read file: {path}")
             results.append(content)
             result_map[path] = content
 
-        # Determine final content based on merge mode and number of files
+        # Merge results according to mode
         if not results:
             if len(paths) <= 1:
                 final_content: Any = ""
@@ -3134,8 +3589,8 @@ class ReadFilesStep(BaseStep[ReadFilesConfig]):
                 segments: List[str] = []
                 for p in paths:
                     if p in result_map:
-                        raw = result_map[p]
-                        segment = raw if isinstance(raw, str) else json.dumps(raw)
+                        part = result_map[p]
+                        segment = part if isinstance(part, str) else json.dumps(part)
                         segments.append(f"{p}\n{segment}")
                 final_content = "\n".join(segments)
 
@@ -3163,9 +3618,9 @@ STEP_REGISTRY: Dict[str, Type[BaseStep]] = {}
 
 === File: recipe-executor/recipe_executor/steps/set_context.py ===
 # This file was generated by Codebase-Generator, do not edit directly
-from typing import Any, Dict, List, Union, Literal
 import logging
 import re
+from typing import Any, Dict, List, Union, Literal
 
 from recipe_executor.steps.base import BaseStep, StepConfig
 from recipe_executor.protocols import ContextProtocol
@@ -3180,23 +3635,19 @@ def _has_unrendered_tags(s: str) -> bool:
     Detect if the string still contains Liquid tags that need rendering,
     ignoring content inside {% raw %}...{% endraw %} blocks.
     """
-    # Remove raw blocks so tags within them are not considered
-    cleaned = _RAW_BLOCK_RE.sub("", s)
+    cleaned: str = _RAW_BLOCK_RE.sub("", s)
     return ("{{" in cleaned) or ("{%" in cleaned)
 
 
 class SetContextConfig(StepConfig):
     """
-    Config for SetContextStep.
+    Configuration for SetContextStep.
 
     Fields:
-        key: Name of the artifact in the Context.
-        value: JSON-serializable literal, list, dict or Liquid template string rendered against
-               the current context.
-        nested_render: Whether to render templates recursively until no tags remain.
-        if_exists: Strategy when the key already exists:
-                   • "overwrite" (default) – replace the existing value
-                   • "merge" – combine the existing and new values
+        key: Identifier for the artifact in the context.
+        value: JSON-serializable literal, list, dict, or Liquid template string.
+        nested_render: If True, render templates recursively until no tags remain.
+        if_exists: Strategy when the key already exists: "overwrite" or "merge".
     """
 
     key: str
@@ -3207,7 +3658,7 @@ class SetContextConfig(StepConfig):
 
 class SetContextStep(BaseStep[SetContextConfig]):
     """
-    Step to set or update an artifact in the execution context.
+    Step to set or update an artifact in the shared execution context.
     """
 
     def __init__(self, logger: logging.Logger, config: Dict[str, Any]) -> None:
@@ -3220,10 +3671,10 @@ class SetContextStep(BaseStep[SetContextConfig]):
         strategy: str = self.config.if_exists
         existed: bool = key in context
 
-        # Render the provided value (single or nested passes)
+        # Render the provided value, with optional nested rendering
         value: Any = self._render_value(raw_value, context, nested)
 
-        # Apply strategy
+        # Apply the chosen strategy for existing keys
         if strategy == "overwrite":
             context[key] = value
         elif strategy == "merge":
@@ -3240,52 +3691,51 @@ class SetContextStep(BaseStep[SetContextConfig]):
 
     def _render_value(self, raw: Any, context: ContextProtocol, nested: bool) -> Any:
         """
-        Recursively render Liquid templates in strings, lists, and dicts.
+        Recursively render Liquid templates in the given value.
 
-        If nested is True, re-render strings until no tags remain or no change,
-        ignoring {% raw %} blocks.
+        - Strings are rendered via the template engine.
+        - Lists and dicts are walked recursively.
+        - If nested is True, strings are re-rendered until stable or no tags remain.
         """
-        # Render strings via template engine
+        # Render string values
         if isinstance(raw, str):
             rendered: str = render_template(raw, context)
             if not nested:
                 return rendered
 
             result: str = rendered
-            # nested rendering loop
+            # Continue rendering until no unrendered tags remain or no change
             while _has_unrendered_tags(result):  # type: ignore
-                prev: str = result
+                previous: str = result
                 result = render_template(result, context)
-                if result == prev:
+                if result == previous:
                     break
             return result
 
-        # Recursively render list elements
-        if isinstance(raw, list):
+        # Render list elements
+        if isinstance(raw, list):  # type: ignore
             return [self._render_value(item, context, nested) for item in raw]
 
-        # Recursively render dict values
-        if isinstance(raw, dict):
+        # Render dict values
+        if isinstance(raw, dict):  # type: ignore
             return {k: self._render_value(v, context, nested) for k, v in raw.items()}
 
-        # Pass through other JSON-serializable types
+        # Other types are passed through unchanged
         return raw
 
     def _merge(self, old: Any, new: Any) -> Any:
         """
-        Shallow merge helper for merging existing and new values.
-
-        Merge semantics:
-        - str + str => concatenate
-        - list + list or item => append
-        - dict + dict => shallow dict merge; keys in new overwrite old
-        - mismatched types => [old, new]
+        Shallow merge helper:
+          - str + str => concatenation
+          - list + list or item => append/extend
+          - dict + dict => shallow merge (new keys overwrite)
+          - mismatched types => [old, new]
         """
         # String concatenation
         if isinstance(old, str) and isinstance(new, str):  # type: ignore
             return old + new  # type: ignore
 
-        # List append or extend
+        # List merge or append
         if isinstance(old, list):  # type: ignore
             if isinstance(new, list):  # type: ignore
                 return old + new  # type: ignore
@@ -3297,7 +3747,7 @@ class SetContextStep(BaseStep[SetContextConfig]):
             merged.update(new)  # type: ignore
             return merged  # type: ignore
 
-        # Fallback for mismatched types
+        # Fallback: wrap in a list
         return [old, new]  # type: ignore
 
 
@@ -3335,7 +3785,6 @@ class WriteFilesStep(BaseStep[WriteFilesConfig]):
     """
 
     def __init__(self, logger: logging.Logger, config: Dict[str, Any]) -> None:
-        # Validate configuration using Pydantic
         validated = WriteFilesConfig.model_validate(config)
         super().__init__(logger, validated)
 
@@ -3352,7 +3801,7 @@ class WriteFilesStep(BaseStep[WriteFilesConfig]):
         # 1. Direct files in config take precedence
         if self.config.files is not None:
             for entry in self.config.files:
-                # Extract raw path
+                # Determine raw path
                 if "path" in entry:
                     raw_path = entry["path"]
                 elif "path_key" in entry:
@@ -3369,7 +3818,7 @@ class WriteFilesStep(BaseStep[WriteFilesConfig]):
                 except Exception as err:
                     raise ValueError(f"Failed to render file path '{path_str}': {err}")
 
-                # Extract raw content
+                # Determine raw content
                 if "content" in entry:
                     raw_content = entry["content"]
                 elif "content_key" in entry:
@@ -3389,12 +3838,12 @@ class WriteFilesStep(BaseStep[WriteFilesConfig]):
                 raise KeyError(f"Files key '{key}' not found in context.")
             raw = context[key]
 
-            # Normalize raw into list of specs
+            # Normalize single or list
             if isinstance(raw, FileSpec):
                 items: List[Union[FileSpec, Dict[str, Any]]] = [raw]
             elif isinstance(raw, dict):
                 if "path" in raw and "content" in raw:
-                    items = [raw]  # type: ignore
+                    items = [raw]
                 else:
                     raise ValueError(f"Malformed file dict under key '{key}': {raw}")
             elif isinstance(raw, list):
@@ -3427,49 +3876,51 @@ class WriteFilesStep(BaseStep[WriteFilesConfig]):
         else:
             raise ValueError("Either 'files' or 'files_key' must be provided in WriteFilesConfig.")
 
-        # Write each file to disk
+        # Write files to disk
         for entry in files_to_write:
             rel_path: str = entry.get("path", "")
             content = entry.get("content")
 
-            # Determine final path
+            # Resolve final path
             combined = os.path.join(root, rel_path) if root else rel_path
             final_path = os.path.normpath(combined)
 
-            try:
-                # Ensure parent directories exist
-                parent_dir = os.path.dirname(final_path)
-                if parent_dir and not os.path.exists(parent_dir):
-                    os.makedirs(parent_dir, exist_ok=True)
+            # Ensure directory exists
+            parent = os.path.dirname(final_path)
+            if parent and not os.path.exists(parent):
+                try:
+                    os.makedirs(parent, exist_ok=True)
+                except Exception as err:
+                    raise IOError(f"Failed to create directory '{parent}': {err}")
 
-                # Serialize content to text
-                if isinstance(content, (dict, list)):
-                    try:
-                        text = json.dumps(content, ensure_ascii=False, indent=2)
-                    except Exception as err:
-                        raise ValueError(f"Failed to serialize content for '{final_path}': {err}")
+            # Serialize content
+            if isinstance(content, (dict, list)):
+                try:
+                    text = json.dumps(content, ensure_ascii=False, indent=2)
+                except Exception as err:
+                    raise ValueError(f"Failed to serialize JSON for '{final_path}': {err}")
+            else:
+                if content is None:
+                    text = ""
+                elif not isinstance(content, str):
+                    text = str(content)
                 else:
-                    if content is None:
-                        text = ""
-                    elif not isinstance(content, str):
-                        text = str(content)
-                    else:
-                        text = content
+                    text = content
 
-                # Debug log before writing
-                self.logger.debug(f"[WriteFilesStep] Writing file: {final_path}\nContent:\n{text}")
+            # Debug log
+            self.logger.debug(f"[WriteFilesStep] Writing file: {final_path}\nContent:\n{text}")
 
-                # Write file using UTF-8
+            # Write to disk
+            try:
                 with open(final_path, "w", encoding="utf-8") as f:
                     f.write(text)
+            except Exception as err:
+                self.logger.error(f"[WriteFilesStep] Error writing file '{rel_path}': {err}")
+                raise IOError(f"Error writing file '{final_path}': {err}")
 
-                # Info log after success
-                size = len(text.encode("utf-8"))
-                self.logger.info(f"[WriteFilesStep] Wrote file: {final_path} ({size} bytes)")
-
-            except Exception as exc:
-                self.logger.error(f"[WriteFilesStep] Error writing file '{rel_path}': {exc}")
-                raise
+            # Info log
+            size = len(text.encode("utf-8"))
+            self.logger.info(f"[WriteFilesStep] Wrote file: {final_path} ({size} bytes)")
 
 
 === File: recipe-executor/recipe_executor/utils/models.py ===
@@ -3479,6 +3930,7 @@ Utility functions for generating Pydantic models from JSON-Schema object definit
 """
 
 from typing import Any, Dict, List, Optional, Type, Tuple
+import itertools
 
 from pydantic import BaseModel, create_model
 
@@ -3490,7 +3942,7 @@ def json_object_to_pydantic_model(object_schema: Dict[str, Any], model_name: str
     Convert a JSON-Schema object fragment into a Pydantic BaseModel subclass.
 
     Args:
-        object_schema: A JSON-Schema fragment describing an object (root type must be "object").
+        object_schema: A JSON-Schema fragment describing a root-level object.
         model_name: Name for the generated Pydantic model class.
 
     Returns:
@@ -3499,14 +3951,15 @@ def json_object_to_pydantic_model(object_schema: Dict[str, Any], model_name: str
     Raises:
         ValueError: If the schema is invalid or unsupported.
     """
-    # Validate top-level schema
+    # Basic validation of the root schema
     if not isinstance(object_schema, dict):
         raise ValueError("Schema must be a dictionary.")
+
     root_type = object_schema.get("type")
     if root_type is None:
         raise ValueError('Schema missing required "type" property.')
     if root_type != "object":
-        raise ValueError('Root schema type must be "object".')
+        raise ValueError(f"Root schema type must be 'object', got '{root_type}'.")
 
     properties = object_schema.get("properties", {})
     required_fields = object_schema.get("required", [])
@@ -3515,82 +3968,88 @@ def json_object_to_pydantic_model(object_schema: Dict[str, Any], model_name: str
         raise ValueError('Schema "properties" must be a dictionary if present.')
     if not isinstance(required_fields, list):
         raise ValueError('Schema "required" must be a list if present.')
+    for field in required_fields:
+        if not isinstance(field, str):
+            raise ValueError(f"Required field names must be strings, got {field!r}.")
+        if field not in properties:
+            raise ValueError(f"Required field '{field}' not found in properties.")
 
-    # Counter for nested model naming
-    class _Counter:
-        def __init__(self) -> None:
-            self._n = 0
+    # Counter for naming nested models deterministically
+    counter = itertools.count(1)
 
-        def next(self) -> int:
-            self._n += 1
-            return self._n
-
-    counter = _Counter()
-
-    def _build_model(schema: Dict[str, Any], name: str) -> Type[BaseModel]:
-        if not isinstance(schema, dict):
-            raise ValueError(f"Schema for model '{name}' must be a dictionary.")
-        if schema.get("type") != "object":
-            raise ValueError(f"Schema for model '{name}' must be of type 'object'.")
-
-        props = schema.get("properties", {})
-        req = schema.get("required", [])
-        if not isinstance(props, dict):
-            raise ValueError(f"Properties of '{name}' must be a dictionary.")
-        if not isinstance(req, list):
-            raise ValueError(f"Required list of '{name}' must be a list.")
-
-        fields: Dict[str, Tuple[Any, Any]] = {}
-        for prop, prop_schema in props.items():
-            is_req = prop in req
-            hint, default = _wrap_optional(prop_schema, is_req, prop, name)
-            fields[prop] = (hint, default)
-
-        return create_model(name, **fields)  # type: ignore
-
-    def _parse_field(field_schema: Any, field_name: str, parent_name: str) -> Tuple[Any, Any]:
+    def _parse_field(
+        field_schema: Dict[str, Any], field_name: str, parent_name: str, is_required: bool
+    ) -> Tuple[Any, Any]:
         if not isinstance(field_schema, dict):
             raise ValueError(f"Schema for field '{field_name}' must be a dictionary.")
+
         f_type = field_schema.get("type")
         if f_type is None:
             raise ValueError(f"Schema for field '{field_name}' missing required 'type'.")
 
-        # Primitives
+        # Determine the Python type hint
         if f_type == "string":
-            return str, ...
-        if f_type == "integer":
-            return int, ...
-        if f_type == "number":
-            return float, ...
-        if f_type == "boolean":
-            return bool, ...
-
-        # Nested object
-        if f_type == "object":
-            nested_name = f"{parent_name}_{field_name.capitalize()}Model{counter.next()}"
+            hint: Any = str
+        elif f_type == "integer":
+            hint = int
+        elif f_type == "number":
+            hint = float
+        elif f_type == "boolean":
+            hint = bool
+        elif f_type == "object":
+            # Nested object: create a sub-model
+            nested_props = field_schema.get("properties", {})
+            if not isinstance(nested_props, dict):
+                raise ValueError(f"Properties for nested object '{field_name}' must be a dictionary.")
+            nested_id = next(counter)
+            suffix = field_name[0].upper() + field_name[1:] if field_name else "Object"
+            nested_name = f"{parent_name}_{suffix}Model{nested_id}"
             nested_model = _build_model(field_schema, nested_name)
-            return nested_model, ...
+            hint = nested_model
+        elif f_type in ("array", "list"):
+            items_schema = field_schema.get("items")
+            if items_schema is None:
+                raise ValueError(f"Array field '{field_name}' must have an 'items' schema.")
+            item_hint, _ = _parse_field(items_schema, f"{field_name}_item", parent_name, True)
+            hint = List[item_hint]  # type: ignore
+        else:
+            # Fallback for unsupported types
+            hint = Any
 
-        # Array or list
-        if f_type in ("array", "list"):
-            items = field_schema.get("items")
-            if not isinstance(items, dict):
-                raise ValueError(f"Array field '{field_name}' must have a valid 'items' schema.")
-            item_hint, _ = _parse_field(items, f"{field_name}_item", parent_name)
-            return List[item_hint], ...  # type: ignore
-
-        # Fallback unsupported type
-        return Any, ...
-
-    def _wrap_optional(field_schema: Any, required: bool, field_name: str, parent: str) -> Tuple[Any, Any]:
-        hint, default = _parse_field(field_schema, field_name, parent)
-        if not required:
+        # Manage required vs optional
+        if is_required:
+            default: Any = ...  # required
+        else:
             hint = Optional[hint]  # type: ignore
             default = None
+
         return hint, default
 
+    def _build_model(schema: Dict[str, Any], name: str) -> Type[BaseModel]:
+        # Expect an object schema
+        props = schema.get("properties", {})
+        req = schema.get("required", [])
+
+        if not isinstance(props, dict):
+            raise ValueError(f"Properties for model '{name}' must be a dictionary.")
+        if not isinstance(req, list):
+            raise ValueError(f"Required list for model '{name}' must be a list.")
+
+        fields: Dict[str, Tuple[Any, Any]] = {}
+        for prop_name, prop_schema in props.items():
+            if not isinstance(prop_name, str):
+                raise ValueError(f"Property names must be strings in model '{name}'.")
+            is_req = prop_name in req
+            hint, default = _parse_field(prop_schema, prop_name, name, is_req)
+            fields[prop_name] = (hint, default)
+
+        return create_model(name, **fields)  # type: ignore
+
     # Build and return the root model
-    return _build_model({"type": "object", "properties": properties, "required": required_fields}, model_name)
+    return _build_model(
+        {"type": "object", "properties": properties, "required": required_fields},
+        model_name,
+    )
 
 
 === File: recipe-executor/recipe_executor/utils/templates.py ===
@@ -3658,15 +4117,16 @@ def render_template(text: str, context: ContextProtocol) -> str:
     Raises:
         ValueError: If there is an error during template parsing or rendering.
     """
+    data = context.dict()
     try:
         template = _env.from_string(text)
-        result = template.render(**context.dict())
+        result = template.render(**data)
         return result
     except LiquidError as e:
-        err = f"Liquid template rendering error: {e}. Template: {text!r}. Context: {context.dict()!r}"
-        raise ValueError(err) from e
+        message = f"Liquid template rendering error: {e}. Template: {text!r}. Context: {data!r}"
+        raise ValueError(message) from e
     except Exception as e:
-        err = f"Error rendering template: {e}. Template: {text!r}. Context: {context.dict()!r}"
-        raise ValueError(err) from e
+        message = f"Error rendering template: {e}. Template: {text!r}. Context: {data!r}"
+        raise ValueError(message) from e
 
 

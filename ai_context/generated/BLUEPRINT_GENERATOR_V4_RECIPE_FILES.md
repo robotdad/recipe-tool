@@ -3,9 +3,9 @@
 [collect-files]
 
 **Search:** ['recipes/experimental/blueprint_generator_v4']
-**Exclude:** ['.venv', 'node_modules', '*.lock', '.git', '__pycache__', '*.pyc', '*.ruff_cache', 'logs', 'output']
+**Exclude:** ['.venv', 'node_modules', '*.lock', '.git', '__pycache__', '*.pyc', '*.ruff_cache', 'logs', 'output', '.DS_Store', '*.DS_Store']
 **Include:** []
-**Date:** 5/23/2025, 12:34:00 PM
+**Date:** 8/15/2025, 3:42:41 PM
 **Files:** 16
 
 === File: recipes/experimental/blueprint_generator_v4/README.md ===

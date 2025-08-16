@@ -3,9 +3,9 @@
 [collect-files]
 
 **Search:** ['mcp-servers/python-code-tools']
-**Exclude:** ['.venv', 'node_modules', '*.lock', '.git', '__pycache__', '*.pyc', '*.ruff_cache', 'logs', 'output']
+**Exclude:** ['.venv', 'node_modules', '*.lock', '.git', '__pycache__', '*.pyc', '*.ruff_cache', 'logs', 'output', '.DS_Store', '*.DS_Store']
 **Include:** []
-**Date:** 6/27/2025, 4:24:08 PM
+**Date:** 8/15/2025, 3:42:41 PM
 **Files:** 28
 
 === File: mcp-servers/python-code-tools/.ruff.toml ===

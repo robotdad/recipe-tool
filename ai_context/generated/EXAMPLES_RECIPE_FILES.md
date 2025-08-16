@@ -3,9 +3,9 @@
 [collect-files]
 
 **Search:** ['recipes/example_*']
-**Exclude:** ['.venv', 'node_modules', '*.lock', '.git', '__pycache__', '*.pyc', '*.ruff_cache', 'logs', 'output']
+**Exclude:** ['.venv', 'node_modules', '*.lock', '.git', '__pycache__', '*.pyc', '*.ruff_cache', 'logs', 'output', '.DS_Store', '*.DS_Store']
 **Include:** []
-**Date:** 6/18/2025, 12:10:57 PM
+**Date:** 8/15/2025, 3:42:41 PM
 **Files:** 24
 
 === File: recipes/example_brave_search/README.md ===
